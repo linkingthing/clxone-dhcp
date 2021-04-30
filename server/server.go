@@ -2,15 +2,20 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
+	"net"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
-	"github.com/zdnscloud/cement/x509"
+	"github.com/google/uuid"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/zdnscloud/gorest"
 	"github.com/zdnscloud/gorest/adaptor"
 	"github.com/zdnscloud/gorest/resource/schema"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	hv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -53,13 +58,8 @@ func NewServer() (*Server, error) {
 			param.Request.UserAgent(),
 		)
 	}))
-	router.StaticFS("/public", http.Dir(util.FileRootPath))
-	router.StaticFS("/geo", http.Dir(util.FileGeoPath))
-	router.GET("/", func(context *gin.Context) {
-		context.Redirect(http.StatusFound, "/public")
-	})
+
 	group := router.Group("/")
-	// common.RegisterHandler(router.RouterGroup)
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
 	// apiServer.Use(authentification.JWTMiddleWare())
 	return &Server{
@@ -73,32 +73,64 @@ func (s *Server) RegisterHandler(h WebHandler) error {
 	return h.RegisterHandler(s.apiServer, s.router)
 }
 
-func (s *Server) Run(conf *config.DDIControllerConfig) error {
+func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
+	errc := make(chan error)
 	adaptor.RegisterHandler(s.group, s.apiServer, s.apiServer.Schemas.GenerateResourceRoute())
-	if conf.Server.TlsCertFile == "" {
-		if err := createSelfSignedTlsCert(); err != nil {
-			return err
+
+	{
+		// register grpc api service to consul
+		check := consulapi.AgentServiceCheck{
+			GRPC:     fmt.Sprintf("%s:%s", conf.Server.IP, conf.Server.GrpcPort),
+			Interval: "10s",
+			Timeout:  "1s",
 		}
-
-		return s.router.RunTLS(":"+conf.Server.Port, defaultTlsCertFile, defaultTlsKeyFile)
-	} else {
-		return s.router.RunTLS(":"+conf.Server.Port, conf.Server.TlsCertFile, conf.Server.TlsKeyFile)
-	}
-}
-
-func createSelfSignedTlsCert() error {
-	_, err := os.Stat(defaultTlsCertFile)
-	if err != nil && os.IsExist(err) {
-		return nil
+		grpcServiceName := "clxone-dhcp-grpc"
+		grpcServiceID := grpcServiceName + uuid.NewString()
+		registar := Register(conf.Server.IP, conf.Server.GrpcPort, grpcServiceID, grpcServiceName, check)
+		registar.Register()
+		defer registar.Deregister()
 	}
 
-	cert, err := x509.GenerateSelfSignedCertificate("ddi.linkingthing.com", nil, nil, 7300)
-	if err != nil {
-		return err
+	{
+		// register rest api service to consul
+		check := consulapi.AgentServiceCheck{
+			HTTP:     fmt.Sprintf("http://%v:%v/health", conf.Server.IP, conf.Server.Port),
+			Interval: "10s",
+			Timeout:  "1s",
+		}
+		serviceName := "clxone-dhcp-api"
+		serviceID := serviceName + uuid.NewString()
+		registar := Register(conf.Server.IP, conf.Server.Port, serviceID, serviceName, check)
+		defer registar.Deregister()
 	}
 
-	if err := ioutil.WriteFile(defaultTlsCertFile, []byte(cert.Cert), 0644); err != nil {
-		return err
+	{
+		go func() {
+			errc <- s.router.Run(":" + conf.Server.Port)
+		}()
+
+		go func() {
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+			errc <- fmt.Errorf("%s", <-c)
+		}()
+
+		go func() {
+			grpcListener, err := net.Listen("tcp", ":"+conf.Server.GrpcPort)
+			if err != nil {
+				errc <- err
+				return
+			}
+			baseServer := grpc.NewServer()
+			healthServer := health.NewServer()
+			hv1.RegisterHealthServer(baseServer, healthServer)
+			// svc := service.UserService{}
+			// pb.RegisterUserServiceServer(baseServer, transport.UserServiceBinding{UserService: svc})
+
+			errc <- baseServer.Serve(grpcListener)
+		}()
 	}
-	return ioutil.WriteFile(defaultTlsKeyFile, []byte(cert.Key), 0644)
+
+	err = <-errc
+	return err
 }

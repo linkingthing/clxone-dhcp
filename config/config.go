@@ -36,6 +36,7 @@ type ServerConf struct {
 	TlsKeyFile  string `yaml:"tls_key_file"`
 	Master      string `yaml:"master"`
 	NotifyAddr  string `yaml:"notify_addr"`
+	GrpcPort    string `yaml:"grpc_port"`
 }
 
 type DDIAgentConf struct {
