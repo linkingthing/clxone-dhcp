@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -59,9 +60,13 @@ func NewServer() (*Server, error) {
 		)
 	}))
 
+	router.GET("/health", func(context *gin.Context) {
+		context.Writer.Header().Set("Content-Type", "Application/Json")
+		context.String(http.StatusOK, `{"status": "ok"}`)
+	})
 	group := router.Group("/")
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
-	// apiServer.Use(authentification.JWTMiddleWare())
+	apiServer.Use(JWTMiddleWare())
 	return &Server{
 		group:     group,
 		router:    router,

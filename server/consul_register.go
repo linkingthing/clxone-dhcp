@@ -29,8 +29,6 @@ func Register(advertiseAddress string,
 		os.Exit(1)
 	}
 
-	client := consulsd.NewClient(consulClient)
-
 	port, _ := strconv.Atoi(advertisePort)
 	asr := consulapi.AgentServiceRegistration{
 		ID:      serviceID,
@@ -39,6 +37,7 @@ func Register(advertiseAddress string,
 		Port:    port,
 		Check:   &check,
 	}
+	client := consulsd.NewClient(consulClient)
 	registar = consulsd.NewRegistrar(client, &asr, logger)
 	registar.Register()
 	return

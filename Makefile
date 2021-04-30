@@ -2,27 +2,27 @@ GOSRC = $(shell find . -type f -name '*.go')
 
 VERSION=v1.4.1
 
-build: clxone_controller
+build: clxone_dhcp
 
-clxone_controller: $(GOSRC)
-	CGO_ENABLED=0 GOOS=linux go build -o clxone_controller cmd/controller/controller.go
+clxone_dhcp: $(GOSRC)
+	CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/controller/controller.go
 
 build-image:
-	docker build -t linkingthing/clxone-controller:${VERSION} .
+	docker build -t linkingthing/clxone-dhcp:${VERSION} .
 	docker image prune -f
 
 docker:
-	docker build -t linkingthing/clxone-controller:${VERSION} .
+	docker build -t linkingthing/clxone-dhcp:${VERSION} .
 	docker image prune -f
-	docker push linkingthing/clxone-controller:${VERSION}
+	docker push linkingthing/clxone-dhcp:${VERSION}
 
 clean:
-	rm -rf clxone_controller
+	rm -rf clxone_dhcp
 
 test:
 	go test -v -timeout 60s -race ./...
 
 clean-image:
-	docker rmi linkingthing/clxone-controller:${VERSION}
+	docker rmi linkingthing/clxone-dhcp:${VERSION}
 
 .PHONY: clean install
