@@ -15,10 +15,16 @@ import (
 	restserver "github.com/linkingthing/clxone-dhcp/server"
 )
 
-var configFile string
+var (
+	configFile string
+	host       string
+	port       string
+)
 
 func main() {
 	flag.StringVar(&configFile, "c", "controller.conf", "configure file path")
+	flag.StringVar(&host, "h", "127.0.0.1", "server port")
+	flag.StringVar(&port, "p", "58221", "server port")
 	flag.Parse()
 
 	log.InitLogger(log.Debug)
@@ -26,6 +32,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
+	conf.Server.Hostname = host
+	conf.Server.Port = port
 
 	db.RegisterResources(dhcp.PersistentResources()...)
 	if err := db.Init(conf); err != nil {

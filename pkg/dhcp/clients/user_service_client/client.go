@@ -50,7 +50,7 @@ func NewClient() (*grpc.ClientConn, error) {
 
 	client := consul.NewClient(c)
 	instance := consul.NewInstancer(client, logger, "clxone-user-grpc", []string{}, true)
-	endpointor := sd.NewEndpointer(instance, endFactory, logger)
+	endpointor := sd.NewEndpointer(instance, getFactory, logger)
 
 	balancer := lb.NewRoundRobin(endpointor)
 	end, err := balancer.Endpoint()
@@ -70,12 +70,13 @@ func NewClient() (*grpc.ClientConn, error) {
 		grpc.WithInsecure(),
 	)
 	if err != nil {
+		// log.Fatalf("did not connect: %v", err)
 		return nil, err
 	}
 	return conn, nil
 }
 
-func endFactory(instance string) (endpoint.Endpoint, io.Closer, error) {
+func getFactory(instance string) (endpoint.Endpoint, io.Closer, error) {
 	return func(context.Context, interface{}) (interface{}, error) {
 		return instance, nil
 	}, nil, nil

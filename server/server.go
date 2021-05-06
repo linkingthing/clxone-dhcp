@@ -2,10 +2,12 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
@@ -85,13 +87,17 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 	{
 		// register grpc api service to consul
 		check := consulapi.AgentServiceCheck{
-			GRPC:     fmt.Sprintf("%s:%s", "10.0.0.156", "58221"),
+			GRPC:     fmt.Sprintf("%s:%s", conf.Server.IP, getGrpcPort(conf.Server.Port)),
 			Interval: "10s",
 			Timeout:  "1s",
 		}
 		grpcServiceName := "clxone-dhcp-grpc"
 		grpcServiceID := grpcServiceName + uuid.NewString()
-		registar := Register("10.0.0.156", "58221", grpcServiceID, grpcServiceName, check)
+		registar := Register(conf.Server.IP,
+			getGrpcPort(conf.Server.Port),
+			grpcServiceID,
+			grpcServiceName,
+			check)
 		registar.Register()
 		defer registar.Deregister()
 	}
@@ -99,19 +105,19 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 	{
 		// register rest api service to consul
 		check := consulapi.AgentServiceCheck{
-			HTTP:     fmt.Sprintf("http://%v:%v/health", "10.0.0.156", "58220"),
+			HTTP:     fmt.Sprintf("http://%v:%v/health", conf.Server.IP, conf.Server.Port),
 			Interval: "10s",
 			Timeout:  "1s",
 		}
 		serviceName := "clxone-dhcp-api"
 		serviceID := serviceName + uuid.NewString()
-		registar := Register("10.0.0.156", "58220", serviceID, serviceName, check)
+		registar := Register(conf.Server.IP, conf.Server.Port, serviceID, serviceName, check)
 		defer registar.Deregister()
 	}
 
 	{
 		go func() {
-			errc <- s.router.Run(":" + "58220")
+			errc <- s.router.Run(":" + conf.Server.Port)
 		}()
 
 		go func() {
@@ -121,7 +127,7 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 		}()
 
 		go func() {
-			grpcListener, err := net.Listen("tcp", ":58221")
+			grpcListener, err := net.Listen("tcp", ":"+getGrpcPort(conf.Server.Port))
 			if err != nil {
 				errc <- err
 				return
@@ -138,4 +144,14 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 
 	err = <-errc
 	return err
+}
+
+func getGrpcPort(httpPort string) (grpcPort string) {
+	port, err := strconv.Atoi(httpPort)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
+	return strconv.Itoa(port + 1)
 }
