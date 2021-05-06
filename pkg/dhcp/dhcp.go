@@ -26,6 +26,7 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.ClientClass{}, handler.NewClientClassHandler())
 	apiServer.Schemas.MustImport(&Version, resource.StaticAddress{}, handler.NewStaticAddressHandler())
 	apiServer.Schemas.MustImport(&Version, resource.PoolTemplate{}, handler.NewPoolTemplateHandler())
+	apiServer.Schemas.MustImport(&Version, resource.Node{}, handler.NewNodeHandler())
 	return nil
 }
 

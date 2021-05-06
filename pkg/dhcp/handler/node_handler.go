@@ -6,18 +6,16 @@ import (
 	"io"
 
 	"github.com/go-kit/kit/endpoint"
-	"github.com/linkingthing/clxone-dhcp/config"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/dhcp/grpc_clients"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/sirupsen/logrus"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
-	"github.com/sirupsen/logrus"
+)
 
-type NodeHandler struct {
-}
+type NodeHandler struct{}
 
-func NewNodeHandler(conf *config.DDIControllerConfig) *NodeHandler {
+func NewNodeHandler() *NodeHandler {
 	return &NodeHandler{}
 }
 
