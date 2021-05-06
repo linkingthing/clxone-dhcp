@@ -12,11 +12,9 @@ import (
 
 func JWTMiddleWare() gorest.HandlerFunc {
 	return func(c *restresource.Context) *resterror.APIError {
-		if c.Request.RequestURI == "/health" {
-			return nil
-		}
-		err := client.ValidateToken(c.Request.Header.Get("authorization"),
-			getClientIP(c.Request.RemoteAddr))
+		token := c.Request.Header.Get("authorization")
+		clientIP := getClientIP(c.Request.RemoteAddr)
+		err := client.ValidateToken(token, clientIP)
 		if err != nil {
 			return resterror.NewAPIError(resterror.Unauthorized, err.Error())
 		}

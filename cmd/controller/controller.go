@@ -28,6 +28,9 @@ func main() {
 	}
 
 	db.RegisterResources(dhcp.PersistentResources()...)
+	if err := db.Init(conf); err != nil {
+		log.Fatalf("init db failed: %s", err.Error())
+	}
 
 	esclient.Init(conf)
 	kafkaproducer.Init(conf)

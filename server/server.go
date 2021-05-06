@@ -44,7 +44,7 @@ type WebHandler interface {
 }
 
 func NewServer() (*Server, error) {
-	gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.DebugMode)
 	gin.DefaultWriter = os.Stdout
 	router := gin.New()
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
@@ -85,13 +85,13 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 	{
 		// register grpc api service to consul
 		check := consulapi.AgentServiceCheck{
-			GRPC:     fmt.Sprintf("%s:%s", conf.Server.IP, conf.Server.GrpcPort),
+			GRPC:     fmt.Sprintf("%s:%s", "10.0.0.156", "58221"),
 			Interval: "10s",
 			Timeout:  "1s",
 		}
 		grpcServiceName := "clxone-dhcp-grpc"
 		grpcServiceID := grpcServiceName + uuid.NewString()
-		registar := Register(conf.Server.IP, conf.Server.GrpcPort, grpcServiceID, grpcServiceName, check)
+		registar := Register("10.0.0.156", "58221", grpcServiceID, grpcServiceName, check)
 		registar.Register()
 		defer registar.Deregister()
 	}
@@ -99,19 +99,19 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 	{
 		// register rest api service to consul
 		check := consulapi.AgentServiceCheck{
-			HTTP:     fmt.Sprintf("http://%v:%v/health", conf.Server.IP, conf.Server.Port),
+			HTTP:     fmt.Sprintf("http://%v:%v/health", "10.0.0.156", "58220"),
 			Interval: "10s",
 			Timeout:  "1s",
 		}
 		serviceName := "clxone-dhcp-api"
 		serviceID := serviceName + uuid.NewString()
-		registar := Register(conf.Server.IP, conf.Server.Port, serviceID, serviceName, check)
+		registar := Register("10.0.0.156", "58220", serviceID, serviceName, check)
 		defer registar.Deregister()
 	}
 
 	{
 		go func() {
-			errc <- s.router.Run(":" + conf.Server.Port)
+			errc <- s.router.Run(":" + "58220")
 		}()
 
 		go func() {
@@ -121,7 +121,7 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 		}()
 
 		go func() {
-			grpcListener, err := net.Listen("tcp", ":"+conf.Server.GrpcPort)
+			grpcListener, err := net.Listen("tcp", ":58221")
 			if err != nil {
 				errc <- err
 				return
