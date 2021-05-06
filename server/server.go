@@ -122,7 +122,7 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 
 		go func() {
 			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 			errc <- fmt.Errorf("%s", <-c)
 		}()
 
