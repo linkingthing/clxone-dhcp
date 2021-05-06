@@ -4,11 +4,11 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 )
 
-const ResourceIDQPS = "qps"
+// const ResourceIDQPS = "qps"
 
-type Qps struct {
-	Values []ValueWithTimestamp `json:"values"`
-}
+// type Qps struct {
+// 	Values []ValueWithTimestamp `json:"values"`
+// }
 
 type ValueWithTimestamp struct {
 	Timestamp restresource.ISOTime `json:"timestamp"`
