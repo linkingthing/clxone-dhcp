@@ -8,7 +8,7 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
