@@ -49,9 +49,9 @@ func (s *SubnetHandler) Create(ctx *restresource.Context) (restresource.Resource
 		}
 
 		subnet.SetID(strconv.Itoa(int(subnet.SubnetId)))
-		// if err := s.checkSubnetAvailable(subnet, subnets, tx); err != nil {
-		// 	return err
-		// }
+		if err := s.checkSubnetAvailable(subnet, subnets, tx); err != nil {
+			return err
+		}
 
 		if _, err := tx.Insert(subnet); err != nil {
 			return err
@@ -326,18 +326,20 @@ func sendDeleteSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
 	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
 }
 
-// func (s *SubnetHandler) checkSubnetAvailable(subnet *resource.Subnet, allSubnets []*resource.Subnet, tx restdb.Transaction) error {
-// 	for _, allSubnet := range allSubnets {
-// 		if subnet.Version == util.IPVersion6 {
-// 			if util.CheckPrefixsContainEachOther(allSubnet.Subnet, &subnet.Ipnet) {
-// 				return fmt.Errorf("the %s exists in subnets", allSubnet.Subnet)
-// 			}
-// 		} else if subnet.Version == util.IPVersion4 {
-// 			if util.PrefixsEqual(allSubnet.Subnet, subnet.Subnet) {
-// 				return fmt.Errorf("the %s exists in subnets", allSubnet.Subnet)
-// 			}
-// 		}
-// 	}
+func (s *SubnetHandler) checkSubnetAvailable(subnet *resource.Subnet, allSubnets []*resource.Subnet, tx restdb.Transaction) error {
+	for _, allSubnet := range allSubnets {
+		if subnet.Version == util.IPVersion6 {
+			if util.CheckPrefixsContainEachOther(allSubnet.Subnet, &subnet.Ipnet) {
+				return fmt.Errorf("the %s exists in subnets", allSubnet.Subnet)
+			}
+		} else if subnet.Version == util.IPVersion4 {
+			if util.PrefixsEqual(allSubnet.Subnet, subnet.Subnet) {
+				return fmt.Errorf("the %s exists in subnets", allSubnet.Subnet)
+			}
+		}
+	}
 
-// 	return ipamresource.CheckSubNetAvailable(tx, subnet.Ipnet, subnet.Version)
-// }
+	// return ipamresource.CheckSubNetAvailable(tx, subnet.Ipnet, subnet.Version)
+	// TODO
+	return nil
+}
