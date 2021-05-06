@@ -17,6 +17,7 @@ require (
 	github.com/linkingthing/ddi-agent v1.4.1
 	github.com/linkingthing/ddi-monitor v1.3.2-0.20210205121535-1e6bc6af77bd
 	github.com/segmentio/kafka-go v0.4.2
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/soniah/gosnmp v1.26.0
 	github.com/zdnscloud/cement v0.0.0-20200612070849-67372f989797
 	github.com/zdnscloud/g53 v0.0.0-20200610043040-c71a4decb734

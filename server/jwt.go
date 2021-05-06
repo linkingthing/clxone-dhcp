@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/clients/user_service/pb"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/dhcp/grpc_clients"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/grpc_clients/user_service/pb"
 	"github.com/zdnscloud/gorest"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"

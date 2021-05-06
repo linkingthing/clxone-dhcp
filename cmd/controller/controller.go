@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 
+	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/log"
 	"google.golang.org/grpc"
 
@@ -29,6 +30,12 @@ func main() {
 	flag.Parse()
 
 	log.InitLogger(log.Debug)
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	logrus.SetLevel(logrus.WarnLevel)
+	logrus.SetReportCaller(true)
+
 	conf, err := config.LoadConfig(configFile)
 	if err != nil {
 		log.Fatalf("load config file failed: %s", err.Error())
