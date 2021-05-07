@@ -6,8 +6,8 @@ import (
 	"io"
 
 	"github.com/go-kit/kit/endpoint"
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/dhcp/grpc_clients"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto"
 	"github.com/sirupsen/logrus"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -30,7 +30,7 @@ func (h *NodeHandler) List(ctx *restresource.Context) (interface{}, *resterror.A
 }
 
 func getDHCPNodeList() (nodes []resource.Node, err error) {
-	endpoints, err := grpcclient.GetEndpoints("clxone-dhcp-agent")
+	endpoints, err := proto.GetEndpoints("clxone-dhcp-agent")
 	if err != nil {
 		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,

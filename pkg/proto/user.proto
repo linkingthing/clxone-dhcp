@@ -1,19 +1,17 @@
 syntax = "proto3";
 
-option go_package = "pb/";
-
-package  user_service;
+option go_package = "proto/";
 
 message CheckTokenRequest {
-   string token = 1;
-   string clientIP = 2;
+  string token = 1;
+  string client_ip = 2;
 }
 
 message CheckTokenResponse {
-  string ID = 1;
-  string Name = 2;
-	string Comment = 3;
-	string Token = 4;
+  string id = 1;
+  string name = 2;
+	string comment = 3;
+	string token = 4;
 }
 
 service UserService {

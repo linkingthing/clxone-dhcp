@@ -24,10 +24,10 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
-const (
-	defaultTlsCertFile = "tls_cert.crt"
-	defaultTlsKeyFile  = "tls_key.key"
-)
+// const (
+// 	defaultTlsCertFile = "tls_cert.crt"
+// 	defaultTlsKeyFile  = "tls_key.key"
+// )
 
 type Server struct {
 	group     *gin.RouterGroup
