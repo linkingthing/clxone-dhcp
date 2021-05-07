@@ -17,7 +17,7 @@ func JWTMiddleWare() gorest.HandlerFunc {
 		token := c.Request.Header.Get("authorization")
 		clientIP := getClientIP(c.Request.RemoteAddr)
 
-		conn, err := proto.NewClient("clxone-dhcp-grpc")
+		conn, err := proto.NewClient("clxone-user-grpc")
 		if err != nil {
 			return resterror.NewAPIError(resterror.Unauthorized, err.Error())
 		}
