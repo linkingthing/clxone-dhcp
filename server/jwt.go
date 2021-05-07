@@ -26,7 +26,7 @@ func JWTMiddleWare() gorest.HandlerFunc {
 		cli := pb.NewUserServiceClient(conn)
 
 		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-		_, err = cli.CheckToken(ctx, &pb.CheckTokenRequest{
+		user, err := cli.CheckToken(ctx, &pb.CheckTokenRequest{
 			Token:    token,
 			ClientIP: clientIP,
 		})
@@ -34,6 +34,8 @@ func JWTMiddleWare() gorest.HandlerFunc {
 		if err != nil {
 			return resterror.NewAPIError(resterror.Unauthorized, err.Error())
 		}
+
+		c.Set("AuthedUser", user)
 		return nil
 	}
 }

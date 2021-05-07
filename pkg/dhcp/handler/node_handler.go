@@ -20,14 +20,19 @@ func NewNodeHandler() *NodeHandler {
 }
 
 func (h *NodeHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	getNodeList()
+	nodes, err := getDHCPNodeList()
 
-	return nil, nil
+	if err != nil {
+		logrus.Error(err)
+		return nil, resterror.NewAPIError(resterror.InvalidFormat, err.Error())
+	}
+	return nodes, nil
 }
 
-func getNodeList() (nodes []resource.Node, err error) {
+func getDHCPNodeList() (nodes []resource.Node, err error) {
 	endpoints, err := grpcclient.GetEndpoints("clxone-dhcp-agent")
 	if err != nil {
+		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("found clxone-dhcp-agent: %s", err.Error()))
 	}
