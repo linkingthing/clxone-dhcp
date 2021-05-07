@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto"
 	"github.com/sirupsen/logrus"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"

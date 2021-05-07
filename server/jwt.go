@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/proto"
 	"github.com/zdnscloud/gorest"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"

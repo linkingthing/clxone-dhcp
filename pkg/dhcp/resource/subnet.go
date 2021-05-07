@@ -12,7 +12,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+	pb "github.com/linkingthing/ddi-agent/pkg/pb"
 )
 
 var TableSubnet = restdb.ResourceDBType(&Subnet{})

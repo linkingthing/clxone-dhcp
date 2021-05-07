@@ -16,7 +16,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+	pb "github.com/linkingthing/ddi-agent/pkg/pb"
 )
 
 type PdPoolHandler struct {
