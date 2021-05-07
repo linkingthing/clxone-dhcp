@@ -19,7 +19,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
-	pb "github.com/linkingthing/ddi-agent/pkg/pb"
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type SubnetHandler struct {

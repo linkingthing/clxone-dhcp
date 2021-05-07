@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	"github.com/sirupsen/logrus"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -29,7 +30,7 @@ func (h *NodeHandler) List(ctx *restresource.Context) (interface{}, *resterror.A
 }
 
 func getDHCPNodeList() (nodes []resource.Node, err error) {
-	endpoints, err := proto.GetEndpoints("clxone-dhcp-agent")
+	endpoints, err := pb.GetEndpoints("clxone-dhcp-agent")
 	if err != nil {
 		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,

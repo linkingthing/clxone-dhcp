@@ -3,7 +3,7 @@ package grpcclient
 import (
 	"google.golang.org/grpc"
 
-	pb "github.com/linkingthing/ddi-agent/pkg/pb"
+	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type GrpcClient struct {
