@@ -1,8 +1,8 @@
 package server
 
 import (
+	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/sd"
@@ -10,8 +10,48 @@ import (
 	consulapi "github.com/hashicorp/consul/api"
 )
 
-func Register(advertiseAddress string,
-	advertisePort string,
+func RegisterForHttp(
+	advertiseAddress string,
+	advertisePort int,
+	serviceID string,
+	serviceName string) (registar sd.Registrar) {
+
+	check := consulapi.AgentServiceCheck{
+		HTTP:     fmt.Sprintf("%v:%v", advertiseAddress, advertisePort),
+		Interval: "10s",
+		Timeout:  "1s",
+	}
+
+	registar = register(advertiseAddress,
+		advertisePort,
+		serviceID,
+		serviceName,
+		check)
+	return registar
+}
+
+func RegisterForGrpc(
+	advertiseAddress string,
+	advertisePort int,
+	serviceID string,
+	serviceName string) (registar sd.Registrar) {
+
+	check := consulapi.AgentServiceCheck{
+		GRPC:     fmt.Sprintf("%v:%v", advertiseAddress, advertisePort),
+		Interval: "10s",
+		Timeout:  "1s",
+	}
+
+	registar = register(advertiseAddress,
+		advertisePort,
+		serviceID,
+		serviceName,
+		check)
+	return registar
+}
+
+func register(advertiseAddress string,
+	advertisePort int,
 	serviceID string,
 	serviceName string,
 	check consulapi.AgentServiceCheck) (registar sd.Registrar) {
@@ -29,13 +69,24 @@ func Register(advertiseAddress string,
 		os.Exit(1)
 	}
 
-	port, _ := strconv.Atoi(advertisePort)
+	taggedAddresses := map[string]consulapi.ServiceAddress{
+		"lan_ipv4": {
+			Address: advertiseAddress,
+			Port:    advertisePort,
+		},
+		"lan_ipv6": {
+			Address: advertiseAddress,
+			Port:    advertisePort,
+		},
+	}
+
 	asr := consulapi.AgentServiceRegistration{
-		ID:      serviceID,
-		Name:    serviceName,
-		Address: advertiseAddress,
-		Port:    port,
-		Check:   &check,
+		ID:              serviceID,
+		Name:            serviceName,
+		Address:         advertiseAddress,
+		Port:            advertisePort,
+		TaggedAddresses: taggedAddresses,
+		Check:           &check,
 	}
 	client := consulsd.NewClient(consulClient)
 	registar = consulsd.NewRegistrar(client, &asr, logger)

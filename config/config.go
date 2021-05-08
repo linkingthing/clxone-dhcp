@@ -30,7 +30,7 @@ type DBConf struct {
 
 type ServerConf struct {
 	IP          string `yaml:"ip"`
-	Port        string `yaml:"port"`
+	Port        int    `yaml:"port"`
 	Hostname    string `yaml:"hostname"`
 	TlsCertFile string `yaml:"tls_cert_file"`
 	TlsKeyFile  string `yaml:"tls_key_file"`

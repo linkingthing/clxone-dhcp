@@ -2,17 +2,14 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/zdnscloud/gorest"
 	"github.com/zdnscloud/gorest/adaptor"
 	"github.com/zdnscloud/gorest/resource/schema"
@@ -23,11 +20,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
-
-// const (
-// 	defaultTlsCertFile = "tls_cert.crt"
-// 	defaultTlsKeyFile  = "tls_key.key"
-// )
 
 type Server struct {
 	group     *gin.RouterGroup
@@ -85,39 +77,33 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 	adaptor.RegisterHandler(s.group, s.apiServer, s.apiServer.Schemas.GenerateResourceRoute())
 
 	{
+		// register rest api service to consul
+		serviceName := "clxone-dhcp-api"
+		serviceID := serviceName + uuid.NewString()
+		registar := RegisterForHttp(conf.Server.IP,
+			conf.Server.Port,
+			serviceID,
+			serviceName,
+		)
+		defer registar.Deregister()
+	}
+
+	{
 		// register grpc api service to consul
-		check := consulapi.AgentServiceCheck{
-			GRPC:     fmt.Sprintf("%s:%s", conf.Server.IP, getGrpcPort(conf.Server.Port)),
-			Interval: "10s",
-			Timeout:  "1s",
-		}
 		grpcServiceName := "clxone-dhcp-grpc"
 		grpcServiceID := grpcServiceName + uuid.NewString()
-		registar := Register(conf.Server.IP,
+		registar := RegisterForGrpc(conf.Server.IP,
 			getGrpcPort(conf.Server.Port),
 			grpcServiceID,
 			grpcServiceName,
-			check)
+		)
 		registar.Register()
 		defer registar.Deregister()
 	}
 
 	{
-		// register rest api service to consul
-		check := consulapi.AgentServiceCheck{
-			HTTP:     fmt.Sprintf("http://%v:%v/health", conf.Server.IP, conf.Server.Port),
-			Interval: "10s",
-			Timeout:  "1s",
-		}
-		serviceName := "clxone-dhcp-api"
-		serviceID := serviceName + uuid.NewString()
-		registar := Register(conf.Server.IP, conf.Server.Port, serviceID, serviceName, check)
-		defer registar.Deregister()
-	}
-
-	{
 		go func() {
-			errc <- s.router.Run(":" + conf.Server.Port)
+			errc <- s.router.Run(fmt.Sprintf(":%d", conf.Server.Port))
 		}()
 
 		go func() {
@@ -127,7 +113,7 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 		}()
 
 		go func() {
-			grpcListener, err := net.Listen("tcp", ":"+getGrpcPort(conf.Server.Port))
+			grpcListener, err := net.Listen("tcp", fmt.Sprintf(":%d", getGrpcPort(conf.Server.Port)))
 			if err != nil {
 				errc <- err
 				return
@@ -146,12 +132,6 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 	return err
 }
 
-func getGrpcPort(httpPort string) (grpcPort string) {
-	port, err := strconv.Atoi(httpPort)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
-	return strconv.Itoa(port + 1)
+func getGrpcPort(httpPort int) (grpcPort int) {
+	return httpPort + 1
 }

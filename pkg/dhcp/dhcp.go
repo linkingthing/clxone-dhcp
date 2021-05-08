@@ -29,6 +29,10 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.PoolTemplate{}, handler.NewPoolTemplateHandler())
 	apiServer.Schemas.MustImport(&Version, resource.Node{}, handler.NewNodeHandler())
 
+	_, err := handler.NewScannedSubnetHandler()
+	if err != nil {
+		return err
+	}
 	conf := config.GetConfig()
 	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, handler.NewDhcpHandler(conf))
 	return nil

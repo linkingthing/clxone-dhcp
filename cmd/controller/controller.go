@@ -18,28 +18,28 @@ import (
 
 var (
 	configFile string
-	host       string
-	port       string
+	ip         string
+	port       int
 )
 
 func main() {
 	flag.StringVar(&configFile, "c", "controller.conf", "configure file path")
-	flag.StringVar(&host, "h", "127.0.0.1", "server port")
-	flag.StringVar(&port, "p", "58221", "server port")
+	flag.StringVar(&ip, "ip", "127.0.0.1", "server port")
+	flag.IntVar(&port, "p", 58221, "server port")
 	flag.Parse()
 
 	log.InitLogger(log.Debug)
 	logrus.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
-	logrus.SetLevel(logrus.WarnLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	logrus.SetReportCaller(true)
 
 	conf, err := config.LoadConfig(configFile)
 	if err != nil {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
-	conf.Server.Hostname = host
+	conf.Server.IP = ip
 	conf.Server.Port = port
 
 	db.RegisterResources(dhcp.PersistentResources()...)

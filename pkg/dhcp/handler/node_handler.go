@@ -3,9 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
-	"io"
 
-	"github.com/go-kit/kit/endpoint"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	"github.com/sirupsen/logrus"
@@ -29,12 +27,12 @@ func (h *NodeHandler) List(ctx *restresource.Context) (interface{}, *resterror.A
 	return nodes, nil
 }
 
-func getDHCPNodeList() (nodes []resource.Node, err error) {
+func getDHCPNodeList() (nodes []*resource.Node, err error) {
 	endpoints, err := pb.GetEndpoints("clxone-dhcp-agent")
 	if err != nil {
 		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("found clxone-dhcp-agent: %s", err.Error()))
+			fmt.Sprintf("found clxone-dhcp-agnet: %s", err.Error()))
 	}
 	for _, end := range endpoints {
 		response, err := end(context.Background(), struct{}{})
@@ -42,15 +40,12 @@ func getDHCPNodeList() (nodes []resource.Node, err error) {
 			logrus.Error(err)
 			return nil, err
 		}
-		nodes = append(nodes, resource.Node{
-			Ip: response.(string),
-		})
-	}
-	return
-}
+		logrus.Debug(response)
 
-func getFactory(instance string) (endpoint.Endpoint, io.Closer, error) {
-	return func(context.Context, interface{}) (interface{}, error) {
-		return instance, nil
-	}, nil, nil
+		// TODO : clxone-dhcp-agent should provider grpc method to get all nodes
+
+		nodes = append(nodes, &resource.Node{})
+	}
+
+	return
 }

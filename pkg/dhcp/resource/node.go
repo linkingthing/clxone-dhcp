@@ -7,5 +7,6 @@ import (
 type Node struct {
 	resource.ResourceBase `json:",inline"`
 
-	Ip string `json:"ip"`
+	Ip    string   `json:"ip"`
+	Ipv6s []string `json:"ipv6s"`
 }
