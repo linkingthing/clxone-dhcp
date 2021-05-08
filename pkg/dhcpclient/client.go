@@ -56,10 +56,13 @@ func getDHCPNodeList() (nodes []resource.Node, err error) {
 			logrus.Error(err)
 			return nil, err
 		}
-		nodes = append(nodes, resource.Node{
-			Ip: response.(string),
-		})
+
+		logrus.Debug(response)
+		// TODO: rpc all agent to get all nodes
+		nodes = append(nodes, resource.Node{})
+
 	}
+
 	return
 }
 

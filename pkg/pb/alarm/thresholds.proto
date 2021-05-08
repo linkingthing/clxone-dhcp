@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option go_package = "alarm/";
+
+package proto;
+
+import "alarm.proto";
+
+message RegisterThreshold {
+  BaseThreshold base_threshold = 1;
+  uint64 value = 2;
+  bool send_mail = 3;
+}
+
+message UpdateThreshold {
+  ThresholdName name = 1;
+  uint64 value = 2;
+  bool send_mail = 3;
+}
+
+message DeRegisterThreshold { ThresholdName name = 1; }
