@@ -35,6 +35,8 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	}
 	conf := config.GetConfig()
 	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, handler.NewDhcpHandler(conf))
+
+	handler.NewLPSHandler(conf)
 	return nil
 }
 
