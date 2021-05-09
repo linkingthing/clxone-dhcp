@@ -90,6 +90,11 @@ message IllegalDhcpAlarm {
   string illegal_dhcp_mac              = 3;
 }
 
+message IllegalLPSAlarm {
+  BaseAlarm base_alarm                 = 1;
+  uint64 latest_value                  = 2;
+}
+
 message IpBaseLineAlarm {
   BaseAlarm base_alarm                 = 1;
   string conflict_ip                   = 2;

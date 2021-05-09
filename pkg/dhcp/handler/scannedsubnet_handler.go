@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net"
 	"sync"
 	"time"
 
@@ -13,31 +12,12 @@ import (
 )
 
 const (
-	DefaultScanInterval   = 300 //5 min
 	DefaultSearchInterval = 750 //12 min 30s
 )
 
-// type DHCPSubnet struct {
-// 	subnet              *dhcpresource.Subnet
-// 	pools               []*dhcpresource.Pool
-// 	reservations        []*dhcpresource.Reservation
-// 	staticAddresses     []*dhcpresource.StaticAddress
-// 	capacity            uint64
-// 	poolCapacity        uint64
-// 	dynamicPoolCapacity uint64
-// 	reservationRatio    string
-// 	staticAddressRatio  string
-// 	unusedRatio         string
-// }
-
 type ScannedSubnetHandler struct {
-	scannedSubnets map[string]*ScannedSubnetAndNICs
-	dhcpClient     *dhcpclient.DHCPClient
-	lock           sync.RWMutex
-}
-
-type ScannedSubnetAndNICs struct {
-	ipnet net.IPNet
+	dhcpClient *dhcpclient.DHCPClient
+	lock       sync.RWMutex
 }
 
 func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
@@ -58,12 +38,14 @@ func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
 		dhcpClient: dhcpClient,
 	}
 
-	alarmServie := service.NewAlarmService()
-	err = alarmServie.RegisterThresholdToKafka(service.IllegalDhcpAlarm, alarmServie.DhcpThreshold)
+	alarmService := service.NewAlarmService()
+	err = alarmService.RegisterThresholdToKafka(service.IllegalDhcpAlarm, alarmService.DhcpThreshold)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
+
+	go alarmService.ListenUpdateThresholdEvent(service.UpdateThreshold, alarmService.UpdateDhcpThresHold)
 
 	go h.searchIllegalDHCPServer(searchInterval)
 	return h, nil
@@ -77,16 +59,25 @@ func (h *ScannedSubnetHandler) searchIllegalDHCPServer(searchInterval int) {
 		select {
 		case <-ticker.C:
 
-			dhcpService := h.dhcpClient.FindIllegalDHCPServer()
-
+			dhcpServers := h.dhcpClient.FindIllegalDHCPServer()
 			alarmService := service.NewAlarmService()
-			alarmService.SendEventWithIllegalDHCP(dhcpService, alarm.IllegalDhcpAlarm{
-				BaseAlarm: &alarm.BaseAlarm{
-					BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
-					Time:          time.Now().Format(time.RFC3339),
-					SendMail:      alarmService.DhcpThreshold.SendMail,
-				},
-			})
+
+			for _, dhcpServer := range dhcpServers {
+				ip := dhcpServer.IPv4
+				if ip == "" {
+					ip = dhcpServer.IPv6
+				}
+
+				alarmService.SendEventWithValues(&alarm.IllegalDhcpAlarm{
+					BaseAlarm: &alarm.BaseAlarm{
+						BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
+						Time:          time.Now().Format(time.RFC3339),
+						SendMail:      alarmService.DhcpThreshold.SendMail,
+					},
+					IllegalDhcpIp:  ip,
+					IllegalDhcpMac: dhcpServer.Mac,
+				})
+			}
 
 		}
 	}

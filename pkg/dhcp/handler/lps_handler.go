@@ -5,14 +5,122 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"github.com/zdnscloud/cement/log"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
 	agentmetric "github.com/linkingthing/ddi-agent/pkg/metric"
 )
+
+type LPSHandler struct {
+	prometheusAddr string
+	exportPort     int
+	LocalIP        string
+}
+
+func NewLPSHandler(conf *config.DDIControllerConfig) *LPSHandler {
+	alarmService := service.NewAlarmService()
+	err := alarmService.RegisterThresholdToKafka(service.IllegalDhcpAlarm, alarmService.DhcpThreshold)
+	if err != nil {
+		logrus.Error(err)
+	}
+
+	go alarmService.ListenUpdateThresholdEvent(service.UpdateThreshold, alarmService.UpdateLpsThresHold)
+
+	h := &LPSHandler{
+		prometheusAddr: conf.Prometheus.Addr,
+		exportPort:     conf.Prometheus.ExportPort,
+		LocalIP:        conf.Server.IP,
+	}
+	go h.monitor(alarmService.LpsThreshold)
+	return h
+}
+
+func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			nodes, err := getDHCPNodeList()
+			if err != nil {
+				logrus.Error(err)
+				continue
+			}
+			h.collectNodesMetric(nodes, threshold)
+		}
+	}
+}
+
+func (h *LPSHandler) collectNodesMetric(nodes []*resource.Node, threshold *alarm.RegisterThreshold) (err error) {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	period := genMonitorTimestamp(300)
+	for _, node := range nodes {
+
+		err = h.collectLPSMetric(node.Ip, threshold, period)
+
+		if err != nil {
+			log.Warnf("get node %s metrics failed: %s", node.Ip, err.Error())
+		}
+
+	}
+
+	return nil
+}
+
+func (h *LPSHandler) collectLPSMetric(nodeIP string,
+	threshold *alarm.RegisterThreshold,
+	period *TimePeriodParams) error {
+
+	dhcp, err := getLps(&MetricContext{PrometheusAddr: h.prometheusAddr, NodeIP: nodeIP, Period: period})
+	if err != nil {
+		return fmt.Errorf("get node %s lps failed: %s", nodeIP, err.Error())
+	}
+
+	alarmService := service.NewAlarmService()
+
+	var exceedThresholdCount int
+	var latestTime time.Time
+	var latestValue uint64
+	for _, value := range dhcp.Lps.Values {
+		if value.Value >= threshold.Value {
+			latestTime = time.Time(value.Timestamp)
+			latestValue = value.Value
+			exceedThresholdCount += 1
+		}
+	}
+
+	if float64(exceedThresholdCount)/float64(len(dhcp.Lps.Values)) > 0.6 {
+		alarmService.SendEventWithValues(&alarm.IllegalLPSAlarm{
+			BaseAlarm: &alarm.BaseAlarm{
+				BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
+				Time:          latestTime.Format(time.RFC3339),
+				SendMail:      alarmService.DhcpThreshold.SendMail,
+			},
+			LatestValue: latestValue,
+		})
+	}
+	return nil
+}
+
+func genMonitorTimestamp(period int64) *TimePeriodParams {
+	now := time.Now().Unix()
+	return &TimePeriodParams{
+		Begin: now - period,
+		End:   now,
+		Step:  period / 30,
+	}
+}
 
 var TableHeaderLPS = []string{"日期", "LPS"}
 
