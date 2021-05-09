@@ -12,7 +12,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
@@ -26,13 +26,13 @@ type LPSHandler struct {
 }
 
 func NewLPSHandler(conf *config.DDIControllerConfig) *LPSHandler {
-	alarmService := service.NewAlarmService()
-	err := alarmService.RegisterThresholdToKafka(service.IllegalDhcpAlarm, alarmService.DhcpThreshold)
+	alarmService := services.NewAlarmService()
+	err := alarmService.RegisterThresholdToKafka(services.IllegalDhcpAlarm, alarmService.DhcpThreshold)
 	if err != nil {
 		logrus.Error(err)
 	}
 
-	go alarmService.ListenUpdateThresholdEvent(service.UpdateThreshold, alarmService.UpdateLpsThresHold)
+	go alarmService.ListenUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateLpsThresHold)
 
 	h := &LPSHandler{
 		prometheusAddr: conf.Prometheus.Addr,
@@ -87,7 +87,7 @@ func (h *LPSHandler) collectLPSMetric(nodeIP string,
 		return fmt.Errorf("get node %s lps failed: %s", nodeIP, err.Error())
 	}
 
-	alarmService := service.NewAlarmService()
+	alarmService := services.NewAlarmService()
 
 	var exceedThresholdCount int
 	var latestTime time.Time

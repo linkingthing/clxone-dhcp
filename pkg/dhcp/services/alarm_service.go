@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"context"
@@ -42,7 +42,7 @@ const (
 )
 
 var globalAlarmService *AlarmService
-var once sync.Once
+var onceAlarmService sync.Once
 
 type AlarmService struct {
 	DhcpThreshold *alarm.RegisterThreshold
@@ -50,7 +50,7 @@ type AlarmService struct {
 }
 
 func NewAlarmService() *AlarmService {
-	once.Do(func() {
+	onceAlarmService.Do(func() {
 		globalAlarmService = &AlarmService{
 			DhcpThreshold: &alarm.RegisterThreshold{
 				BaseThreshold: &alarm.BaseThreshold{

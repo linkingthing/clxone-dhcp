@@ -18,6 +18,9 @@ import (
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/transports"
+	"github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -121,8 +124,9 @@ func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
 			baseServer := grpc.NewServer()
 			healthServer := health.NewServer()
 			hv1.RegisterHealthServer(baseServer, healthServer)
-			// svc := service.UserService{}
-			// pb.RegisterUserServiceServer(baseServer, transport.UserServiceBinding{UserService: svc})
+
+			dhcp.RegisterDhcpServiceServer(baseServer,
+				transports.DHCPServiceBinding{DHCPService: services.NewDHCPService()})
 
 			errc <- baseServer.Serve(grpcListener)
 		}()

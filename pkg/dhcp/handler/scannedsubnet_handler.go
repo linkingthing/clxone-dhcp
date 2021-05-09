@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/sirupsen/logrus"
@@ -38,14 +38,14 @@ func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
 		dhcpClient: dhcpClient,
 	}
 
-	alarmService := service.NewAlarmService()
-	err = alarmService.RegisterThresholdToKafka(service.IllegalDhcpAlarm, alarmService.DhcpThreshold)
+	alarmService := services.NewAlarmService()
+	err = alarmService.RegisterThresholdToKafka(services.IllegalDhcpAlarm, alarmService.DhcpThreshold)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
 	}
 
-	go alarmService.ListenUpdateThresholdEvent(service.UpdateThreshold, alarmService.UpdateDhcpThresHold)
+	go alarmService.ListenUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateDhcpThresHold)
 
 	go h.searchIllegalDHCPServer(searchInterval)
 	return h, nil
@@ -60,7 +60,7 @@ func (h *ScannedSubnetHandler) searchIllegalDHCPServer(searchInterval int) {
 		case <-ticker.C:
 
 			dhcpServers := h.dhcpClient.FindIllegalDHCPServer()
-			alarmService := service.NewAlarmService()
+			alarmService := services.NewAlarmService()
 
 			for _, dhcpServer := range dhcpServers {
 				ip := dhcpServer.IPv4
