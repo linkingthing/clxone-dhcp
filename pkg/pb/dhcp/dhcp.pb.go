@@ -24,16 +24,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type GetSubnetByIDReq struct {
+type SearchSubnetRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id []string `protobuf:"bytes,1,rep,name=id,proto3" json:"id,omitempty"`
 }
 
-func (x *GetSubnetByIDReq) Reset() {
-	*x = GetSubnetByIDReq{}
+func (x *SearchSubnetRequest) Reset() {
+	*x = SearchSubnetRequest{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_dhcp_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -41,13 +41,13 @@ func (x *GetSubnetByIDReq) Reset() {
 	}
 }
 
-func (x *GetSubnetByIDReq) String() string {
+func (x *SearchSubnetRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetSubnetByIDReq) ProtoMessage() {}
+func (*SearchSubnetRequest) ProtoMessage() {}
 
-func (x *GetSubnetByIDReq) ProtoReflect() protoreflect.Message {
+func (x *SearchSubnetRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_dhcp_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -59,16 +59,165 @@ func (x *GetSubnetByIDReq) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetSubnetByIDReq.ProtoReflect.Descriptor instead.
-func (*GetSubnetByIDReq) Descriptor() ([]byte, []int) {
+// Deprecated: Use SearchSubnetRequest.ProtoReflect.Descriptor instead.
+func (*SearchSubnetRequest) Descriptor() ([]byte, []int) {
 	return file_dhcp_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetSubnetByIDReq) GetId() string {
+func (x *SearchSubnetRequest) GetId() []string {
 	if x != nil {
 		return x.Id
 	}
+	return nil
+}
+
+type SearchSubnetResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Subnets []*Subnet `protobuf:"bytes,1,rep,name=subnets,proto3" json:"subnets,omitempty"`
+}
+
+func (x *SearchSubnetResponse) Reset() {
+	*x = SearchSubnetResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_dhcp_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SearchSubnetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchSubnetResponse) ProtoMessage() {}
+
+func (x *SearchSubnetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_dhcp_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchSubnetResponse.ProtoReflect.Descriptor instead.
+func (*SearchSubnetResponse) Descriptor() ([]byte, []int) {
+	return file_dhcp_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SearchSubnetResponse) GetSubnets() []*Subnet {
+	if x != nil {
+		return x.Subnets
+	}
+	return nil
+}
+
+type SearchClosestSubnetRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id []string `protobuf:"bytes,1,rep,name=id,proto3" json:"id,omitempty"`
+	Ip string   `protobuf:"bytes,2,opt,name=ip,proto3" json:"ip,omitempty"`
+}
+
+func (x *SearchClosestSubnetRequest) Reset() {
+	*x = SearchClosestSubnetRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_dhcp_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SearchClosestSubnetRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchClosestSubnetRequest) ProtoMessage() {}
+
+func (x *SearchClosestSubnetRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_dhcp_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchClosestSubnetRequest.ProtoReflect.Descriptor instead.
+func (*SearchClosestSubnetRequest) Descriptor() ([]byte, []int) {
+	return file_dhcp_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SearchClosestSubnetRequest) GetId() []string {
+	if x != nil {
+		return x.Id
+	}
+	return nil
+}
+
+func (x *SearchClosestSubnetRequest) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
 	return ""
+}
+
+type SearchClosestSubnetResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Subnet *Subnet `protobuf:"bytes,1,opt,name=subnet,proto3" json:"subnet,omitempty"`
+}
+
+func (x *SearchClosestSubnetResponse) Reset() {
+	*x = SearchClosestSubnetResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_dhcp_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SearchClosestSubnetResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchClosestSubnetResponse) ProtoMessage() {}
+
+func (x *SearchClosestSubnetResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_dhcp_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchClosestSubnetResponse.ProtoReflect.Descriptor instead.
+func (*SearchClosestSubnetResponse) Descriptor() ([]byte, []int) {
+	return file_dhcp_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SearchClosestSubnetResponse) GetSubnet() *Subnet {
+	if x != nil {
+		return x.Subnet
+	}
+	return nil
 }
 
 type Subnet struct {
@@ -76,31 +225,21 @@ type Subnet struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id                    string   `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Subnet                string   `protobuf:"bytes,2,opt,name=subnet,proto3" json:"subnet,omitempty"`
-	Ipnet                 *IPNet   `protobuf:"bytes,3,opt,name=ipnet,proto3" json:"ipnet,omitempty"`
-	SubnetId              uint32   `protobuf:"varint,4,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
-	ValidLifetime         uint32   `protobuf:"varint,5,opt,name=valid_lifetime,json=validLifetime,proto3" json:"valid_lifetime,omitempty"`
-	MaxValidLifetime      uint32   `protobuf:"varint,6,opt,name=max_valid_lifetime,json=maxValidLifetime,proto3" json:"max_valid_lifetime,omitempty"`
-	MinValidLifetime      uint32   `protobuf:"varint,7,opt,name=min_valid_lifetime,json=minValidLifetime,proto3" json:"min_valid_lifetime,omitempty"`
-	DomainServers         []string `protobuf:"bytes,8,rep,name=domain_servers,json=domainServers,proto3" json:"domain_servers,omitempty"`
-	Routers               []string `protobuf:"bytes,9,rep,name=routers,proto3" json:"routers,omitempty"`
-	ClientClass           string   `protobuf:"bytes,10,opt,name=client_class,json=clientClass,proto3" json:"client_class,omitempty"`
-	IfaceName             string   `protobuf:"bytes,11,opt,name=iface_name,json=ifaceName,proto3" json:"iface_name,omitempty"`
-	RelayAgentAddresses   []string `protobuf:"bytes,12,rep,name=relay_agent_addresses,json=relayAgentAddresses,proto3" json:"relay_agent_addresses,omitempty"`
-	RelayAgentInterfaceId string   `protobuf:"bytes,13,opt,name=relay_agent_interface_id,json=relayAgentInterfaceId,proto3" json:"relay_agent_interface_id,omitempty"`
-	Tags                  string   `protobuf:"bytes,14,opt,name=tags,proto3" json:"tags,omitempty"`
-	NetworkType           string   `protobuf:"bytes,15,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
-	Capacity              uint64   `protobuf:"varint,16,opt,name=capacity,proto3" json:"capacity,omitempty"`
-	UsedRatio             string   `protobuf:"bytes,17,opt,name=used_ratio,json=usedRatio,proto3" json:"used_ratio,omitempty"`
-	UsedCount             uint64   `protobuf:"varint,19,opt,name=used_count,json=usedCount,proto3" json:"used_count,omitempty"`
-	Version               uint32   `protobuf:"varint,20,opt,name=version,proto3" json:"version,omitempty"`
+	Id          string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Subnet      string `protobuf:"bytes,2,opt,name=subnet,proto3" json:"subnet,omitempty"`
+	SubnetId    uint32 `protobuf:"varint,3,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
+	Tags        string `protobuf:"bytes,4,opt,name=tags,proto3" json:"tags,omitempty"`
+	NetworkType string `protobuf:"bytes,5,opt,name=network_type,json=networkType,proto3" json:"network_type,omitempty"`
+	Capacity    uint64 `protobuf:"varint,6,opt,name=capacity,proto3" json:"capacity,omitempty"`
+	UsedRatio   string `protobuf:"bytes,7,opt,name=used_ratio,json=usedRatio,proto3" json:"used_ratio,omitempty"`
+	UsedCount   uint64 `protobuf:"varint,8,opt,name=used_count,json=usedCount,proto3" json:"used_count,omitempty"`
+	Version     uint32 `protobuf:"varint,9,opt,name=version,proto3" json:"version,omitempty"`
 }
 
 func (x *Subnet) Reset() {
 	*x = Subnet{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_dhcp_proto_msgTypes[1]
+		mi := &file_dhcp_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -113,7 +252,7 @@ func (x *Subnet) String() string {
 func (*Subnet) ProtoMessage() {}
 
 func (x *Subnet) ProtoReflect() protoreflect.Message {
-	mi := &file_dhcp_proto_msgTypes[1]
+	mi := &file_dhcp_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -126,7 +265,7 @@ func (x *Subnet) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Subnet.ProtoReflect.Descriptor instead.
 func (*Subnet) Descriptor() ([]byte, []int) {
-	return file_dhcp_proto_rawDescGZIP(), []int{1}
+	return file_dhcp_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Subnet) GetId() string {
@@ -143,81 +282,11 @@ func (x *Subnet) GetSubnet() string {
 	return ""
 }
 
-func (x *Subnet) GetIpnet() *IPNet {
-	if x != nil {
-		return x.Ipnet
-	}
-	return nil
-}
-
 func (x *Subnet) GetSubnetId() uint32 {
 	if x != nil {
 		return x.SubnetId
 	}
 	return 0
-}
-
-func (x *Subnet) GetValidLifetime() uint32 {
-	if x != nil {
-		return x.ValidLifetime
-	}
-	return 0
-}
-
-func (x *Subnet) GetMaxValidLifetime() uint32 {
-	if x != nil {
-		return x.MaxValidLifetime
-	}
-	return 0
-}
-
-func (x *Subnet) GetMinValidLifetime() uint32 {
-	if x != nil {
-		return x.MinValidLifetime
-	}
-	return 0
-}
-
-func (x *Subnet) GetDomainServers() []string {
-	if x != nil {
-		return x.DomainServers
-	}
-	return nil
-}
-
-func (x *Subnet) GetRouters() []string {
-	if x != nil {
-		return x.Routers
-	}
-	return nil
-}
-
-func (x *Subnet) GetClientClass() string {
-	if x != nil {
-		return x.ClientClass
-	}
-	return ""
-}
-
-func (x *Subnet) GetIfaceName() string {
-	if x != nil {
-		return x.IfaceName
-	}
-	return ""
-}
-
-func (x *Subnet) GetRelayAgentAddresses() []string {
-	if x != nil {
-		return x.RelayAgentAddresses
-	}
-	return nil
-}
-
-func (x *Subnet) GetRelayAgentInterfaceId() string {
-	if x != nil {
-		return x.RelayAgentInterfaceId
-	}
-	return ""
 }
 
 func (x *Subnet) GetTags() string {
@@ -262,116 +331,51 @@ func (x *Subnet) GetVersion() uint32 {
 	return 0
 }
 
-type IPNet struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Ip     string `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
-	IpMask string `protobuf:"bytes,2,opt,name=ip_mask,json=ipMask,proto3" json:"ip_mask,omitempty"`
-}
-
-func (x *IPNet) Reset() {
-	*x = IPNet{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_dhcp_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *IPNet) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IPNet) ProtoMessage() {}
-
-func (x *IPNet) ProtoReflect() protoreflect.Message {
-	mi := &file_dhcp_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IPNet.ProtoReflect.Descriptor instead.
-func (*IPNet) Descriptor() ([]byte, []int) {
-	return file_dhcp_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *IPNet) GetIp() string {
-	if x != nil {
-		return x.Ip
-	}
-	return ""
-}
-
-func (x *IPNet) GetIpMask() string {
-	if x != nil {
-		return x.IpMask
-	}
-	return ""
-}
-
 var File_dhcp_proto protoreflect.FileDescriptor
 
 var file_dhcp_proto_rawDesc = []byte{
-	0x0a, 0x0a, 0x64, 0x68, 0x63, 0x70, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x22, 0x0a, 0x10,
-	0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x42, 0x79, 0x49, 0x44, 0x52, 0x65, 0x71,
-	0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64,
-	0x22, 0x89, 0x05, 0x0a, 0x06, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69,
-	0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x73,
-	0x75, 0x62, 0x6e, 0x65, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x75, 0x62,
-	0x6e, 0x65, 0x74, 0x12, 0x1c, 0x0a, 0x05, 0x69, 0x70, 0x6e, 0x65, 0x74, 0x18, 0x03, 0x20, 0x01,
-	0x28, 0x0b, 0x32, 0x06, 0x2e, 0x49, 0x50, 0x4e, 0x65, 0x74, 0x52, 0x05, 0x69, 0x70, 0x6e, 0x65,
-	0x74, 0x12, 0x1b, 0x0a, 0x09, 0x73, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x0d, 0x52, 0x08, 0x73, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x49, 0x64, 0x12, 0x25,
-	0x0a, 0x0e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x5f, 0x6c, 0x69, 0x66, 0x65, 0x74, 0x69, 0x6d, 0x65,
-	0x18, 0x05, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x0d, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4c, 0x69, 0x66,
-	0x65, 0x74, 0x69, 0x6d, 0x65, 0x12, 0x2c, 0x0a, 0x12, 0x6d, 0x61, 0x78, 0x5f, 0x76, 0x61, 0x6c,
-	0x69, 0x64, 0x5f, 0x6c, 0x69, 0x66, 0x65, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28,
-	0x0d, 0x52, 0x10, 0x6d, 0x61, 0x78, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x4c, 0x69, 0x66, 0x65, 0x74,
-	0x69, 0x6d, 0x65, 0x12, 0x2c, 0x0a, 0x12, 0x6d, 0x69, 0x6e, 0x5f, 0x76, 0x61, 0x6c, 0x69, 0x64,
-	0x5f, 0x6c, 0x69, 0x66, 0x65, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0d, 0x52,
-	0x10, 0x6d, 0x69, 0x6e, 0x56, 0x61, 0x6c, 0x69, 0x64, 0x4c, 0x69, 0x66, 0x65, 0x74, 0x69, 0x6d,
-	0x65, 0x12, 0x25, 0x0a, 0x0e, 0x64, 0x6f, 0x6d, 0x61, 0x69, 0x6e, 0x5f, 0x73, 0x65, 0x72, 0x76,
-	0x65, 0x72, 0x73, 0x18, 0x08, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0d, 0x64, 0x6f, 0x6d, 0x61, 0x69,
-	0x6e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x73, 0x12, 0x18, 0x0a, 0x07, 0x72, 0x6f, 0x75, 0x74,
-	0x65, 0x72, 0x73, 0x18, 0x09, 0x20, 0x03, 0x28, 0x09, 0x52, 0x07, 0x72, 0x6f, 0x75, 0x74, 0x65,
-	0x72, 0x73, 0x12, 0x21, 0x0a, 0x0c, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74, 0x5f, 0x63, 0x6c, 0x61,
-	0x73, 0x73, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x63, 0x6c, 0x69, 0x65, 0x6e, 0x74,
-	0x43, 0x6c, 0x61, 0x73, 0x73, 0x12, 0x1d, 0x0a, 0x0a, 0x69, 0x66, 0x61, 0x63, 0x65, 0x5f, 0x6e,
-	0x61, 0x6d, 0x65, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x69, 0x66, 0x61, 0x63, 0x65,
-	0x4e, 0x61, 0x6d, 0x65, 0x12, 0x32, 0x0a, 0x15, 0x72, 0x65, 0x6c, 0x61, 0x79, 0x5f, 0x61, 0x67,
-	0x65, 0x6e, 0x74, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x18, 0x0c, 0x20,
-	0x03, 0x28, 0x09, 0x52, 0x13, 0x72, 0x65, 0x6c, 0x61, 0x79, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x41,
-	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x65, 0x73, 0x12, 0x37, 0x0a, 0x18, 0x72, 0x65, 0x6c, 0x61,
-	0x79, 0x5f, 0x61, 0x67, 0x65, 0x6e, 0x74, 0x5f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x66, 0x61, 0x63,
-	0x65, 0x5f, 0x69, 0x64, 0x18, 0x0d, 0x20, 0x01, 0x28, 0x09, 0x52, 0x15, 0x72, 0x65, 0x6c, 0x61,
-	0x79, 0x41, 0x67, 0x65, 0x6e, 0x74, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x66, 0x61, 0x63, 0x65, 0x49,
-	0x64, 0x12, 0x12, 0x0a, 0x04, 0x74, 0x61, 0x67, 0x73, 0x18, 0x0e, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x04, 0x74, 0x61, 0x67, 0x73, 0x12, 0x21, 0x0a, 0x0c, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b,
-	0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x0f, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x6e, 0x65, 0x74,
-	0x77, 0x6f, 0x72, 0x6b, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x63, 0x61, 0x70, 0x61,
-	0x63, 0x69, 0x74, 0x79, 0x18, 0x10, 0x20, 0x01, 0x28, 0x04, 0x52, 0x08, 0x63, 0x61, 0x70, 0x61,
-	0x63, 0x69, 0x74, 0x79, 0x12, 0x1d, 0x0a, 0x0a, 0x75, 0x73, 0x65, 0x64, 0x5f, 0x72, 0x61, 0x74,
-	0x69, 0x6f, 0x18, 0x11, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x75, 0x73, 0x65, 0x64, 0x52, 0x61,
-	0x74, 0x69, 0x6f, 0x12, 0x1d, 0x0a, 0x0a, 0x75, 0x73, 0x65, 0x64, 0x5f, 0x63, 0x6f, 0x75, 0x6e,
-	0x74, 0x18, 0x13, 0x20, 0x01, 0x28, 0x04, 0x52, 0x09, 0x75, 0x73, 0x65, 0x64, 0x43, 0x6f, 0x75,
-	0x6e, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x14, 0x20,
-	0x01, 0x28, 0x0d, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x22, 0x30, 0x0a, 0x05,
-	0x49, 0x50, 0x4e, 0x65, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x70, 0x18, 0x01, 0x20, 0x01, 0x28,
-	0x09, 0x52, 0x02, 0x69, 0x70, 0x12, 0x17, 0x0a, 0x07, 0x69, 0x70, 0x5f, 0x6d, 0x61, 0x73, 0x6b,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x69, 0x70, 0x4d, 0x61, 0x73, 0x6b, 0x32, 0x3a,
-	0x0a, 0x0b, 0x44, 0x68, 0x63, 0x70, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x2b, 0x0a,
-	0x0d, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x42, 0x79, 0x49, 0x44, 0x12, 0x11,
-	0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x42, 0x79, 0x49, 0x44, 0x52, 0x65,
-	0x71, 0x1a, 0x07, 0x2e, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x42, 0x09, 0x5a, 0x07, 0x2e, 0x2e,
-	0x2f, 0x64, 0x68, 0x63, 0x70, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x0a, 0x0a, 0x64, 0x68, 0x63, 0x70, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x25, 0x0a, 0x13,
+	0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52,
+	0x02, 0x69, 0x64, 0x22, 0x39, 0x0a, 0x14, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x53, 0x75, 0x62,
+	0x6e, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x21, 0x0a, 0x07, 0x73,
+	0x75, 0x62, 0x6e, 0x65, 0x74, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x07, 0x2e, 0x53,
+	0x75, 0x62, 0x6e, 0x65, 0x74, 0x52, 0x07, 0x73, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x73, 0x22, 0x3c,
+	0x0a, 0x1a, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x73, 0x74, 0x53,
+	0x75, 0x62, 0x6e, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x0e, 0x0a, 0x02,
+	0x69, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x70, 0x22, 0x3e, 0x0a, 0x1b,
+	0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x73, 0x74, 0x53, 0x75, 0x62,
+	0x6e, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1f, 0x0a, 0x06, 0x73,
+	0x75, 0x62, 0x6e, 0x65, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x07, 0x2e, 0x53, 0x75,
+	0x62, 0x6e, 0x65, 0x74, 0x52, 0x06, 0x73, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x22, 0xf8, 0x01, 0x0a,
+	0x06, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x75, 0x62, 0x6e, 0x65,
+	0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x12,
+	0x1b, 0x0a, 0x09, 0x73, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x0d, 0x52, 0x08, 0x73, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x49, 0x64, 0x12, 0x12, 0x0a, 0x04,
+	0x74, 0x61, 0x67, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74, 0x61, 0x67, 0x73,
+	0x12, 0x21, 0x0a, 0x0c, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x5f, 0x74, 0x79, 0x70, 0x65,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0b, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x54,
+	0x79, 0x70, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x63, 0x61, 0x70, 0x61, 0x63, 0x69, 0x74, 0x79, 0x18,
+	0x06, 0x20, 0x01, 0x28, 0x04, 0x52, 0x08, 0x63, 0x61, 0x70, 0x61, 0x63, 0x69, 0x74, 0x79, 0x12,
+	0x1d, 0x0a, 0x0a, 0x75, 0x73, 0x65, 0x64, 0x5f, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x18, 0x07, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x09, 0x75, 0x73, 0x65, 0x64, 0x52, 0x61, 0x74, 0x69, 0x6f, 0x12, 0x1d,
+	0x0a, 0x0a, 0x75, 0x73, 0x65, 0x64, 0x5f, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x18, 0x08, 0x20, 0x01,
+	0x28, 0x04, 0x52, 0x09, 0x75, 0x73, 0x65, 0x64, 0x43, 0x6f, 0x75, 0x6e, 0x74, 0x12, 0x18, 0x0a,
+	0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x09, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x07,
+	0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x32, 0x9c, 0x01, 0x0a, 0x0b, 0x44, 0x68, 0x63, 0x70,
+	0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x3b, 0x0a, 0x0c, 0x53, 0x65, 0x61, 0x72, 0x63,
+	0x68, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x12, 0x14, 0x2e, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68,
+	0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x15, 0x2e,
+	0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x50, 0x0a, 0x13, 0x53, 0x65, 0x61, 0x72, 0x63, 0x68, 0x43, 0x6c,
+	0x6f, 0x73, 0x65, 0x73, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x12, 0x1b, 0x2e, 0x53, 0x65,
+	0x61, 0x72, 0x63, 0x68, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x73, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65,
+	0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x53, 0x65, 0x61, 0x72, 0x63,
+	0x68, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x73, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x09, 0x5a, 0x07, 0x2e, 0x2e, 0x2f, 0x64, 0x68, 0x63,
+	0x70, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -386,21 +390,26 @@ func file_dhcp_proto_rawDescGZIP() []byte {
 	return file_dhcp_proto_rawDescData
 }
 
-var file_dhcp_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_dhcp_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_dhcp_proto_goTypes = []interface{}{
-	(*GetSubnetByIDReq)(nil), // 0: GetSubnetByIDReq
-	(*Subnet)(nil),           // 1: Subnet
-	(*IPNet)(nil),            // 2: IPNet
+	(*SearchSubnetRequest)(nil),         // 0: SearchSubnetRequest
+	(*SearchSubnetResponse)(nil),        // 1: SearchSubnetResponse
+	(*SearchClosestSubnetRequest)(nil),  // 2: SearchClosestSubnetRequest
+	(*SearchClosestSubnetResponse)(nil), // 3: SearchClosestSubnetResponse
+	(*Subnet)(nil),                      // 4: Subnet
 }
 var file_dhcp_proto_depIdxs = []int32{
-	2, // 0: Subnet.ipnet:type_name -> IPNet
-	0, // 1: DhcpService.GetSubnetByID:input_type -> GetSubnetByIDReq
-	1, // 2: DhcpService.GetSubnetByID:output_type -> Subnet
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: SearchSubnetResponse.subnets:type_name -> Subnet
+	4, // 1: SearchClosestSubnetResponse.subnet:type_name -> Subnet
+	0, // 2: DhcpService.SearchSubnet:input_type -> SearchSubnetRequest
+	2, // 3: DhcpService.SearchClosestSubnet:input_type -> SearchClosestSubnetRequest
+	1, // 4: DhcpService.SearchSubnet:output_type -> SearchSubnetResponse
+	3, // 5: DhcpService.SearchClosestSubnet:output_type -> SearchClosestSubnetResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_dhcp_proto_init() }
@@ -410,7 +419,7 @@ func file_dhcp_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_dhcp_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetSubnetByIDReq); i {
+			switch v := v.(*SearchSubnetRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -422,7 +431,7 @@ func file_dhcp_proto_init() {
 			}
 		}
 		file_dhcp_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Subnet); i {
+			switch v := v.(*SearchSubnetResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -434,7 +443,31 @@ func file_dhcp_proto_init() {
 			}
 		}
 		file_dhcp_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*IPNet); i {
+			switch v := v.(*SearchClosestSubnetRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_dhcp_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*SearchClosestSubnetResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_dhcp_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Subnet); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -452,7 +485,7 @@ func file_dhcp_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_dhcp_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -478,7 +511,8 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type DhcpServiceClient interface {
-	GetSubnetByID(ctx context.Context, in *GetSubnetByIDReq, opts ...grpc.CallOption) (*Subnet, error)
+	SearchSubnet(ctx context.Context, in *SearchSubnetRequest, opts ...grpc.CallOption) (*SearchSubnetResponse, error)
+	SearchClosestSubnet(ctx context.Context, in *SearchClosestSubnetRequest, opts ...grpc.CallOption) (*SearchClosestSubnetResponse, error)
 }
 
 type dhcpServiceClient struct {
@@ -489,9 +523,18 @@ func NewDhcpServiceClient(cc grpc.ClientConnInterface) DhcpServiceClient {
 	return &dhcpServiceClient{cc}
 }
 
-func (c *dhcpServiceClient) GetSubnetByID(ctx context.Context, in *GetSubnetByIDReq, opts ...grpc.CallOption) (*Subnet, error) {
-	out := new(Subnet)
-	err := c.cc.Invoke(ctx, "/DhcpService/GetSubnetByID", in, out, opts...)
+func (c *dhcpServiceClient) SearchSubnet(ctx context.Context, in *SearchSubnetRequest, opts ...grpc.CallOption) (*SearchSubnetResponse, error) {
+	out := new(SearchSubnetResponse)
+	err := c.cc.Invoke(ctx, "/DhcpService/SearchSubnet", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dhcpServiceClient) SearchClosestSubnet(ctx context.Context, in *SearchClosestSubnetRequest, opts ...grpc.CallOption) (*SearchClosestSubnetResponse, error) {
+	out := new(SearchClosestSubnetResponse)
+	err := c.cc.Invoke(ctx, "/DhcpService/SearchClosestSubnet", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -500,35 +543,57 @@ func (c *dhcpServiceClient) GetSubnetByID(ctx context.Context, in *GetSubnetByID
 
 // DhcpServiceServer is the server API for DhcpService service.
 type DhcpServiceServer interface {
-	GetSubnetByID(context.Context, *GetSubnetByIDReq) (*Subnet, error)
+	SearchSubnet(context.Context, *SearchSubnetRequest) (*SearchSubnetResponse, error)
+	SearchClosestSubnet(context.Context, *SearchClosestSubnetRequest) (*SearchClosestSubnetResponse, error)
 }
 
 // UnimplementedDhcpServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedDhcpServiceServer struct {
 }
 
-func (*UnimplementedDhcpServiceServer) GetSubnetByID(context.Context, *GetSubnetByIDReq) (*Subnet, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetSubnetByID not implemented")
+func (*UnimplementedDhcpServiceServer) SearchSubnet(context.Context, *SearchSubnetRequest) (*SearchSubnetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchSubnet not implemented")
+}
+func (*UnimplementedDhcpServiceServer) SearchClosestSubnet(context.Context, *SearchClosestSubnetRequest) (*SearchClosestSubnetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchClosestSubnet not implemented")
 }
 
 func RegisterDhcpServiceServer(s *grpc.Server, srv DhcpServiceServer) {
 	s.RegisterService(&_DhcpService_serviceDesc, srv)
 }
 
-func _DhcpService_GetSubnetByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSubnetByIDReq)
+func _DhcpService_SearchSubnet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchSubnetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DhcpServiceServer).GetSubnetByID(ctx, in)
+		return srv.(DhcpServiceServer).SearchSubnet(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/DhcpService/GetSubnetByID",
+		FullMethod: "/DhcpService/SearchSubnet",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DhcpServiceServer).GetSubnetByID(ctx, req.(*GetSubnetByIDReq))
+		return srv.(DhcpServiceServer).SearchSubnet(ctx, req.(*SearchSubnetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DhcpService_SearchClosestSubnet_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchClosestSubnetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DhcpServiceServer).SearchClosestSubnet(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/DhcpService/SearchClosestSubnet",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DhcpServiceServer).SearchClosestSubnet(ctx, req.(*SearchClosestSubnetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -538,8 +603,12 @@ var _DhcpService_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*DhcpServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GetSubnetByID",
-			Handler:    _DhcpService_GetSubnetByID_Handler,
+			MethodName: "SearchSubnet",
+			Handler:    _DhcpService_SearchSubnet_Handler,
+		},
+		{
+			MethodName: "SearchClosestSubnet",
+			Handler:    _DhcpService_SearchClosestSubnet_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

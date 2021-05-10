@@ -2,37 +2,29 @@ syntax = "proto3";
 
 option go_package = "../dhcp";
 
-message GetSubnetByIDReq { string id = 1; }
+service DhcpService {
+  rpc SearchSubnet(SearchSubnetRequest) returns (SearchSubnetResponse);
+  rpc SearchClosestSubnet(SearchClosestSubnetRequest)
+      returns (SearchClosestSubnetResponse);
+}
 
-// message GetSubnetByIDRes { repeated Subnet subnets = 1; }
+message SearchSubnetRequest { repeated string id = 1; }
+message SearchSubnetResponse { repeated Subnet subnets = 1; }
+
+message SearchClosestSubnetRequest {
+  repeated string id = 1;
+  string ip = 2;
+}
+message SearchClosestSubnetResponse { Subnet subnet = 1; }
 
 message Subnet {
   string id = 1;
   string subnet = 2;
-  IPNet ipnet = 3;
-  uint32 subnet_id = 4;
-  uint32 valid_lifetime = 5;
-  uint32 max_valid_lifetime = 6;
-  uint32 min_valid_lifetime = 7;
-  repeated string domain_servers = 8;
-  repeated string routers = 9;
-  string client_class = 10;
-  string iface_name = 11;
-  repeated string relay_agent_addresses = 12;
-  string relay_agent_interface_id = 13;
-  string tags = 14;
-  string network_type = 15;
-  uint64 capacity = 16;
-  string used_ratio = 17;
-  uint64 used_count = 19;
-  uint32 version = 20;
-}
-
-message IPNet {
-  string ip = 1;
-  string ip_mask = 2;
-}
-
-service DhcpService {
-  rpc GetSubnetByID(GetSubnetByIDReq) returns (Subnet);
+  uint32 subnet_id = 3;
+  string tags = 4;
+  string network_type = 5;
+  uint64 capacity = 6;
+  string used_ratio = 7;
+  uint64 used_count = 8;
+  uint32 version = 9;
 }

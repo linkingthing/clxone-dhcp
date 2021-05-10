@@ -2,7 +2,11 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
+	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -13,6 +17,10 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+)
+
+const (
+	GetSubnetsWithIdSql = "select * from gr_subnet where id in (%s)"
 )
 
 var globalDHCPService *DHCPService
@@ -28,21 +36,53 @@ func NewDHCPService() *DHCPService {
 	return globalDHCPService
 }
 
-func (a *DHCPService) GetSubnetByID(subnetID string) (subnet *resource.Subnet, err error) {
-	var subnets []*resource.Subnet
-	subnetInterface, err := restdb.GetResourceWithID(db.GetDB(), subnetID, &subnets)
+func (a *DHCPService) GetSubnetByIDs(ids ...string) (subnets []*resource.Subnet, err error) {
+	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if len(ids) > 0 {
+			subnetIndex, subnetAgrs := genSqlArgsAndIndex(ids)
+			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnetsWithIdSql, subnetIndex), subnetAgrs...)
+		} else {
+			err = tx.Fill(nil, &subnets)
+		}
+		return err
+
+	}); err != nil {
+		logrus.Error(err)
+	}
+	return
+}
+
+func (a *DHCPService) GetClosestSubnetByIDs(ids []string, ip string) (subnet *resource.Subnet, err error) {
+	subnets, err := a.GetSubnetByIDs(ids...)
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
 
-	subnet = subnetInterface.(*resource.Subnet)
-	if err = setSubnetLeasesUsedRatio(subnet); err != nil {
+	subnet, err = getClosestSubnet(subnets, net.ParseIP(ip))
+
+	if err != nil {
 		logrus.Error(err)
 		return
 	}
+	return
+}
 
-	return subnet, nil
+func getClosestSubnet(subnets []*resource.Subnet, ip net.IP) (subnet *resource.Subnet, err error) {
+	var maxPrefixLen int
+	for _, subnet_ := range subnets {
+		if subnet_.Ipnet.Contains(ip) {
+			if ones, _ := subnet_.Ipnet.Mask.Size(); ones > maxPrefixLen {
+				subnet = subnet_
+				maxPrefixLen = ones
+			}
+		}
+	}
+	if subnet == nil {
+		err = errors.New("can not find subnet")
+	}
+
+	return
 }
 
 func setSubnetLeasesUsedRatio(subnet *resource.Subnet) error {
@@ -73,4 +113,15 @@ func getSubnetLeasesCount(subnet *resource.Subnet) (uint64, error) {
 	}
 
 	return resp.GetLeasesCount(), err
+}
+
+func genSqlArgsAndIndex(args []string) (string, []interface{}) {
+	var indexes []string
+	var sqlAgrs []interface{}
+	for i, arg := range args {
+		indexes = append(indexes, "$"+strconv.Itoa(i+1))
+		sqlAgrs = append(sqlAgrs, arg)
+	}
+
+	return strings.Join(indexes, ","), sqlAgrs
 }
