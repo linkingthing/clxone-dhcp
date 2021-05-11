@@ -64,6 +64,7 @@ func NewServer() (*Server, error) {
 	group := router.Group("/")
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
 	apiServer.Use(JWTMiddleWare())
+	apiServer.EndUse(LoggingMiddleWare())
 	return &Server{
 		group:     group,
 		router:    router,

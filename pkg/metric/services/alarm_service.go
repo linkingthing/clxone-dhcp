@@ -105,7 +105,7 @@ func (a *AlarmService) RegisterThresholdToKafka(key string, threshold *alarm.Reg
 	return err
 }
 
-func (a *AlarmService) ListenUpdateThresholdEvent(topic string, updateFunc func(*alarm.UpdateThreshold)) {
+func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(*alarm.UpdateThreshold)) {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        config.GetConfig().Kafka.Addr,
 		Topic:          topic,
