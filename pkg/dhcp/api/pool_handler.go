@@ -56,7 +56,7 @@ func (p *PoolHandler) Create(ctx *restresource.Context) (restresource.Resource, 
 			return err
 		}
 
-		return sendCreatePoolCmdToDDIAgent(subnet.SubnetId, pool)
+		return sendCreatePoolCmdToDHCPAgent(subnet.SubnetId, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pool %s with subnet %s failed: %s", pool.String(), subnet.GetID(), err.Error()))
@@ -202,7 +202,7 @@ func recalculatePoolCapacity(tx restdb.Transaction, subnetID string, pool *resou
 	return nil
 }
 
-func sendCreatePoolCmdToDDIAgent(subnetID uint32, pool *resource.Pool) error {
+func sendCreatePoolCmdToDHCPAgent(subnetID uint32, pool *resource.Pool) error {
 	var req []byte
 	var err error
 	cmd := services.CreatePool4
@@ -408,7 +408,7 @@ func (p *PoolHandler) Update(ctx *restresource.Context) (restresource.Resource, 
 			return err
 		}
 
-		return sendUpdatePoolCmdToDDIAgent(subnetID, pool)
+		return sendUpdatePoolCmdToDHCPAgent(subnetID, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update pool %s with subnet %s failed: %s", pool.String(), subnetID, err.Error()))
@@ -435,7 +435,7 @@ func setPoolFromDB(tx restdb.Transaction, pool *resource.Pool) error {
 	return nil
 }
 
-func sendUpdatePoolCmdToDDIAgent(subnetID string, pool *resource.Pool) error {
+func sendUpdatePoolCmdToDHCPAgent(subnetID string, pool *resource.Pool) error {
 	var req []byte
 	var err error
 	cmd := services.UpdatePool4
@@ -499,7 +499,7 @@ func (p *PoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		return sendDeletePoolCmdToDDIAgent(subnet.SubnetId, pool)
+		return sendDeletePoolCmdToDHCPAgent(subnet.SubnetId, pool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError, fmt.Sprintf("delete pool %s with subnet %s failed: %s",
 			pool.String(), subnet.GetID(), err.Error()))
@@ -509,7 +509,7 @@ func (p *PoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 	return nil
 }
 
-func sendDeletePoolCmdToDDIAgent(subnetID uint32, pool *resource.Pool) error {
+func sendDeletePoolCmdToDHCPAgent(subnetID uint32, pool *resource.Pool) error {
 	var req []byte
 	var err error
 	cmd := services.DeletePool4

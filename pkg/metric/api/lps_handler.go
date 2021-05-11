@@ -50,7 +50,7 @@ type LPSHandler struct {
 	LocalIP        string
 }
 
-func NewLPSHandler(conf *config.DDIControllerConfig) *LPSHandler {
+func NewLPSHandler(conf *config.DHCPConfig) *LPSHandler {
 	alarmService := services.NewAlarmService()
 	err := alarmService.RegisterThresholdToKafka(services.IllegalDhcpAlarm, alarmService.DhcpThreshold)
 	if err != nil {

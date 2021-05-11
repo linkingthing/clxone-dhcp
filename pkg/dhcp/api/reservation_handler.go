@@ -88,7 +88,7 @@ func (r *ReservationHandler) Create(ctx *restresource.Context) (restresource.Res
 			return err
 		}
 
-		return sendCreateReservationCmdToDDIAgent(subnet.SubnetId, reservation)
+		return sendCreateReservationCmdToDHCPAgent(subnet.SubnetId, reservation)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create reservation with mac %s failed: %s", reservation.HwAddress, err.Error()))
@@ -98,7 +98,7 @@ func (r *ReservationHandler) Create(ctx *restresource.Context) (restresource.Res
 	return reservation, nil
 }
 
-func sendCreateReservationCmdToDDIAgent(subnetID uint32, reservation *resource.Reservation) error {
+func sendCreateReservationCmdToDHCPAgent(subnetID uint32, reservation *resource.Reservation) error {
 	var req []byte
 	var err error
 	cmd := services.CreateReservation4
@@ -223,7 +223,7 @@ func (r *ReservationHandler) Update(ctx *restresource.Context) (restresource.Res
 			return err
 		}
 
-		return sendUpdateReservationCmdToDDIAgent(subnetID, reservation)
+		return sendUpdateReservationCmdToDHCPAgent(subnetID, reservation)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update reservation %s with subnet %s failed: %s",
@@ -251,7 +251,7 @@ func setReservationFromDB(tx restdb.Transaction, reservation *resource.Reservati
 	return nil
 }
 
-func sendUpdateReservationCmdToDDIAgent(subnetID string, reservation *resource.Reservation) error {
+func sendUpdateReservationCmdToDHCPAgent(subnetID string, reservation *resource.Reservation) error {
 	var req []byte
 	var err error
 	cmd := services.UpdateReservation4
@@ -320,7 +320,7 @@ func (r *ReservationHandler) Delete(ctx *restresource.Context) *resterror.APIErr
 			return err
 		}
 
-		return sendDeleteReservationCmdToDDIAgent(subnet.SubnetId, reservation)
+		return sendDeleteReservationCmdToDHCPAgent(subnet.SubnetId, reservation)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete reservation %s with subnet %s failed: %s",
@@ -331,7 +331,7 @@ func (r *ReservationHandler) Delete(ctx *restresource.Context) *resterror.APIErr
 	return nil
 }
 
-func sendDeleteReservationCmdToDDIAgent(subnetID uint32, reservation *resource.Reservation) error {
+func sendDeleteReservationCmdToDHCPAgent(subnetID uint32, reservation *resource.Reservation) error {
 	var req []byte
 	var err error
 	cmd := services.DeleteReservation4

@@ -60,7 +60,7 @@ func (p *PdPoolHandler) Create(ctx *restresource.Context) (restresource.Resource
 			return err
 		}
 
-		return sendCreatePDPoolCmdToDDIAgent(subnet.SubnetId, pdpool)
+		return sendCreatePDPoolCmdToDHCPAgent(subnet.SubnetId, pdpool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pdpool %s-%d with subnet %s failed: %s",
@@ -126,7 +126,7 @@ func checkPdPoolConflictWithSubnetPools(tx restdb.Transaction, subnetID string, 
 	return "", false, nil
 }
 
-func sendCreatePDPoolCmdToDDIAgent(subnetID uint32, pdpool *resource.PdPool) error {
+func sendCreatePDPoolCmdToDHCPAgent(subnetID uint32, pdpool *resource.PdPool) error {
 	req, err := proto.Marshal(&dhcp_agent.CreatePDPoolRequest{
 		SubnetId:     subnetID,
 		Prefix:       pdpool.Prefix,
@@ -187,7 +187,7 @@ func (p *PdPoolHandler) Update(ctx *restresource.Context) (restresource.Resource
 			return err
 		}
 
-		return sendUpdatePdPoolCmdToDDIAgent(subnetID, pdpool)
+		return sendUpdatePdPoolCmdToDHCPAgent(subnetID, pdpool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update pdpool %s with subnet %s failed: %s", pdpool.String(), subnetID, err.Error()))
@@ -212,7 +212,7 @@ func setPdPoolFromDB(tx restdb.Transaction, pdpool *resource.PdPool) error {
 	return nil
 }
 
-func sendUpdatePdPoolCmdToDDIAgent(subnetID string, pdpool *resource.PdPool) error {
+func sendUpdatePdPoolCmdToDHCPAgent(subnetID string, pdpool *resource.PdPool) error {
 	req, err := proto.Marshal(&dhcp_agent.UpdatePDPoolRequest{
 		SubnetId:   subnetIDStrToUint32(subnetID),
 		Prefix:     pdpool.Prefix,
@@ -251,7 +251,7 @@ func (p *PdPoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		return sendDeletePdPoolCmdToDDIAgent(subnet.SubnetId, pdpool)
+		return sendDeletePdPoolCmdToDHCPAgent(subnet.SubnetId, pdpool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete pdpool %s with subnet %s failed: %s",
@@ -276,7 +276,7 @@ func getPdPoolLeasesCount(pdpool *resource.PdPool) (uint64, error) {
 	return resp.GetLeasesCount(), err
 }
 
-func sendDeletePdPoolCmdToDDIAgent(subnetID uint32, pdpool *resource.PdPool) error {
+func sendDeletePdPoolCmdToDHCPAgent(subnetID uint32, pdpool *resource.PdPool) error {
 	req, err := proto.Marshal(&dhcp_agent.DeletePDPoolRequest{
 		SubnetId: subnetID,
 		Prefix:   pdpool.Prefix,

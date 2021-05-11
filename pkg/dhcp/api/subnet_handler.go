@@ -56,7 +56,7 @@ func (s *SubnetHandler) Create(ctx *restresource.Context) (restresource.Resource
 			return err
 		}
 
-		return sendCreateSubnetCmdToDDIAgent(subnet)
+		return sendCreateSubnetCmdToDHCPAgent(subnet)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create subnet %s failed: %s", subnet.Subnet, err.Error()))
@@ -65,7 +65,7 @@ func (s *SubnetHandler) Create(ctx *restresource.Context) (restresource.Resource
 	return subnet, nil
 }
 
-func sendCreateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
+func sendCreateSubnetCmdToDHCPAgent(subnet *resource.Subnet) error {
 	cmd := services.CreateSubnet4
 	var req []byte
 	var err error
@@ -213,7 +213,7 @@ func (s *SubnetHandler) Update(ctx *restresource.Context) (restresource.Resource
 			return err
 		}
 
-		return sendUpdateSubnetCmdToDDIAgent(subnet)
+		return sendUpdateSubnetCmdToDHCPAgent(subnet)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update subnet %s failed: %s", subnet.GetID(), err.Error()))
@@ -240,7 +240,7 @@ func setSubnetFromDB(tx restdb.Transaction, subnet *resource.Subnet) error {
 	return nil
 }
 
-func sendUpdateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
+func sendUpdateSubnetCmdToDHCPAgent(subnet *resource.Subnet) error {
 	var req []byte
 	var err error
 	cmd := services.UpdateSubnet4
@@ -299,7 +299,7 @@ func (s *SubnetHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		return sendDeleteSubnetCmdToDDIAgent(subnet)
+		return sendDeleteSubnetCmdToDHCPAgent(subnet)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete subnet %s failed: %s", subnet.GetID(), err.Error()))
@@ -309,7 +309,7 @@ func (s *SubnetHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 	return nil
 }
 
-func sendDeleteSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
+func sendDeleteSubnetCmdToDHCPAgent(subnet *resource.Subnet) error {
 	var req []byte
 	var err error
 	cmd := services.DeleteSubnet4

@@ -9,7 +9,7 @@ type DHCPConfig struct {
 	DB                    DBConf             `yaml:"db"`
 	Server                ServerConf         `yaml:"server"`
 	Kafka                 KafkaConf          `yaml:"kafka"`
-	DHCPAgent             DHCPAgentConf      `yaml:"ddi_agent"`
+	DHCPAgent             DHCPAgentConf      `yaml:"dhcp_agent"`
 	Prometheus            PrometheusConf     `yaml:"prometheus"`
 	Elasticsearch         ElasticsearchConf  `yaml:"elasticsearch"`
 	MonitorNode           MonitorNodeConf    `yaml:"monitor_node"`
@@ -17,7 +17,6 @@ type DHCPConfig struct {
 	Alarm                 AlarmConf          `yaml:"alarm"`
 	SubnetScan            SubnetScanConf     `yaml:"subnet_scan"`
 	IllegalDHCPServerScan DHCPServerScanConf `yaml:"illegal_dhcp_server_scan"`
-	RegionData            RegionDataConf     `yaml:"region_data"`
 }
 
 type DBConf struct {
@@ -77,11 +76,6 @@ type SubnetScanConf struct {
 
 type DHCPServerScanConf struct {
 	Interval uint32 `yaml:"interval"`
-}
-
-type RegionDataConf struct {
-	ProvinceData string `yaml:"province_data"`
-	CityData     string `yaml:"city_data"`
 }
 
 var gConf *DHCPConfig

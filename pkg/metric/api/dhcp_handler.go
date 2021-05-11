@@ -40,7 +40,7 @@ type DhcpHandler struct {
 	prometheusAddr string
 }
 
-func NewDhcpHandler(conf *config.DDIControllerConfig) *DhcpHandler {
+func NewDhcpHandler(conf *config.DHCPConfig) *DhcpHandler {
 	return &DhcpHandler{
 		prometheusAddr: conf.Prometheus.Addr,
 	}

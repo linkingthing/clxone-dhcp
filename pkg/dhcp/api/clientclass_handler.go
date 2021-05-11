@@ -39,7 +39,7 @@ func (c *ClientClassHandler) Create(ctx *restresource.Context) (restresource.Res
 			return err
 		}
 
-		return sendCreateClientClassCmdToDDIAgent(clientclass)
+		return sendCreateClientClassCmdToAgent(clientclass)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("add clientclass %s failed: %s", clientclass.Name, err.Error()))
@@ -48,7 +48,7 @@ func (c *ClientClassHandler) Create(ctx *restresource.Context) (restresource.Res
 	return clientclass, nil
 }
 
-func sendCreateClientClassCmdToDDIAgent(clientclass *resource.ClientClass) error {
+func sendCreateClientClassCmdToAgent(clientclass *resource.ClientClass) error {
 	req, err := proto.Marshal(&dhcp_agent.CreateClientClass4Request{
 		Name:   clientclass.Name,
 		Regexp: fmt.Sprintf(ClientClassOption60, clientclass.Regexp),
@@ -92,7 +92,7 @@ func (c *ClientClassHandler) Update(ctx *restresource.Context) (restresource.Res
 			return err
 		}
 
-		return sendUpdateClientClassCmdToDDIAgent(clientclass)
+		return sendUpdateClientClassCmdToDHCPAgent(clientclass)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update clientclass %s failed: %s", clientclass.GetID(), err.Error()))
@@ -101,7 +101,7 @@ func (c *ClientClassHandler) Update(ctx *restresource.Context) (restresource.Res
 	return clientclass, nil
 }
 
-func sendUpdateClientClassCmdToDDIAgent(clientclass *resource.ClientClass) error {
+func sendUpdateClientClassCmdToDHCPAgent(clientclass *resource.ClientClass) error {
 	req, err := proto.Marshal(&dhcp_agent.UpdateClientClass4Request{
 		Name:   clientclass.Name,
 		Regexp: fmt.Sprintf(ClientClassOption60, clientclass.Regexp),
@@ -122,7 +122,7 @@ func (c *ClientClassHandler) Delete(ctx *restresource.Context) *resterror.APIErr
 			return err
 		}
 
-		return sendDeleteClientClassCmdToDDIAgent(ctx.Resource.(*resource.ClientClass))
+		return sendDeleteClientClassCmdToDHCPAgent(ctx.Resource.(*resource.ClientClass))
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete clientclass %s failed: %s", clientclassID, err.Error()))
@@ -131,7 +131,7 @@ func (c *ClientClassHandler) Delete(ctx *restresource.Context) *resterror.APIErr
 	return nil
 }
 
-func sendDeleteClientClassCmdToDDIAgent(clientClass *resource.ClientClass) error {
+func sendDeleteClientClassCmdToDHCPAgent(clientClass *resource.ClientClass) error {
 	req, err := proto.Marshal(&dhcp_agent.DeleteClientClass4Request{
 		Name: clientClass.GetID(),
 	})
