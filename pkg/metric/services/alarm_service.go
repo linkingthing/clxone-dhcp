@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -109,6 +108,7 @@ func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        config.GetConfig().Kafka.Addr,
 		Topic:          topic,
+		GroupID:        config.GetConfig().Kafka.GroupUpdateThresholdEvent,
 		MinBytes:       10,
 		MaxBytes:       10e6,
 		SessionTimeout: time.Second * 10,
@@ -121,22 +121,18 @@ func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(
 
 	for {
 		ctx := context.Background()
-		m, err := r.FetchMessage(ctx)
+		message, err := r.ReadMessage(ctx)
 		if err != nil {
 			break
 		}
 
-		switch string(m.Key) {
+		switch string(message.Key) {
 		case UpdateThreshold:
 			var req alarm.UpdateThreshold
-			if err := proto.Unmarshal(m.Value, &req); err != nil {
+			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				logrus.Error(err)
 			}
 			updateFunc(&req)
-		}
-
-		if err := r.CommitMessages(ctx, m); err != nil {
-			log.Fatal("failed to commit messages:", err)
 		}
 	}
 }

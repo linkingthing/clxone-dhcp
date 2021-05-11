@@ -43,9 +43,10 @@ type DHCPAgentConf struct {
 }
 
 type KafkaConf struct {
-	Addr              []string `yaml:"kafka_addrs"`
-	GroupIdAgentEvent string   `yaml:"group_id_agentevent"`
-	GroupIdUploadLog  string   `yaml:"group_id_uploadlog"`
+	Addr                      []string `yaml:"kafka_addrs"`
+	GroupIdAgentEvent         string   `yaml:"group_id_agentevent"`
+	GroupIdUploadLog          string   `yaml:"group_id_uploadlog"`
+	GroupUpdateThresholdEvent string   `yaml:"group_id_update_threshold_event"`
 }
 
 type PrometheusConf struct {
