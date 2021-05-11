@@ -13,7 +13,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
+	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -95,7 +95,7 @@ func (r *ReservationHandler) Create(ctx *restresource.Context) (restresource.Res
 			fmt.Sprintf("create reservation with mac %s failed: %s", reservation.HwAddress, err.Error()))
 	}
 
-	eventbus.PublishResourceCreateEvent(reservation)
+	//eventbus.PublishResourceCreateEvent(reservation)
 	return reservation, nil
 }
 
@@ -326,7 +326,7 @@ func (r *ReservationHandler) Delete(ctx *restresource.Context) *resterror.APIErr
 				reservation.String(), subnet.GetID(), err.Error()))
 	}
 
-	eventbus.PublishResourceDeleteEvent(reservation)
+	//eventbus.PublishResourceDeleteEvent(reservation)
 	return nil
 }
 

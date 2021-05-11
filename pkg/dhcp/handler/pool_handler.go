@@ -15,7 +15,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
+	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -64,7 +64,7 @@ func (p *PoolHandler) Create(ctx *restresource.Context) (restresource.Resource, 
 			fmt.Sprintf("create pool %s with subnet %s failed: %s", pool.String(), subnet.GetID(), err.Error()))
 	}
 
-	eventbus.PublishResourceCreateEvent(pool)
+	//eventbus.PublishResourceCreateEvent(pool)
 	return pool, nil
 }
 
@@ -505,7 +505,7 @@ func (p *PoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 			pool.String(), subnet.GetID(), err.Error()))
 	}
 
-	eventbus.PublishResourceDeleteEvent(pool)
+	//eventbus.PublishResourceDeleteEvent(pool)
 	return nil
 }
 

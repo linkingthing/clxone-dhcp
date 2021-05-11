@@ -14,7 +14,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
+	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -304,7 +304,7 @@ func (s *SubnetHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 			fmt.Sprintf("delete subnet %s failed: %s", subnet.GetID(), err.Error()))
 	}
 
-	eventbus.PublishResourceDeleteEvent(subnet)
+	//eventbus.PublishResourceDeleteEvent(subnet)
 	return nil
 }
 

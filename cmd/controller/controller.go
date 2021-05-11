@@ -10,7 +10,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
-	"github.com/linkingthing/clxone-dhcp/pkg/esclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	restserver "github.com/linkingthing/clxone-dhcp/server"
@@ -47,7 +46,6 @@ func main() {
 		log.Fatalf("init db failed: %s", err.Error())
 	}
 
-	esclient.Init(conf)
 	kafkaproducer.Init(conf)
 
 	conn, err := grpc.Dial(conf.DDIAgent.GrpcAddr, grpc.WithInsecure())

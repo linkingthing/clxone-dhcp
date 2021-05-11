@@ -10,7 +10,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
+	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
 )
 
 type StaticAddressHandler struct {
@@ -78,7 +78,7 @@ func (s *StaticAddressHandler) Create(ctx *restresource.Context) (restresource.R
 			fmt.Sprintf("create static address with mac %s failed: %s", staticAddress.HwAddress, err.Error()))
 	}
 
-	eventbus.PublishResourceCreateEvent(staticAddress)
+	//eventbus.PublishResourceCreateEvent(staticAddress)
 	return staticAddress, nil
 }
 
@@ -195,6 +195,6 @@ func (s *StaticAddressHandler) Delete(ctx *restresource.Context) *resterror.APIE
 				staticAddress.String(), subnet.GetID(), err.Error()))
 	}
 
-	eventbus.PublishResourceDeleteEvent(staticAddress)
+	//eventbus.PublishResourceDeleteEvent(staticAddress)
 	return nil
 }
