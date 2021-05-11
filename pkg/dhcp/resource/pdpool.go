@@ -5,7 +5,6 @@ import (
 	"net"
 	"strconv"
 
-	agentutil "github.com/linkingthing/ddi-agent/pkg/dhcp/util"
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
 
@@ -43,7 +42,7 @@ func (p PdPools) Swap(i, j int) {
 }
 
 func (p PdPools) Less(i, j int) bool {
-	return agentutil.OneIpLessThanAnother(p[i].Prefix, p[j].Prefix)
+	return util.OneIpLessThanAnother(p[i].Prefix, p[j].Prefix)
 }
 
 func (pdpool *PdPool) Validate() error {

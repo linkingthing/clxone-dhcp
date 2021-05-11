@@ -14,12 +14,11 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	"github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type SubnetHandler struct {
@@ -67,11 +66,11 @@ func (s *SubnetHandler) Create(ctx *restresource.Context) (restresource.Resource
 }
 
 func sendCreateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
-	cmd := kafkaconsumer.CreateSubnet4
+	cmd := services.CreateSubnet4
 	var req []byte
 	var err error
 	if subnet.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.CreateSubnet4Request{
+		req, err = proto.Marshal(&dhcp_agent.CreateSubnet4Request{
 			Id:                  subnet.SubnetId,
 			Ipnet:               subnet.Subnet,
 			ValidLifetime:       subnet.ValidLifetime,
@@ -84,8 +83,8 @@ func sendCreateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 		})
 	} else {
-		cmd = kafkaconsumer.CreateSubnet6
-		req, err = proto.Marshal(&pb.CreateSubnet6Request{
+		cmd = services.CreateSubnet6
+		req, err = proto.Marshal(&dhcp_agent.CreateSubnet6Request{
 			Id:                    subnet.SubnetId,
 			Ipnet:                 subnet.Subnet,
 			ValidLifetime:         subnet.ValidLifetime,
@@ -102,7 +101,8 @@ func sendCreateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
 		return fmt.Errorf("marshal create subnet request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func (s *SubnetHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -172,14 +172,14 @@ func getSubnetLeasesCount(subnet *resource.Subnet) (uint64, error) {
 		return 0, nil
 	}
 
-	var resp *pb.GetLeasesCountResponse
+	var resp *dhcp_agent.GetLeasesCountResponse
 	var err error
 	if subnet.Version == util.IPVersion4 {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetSubnet4LeasesCount(context.TODO(),
-			&pb.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
+			&dhcp_agent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
 	} else {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetSubnet6LeasesCount(context.TODO(),
-			&pb.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
+			&dhcp_agent.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
 	}
 
 	return resp.GetLeasesCount(), err
@@ -243,9 +243,9 @@ func setSubnetFromDB(tx restdb.Transaction, subnet *resource.Subnet) error {
 func sendUpdateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.UpdateSubnet4
+	cmd := services.UpdateSubnet4
 	if subnet.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.UpdateSubnet4Request{
+		req, err = proto.Marshal(&dhcp_agent.UpdateSubnet4Request{
 			Id:                  subnet.SubnetId,
 			ValidLifetime:       subnet.ValidLifetime,
 			MaxValidLifetime:    subnet.MaxValidLifetime,
@@ -257,8 +257,8 @@ func sendUpdateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 		})
 	} else {
-		cmd = kafkaconsumer.UpdateSubnet6
-		req, err = proto.Marshal(&pb.UpdateSubnet6Request{
+		cmd = services.UpdateSubnet6
+		req, err = proto.Marshal(&dhcp_agent.UpdateSubnet6Request{
 			Id:                    subnet.SubnetId,
 			ValidLifetime:         subnet.ValidLifetime,
 			MaxValidLifetime:      subnet.MaxValidLifetime,
@@ -274,7 +274,8 @@ func sendUpdateSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
 		return fmt.Errorf("marshal update subnet request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func (s *SubnetHandler) Delete(ctx *restresource.Context) *resterror.APIError {
@@ -311,19 +312,20 @@ func (s *SubnetHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 func sendDeleteSubnetCmdToDDIAgent(subnet *resource.Subnet) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.DeleteSubnet4
+	cmd := services.DeleteSubnet4
 	if subnet.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.DeleteSubnet4Request{Id: subnet.SubnetId})
+		req, err = proto.Marshal(&dhcp_agent.DeleteSubnet4Request{Id: subnet.SubnetId})
 	} else {
-		cmd = kafkaconsumer.DeleteSubnet6
-		req, err = proto.Marshal(&pb.DeleteSubnet6Request{Id: subnet.SubnetId})
+		cmd = services.DeleteSubnet6
+		req, err = proto.Marshal(&dhcp_agent.DeleteSubnet6Request{Id: subnet.SubnetId})
 	}
 
 	if err != nil {
 		return fmt.Errorf("marshal delete subnet %s request failed: %s", subnet.GetID(), err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func (s *SubnetHandler) checkSubnetAvailable(subnet *resource.Subnet, allSubnets []*resource.Subnet, tx restdb.Transaction) error {

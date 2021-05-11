@@ -16,11 +16,32 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
-	agentmetric "github.com/linkingthing/ddi-agent/pkg/metric"
 )
 
 const (
 	PromQueryUrl = "http://%s/api/v1/query_range?query=%s{node='%s'}&start=%d&end=%d&step=%d"
+)
+
+const (
+	MetricLabelNode     = "node"
+	MetricLabelType     = "type"
+	MetricLabelVersion  = "version"
+	MetricLabelView     = "view"
+	MetricLabelRcode    = "rcode"
+	MetricLabelSubnetId = "subnet_id"
+
+	MetricNameDNSQPS                 = "lx_dns_qps"
+	MetricNameDNSQueriesTotal        = "lx_dns_queries_total"
+	MetricNameDNSQueryTypeRatios     = "lx_dns_query_type_ratios"
+	MetricNameDNSCacheHits           = "lx_dns_cache_hits"
+	MetricNameDNSCacheHitsRatioTotal = "lx_dns_cache_hits_ratio_total"
+	MetricNameDNSCacheHitsRatio      = "lx_dns_cache_hits_ratio"
+	MetricNameDNSResolvedRatios      = "lx_dns_resolved_ratios"
+
+	MetricNameDHCPLPS          = "lx_dhcp_lps"
+	MetricNameDHCPPacketsStats = "lx_dhcp_packets_stats"
+	MetricNameDHCPLeasesTotal  = "lx_dhcp_leases_total"
+	MetricNameDHCPUsages       = "lx_dhcp_usages"
 )
 
 type LPSHandler struct {
@@ -143,7 +164,7 @@ type PrometheusDataResult struct {
 }
 
 func getLps(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
-	ctx.MetricName = agentmetric.MetricNameDHCPLPS
+	ctx.MetricName = MetricNameDHCPLPS
 	lpsValues, err := getValuesFromPrometheus(ctx)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
@@ -162,7 +183,7 @@ func getValuesFromPrometheus(ctx *MetricContext) ([]resource.ValueWithTimestamp,
 	}
 
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[agentmetric.MetricLabelNode]; ok && nodeIp == ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok && nodeIp == ctx.NodeIP {
 			return getValuesWithTimestamp(r.Values, ctx.Period), nil
 		}
 	}
@@ -210,7 +231,7 @@ func getValuesWithTimestamp(values [][]interface{}, period *TimePeriodParams) []
 }
 
 func exportLps(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	ctx.MetricName = agentmetric.MetricNameDHCPLPS
+	ctx.MetricName = MetricNameDHCPLPS
 	ctx.TableHeader = TableHeaderLPS
 	return exportTwoColumns(ctx)
 }
@@ -224,7 +245,7 @@ func exportTwoColumns(ctx *MetricContext) (interface{}, *resterror.APIError) {
 
 	var result PrometheusDataResult
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[agentmetric.MetricLabelNode]; ok && nodeIp == ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok && nodeIp == ctx.NodeIP {
 			result = r
 			break
 		}

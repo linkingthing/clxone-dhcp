@@ -10,7 +10,6 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
 )
 
 type StaticAddressHandler struct {

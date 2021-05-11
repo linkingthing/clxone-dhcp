@@ -12,11 +12,10 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	"github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type PdPoolHandler struct {
@@ -128,7 +127,7 @@ func checkPdPoolConflictWithSubnetPools(tx restdb.Transaction, subnetID string, 
 }
 
 func sendCreatePDPoolCmdToDDIAgent(subnetID uint32, pdpool *resource.PdPool) error {
-	req, err := proto.Marshal(&pb.CreatePDPoolRequest{
+	req, err := proto.Marshal(&dhcp_agent.CreatePDPoolRequest{
 		SubnetId:     subnetID,
 		Prefix:       pdpool.Prefix,
 		PrefixLen:    pdpool.PrefixLen,
@@ -140,7 +139,8 @@ func sendCreatePDPoolCmdToDDIAgent(subnetID uint32, pdpool *resource.PdPool) err
 		return fmt.Errorf("marshal create pdpool request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.CreatePDPool, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.CreatePDPool, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(services.CreatePDPool, req)
 }
 
 func (p *PdPoolHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -213,7 +213,7 @@ func setPdPoolFromDB(tx restdb.Transaction, pdpool *resource.PdPool) error {
 }
 
 func sendUpdatePdPoolCmdToDDIAgent(subnetID string, pdpool *resource.PdPool) error {
-	req, err := proto.Marshal(&pb.UpdatePDPoolRequest{
+	req, err := proto.Marshal(&dhcp_agent.UpdatePDPoolRequest{
 		SubnetId:   subnetIDStrToUint32(subnetID),
 		Prefix:     pdpool.Prefix,
 		DnsServers: pdpool.DomainServers,
@@ -223,7 +223,8 @@ func sendUpdatePdPoolCmdToDDIAgent(subnetID string, pdpool *resource.PdPool) err
 		return fmt.Errorf("marshal update pdpool request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.UpdatePDPool, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.UpdatePDPool, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(services.UpdatePDPool, req)
 }
 
 func (p *PdPoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
@@ -267,7 +268,7 @@ func getPdPoolLeasesCount(pdpool *resource.PdPool) (uint64, error) {
 
 	beginAddr, endAddr := pdpool.GetRange()
 	resp, err := grpcclient.GetDHCPGrpcClient().GetPool6LeasesCount(context.TODO(),
-		&pb.GetPool6LeasesCountRequest{
+		&dhcp_agent.GetPool6LeasesCountRequest{
 			SubnetId:     subnetIDStrToUint32(pdpool.Subnet),
 			BeginAddress: beginAddr,
 			EndAddress:   endAddr,
@@ -276,7 +277,7 @@ func getPdPoolLeasesCount(pdpool *resource.PdPool) (uint64, error) {
 }
 
 func sendDeletePdPoolCmdToDDIAgent(subnetID uint32, pdpool *resource.PdPool) error {
-	req, err := proto.Marshal(&pb.DeletePDPoolRequest{
+	req, err := proto.Marshal(&dhcp_agent.DeletePDPoolRequest{
 		SubnetId: subnetID,
 		Prefix:   pdpool.Prefix,
 	})
@@ -285,5 +286,6 @@ func sendDeletePdPoolCmdToDDIAgent(subnetID uint32, pdpool *resource.PdPool) err
 		return fmt.Errorf("marshal delete pdpool request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.DeletePDPool, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.DeletePDPool, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(services.DeletePDPool, req)
 }

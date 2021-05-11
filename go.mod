@@ -8,7 +8,6 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/consul/api v1.8.1
-	github.com/linkingthing/ddi-agent v1.4.1
 	github.com/segmentio/kafka-go v0.4.15
 	github.com/sirupsen/logrus v1.8.1
 	github.com/zdnscloud/cement v0.0.0-20200612070849-67372f989797

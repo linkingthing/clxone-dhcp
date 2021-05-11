@@ -15,8 +15,8 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 const (
@@ -102,14 +102,14 @@ func getSubnetLeasesCount(subnet *resource.Subnet) (uint64, error) {
 		return 0, nil
 	}
 
-	var resp *pb.GetLeasesCountResponse
+	var resp *dhcp_agent.GetLeasesCountResponse
 	var err error
 	if subnet.Version == util.IPVersion4 {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetSubnet4LeasesCount(context.TODO(),
-			&pb.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
+			&dhcp_agent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
 	} else {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetSubnet6LeasesCount(context.TODO(),
-			&pb.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
+			&dhcp_agent.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
 	}
 
 	return resp.GetLeasesCount(), err

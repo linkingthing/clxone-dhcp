@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"net"
 
-	agentutil "github.com/linkingthing/ddi-agent/pkg/dhcp/util"
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
 
@@ -56,8 +55,8 @@ func (p Pool) GetActions() []restresource.Action {
 }
 
 func (p *Pool) CheckConflictWithAnother(another *Pool) bool {
-	if agentutil.OneIpLessThanAnother(another.EndAddress, p.BeginAddress) ||
-		agentutil.OneIpLessThanAnother(p.EndAddress, another.BeginAddress) {
+	if util.OneIpLessThanAnother(another.EndAddress, p.BeginAddress) ||
+		util.OneIpLessThanAnother(p.EndAddress, another.BeginAddress) {
 		return false
 	}
 
@@ -91,7 +90,7 @@ func (p Pools) Swap(i, j int) {
 }
 
 func (p Pools) Less(i, j int) bool {
-	return agentutil.OneIpLessThanAnother(p[i].BeginAddress, p[j].BeginAddress)
+	return util.OneIpLessThanAnother(p[i].BeginAddress, p[j].BeginAddress)
 }
 
 func (p *Pool) Validate() error {
@@ -126,13 +125,13 @@ func (p *Pool) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet) e
 
 	subnetIp := subnet.Ipnet.IP
 	if subnet.Version == util.IPVersion4 {
-		subnetIpUint32, _ := agentutil.Ipv4ToUint32(subnetIp)
+		subnetIpUint32, _ := util.Ipv4ToUint32(subnetIp)
 		beginUint32 := subnetIpUint32 + uint32(templates[0].BeginOffset)
 		endUint32 := beginUint32 + uint32(templates[0].Capacity)
 		p.BeginAddress = ipv4FromUint32(beginUint32)
 		p.EndAddress = ipv4FromUint32(endUint32)
 	} else {
-		subnetIpBigInt, _ := agentutil.Ipv6ToBigInt(subnetIp)
+		subnetIpBigInt, _ := util.Ipv6ToBigInt(subnetIp)
 		beginBigInt := big.NewInt(0).Add(subnetIpBigInt, big.NewInt(int64(templates[0].BeginOffset)))
 		endBigInt := big.NewInt(0).Add(beginBigInt, big.NewInt(int64(templates[0].Capacity)))
 		p.BeginAddress = net.IP(beginBigInt.Bytes()).String()
@@ -186,16 +185,16 @@ func (p *Pool) ValidateAddress() error {
 }
 
 func ipv4PoolCapacity(begin, end net.IP) uint64 {
-	endUint32, _ := agentutil.Ipv4ToUint32(end)
-	beginUint32, _ := agentutil.Ipv4ToUint32(begin)
+	endUint32, _ := util.Ipv4ToUint32(end)
+	beginUint32, _ := util.Ipv4ToUint32(begin)
 	return uint64(endUint32 - beginUint32 + 1)
 }
 
 const MaxUint64 uint64 = 1844674407370955165
 
 func ipv6PoolCapacity(begin, end net.IP) uint64 {
-	beginBigInt, _ := agentutil.Ipv6ToBigInt(begin)
-	endBigInt, _ := agentutil.Ipv6ToBigInt(end)
+	beginBigInt, _ := util.Ipv6ToBigInt(begin)
+	endBigInt, _ := util.Ipv6ToBigInt(end)
 	capacity := big.NewInt(0).Sub(endBigInt, beginBigInt)
 	if capacity_ := big.NewInt(0).Add(capacity, big.NewInt(1)); capacity_.IsUint64() {
 		return capacity_.Uint64()

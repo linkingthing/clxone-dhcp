@@ -9,7 +9,6 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	agentmetric "github.com/linkingthing/ddi-agent/pkg/metric"
 )
 
 const (
@@ -18,7 +17,7 @@ const (
 )
 
 func getPackets(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
-	ctx.MetricName = agentmetric.MetricNameDHCPPacketsStats
+	ctx.MetricName = MetricNameDHCPPacketsStats
 	resp, err := prometheusRequest(ctx)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
@@ -27,12 +26,12 @@ func getPackets(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
 
 	var packets []resource.Packet
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[agentmetric.MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
 			continue
 		}
 
-		if ptype, ok := r.MetricLabels[agentmetric.MetricLabelType]; ok {
-			if version, ok := r.MetricLabels[agentmetric.MetricLabelVersion]; ok {
+		if ptype, ok := r.MetricLabels[MetricLabelType]; ok {
+			if version, ok := r.MetricLabels[MetricLabelVersion]; ok {
 				packets = append(packets, resource.Packet{
 					Version: version,
 					Type:    ptype,
@@ -48,8 +47,8 @@ func getPackets(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
 }
 
 func exportPackets(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	ctx.MetricName = agentmetric.MetricNameDHCPPacketsStats
-	ctx.MetricLabel = agentmetric.MetricLabelType
+	ctx.MetricName = MetricNameDHCPPacketsStats
+	ctx.MetricLabel = MetricLabelType
 	return exportMultiColunms(ctx)
 }
 
@@ -78,7 +77,7 @@ func exportMultiColunms(ctx *MetricContext) (interface{}, *resterror.APIError) {
 func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) ([][]string, error) {
 	headers := []string{"日期"}
 	var subnets map[string]string
-	if ctx.MetricLabel == agentmetric.MetricLabelSubnetId {
+	if ctx.MetricLabel == MetricLabelSubnetId {
 		ss, err := getSubnetsFromDB()
 		if err != nil {
 			return nil, fmt.Errorf("list subnets failed: %s", err.Error())
@@ -89,20 +88,20 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 
 	var validResults []PrometheusDataResult
 	for _, r := range results {
-		if nodeIp, ok := r.MetricLabels[agentmetric.MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
 			continue
 		}
 
 		if label, ok := r.MetricLabels[ctx.MetricLabel]; ok {
-			if ctx.MetricName == agentmetric.MetricNameDHCPUsages {
+			if ctx.MetricName == MetricNameDHCPUsages {
 				subnet, ok := subnets[label]
 				if ok == false {
 					continue
 				}
 				label = subnet
-			} else if ctx.MetricName == agentmetric.MetricNameDHCPPacketsStats {
-				if version, ok := r.MetricLabels[agentmetric.MetricLabelVersion]; ok {
-					if version == agentmetric.DHCPVersion4 {
+			} else if ctx.MetricName == MetricNameDHCPPacketsStats {
+				if version, ok := r.MetricLabels[MetricLabelVersion]; ok {
+					if version == DHCPVersion4 {
 						label = PacketLabelPrefixVersion4 + label
 					} else {
 						label = PacketLabelPrefixVersion6 + label

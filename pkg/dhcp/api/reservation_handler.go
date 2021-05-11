@@ -13,12 +13,11 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	"github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type ReservationHandler struct {
@@ -102,9 +101,9 @@ func (r *ReservationHandler) Create(ctx *restresource.Context) (restresource.Res
 func sendCreateReservationCmdToDDIAgent(subnetID uint32, reservation *resource.Reservation) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.CreateReservation4
+	cmd := services.CreateReservation4
 	if reservation.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.CreateReservation4Request{
+		req, err = proto.Marshal(&dhcp_agent.CreateReservation4Request{
 			SubnetId:      subnetID,
 			HwAddress:     reservation.HwAddress,
 			IpAddress:     reservation.IpAddress,
@@ -112,8 +111,8 @@ func sendCreateReservationCmdToDDIAgent(subnetID uint32, reservation *resource.R
 			Routers:       reservation.Routers,
 		})
 	} else {
-		cmd = kafkaconsumer.CreateReservation6
-		req, err = proto.Marshal(&pb.CreateReservation6Request{
+		cmd = services.CreateReservation6
+		req, err = proto.Marshal(&dhcp_agent.CreateReservation6Request{
 			SubnetId:    subnetID,
 			HwAddress:   reservation.HwAddress,
 			IpAddresses: []string{reservation.IpAddress},
@@ -125,7 +124,8 @@ func sendCreateReservationCmdToDDIAgent(subnetID uint32, reservation *resource.R
 		return fmt.Errorf("marshal create reservation request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func (r *ReservationHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -184,17 +184,17 @@ func getReservationLeasesCount(reservation *resource.Reservation) (uint64, error
 		return 0, nil
 	}
 
-	var resp *pb.GetLeasesCountResponse
+	var resp *dhcp_agent.GetLeasesCountResponse
 	var err error
 	if reservation.Version == util.IPVersion4 {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetReservation4LeasesCount(context.TODO(),
-			&pb.GetReservation4LeasesCountRequest{
+			&dhcp_agent.GetReservation4LeasesCountRequest{
 				SubnetId:  subnetIDStrToUint32(reservation.Subnet),
 				HwAddress: reservation.HwAddress,
 			})
 	} else {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetReservation6LeasesCount(context.TODO(),
-			&pb.GetReservation6LeasesCountRequest{
+			&dhcp_agent.GetReservation6LeasesCountRequest{
 				SubnetId:  subnetIDStrToUint32(reservation.Subnet),
 				HwAddress: reservation.HwAddress,
 			})
@@ -254,17 +254,17 @@ func setReservationFromDB(tx restdb.Transaction, reservation *resource.Reservati
 func sendUpdateReservationCmdToDDIAgent(subnetID string, reservation *resource.Reservation) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.UpdateReservation4
+	cmd := services.UpdateReservation4
 	if reservation.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.UpdateReservation4Request{
+		req, err = proto.Marshal(&dhcp_agent.UpdateReservation4Request{
 			SubnetId:      subnetIDStrToUint32(subnetID),
 			HwAddress:     reservation.HwAddress,
 			DomainServers: reservation.DomainServers,
 			Routers:       reservation.Routers,
 		})
 	} else {
-		cmd = kafkaconsumer.UpdateReservation6
-		req, err = proto.Marshal(&pb.UpdateReservation6Request{
+		cmd = services.UpdateReservation6
+		req, err = proto.Marshal(&dhcp_agent.UpdateReservation6Request{
 			SubnetId:   subnetIDStrToUint32(subnetID),
 			HwAddress:  reservation.HwAddress,
 			DnsServers: reservation.DomainServers,
@@ -275,7 +275,8 @@ func sendUpdateReservationCmdToDDIAgent(subnetID string, reservation *resource.R
 		return fmt.Errorf("marshal update reservation request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func (r *ReservationHandler) Delete(ctx *restresource.Context) *resterror.APIError {
@@ -333,15 +334,15 @@ func (r *ReservationHandler) Delete(ctx *restresource.Context) *resterror.APIErr
 func sendDeleteReservationCmdToDDIAgent(subnetID uint32, reservation *resource.Reservation) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.DeleteReservation4
+	cmd := services.DeleteReservation4
 	if reservation.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.DeleteReservation4Request{
+		req, err = proto.Marshal(&dhcp_agent.DeleteReservation4Request{
 			SubnetId:  subnetID,
 			HwAddress: reservation.HwAddress,
 		})
 	} else {
-		cmd = kafkaconsumer.DeleteReservation6
-		req, err = proto.Marshal(&pb.DeleteReservation6Request{
+		cmd = services.DeleteReservation6
+		req, err = proto.Marshal(&dhcp_agent.DeleteReservation6Request{
 			SubnetId:  subnetID,
 			HwAddress: reservation.HwAddress,
 		})
@@ -351,5 +352,6 @@ func sendDeleteReservationCmdToDDIAgent(subnetID uint32, reservation *resource.R
 		return fmt.Errorf("marshal delete reservation request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }

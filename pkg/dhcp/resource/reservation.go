@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 
-	agentutil "github.com/linkingthing/ddi-agent/pkg/dhcp/util"
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
 
@@ -45,7 +44,7 @@ func (r Reservations) Swap(i, j int) {
 }
 
 func (r Reservations) Less(i, j int) bool {
-	return agentutil.OneIpLessThanAnother(r[i].IpAddress, r[j].IpAddress)
+	return util.OneIpLessThanAnother(r[i].IpAddress, r[j].IpAddress)
 }
 
 func (r *Reservation) Validate() error {

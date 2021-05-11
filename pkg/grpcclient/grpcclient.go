@@ -1,21 +1,20 @@
 package grpcclient
 
 import (
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 	"google.golang.org/grpc"
-
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type GrpcClient struct {
-	DHCPClient pb.DHCPManagerClient
+	DHCPClient dhcp_agent.DHCPManagerClient
 }
 
 var grpcClient *GrpcClient
 
 func NewDhcpClient(conn *grpc.ClientConn) {
-	grpcClient = &GrpcClient{DHCPClient: pb.NewDHCPManagerClient(conn)}
+	grpcClient = &GrpcClient{DHCPClient: dhcp_agent.NewDHCPManagerClient(conn)}
 }
 
-func GetDHCPGrpcClient() pb.DHCPManagerClient {
+func GetDHCPGrpcClient() dhcp_agent.DHCPManagerClient {
 	return grpcClient.DHCPClient
 }

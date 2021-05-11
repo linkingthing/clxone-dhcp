@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 
-	agentutil "github.com/linkingthing/ddi-agent/pkg/dhcp/util"
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
 
@@ -40,7 +39,7 @@ func (s StaticAddresses) Swap(i, j int) {
 }
 
 func (s StaticAddresses) Less(i, j int) bool {
-	return agentutil.OneIpLessThanAnother(s[i].IpAddress, s[j].IpAddress)
+	return util.OneIpLessThanAnother(s[i].IpAddress, s[j].IpAddress)
 }
 
 func (s *StaticAddress) Validate() error {

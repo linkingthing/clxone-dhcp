@@ -11,13 +11,12 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
-	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	dhcpresource "github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	agentmetric "github.com/linkingthing/ddi-agent/pkg/metric"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
 func getSubnetUsedRatios(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
-	ctx.MetricName = agentmetric.MetricNameDHCPUsages
+	ctx.MetricName = MetricNameDHCPUsages
 	resp, err := prometheusRequest(ctx)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
@@ -32,11 +31,11 @@ func getSubnetUsedRatios(ctx *MetricContext) (*resource.Dhcp, *resterror.APIErro
 
 	var subnetUsedRatios resource.SubnetUsedRatios
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[agentmetric.MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
 			continue
 		}
 
-		if subnetId, ok := r.MetricLabels[agentmetric.MetricLabelSubnetId]; ok {
+		if subnetId, ok := r.MetricLabels[MetricLabelSubnetId]; ok {
 			if subnet, ok := subnets[subnetId]; ok {
 				subnetUsedRatios = append(subnetUsedRatios, resource.SubnetUsedRatio{
 					Ipnet:      subnet,
@@ -89,7 +88,7 @@ func getRatiosWithTimestamp(values [][]interface{}, period *TimePeriodParams) []
 }
 
 func exportSubnetUsedRatios(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	ctx.MetricName = agentmetric.MetricNameDHCPUsages
-	ctx.MetricLabel = agentmetric.MetricLabelSubnetId
+	ctx.MetricName = MetricNameDHCPUsages
+	ctx.MetricLabel = MetricLabelSubnetId
 	return exportMultiColunms(ctx)
 }

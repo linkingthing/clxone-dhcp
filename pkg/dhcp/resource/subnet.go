@@ -11,8 +11,8 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 var TableSubnet = restdb.ResourceDBType(&Subnet{})
@@ -231,7 +231,7 @@ func IsPrefixsDhcp(prefixs []string, containEachOther bool) error {
 
 func GetSubnetsLeasesCount() (map[uint32]uint64, error) {
 	resp, err := grpcclient.GetDHCPGrpcClient().GetSubnetsLeasesCount(context.TODO(),
-		&pb.GetSubnetsLeasesCountRequest{})
+		&dhcp_agent.GetSubnetsLeasesCountRequest{})
 	return resp.GetSubnetsLeasesCount(), err
 }
 
@@ -278,12 +278,12 @@ func GetSubnetsMap() (map[string]string, error) {
 	return subnetMap, nil
 }
 
-func LoadSubnetLeases(subnet *Subnet) (*pb.GetLeasesResponse, error) {
+func LoadSubnetLeases(subnet *Subnet) (*dhcp_agent.GetLeasesResponse, error) {
 	if subnet.Version == util.IPVersion4 {
 		return grpcclient.GetDHCPGrpcClient().GetSubnet4Leases(context.TODO(),
-			&pb.GetSubnet4LeasesRequest{Id: subnet.SubnetId})
+			&dhcp_agent.GetSubnet4LeasesRequest{Id: subnet.SubnetId})
 	} else {
 		return grpcclient.GetDHCPGrpcClient().GetSubnet6Leases(context.TODO(),
-			&pb.GetSubnet6LeasesRequest{Id: subnet.SubnetId})
+			&dhcp_agent.GetSubnet6LeasesRequest{Id: subnet.SubnetId})
 	}
 }

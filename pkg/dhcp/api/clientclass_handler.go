@@ -10,9 +10,8 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
-	"github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 )
 
 const (
@@ -50,7 +49,7 @@ func (c *ClientClassHandler) Create(ctx *restresource.Context) (restresource.Res
 }
 
 func sendCreateClientClassCmdToDDIAgent(clientclass *resource.ClientClass) error {
-	req, err := proto.Marshal(&pb.CreateClientClass4Request{
+	req, err := proto.Marshal(&dhcp_agent.CreateClientClass4Request{
 		Name:   clientclass.Name,
 		Regexp: fmt.Sprintf(ClientClassOption60, clientclass.Regexp),
 	})
@@ -59,7 +58,7 @@ func sendCreateClientClassCmdToDDIAgent(clientclass *resource.ClientClass) error
 		return fmt.Errorf("marshal create clientclass request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.CreateClientClass4, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(services.CreateClientClass4, req)
 }
 
 func (c *ClientClassHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -103,7 +102,7 @@ func (c *ClientClassHandler) Update(ctx *restresource.Context) (restresource.Res
 }
 
 func sendUpdateClientClassCmdToDDIAgent(clientclass *resource.ClientClass) error {
-	req, err := proto.Marshal(&pb.UpdateClientClass4Request{
+	req, err := proto.Marshal(&dhcp_agent.UpdateClientClass4Request{
 		Name:   clientclass.Name,
 		Regexp: fmt.Sprintf(ClientClassOption60, clientclass.Regexp),
 	})
@@ -112,7 +111,7 @@ func sendUpdateClientClassCmdToDDIAgent(clientclass *resource.ClientClass) error
 		return fmt.Errorf("marshal update clientclass request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.UpdateClientClass4, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(services.UpdateClientClass4, req)
 }
 
 func (c *ClientClassHandler) Delete(ctx *restresource.Context) *resterror.APIError {
@@ -133,7 +132,7 @@ func (c *ClientClassHandler) Delete(ctx *restresource.Context) *resterror.APIErr
 }
 
 func sendDeleteClientClassCmdToDDIAgent(clientClass *resource.ClientClass) error {
-	req, err := proto.Marshal(&pb.DeleteClientClass4Request{
+	req, err := proto.Marshal(&dhcp_agent.DeleteClientClass4Request{
 		Name: clientClass.GetID(),
 	})
 
@@ -141,5 +140,5 @@ func sendDeleteClientClassCmdToDDIAgent(clientClass *resource.ClientClass) error
 		return fmt.Errorf("marshal delete clientclass request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(kafkaconsumer.DeleteClientClass4, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(services.DeleteClientClass4, req)
 }

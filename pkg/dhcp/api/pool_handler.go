@@ -15,12 +15,10 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	//"github.com/linkingthing/clxone-dhcp/pkg/eventbus"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafkaproducer"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	"github.com/linkingthing/ddi-agent/pkg/dhcp/kafkaconsumer"
-	pb "github.com/linkingthing/ddi-agent/pkg/proto"
 )
 
 type PoolHandler struct {
@@ -207,9 +205,9 @@ func recalculatePoolCapacity(tx restdb.Transaction, subnetID string, pool *resou
 func sendCreatePoolCmdToDDIAgent(subnetID uint32, pool *resource.Pool) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.CreatePool4
+	cmd := services.CreatePool4
 	if pool.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.CreatePool4Request{
+		req, err = proto.Marshal(&dhcp_agent.CreatePool4Request{
 			SubnetId:      subnetID,
 			BeginAddress:  pool.BeginAddress,
 			EndAddress:    pool.EndAddress,
@@ -218,8 +216,8 @@ func sendCreatePoolCmdToDDIAgent(subnetID uint32, pool *resource.Pool) error {
 			ClientClass:   pool.ClientClass,
 		})
 	} else {
-		cmd = kafkaconsumer.CreatePool6
-		req, err = proto.Marshal(&pb.CreatePool6Request{
+		cmd = services.CreatePool6
+		req, err = proto.Marshal(&dhcp_agent.CreatePool6Request{
 			SubnetId:     subnetID,
 			BeginAddress: pool.BeginAddress,
 			EndAddress:   pool.EndAddress,
@@ -231,7 +229,8 @@ func sendCreatePoolCmdToDDIAgent(subnetID uint32, pool *resource.Pool) error {
 		return fmt.Errorf("marshal create pool request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func subnetIDStrToUint32(subnetID string) uint32 {
@@ -336,18 +335,18 @@ func loadPoolLeasesCount(pool *resource.Pool, reservations resource.Reservations
 		return 0, nil
 	}
 
-	var resp *pb.GetLeasesResponse
+	var resp *dhcp_agent.GetLeasesResponse
 	var err error
 	if pool.Version == util.IPVersion4 {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetPool4Leases(context.TODO(),
-			&pb.GetPool4LeasesRequest{
+			&dhcp_agent.GetPool4LeasesRequest{
 				SubnetId:     subnetIDStrToUint32(pool.Subnet),
 				BeginAddress: pool.BeginAddress,
 				EndAddress:   pool.EndAddress,
 			})
 	} else {
 		resp, err = grpcclient.GetDHCPGrpcClient().GetPool6Leases(context.TODO(),
-			&pb.GetPool6LeasesRequest{
+			&dhcp_agent.GetPool6LeasesRequest{
 				SubnetId:     subnetIDStrToUint32(pool.Subnet),
 				BeginAddress: pool.BeginAddress,
 				EndAddress:   pool.EndAddress,
@@ -439,9 +438,9 @@ func setPoolFromDB(tx restdb.Transaction, pool *resource.Pool) error {
 func sendUpdatePoolCmdToDDIAgent(subnetID string, pool *resource.Pool) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.UpdatePool4
+	cmd := services.UpdatePool4
 	if pool.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.UpdatePool4Request{
+		req, err = proto.Marshal(&dhcp_agent.UpdatePool4Request{
 			SubnetId:      subnetIDStrToUint32(subnetID),
 			BeginAddress:  pool.BeginAddress,
 			EndAddress:    pool.EndAddress,
@@ -450,8 +449,8 @@ func sendUpdatePoolCmdToDDIAgent(subnetID string, pool *resource.Pool) error {
 			ClientClass:   pool.ClientClass,
 		})
 	} else {
-		cmd = kafkaconsumer.UpdatePool6
-		req, err = proto.Marshal(&pb.UpdatePool6Request{
+		cmd = services.UpdatePool6
+		req, err = proto.Marshal(&dhcp_agent.UpdatePool6Request{
 			SubnetId:     subnetIDStrToUint32(subnetID),
 			BeginAddress: pool.BeginAddress,
 			EndAddress:   pool.EndAddress,
@@ -463,7 +462,8 @@ func sendUpdatePoolCmdToDDIAgent(subnetID string, pool *resource.Pool) error {
 		return fmt.Errorf("marshal update pool request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func (p *PoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
@@ -512,16 +512,16 @@ func (p *PoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 func sendDeletePoolCmdToDDIAgent(subnetID uint32, pool *resource.Pool) error {
 	var req []byte
 	var err error
-	cmd := kafkaconsumer.DeletePool4
+	cmd := services.DeletePool4
 	if pool.Version == util.IPVersion4 {
-		req, err = proto.Marshal(&pb.DeletePool4Request{
+		req, err = proto.Marshal(&dhcp_agent.DeletePool4Request{
 			SubnetId:     subnetID,
 			BeginAddress: pool.BeginAddress,
 			EndAddress:   pool.EndAddress,
 		})
 	} else {
-		cmd = kafkaconsumer.DeletePool6
-		req, err = proto.Marshal(&pb.DeletePool6Request{
+		cmd = services.DeletePool6
+		req, err = proto.Marshal(&dhcp_agent.DeletePool6Request{
 			SubnetId:     subnetID,
 			BeginAddress: pool.BeginAddress,
 			EndAddress:   pool.EndAddress,
@@ -532,7 +532,8 @@ func sendDeletePoolCmdToDDIAgent(subnetID uint32, pool *resource.Pool) error {
 		return fmt.Errorf("marshal delete pool request failed: %s", err.Error())
 	}
 
-	return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	// return kafkaproducer.GetKafkaProducer().SendDHCPCmd(cmd, req)
+	return services.NewDHCPAgentService().SendDHCPCmd(cmd, req)
 }
 
 func (h *PoolHandler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
