@@ -11,7 +11,7 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	dhcpresource "github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	agentmetric "github.com/linkingthing/ddi-agent/pkg/metric"
 )

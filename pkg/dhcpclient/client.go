@@ -10,7 +10,7 @@ import (
 	"github.com/zdnscloud/cement/log"
 	"github.com/zdnscloud/cement/slice"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 )
 

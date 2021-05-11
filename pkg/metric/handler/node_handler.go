@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	"github.com/sirupsen/logrus"
 	resterror "github.com/zdnscloud/gorest/error"

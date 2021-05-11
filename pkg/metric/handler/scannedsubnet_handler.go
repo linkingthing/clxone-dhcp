@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/sirupsen/logrus"

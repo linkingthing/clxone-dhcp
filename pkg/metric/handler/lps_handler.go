@@ -11,12 +11,16 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
 	agentmetric "github.com/linkingthing/ddi-agent/pkg/metric"
+)
+
+const (
+	PromQueryUrl = "http://%s/api/v1/query_range?query=%s{node='%s'}&start=%d&end=%d&step=%d"
 )
 
 type LPSHandler struct {

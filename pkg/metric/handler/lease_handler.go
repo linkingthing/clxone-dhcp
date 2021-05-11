@@ -5,7 +5,7 @@ import (
 
 	resterror "github.com/zdnscloud/gorest/error"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	agentmetric "github.com/linkingthing/ddi-agent/pkg/metric"
 )
 
