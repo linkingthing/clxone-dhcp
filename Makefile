@@ -5,7 +5,7 @@ VERSION=v1.4.1
 build: clxone_dhcp
 
 clxone_dhcp: $(GOSRC)
-	CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/controller/controller.go
+	CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/controller/dhcp.go
 
 build-image:
 	docker build -t linkingthing/clxone-dhcp:${VERSION} .

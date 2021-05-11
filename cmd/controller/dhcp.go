@@ -48,7 +48,7 @@ func main() {
 
 	kafkaproducer.Init(conf)
 
-	conn, err := grpc.Dial(conf.DDIAgent.GrpcAddr, grpc.WithInsecure())
+	conn, err := grpc.Dial(conf.DHCPAgent.GrpcAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("dail grpc failed: %s", err.Error())
 	}

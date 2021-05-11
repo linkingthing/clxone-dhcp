@@ -75,7 +75,7 @@ func (s *Server) RegisterHandler(h WebHandler) error {
 	return h.RegisterHandler(s.apiServer, s.router)
 }
 
-func (s *Server) Run(conf *config.DDIControllerConfig) (err error) {
+func (s *Server) Run(conf *config.DHCPConfig) (err error) {
 	errc := make(chan error)
 	adaptor.RegisterHandler(s.group, s.apiServer, s.apiServer.Schemas.GenerateResourceRoute())
 

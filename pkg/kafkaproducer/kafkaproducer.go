@@ -22,7 +22,7 @@ func GetKafkaProducer() *KafkaProducer {
 	return globalKafkaProducer
 }
 
-func Init(conf *config.DDIControllerConfig) {
+func Init(conf *config.DHCPConfig) {
 	globalKafkaProducer = &KafkaProducer{
 		dnsWriter: kg.NewWriter(kg.WriterConfig{
 			Brokers:   conf.Kafka.Addr,

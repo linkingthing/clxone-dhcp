@@ -34,7 +34,7 @@ func GetDB() restdb.ResourceStore {
 	return globalDB
 }
 
-func Init(conf *config.DDIControllerConfig) error {
+func Init(conf *config.DHCPConfig) error {
 	meta, err := restdb.NewResourceMeta(globalResources)
 	if err != nil {
 		return err

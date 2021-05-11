@@ -4,12 +4,12 @@ import (
 	"github.com/zdnscloud/cement/configure"
 )
 
-type DDIControllerConfig struct {
+type DHCPConfig struct {
 	Path                  string             `yaml:"-"`
 	DB                    DBConf             `yaml:"db"`
 	Server                ServerConf         `yaml:"server"`
 	Kafka                 KafkaConf          `yaml:"kafka"`
-	DDIAgent              DDIAgentConf       `yaml:"ddi_agent"`
+	DHCPAgent             DHCPAgentConf      `yaml:"ddi_agent"`
 	Prometheus            PrometheusConf     `yaml:"prometheus"`
 	Elasticsearch         ElasticsearchConf  `yaml:"elasticsearch"`
 	MonitorNode           MonitorNodeConf    `yaml:"monitor_node"`
@@ -38,7 +38,7 @@ type ServerConf struct {
 	NotifyAddr  string `yaml:"notify_addr"`
 }
 
-type DDIAgentConf struct {
+type DHCPAgentConf struct {
 	GrpcAddr string `yaml:"grpc_addr"`
 }
 
@@ -83,10 +83,10 @@ type RegionDataConf struct {
 	CityData     string `yaml:"city_data"`
 }
 
-var gConf *DDIControllerConfig
+var gConf *DHCPConfig
 
-func LoadConfig(path string) (*DDIControllerConfig, error) {
-	var conf DDIControllerConfig
+func LoadConfig(path string) (*DHCPConfig, error) {
+	var conf DHCPConfig
 	conf.Path = path
 	if err := conf.Reload(); err != nil {
 		return nil, err
@@ -95,8 +95,8 @@ func LoadConfig(path string) (*DDIControllerConfig, error) {
 	return &conf, nil
 }
 
-func (c *DDIControllerConfig) Reload() error {
-	var newConf DDIControllerConfig
+func (c *DHCPConfig) Reload() error {
+	var newConf DHCPConfig
 	if err := configure.Load(&newConf, c.Path); err != nil {
 		return err
 	}
@@ -107,6 +107,6 @@ func (c *DDIControllerConfig) Reload() error {
 	return nil
 }
 
-func GetConfig() *DDIControllerConfig {
+func GetConfig() *DHCPConfig {
 	return gConf
 }
