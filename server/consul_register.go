@@ -69,27 +69,14 @@ func register(advertiseAddress string,
 		os.Exit(1)
 	}
 
-	taggedAddresses := map[string]consulapi.ServiceAddress{
-		"lan_ipv4": {
-			Address: advertiseAddress,
-			Port:    advertisePort,
-		},
-		"lan_ipv6": {
-			Address: advertiseAddress,
-			Port:    advertisePort,
-		},
-	}
-
 	asr := consulapi.AgentServiceRegistration{
-		ID:              serviceID,
-		Name:            serviceName,
-		Address:         advertiseAddress,
-		Port:            advertisePort,
-		TaggedAddresses: taggedAddresses,
-		Check:           &check,
+		ID:      serviceID,
+		Name:    serviceName,
+		Address: advertiseAddress,
+		Port:    advertisePort,
+		Check:   &check,
 	}
 	client := consulsd.NewClient(consulClient)
 	registar = consulsd.NewRegistrar(client, &asr, logger)
-	registar.Register()
 	return
 }

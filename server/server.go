@@ -89,6 +89,7 @@ func (s *Server) Run(conf *config.DHCPConfig) (err error) {
 			serviceID,
 			serviceName,
 		)
+		registar.Register()
 		defer registar.Deregister()
 	}
 
