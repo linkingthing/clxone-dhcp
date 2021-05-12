@@ -338,14 +338,14 @@ func loadPoolLeasesCount(pool *resource.Pool, reservations resource.Reservations
 	var resp *dhcp_agent.GetLeasesResponse
 	var err error
 	if pool.Version == util.IPVersion4 {
-		resp, err = grpcclient.GetDHCPGrpcClient().GetPool4Leases(context.TODO(),
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetPool4Leases(context.TODO(),
 			&dhcp_agent.GetPool4LeasesRequest{
 				SubnetId:     subnetIDStrToUint32(pool.Subnet),
 				BeginAddress: pool.BeginAddress,
 				EndAddress:   pool.EndAddress,
 			})
 	} else {
-		resp, err = grpcclient.GetDHCPGrpcClient().GetPool6Leases(context.TODO(),
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetPool6Leases(context.TODO(),
 			&dhcp_agent.GetPool6LeasesRequest{
 				SubnetId:     subnetIDStrToUint32(pool.Subnet),
 				BeginAddress: pool.BeginAddress,

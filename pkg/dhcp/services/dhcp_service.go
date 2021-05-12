@@ -105,10 +105,10 @@ func getSubnetLeasesCount(subnet *resource.Subnet) (uint64, error) {
 	var resp *dhcp_agent.GetLeasesCountResponse
 	var err error
 	if subnet.Version == util.IPVersion4 {
-		resp, err = grpcclient.GetDHCPGrpcClient().GetSubnet4LeasesCount(context.TODO(),
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnet4LeasesCount(context.TODO(),
 			&dhcp_agent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
 	} else {
-		resp, err = grpcclient.GetDHCPGrpcClient().GetSubnet6LeasesCount(context.TODO(),
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnet6LeasesCount(context.TODO(),
 			&dhcp_agent.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
 	}
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/user"
+	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/gorest"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -20,6 +21,7 @@ func JWTMiddleWare() gorest.HandlerFunc {
 
 		conn, err := pb.NewClient("clxone-user-grpc")
 		if err != nil {
+			logrus.Error(err)
 			return resterror.NewAPIError(resterror.Unauthorized, err.Error())
 		}
 		defer conn.Close()
@@ -32,6 +34,7 @@ func JWTMiddleWare() gorest.HandlerFunc {
 		})
 
 		if err != nil {
+			logrus.Error(err)
 			return resterror.NewAPIError(resterror.Unauthorized, err.Error())
 		}
 

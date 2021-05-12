@@ -267,7 +267,7 @@ func getPdPoolLeasesCount(pdpool *resource.PdPool) (uint64, error) {
 	}
 
 	beginAddr, endAddr := pdpool.GetRange()
-	resp, err := grpcclient.GetDHCPGrpcClient().GetPool6LeasesCount(context.TODO(),
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6LeasesCount(context.TODO(),
 		&dhcp_agent.GetPool6LeasesCountRequest{
 			SubnetId:     subnetIDStrToUint32(pdpool.Subnet),
 			BeginAddress: beginAddr,

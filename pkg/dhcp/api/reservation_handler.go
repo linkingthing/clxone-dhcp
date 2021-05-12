@@ -187,13 +187,13 @@ func getReservationLeasesCount(reservation *resource.Reservation) (uint64, error
 	var resp *dhcp_agent.GetLeasesCountResponse
 	var err error
 	if reservation.Version == util.IPVersion4 {
-		resp, err = grpcclient.GetDHCPGrpcClient().GetReservation4LeasesCount(context.TODO(),
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetReservation4LeasesCount(context.TODO(),
 			&dhcp_agent.GetReservation4LeasesCountRequest{
 				SubnetId:  subnetIDStrToUint32(reservation.Subnet),
 				HwAddress: reservation.HwAddress,
 			})
 	} else {
-		resp, err = grpcclient.GetDHCPGrpcClient().GetReservation6LeasesCount(context.TODO(),
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetReservation6LeasesCount(context.TODO(),
 			&dhcp_agent.GetReservation6LeasesCountRequest{
 				SubnetId:  subnetIDStrToUint32(reservation.Subnet),
 				HwAddress: reservation.HwAddress,

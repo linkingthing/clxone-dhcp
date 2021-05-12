@@ -5,12 +5,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/log"
-	"google.golang.org/grpc"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
-	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	restserver "github.com/linkingthing/clxone-dhcp/server"
 )
 
@@ -41,12 +39,8 @@ func main() {
 		log.Fatalf("init db failed: %s", err.Error())
 	}
 
-	conn, err := grpc.Dial(conf.DHCPAgent.GrpcAddr, grpc.WithInsecure())
-	if err != nil {
-		log.Fatalf("dail grpc failed: %s", err.Error())
-	}
-	defer conn.Close()
-	grpcclient.NewDhcpClient(conn)
+	// conn := grpcclient.NewDhcpAgentClient()
+	// defer conn.Close()
 
 	server, err := restserver.NewServer()
 	if err != nil {

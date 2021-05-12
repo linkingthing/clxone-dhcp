@@ -230,7 +230,7 @@ func IsPrefixsDhcp(prefixs []string, containEachOther bool) error {
 }
 
 func GetSubnetsLeasesCount() (map[uint32]uint64, error) {
-	resp, err := grpcclient.GetDHCPGrpcClient().GetSubnetsLeasesCount(context.TODO(),
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnetsLeasesCount(context.TODO(),
 		&dhcp_agent.GetSubnetsLeasesCountRequest{})
 	return resp.GetSubnetsLeasesCount(), err
 }
@@ -280,10 +280,10 @@ func GetSubnetsMap() (map[string]string, error) {
 
 func LoadSubnetLeases(subnet *Subnet) (*dhcp_agent.GetLeasesResponse, error) {
 	if subnet.Version == util.IPVersion4 {
-		return grpcclient.GetDHCPGrpcClient().GetSubnet4Leases(context.TODO(),
+		return grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Leases(context.TODO(),
 			&dhcp_agent.GetSubnet4LeasesRequest{Id: subnet.SubnetId})
 	} else {
-		return grpcclient.GetDHCPGrpcClient().GetSubnet6Leases(context.TODO(),
+		return grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
 			&dhcp_agent.GetSubnet6LeasesRequest{Id: subnet.SubnetId})
 	}
 }
