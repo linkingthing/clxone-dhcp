@@ -9,7 +9,6 @@ type DHCPConfig struct {
 	DB            DBConf            `yaml:"db"`
 	Server        ServerConf        `yaml:"server"`
 	Kafka         KafkaConf         `yaml:"kafka"`
-	DHCPAgent     DHCPAgentConf     `yaml:"dhcp_agent"`
 	Prometheus    PrometheusConf    `yaml:"prometheus"`
 	Elasticsearch ElasticsearchConf `yaml:"elasticsearch"`
 	Consul        ConsulConf        `yaml:"consul"`
@@ -33,10 +32,6 @@ type ServerConf struct {
 	TlsKeyFile  string `yaml:"tls_key_file"`
 	Master      string `yaml:"master"`
 	NotifyAddr  string `yaml:"notify_addr"`
-}
-
-type DHCPAgentConf struct {
-	GrpcAddr string `yaml:"grpc_addr"`
 }
 
 type KafkaConf struct {
