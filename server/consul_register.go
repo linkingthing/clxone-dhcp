@@ -8,6 +8,7 @@ import (
 	"github.com/go-kit/kit/sd"
 	consulsd "github.com/go-kit/kit/sd/consul"
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/linkingthing/clxone-dhcp/config"
 )
 
 func RegisterForHttp(
@@ -17,9 +18,9 @@ func RegisterForHttp(
 	serviceName string) (registar sd.Registrar) {
 
 	check := consulapi.AgentServiceCheck{
-		HTTP:     fmt.Sprintf("%v:%v", advertiseAddress, advertisePort),
-		Interval: "10s",
-		Timeout:  "1s",
+		HTTP:     fmt.Sprintf("http://%v:%v/health", advertiseAddress, advertisePort),
+		Interval: config.GetConfig().Consul.Check.Interval,
+		Timeout:  config.GetConfig().Consul.Check.Timeout,
 	}
 
 	registar = register(advertiseAddress,
@@ -38,8 +39,8 @@ func RegisterForGrpc(
 
 	check := consulapi.AgentServiceCheck{
 		GRPC:     fmt.Sprintf("%v:%v", advertiseAddress, advertisePort),
-		Interval: "10s",
-		Timeout:  "1s",
+		Interval: config.GetConfig().Consul.Check.Interval,
+		Timeout:  config.GetConfig().Consul.Check.Timeout,
 	}
 
 	registar = register(advertiseAddress,

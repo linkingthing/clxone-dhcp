@@ -98,7 +98,7 @@ func (s *Server) Run(conf *config.DHCPConfig) (err error) {
 		grpcServiceName := "clxone-dhcp-grpc"
 		grpcServiceID := grpcServiceName + uuid.NewString()
 		registar := RegisterForGrpc(conf.Server.IP,
-			getGrpcPort(conf.Server.Port),
+			conf.Server.GrpcPort,
 			grpcServiceID,
 			grpcServiceName,
 		)
@@ -118,7 +118,7 @@ func (s *Server) Run(conf *config.DHCPConfig) (err error) {
 		}()
 
 		go func() {
-			grpcListener, err := net.Listen("tcp", fmt.Sprintf(":%d", getGrpcPort(conf.Server.Port)))
+			grpcListener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.Server.GrpcPort))
 			if err != nil {
 				errc <- err
 				return
@@ -136,8 +136,4 @@ func (s *Server) Run(conf *config.DHCPConfig) (err error) {
 
 	err = <-errc
 	return err
-}
-
-func getGrpcPort(httpPort int) (grpcPort int) {
-	return httpPort + 1
 }

@@ -22,8 +22,6 @@ var (
 
 func main() {
 	flag.StringVar(&configFile, "c", "controller.conf", "configure file path")
-	flag.StringVar(&ip, "ip", "127.0.0.1", "server port")
-	flag.IntVar(&port, "p", 58221, "server port")
 	flag.Parse()
 
 	log.InitLogger(log.Debug)
@@ -37,8 +35,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
-	conf.Server.IP = ip
-	conf.Server.Port = port
 
 	db.RegisterResources(dhcp.PersistentResources()...)
 	if err := db.Init(conf); err != nil {

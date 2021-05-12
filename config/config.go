@@ -5,18 +5,15 @@ import (
 )
 
 type DHCPConfig struct {
-	Path                  string             `yaml:"-"`
-	DB                    DBConf             `yaml:"db"`
-	Server                ServerConf         `yaml:"server"`
-	Kafka                 KafkaConf          `yaml:"kafka"`
-	DHCPAgent             DHCPAgentConf      `yaml:"dhcp_agent"`
-	Prometheus            PrometheusConf     `yaml:"prometheus"`
-	Elasticsearch         ElasticsearchConf  `yaml:"elasticsearch"`
-	MonitorNode           MonitorNodeConf    `yaml:"monitor_node"`
-	AuditLog              AuditLogConf       `yaml:"audit_log"`
-	Alarm                 AlarmConf          `yaml:"alarm"`
-	SubnetScan            SubnetScanConf     `yaml:"subnet_scan"`
-	IllegalDHCPServerScan DHCPServerScanConf `yaml:"illegal_dhcp_server_scan"`
+	Path          string            `yaml:"-"`
+	DB            DBConf            `yaml:"db"`
+	Server        ServerConf        `yaml:"server"`
+	Kafka         KafkaConf         `yaml:"kafka"`
+	DHCPAgent     DHCPAgentConf     `yaml:"dhcp_agent"`
+	Prometheus    PrometheusConf    `yaml:"prometheus"`
+	Elasticsearch ElasticsearchConf `yaml:"elasticsearch"`
+	Consul        ConsulConf        `yaml:"consul"`
+	CallServices  map[string]string `yaml: "call_services"`
 }
 
 type DBConf struct {
@@ -30,6 +27,7 @@ type DBConf struct {
 type ServerConf struct {
 	IP          string `yaml:"ip"`
 	Port        int    `yaml:"port"`
+	GrpcPort    int    `yaml:"grpc_port"`
 	Hostname    string `yaml:"hostname"`
 	TlsCertFile string `yaml:"tls_cert_file"`
 	TlsKeyFile  string `yaml:"tls_key_file"`
@@ -62,20 +60,18 @@ type ElasticsearchConf struct {
 	Index string   `yaml:"index"`
 }
 
-type AlarmConf struct {
-	ValidPeriod uint32 `yaml:"valid_period"`
+type ConsulConf struct {
+	ID    string    `yaml:"id"`
+	Name  string    `yaml:"name"`
+	Tags  []string  `yaml:"tags"`
+	Check CheckConf `yaml:"check"`
 }
 
-type AuditLogConf struct {
-	ValidPeriod uint32 `yaml:"valid_period"`
-}
-
-type SubnetScanConf struct {
-	Interval uint32 `yaml:"interval"`
-}
-
-type DHCPServerScanConf struct {
-	Interval uint32 `yaml:"interval"`
+type CheckConf struct {
+	Interval                       string `yaml:"interval"`
+	Timeout                        string `yaml:"timeout"`
+	DeregisterCriticalServiceAfter string `yaml:"deregister_critical_service_after"`
+	TLSSkipVerify                  bool   `yaml:"tls_skip_verify"`
 }
 
 var gConf *DHCPConfig
