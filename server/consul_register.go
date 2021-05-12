@@ -18,9 +18,11 @@ func RegisterForHttp(
 	serviceName string) (registar sd.Registrar) {
 
 	check := consulapi.AgentServiceCheck{
-		HTTP:     fmt.Sprintf("http://%v:%v/health", advertiseAddress, advertisePort),
-		Interval: config.GetConfig().Consul.Check.Interval,
-		Timeout:  config.GetConfig().Consul.Check.Timeout,
+		HTTP:                           fmt.Sprintf("http://%v:%v/health", advertiseAddress, advertisePort),
+		Interval:                       config.GetConfig().Consul.Check.Interval,
+		Timeout:                        config.GetConfig().Consul.Check.Timeout,
+		DeregisterCriticalServiceAfter: config.GetConfig().Consul.Check.DeregisterCriticalServiceAfter,
+		TLSSkipVerify:                  config.GetConfig().Consul.Check.TLSSkipVerify,
 	}
 
 	registar = register(advertiseAddress,
@@ -38,9 +40,11 @@ func RegisterForGrpc(
 	serviceName string) (registar sd.Registrar) {
 
 	check := consulapi.AgentServiceCheck{
-		GRPC:     fmt.Sprintf("%v:%v", advertiseAddress, advertisePort),
-		Interval: config.GetConfig().Consul.Check.Interval,
-		Timeout:  config.GetConfig().Consul.Check.Timeout,
+		GRPC:                           fmt.Sprintf("%v:%v", advertiseAddress, advertisePort),
+		Interval:                       config.GetConfig().Consul.Check.Interval,
+		Timeout:                        config.GetConfig().Consul.Check.Timeout,
+		DeregisterCriticalServiceAfter: config.GetConfig().Consul.Check.DeregisterCriticalServiceAfter,
+		TLSSkipVerify:                  config.GetConfig().Consul.Check.TLSSkipVerify,
 	}
 
 	registar = register(advertiseAddress,

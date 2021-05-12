@@ -9,7 +9,6 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/zdnscloud/gorest"
 	"github.com/zdnscloud/gorest/adaptor"
 	"github.com/zdnscloud/gorest/resource/schema"
@@ -82,8 +81,8 @@ func (s *Server) Run(conf *config.DHCPConfig) (err error) {
 
 	{
 		// register rest api service to consul
-		serviceName := "clxone-dhcp-api"
-		serviceID := serviceName + uuid.NewString()
+		serviceName := conf.Consul.Name + "-api"
+		serviceID := serviceName + conf.Server.IP
 		registar := RegisterForHttp(conf.Server.IP,
 			conf.Server.Port,
 			serviceID,
@@ -95,8 +94,8 @@ func (s *Server) Run(conf *config.DHCPConfig) (err error) {
 
 	{
 		// register grpc api service to consul
-		grpcServiceName := "clxone-dhcp-grpc"
-		grpcServiceID := grpcServiceName + uuid.NewString()
+		grpcServiceName := conf.Consul.Name + "-grpc"
+		grpcServiceID := grpcServiceName + conf.Server.IP
 		registar := RegisterForGrpc(conf.Server.IP,
 			conf.Server.GrpcPort,
 			grpcServiceID,
