@@ -77,9 +77,9 @@ func register(advertiseAddress string,
 	}
 
 	checks := consulapi.AgentServiceChecks{
-		// {
-		// 	AliasService: "kafka",
-		// },
+		{
+			AliasService: "clxone_user_grpc",
+		},
 		// {
 		// 	AliasService: "postgres",
 		// },
@@ -91,6 +91,7 @@ func register(advertiseAddress string,
 		Name:    serviceName,
 		Address: advertiseAddress,
 		Port:    advertisePort,
+		Tags:    config.GetConfig().Consul.Tags,
 		Checks:  checks,
 	}
 	client := consulsd.NewClient(consulClient)
