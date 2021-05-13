@@ -68,7 +68,9 @@ func register(advertiseAddress string,
 		logger = log.With(logger, "caller", log.DefaultCaller)
 	}
 
-	consulClient, err := consulapi.NewClient(consulapi.DefaultConfig())
+	conf := consulapi.DefaultConfig()
+	conf.Address = advertiseAddress
+	consulClient, err := consulapi.NewClient(conf)
 	if err != nil {
 		logger.Log("err", err)
 		os.Exit(1)
