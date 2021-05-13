@@ -12,7 +12,7 @@ cat <<EOF
 <------------------------------------------------>
     Usage:
         ./gen_image.sh {version}
-        ./gen_image.sh {clxone-controller version} {clxone-web version}
+        ./gen_image.sh {clxone-dhcp version} {clxone-web version}
 <------------------------------------------------>
 
 EOF
@@ -27,19 +27,19 @@ cat <<EOF
 
 EOF
 
-cat <<'EOF' | docker build -f - -t linkingthing/clxone-controller:${VERSION}-${UIVERSION} --build-arg version=${VERSION} --build-arg uiversion=${UIVERSION} .
+cat <<'EOF' | docker build -f - -t linkingthing/clxone-dhcp:${VERSION}-${UIVERSION} --build-arg version=${VERSION} --build-arg uiversion=${UIVERSION} .
 ARG version
 ARG uiversion
 
-FROM linkingthing/clxone-controller:$version as go
+FROM linkingthing/clxone-dhcp:$version as go
 FROM linkingthing/clxone-web:$uiversion as js
 
 FROM alpine:3.12
 
-COPY --from=go /clxone-controller /
+COPY --from=go /clxone-dhcp /
 COPY --from=js /opt/website /opt/website
 
-ENTRYPOINT ["/clxone-controller"]
+ENTRYPOINT ["/clxone-dhcp"]
 EOF
 
 if [[ $? -eq 0 ]]
@@ -49,7 +49,7 @@ cat <<EOF
 
 <------------------------------------------------>
   Image build complete.
-  Build: zdnscloud/clxone-controller:${VERSION}-${UIVERSION}
+  Build: zdnscloud/clxone-dhcp:${VERSION}-${UIVERSION}
 <------------------------------------------------>
 
 EOF
