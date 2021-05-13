@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/metric/services"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/sirupsen/logrus"
@@ -23,9 +23,9 @@ type ScannedSubnetHandler struct {
 func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
 	searchInterval := DefaultSearchInterval
 	if conf := config.GetConfig(); conf != nil {
-		if conf.IllegalDHCPServerScan.Interval != 0 {
-			searchInterval = int(conf.IllegalDHCPServerScan.Interval)
-		}
+		// if conf.IllegalDHCPServerScan.Interval != 0 {
+		// 	searchInterval = int(conf.IllegalDHCPServerScan.Interval)
+		// }
 	}
 
 	dhcpClient, err := dhcpclient.New()
@@ -45,7 +45,7 @@ func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
 		return nil, err
 	}
 
-	go alarmService.ListenUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateDhcpThresHold)
+	go alarmService.HandleUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateDhcpThresHold)
 
 	go h.searchIllegalDHCPServer(searchInterval)
 	return h, nil

@@ -17,13 +17,13 @@ var Version = restresource.APIVersion{
 
 func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	conf := config.GetConfig()
-	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, api.NewDhcpHandler(conf))
 	apiServer.Schemas.MustImport(&Version, resource.Node{}, api.NewNodeHandler())
-	_, err := handler.NewScannedSubnetHandler()
+	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, api.NewDhcpHandler(conf))
+	_, err := api.NewScannedSubnetHandler()
 	if err != nil {
 		return err
 	}
-	handler.NewLPSHandler(conf)
+	api.NewLPSHandler(conf)
 	return nil
 }
 

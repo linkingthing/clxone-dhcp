@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -11,10 +12,13 @@ import (
 
 	"github.com/sirupsen/logrus"
 	restdb "github.com/zdnscloud/gorest/db"
+	resterror "github.com/zdnscloud/gorest/error"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
+	metricresource "github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
@@ -49,6 +53,37 @@ func (a *DHCPService) GetSubnetByIDs(ids ...string) (subnets []*resource.Subnet,
 	}); err != nil {
 		logrus.Error(err)
 	}
+	return
+}
+func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
+	endpoints, err := pb.GetEndpoints("clxone-dhcp-agent-grpc")
+	if err != nil {
+		logrus.Error(err)
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("found clxone-dhcp-agnet: %s", err.Error()))
+	}
+	for _, end := range endpoints {
+		response, err := end(context.Background(), struct{}{})
+		if err != nil {
+			logrus.Error(err)
+			return nil, err
+		}
+
+		if err != nil {
+			log.Printf("did not connect: %v", err)
+			return nil, err
+		}
+
+		ip := strings.Split(response.(string), ":")[0]
+		node := &metricresource.Node{
+			Ip:       ip,
+			Hostname: ip,
+		}
+		node.SetID(ip)
+
+		nodes = append(nodes, node)
+	}
+
 	return
 }
 

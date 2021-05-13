@@ -14,6 +14,25 @@ import (
 const (
 	PacketLabelPrefixVersion4 = "pkt4-"
 	PacketLabelPrefixVersion6 = "pkt6-"
+	DHCPVersion4              = "4"
+	DHCP4StatsDiscover        = "pkt4-discover-received"
+	DHCP4StatsOffer           = "pkt4-offer-sent"
+	DHCP4StatsRequest         = "pkt4-request-received"
+	DHCP4StatsAck             = "pkt4-ack-sent"
+	DHCP4PacketTypeDiscover   = "discover"
+	DHCP4PacketTypeOffer      = "offer"
+	DHCP4PacketTypeRequest    = "request"
+	DHCP4PacketTypeAck        = "ack"
+
+	DHCPVersion6             = "6"
+	DHCP6StatsSolicit        = "pkt6-solicit-received"
+	DHCP6StatsAdvertise      = "pkt6-advertise-sent"
+	DHCP6StatsRequest        = "pkt6-request-received"
+	DHCP6StatsReply          = "pkt6-reply-sent"
+	DHCP6PacketTypeSolicit   = "solicit"
+	DHCP6PacketTypeAdvertise = "advertise"
+	DHCP6PacketTypeRequest   = "request"
+	DHCP6PacketTypeReply     = "reply"
 )
 
 func getPackets(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {

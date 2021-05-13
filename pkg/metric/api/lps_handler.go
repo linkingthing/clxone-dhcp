@@ -11,8 +11,8 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/metric/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
@@ -57,7 +57,7 @@ func NewLPSHandler(conf *config.DHCPConfig) *LPSHandler {
 		logrus.Error(err)
 	}
 
-	go alarmService.ListenUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateLpsThresHold)
+	go alarmService.HandleUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateLpsThresHold)
 
 	h := &LPSHandler{
 		prometheusAddr: conf.Prometheus.Addr,
@@ -74,7 +74,7 @@ func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
 	for {
 		select {
 		case <-ticker.C:
-			nodes, err := getDHCPNodeList()
+			nodes, err := services.NewDHCPService().GetNodeList()
 			if err != nil {
 				logrus.Error(err)
 				continue

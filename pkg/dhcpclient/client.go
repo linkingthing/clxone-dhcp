@@ -8,10 +8,10 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/log"
-	"github.com/zdnscloud/cement/slice"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 )
 
 const (
@@ -115,12 +115,12 @@ func isDHCPNodeIPv4(nodes []resource.Node, ip string) bool {
 	return false
 }
 
-func isDHCPNodeIPv6(nodes []resource.Node, ip string) bool {
-	for _, node := range nodes {
-		if slice.SliceIndex(node.Ipv6s, ip) != -1 {
-			return true
-		}
-	}
+func isDHCPNodeIPv6(nodes []dhcp_agent., ip string) bool {
+	// for _, node := range nodes {
+	// if slice.SliceIndex(node.Ipv6s, ip) != -1 {
+	// 	return true
+	// }
+	// }
 
 	return false
 }

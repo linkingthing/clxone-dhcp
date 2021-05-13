@@ -9,6 +9,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
+	"github.com/linkingthing/clxone-dhcp/pkg/metric"
 	restserver "github.com/linkingthing/clxone-dhcp/server"
 )
 
@@ -35,6 +36,7 @@ func main() {
 	}
 
 	db.RegisterResources(dhcp.PersistentResources()...)
+	db.RegisterResources(metric.PersistentResources()...)
 	if err := db.Init(conf); err != nil {
 		log.Fatalf("init db failed: %s", err.Error())
 	}
@@ -48,6 +50,7 @@ func main() {
 	}
 
 	server.RegisterHandler(restserver.HandlerRegister(dhcp.RegisterHandler))
+	server.RegisterHandler(restserver.HandlerRegister(metric.RegisterHandler))
 
 	if err := server.Run(conf); err != nil {
 		log.Fatalf("server run failed: %s", err.Error())
