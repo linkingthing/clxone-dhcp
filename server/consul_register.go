@@ -76,12 +76,19 @@ func register(advertiseAddress string,
 		os.Exit(1)
 	}
 
+	checks := consulapi.AgentServiceChecks{
+		{
+			
+		},
+		&check,
+	}
+
 	asr := consulapi.AgentServiceRegistration{
 		ID:      serviceID,
 		Name:    serviceName,
 		Address: advertiseAddress,
 		Port:    advertisePort,
-		Check:   &check,
+		Checks:  checks,
 	}
 	client := consulsd.NewClient(consulClient)
 	registar = consulsd.NewRegistrar(client, &asr, logger)

@@ -13,6 +13,7 @@ import (
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/go-kit/kit/sd/lb"
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/linkingthing/clxone-dhcp/config"
 	"google.golang.org/grpc"
 )
 
@@ -25,7 +26,7 @@ func NewClient(serviceName string) (*grpc.ClientConn, error) {
 	}
 
 	conf := consulapi.DefaultConfig()
-	conf.Address = "127.0.0.1:8500"
+	conf.Address = config.GetConfig().Consul.Address
 
 	c, err := consulapi.NewClient(conf)
 	if err != nil {
@@ -69,7 +70,7 @@ func GetEndpoints(serviceName string) ([]endpoint.Endpoint, error) {
 	}
 
 	conf := consulapi.DefaultConfig()
-	conf.Address = "127.0.0.1:8500"
+	conf.Address = config.GetConfig().Consul.Address
 
 	c, err := consulapi.NewClient(conf)
 	if err != nil {
