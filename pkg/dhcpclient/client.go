@@ -8,10 +8,11 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/log"
+	"github.com/zdnscloud/cement/slice"
+	"google.golang.org/grpc"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
-	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
+	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 )
 
 const (
@@ -44,8 +45,8 @@ func New() (*DHCPClient, error) {
 	return &DHCPClient{clients: clients}, nil
 }
 
-func getDHCPNodeList() (nodes []resource.Node, err error) {
-	endpoints, err := pb.GetEndpoints("clxone-dhcp-agent")
+func getDHCPNodeList() (nodes []*dhcpagent.GetDhcpNodesResponse, err error) {
+	endpoints, err := pb.GetEndpoints("clxone-dhcp-agent-grpc")
 	if err != nil {
 		logrus.Error(err)
 		return nil, err
@@ -57,9 +58,24 @@ func getDHCPNodeList() (nodes []resource.Node, err error) {
 			return nil, err
 		}
 
-		logrus.Debug(response)
-		// TODO: rpc all agent to get all nodes
-		nodes = append(nodes, resource.Node{})
+		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+		conn, err := grpc.DialContext(ctx,
+			response.(string),
+			grpc.WithBlock(),
+			grpc.WithInsecure(),
+		)
+		if err != nil {
+			logrus.Error(err)
+			return nil, err
+		}
+
+		client := dhcpagent.NewDHCPManagerClient(conn)
+		resp, err := client.GetDhcpNodes(ctx, &dhcpagent.GetDhcpNodesRequest{})
+
+		if err != nil {
+			logrus.Error(err)
+		}
+		nodes = append(nodes, resp)
 
 	}
 
@@ -105,9 +121,9 @@ func (cli *DHCPClient) FindIllegalDHCPServer() []*DHCPServer {
 	return dhcpServers
 }
 
-func isDHCPNodeIPv4(nodes []resource.Node, ip string) bool {
+func isDHCPNodeIPv4(nodes []*dhcpagent.GetDhcpNodesResponse, ip string) bool {
 	for _, node := range nodes {
-		if node.Ip == ip {
+		if slice.SliceIndex(node.Ipv4S, ip) != -1 {
 			return true
 		}
 	}
@@ -115,12 +131,12 @@ func isDHCPNodeIPv4(nodes []resource.Node, ip string) bool {
 	return false
 }
 
-func isDHCPNodeIPv6(nodes []dhcp_agent., ip string) bool {
-	// for _, node := range nodes {
-	// if slice.SliceIndex(node.Ipv6s, ip) != -1 {
-	// 	return true
-	// }
-	// }
+func isDHCPNodeIPv6(nodes []*dhcpagent.GetDhcpNodesResponse, ip string) bool {
+	for _, node := range nodes {
+		if slice.SliceIndex(node.Ipv6S, ip) != -1 {
+			return true
+		}
+	}
 
 	return false
 }
