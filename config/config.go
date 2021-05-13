@@ -56,10 +56,11 @@ type ElasticsearchConf struct {
 }
 
 type ConsulConf struct {
-	ID    string    `yaml:"id"`
-	Name  string    `yaml:"name"`
-	Tags  []string  `yaml:"tags"`
-	Check CheckConf `yaml:"check"`
+	Address string    `yaml:"address"`
+	ID      string    `yaml:"id"`
+	Name    string    `yaml:"name"`
+	Tags    []string  `yaml:"tags"`
+	Check   CheckConf `yaml:"check"`
 }
 
 type CheckConf struct {
