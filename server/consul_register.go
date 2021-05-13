@@ -77,9 +77,12 @@ func register(advertiseAddress string,
 	}
 
 	checks := consulapi.AgentServiceChecks{
-		{
-			
-		},
+		// {
+		// 	AliasService: "kafka",
+		// },
+		// {
+		// 	AliasService: "postgres",
+		// },
 		&check,
 	}
 
