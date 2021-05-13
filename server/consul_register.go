@@ -69,7 +69,7 @@ func register(advertiseAddress string,
 	}
 
 	conf := consulapi.DefaultConfig()
-	conf.Address = advertiseAddress
+	conf.Address = advertiseAddress + ":8500"
 	consulClient, err := consulapi.NewClient(conf)
 	if err != nil {
 		logger.Log("err", err)
