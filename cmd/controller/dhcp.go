@@ -42,7 +42,6 @@ func main() {
 	}
 
 	// conn := grpcclient.NewDhcpAgentClient()
-	// defer conn.Close()
 
 	server, err := restserver.NewServer()
 	if err != nil {
