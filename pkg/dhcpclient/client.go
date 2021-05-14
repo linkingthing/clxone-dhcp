@@ -46,7 +46,7 @@ func New() (*DHCPClient, error) {
 }
 
 func getDHCPNodeList() (nodes []*dhcpagent.GetDhcpNodesResponse, err error) {
-	endpoints, err := pb.GetEndpoints("clxone-dhcp-agent-grpc")
+	endpoints, err := pb.GetEndpoints(pb.DhcpAgentGrpc)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

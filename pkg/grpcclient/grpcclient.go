@@ -16,7 +16,7 @@ var grpcClient *GrpcClient
 var once sync.Once
 
 func NewDhcpAgentClient() *grpc.ClientConn {
-	conn, err := pb.NewClient("clxone-dhcp-agent-grpc")
+	conn, err := pb.NewClient(pb.DhcpAgentGrpc)
 	if err != nil {
 		return nil
 	}

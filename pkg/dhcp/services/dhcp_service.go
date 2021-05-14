@@ -56,7 +56,7 @@ func (a *DHCPService) GetSubnetByIDs(ids ...string) (subnets []*resource.Subnet,
 	return
 }
 func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
-	endpoints, err := pb.GetEndpoints("clxone-dhcp-agent-grpc")
+	endpoints, err := pb.GetEndpoints(pb.DhcpAgentGrpc)
 	if err != nil {
 		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,

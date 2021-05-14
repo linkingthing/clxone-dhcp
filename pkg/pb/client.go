@@ -17,6 +17,14 @@ import (
 	"google.golang.org/grpc"
 )
 
+var (
+	AlarmGrpc     = config.GetConfig().CallServices.Alarm
+	DhcpGrpc      = config.GetConfig().CallServices.Dhcp
+	DhcpAgentGrpc = config.GetConfig().CallServices.DhcpAgent
+	LoggingGrpc   = config.GetConfig().CallServices.Logging
+	UserGrpc      = config.GetConfig().CallServices.User
+)
+
 func NewClient(serviceName string) (*grpc.ClientConn, error) {
 	var logger kitlog.Logger
 	{

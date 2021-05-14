@@ -12,7 +12,7 @@ type DHCPConfig struct {
 	Prometheus    PrometheusConf    `yaml:"prometheus"`
 	Elasticsearch ElasticsearchConf `yaml:"elasticsearch"`
 	Consul        ConsulConf        `yaml:"consul"`
-	CallServices  map[string]string `yaml: "call_services"`
+	CallServices  CallServices      `yaml:"call_services"`
 }
 
 type DBConf struct {
@@ -39,6 +39,19 @@ type KafkaConf struct {
 	GroupIdAgentEvent         string   `yaml:"group_id_agentevent"`
 	GroupIdUploadLog          string   `yaml:"group_id_uploadlog"`
 	GroupUpdateThresholdEvent string   `yaml:"group_id_update_threshold_event"`
+}
+
+type CallServices struct {
+	Logging   string `yaml:"logging"`
+	User      string `yaml:"user"`
+	Ipam      string `yaml:"ipam"`
+	Dns       string `yaml:"dns"`
+	Dhcp      string `yaml:"dhcp"`
+	DnsAgent  string `yaml:"dns-agent"`
+	DhcpAgent string `yaml:"dhcp-agent"`
+	Boxsearch string `yaml:"boxsearch"`
+	Monitor   string `yaml:"monitor"`
+	Alarm     string `yaml:"alarm"`
 }
 
 type PrometheusConf struct {
