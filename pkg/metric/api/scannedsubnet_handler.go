@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DefaultSearchInterval = 750 //12 min 30s
+	DefaultSearchInterval = 10 //12 min 30s
 )
 
 type ScannedSubnetHandler struct {
@@ -60,6 +60,10 @@ func (h *ScannedSubnetHandler) searchIllegalDHCPServer(searchInterval int) {
 		case <-ticker.C:
 
 			dhcpServers := h.dhcpClient.FindIllegalDHCPServer()
+
+			logrus.Debug("=======================")
+			logrus.Debug(dhcpServers)
+
 			alarmService := services.NewAlarmService()
 
 			for _, dhcpServer := range dhcpServers {

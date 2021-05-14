@@ -159,7 +159,7 @@ func (a *AlarmService) SendEventWithValues(param proto.Message) {
 	}
 	w := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:   config.GetConfig().Kafka.Addr,
-		Topic:     ThresholdDhcpTopic,
+		Topic:     AlarmTopic,
 		BatchSize: 1,
 		Dialer: &kafka.Dialer{
 			Timeout:   time.Second * 10,
@@ -171,6 +171,7 @@ func (a *AlarmService) SendEventWithValues(param proto.Message) {
 
 	err = w.WriteMessages(context.Background(),
 		kafka.Message{
+			Topic: AlarmTopic,
 			Key:   []byte(IllegalDhcpAlarm),
 			Value: data,
 		},

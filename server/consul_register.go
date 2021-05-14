@@ -77,9 +77,9 @@ func register(advertiseAddress string,
 	}
 
 	checks := consulapi.AgentServiceChecks{
-		{
-			AliasService: "clxone_user_grpc",
-		},
+		// {
+		// 	AliasService: "clxone_user_grpc",
+		// },
 		// {
 		// 	AliasService: "postgres",
 		// },
