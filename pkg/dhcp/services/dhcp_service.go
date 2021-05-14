@@ -14,6 +14,7 @@ import (
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
@@ -56,7 +57,7 @@ func (a *DHCPService) GetSubnetByIDs(ids ...string) (subnets []*resource.Subnet,
 	return
 }
 func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
-	endpoints, err := pb.GetEndpoints(pb.DhcpAgentGrpc)
+	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
 		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,
@@ -77,7 +78,7 @@ func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
 		ip := strings.Split(response.(string), ":")[0]
 		node := &metricresource.Node{
 			Ip:       ip,
-			Hostname: ip,
+			HostName: ip,
 		}
 		node.SetID(ip)
 

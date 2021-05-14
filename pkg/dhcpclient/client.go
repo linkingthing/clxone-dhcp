@@ -11,6 +11,7 @@ import (
 	"github.com/zdnscloud/cement/slice"
 	"google.golang.org/grpc"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 )
@@ -46,7 +47,7 @@ func New() (*DHCPClient, error) {
 }
 
 func getDHCPNodeList() (nodes []*dhcpagent.GetDhcpNodesResponse, err error) {
-	endpoints, err := pb.GetEndpoints(pb.DhcpAgentGrpc)
+	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
 		logrus.Error(err)
 		return nil, err

@@ -3,6 +3,7 @@ package grpcclient
 import (
 	"sync"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
 	"google.golang.org/grpc"
@@ -16,7 +17,7 @@ var grpcClient *GrpcClient
 var once sync.Once
 
 func NewDhcpAgentClient() *grpc.ClientConn {
-	conn, err := pb.NewClient(pb.DhcpAgentGrpc)
+	conn, err := pb.NewClient(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
 		return nil
 	}

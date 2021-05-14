@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/user"
 	"github.com/sirupsen/logrus"
@@ -19,7 +20,7 @@ func JWTMiddleWare() gorest.HandlerFunc {
 		token := c.Request.Header.Get("authorization")
 		clientIP := getClientIP(c.Request.RemoteAddr)
 
-		conn, err := pb.NewClient(pb.UserGrpc)
+		conn, err := pb.NewClient(config.GetConfig().CallServices.User)
 		if err != nil {
 			logrus.Error(err)
 			return resterror.NewAPIError(resterror.ServerError, err.Error())
