@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/go-kit/kit/endpoint"
@@ -17,7 +18,13 @@ import (
 	"google.golang.org/grpc"
 )
 
-func NewClient(serviceName string) (*grpc.ClientConn, error) {
+var connManager sync.Map
+
+func NewConn(serviceName string) (*grpc.ClientConn, error) {
+	if value, ok := connManager.Load(serviceName); ok {
+		return value.(*grpc.ClientConn), nil
+	}
+
 	var logger kitlog.Logger
 	{
 		logger = kitlog.NewLogfmtLogger(os.Stderr)
@@ -58,6 +65,9 @@ func NewClient(serviceName string) (*grpc.ClientConn, error) {
 		log.Printf("did not connect: %v", err)
 		return nil, err
 	}
+
+	connManager.Store(serviceName, conn)
+
 	return conn, nil
 }
 

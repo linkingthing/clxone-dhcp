@@ -20,12 +20,11 @@ func JWTMiddleWare() gorest.HandlerFunc {
 		token := c.Request.Header.Get("authorization")
 		clientIP := getClientIP(c.Request.RemoteAddr)
 
-		conn, err := pb.NewClient(config.GetConfig().CallServices.User)
+		conn, err := pb.NewConn(config.GetConfig().CallServices.User)
 		if err != nil {
 			logrus.Error(err)
 			return resterror.NewAPIError(resterror.ServerError, err.Error())
 		}
-		defer conn.Close()
 		cli := user.NewUserServiceClient(conn)
 
 		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)

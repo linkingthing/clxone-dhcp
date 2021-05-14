@@ -17,7 +17,7 @@ var grpcClient *GrpcClient
 var once sync.Once
 
 func NewDhcpAgentClient() *grpc.ClientConn {
-	conn, err := pb.NewClient(config.GetConfig().CallServices.DhcpAgent)
+	conn, err := pb.NewConn(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
 		return nil
 	}
