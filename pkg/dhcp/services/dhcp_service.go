@@ -61,7 +61,7 @@ func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
 	if err != nil {
 		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("found clxone-dhcp-agnet: %s", err.Error()))
+			fmt.Sprintf("found clxone-dhcp-agnet-grpc: %s", err.Error()))
 	}
 	for _, end := range endpoints {
 		response, err := end(context.Background(), struct{}{})
