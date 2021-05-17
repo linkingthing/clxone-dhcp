@@ -23,17 +23,18 @@ func main() {
 	flag.StringVar(&configFile, "c", "clxone-dhcp.conf", "configure file path")
 	flag.Parse()
 
-	log.InitLogger(log.Debug)
-	logrus.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
-	logrus.SetLevel(logrus.DebugLevel)
-	logrus.SetReportCaller(true)
+	log.InitLogger(log.Info)
 
 	conf, err := config.LoadConfig(configFile)
 	if err != nil {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
+
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp: true,
+	})
+	logrus.SetLevel(conf.Log.Level)
+	logrus.SetReportCaller(conf.Log.ReportCaller)
 
 	db.RegisterResources(dhcp.PersistentResources()...)
 	db.RegisterResources(metric.PersistentResources()...)
