@@ -1,6 +1,7 @@
 GOSRC = $(shell find . -type f -name '*.go')
 
 VERSION=v1.0.0
+REGISTRY=10.0.0.79:8888
 
 build: clxone_dhcp
 
@@ -14,7 +15,8 @@ build-image:
 docker:
 	docker build -t linkingthing/clxone-dhcp:${VERSION} .
 	docker image prune -f
-	docker push linkingthing/clxone-dhcp:${VERSION}
+	docker tag linkingthing/clxone-dhcp:${VERSION} ${REGISTRY}/linkingthing/clxone-dhcp:${VERSION}
+	docker push ${REGISTRY}/linkingthing/clxone-dhcp:${VERSION}
 
 clean:
 	rm -rf clxone_dhcp
