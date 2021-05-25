@@ -69,6 +69,7 @@ func getDHCPNodeList() (nodes []*dhcpagent.GetDhcpNodesResponse, err error) {
 			logrus.Error(err)
 			return nil, err
 		}
+		defer conn.Close()
 
 		client := dhcpagent.NewDHCPManagerClient(conn)
 		resp, err := client.GetDhcpNodes(ctx, &dhcpagent.GetDhcpNodesRequest{})

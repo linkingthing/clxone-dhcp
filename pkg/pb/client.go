@@ -89,7 +89,11 @@ func GetEndpoints(serviceName string) ([]endpoint.Endpoint, error) {
 
 	client := consul.NewClient(c)
 	instance := consul.NewInstancer(client, logger, serviceName, []string{}, true)
+	defer instance.Stop()
+
 	endpointor := sd.NewEndpointer(instance, getFactory, logger)
+	defer endpointor.Close()
+
 	return endpointor.Endpoints()
 }
 
