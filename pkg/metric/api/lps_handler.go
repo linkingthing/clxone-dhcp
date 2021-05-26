@@ -52,12 +52,12 @@ type LPSHandler struct {
 
 func NewLPSHandler(conf *config.DHCPConfig) *LPSHandler {
 	alarmService := services.NewAlarmService()
-	err := alarmService.RegisterThresholdToKafka(services.IllegalDhcpAlarm, alarmService.DhcpThreshold)
+	err := alarmService.RegisterThresholdToKafka(services.RegisterThreshold, alarmService.LpsThreshold)
 	if err != nil {
-		logrus.Error(err)
+		panic(err)
 	}
 
-	go alarmService.HandleUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateLpsThresHold)
+	go alarmService.HandleUpdateThresholdEvent(services.ThresholdDhcpTopic, alarmService.UpdateLpsThresHold)
 
 	h := &LPSHandler{
 		prometheusAddr: conf.Prometheus.Addr,
@@ -126,7 +126,7 @@ func (h *LPSHandler) collectLPSMetric(nodeIP string,
 	}
 
 	if float64(exceedThresholdCount)/float64(len(dhcp.Lps.Values)) > 0.6 {
-		alarmService.SendEventWithValues(&alarm.IllegalLPSAlarm{
+		alarmService.SendEventWithValues(&alarm.LpsAlarm{
 			BaseAlarm: &alarm.BaseAlarm{
 				BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
 				Time:          latestTime.Format(time.RFC3339),

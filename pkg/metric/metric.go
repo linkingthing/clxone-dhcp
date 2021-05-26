@@ -21,7 +21,7 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, api.NewDhcpHandler(conf))
 	_, err := api.NewScannedSubnetHandler()
 	if err != nil {
-		return err
+		panic(err)
 	}
 	api.NewLPSHandler(conf)
 	return nil

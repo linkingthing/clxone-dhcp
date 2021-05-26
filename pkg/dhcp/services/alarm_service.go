@@ -18,7 +18,6 @@ const (
 	ThresholdIpamTopic    = "threshold_ipam"
 	ThresholdDnsTopic     = "threshold_dns"
 	ThresholdDhcpTopic    = "threshold_dhcp"
-	ThresholdLpsTopic     = "threshold_lps"
 	ThresholdMonitorTopic = "threshold_monitor"
 
 	RegisterThreshold   = "register_threshold"
@@ -54,7 +53,7 @@ func NewAlarmService() *AlarmService {
 			DhcpThreshold: &alarm.RegisterThreshold{
 				BaseThreshold: &alarm.BaseThreshold{
 					Name:  alarm.ThresholdName_illegalDhcp,
-					Level: alarm.ThresholdLevel_critical,
+					Level: alarm.ThresholdLevel_major,
 					Type:  alarm.ThresholdType_trigger,
 				},
 				Value:    0,
@@ -62,11 +61,11 @@ func NewAlarmService() *AlarmService {
 			},
 			LpsThreshold: &alarm.RegisterThreshold{
 				BaseThreshold: &alarm.BaseThreshold{
-					Name:  alarm.ThresholdName_illegalDhcp,
+					Name:  alarm.ThresholdName_lps,
 					Level: alarm.ThresholdLevel_critical,
-					Type:  alarm.ThresholdType_trigger,
+					Type:  alarm.ThresholdType_values,
 				},
-				Value:    0,
+				Value:    3000,
 				SendMail: false,
 			},
 		}
@@ -138,6 +137,9 @@ func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(
 }
 
 func (a *AlarmService) UpdateDhcpThresHold(update *alarm.UpdateThreshold) {
+	if update.Name != alarm.ThresholdName_illegalDhcp {
+		return
+	}
 	a.DhcpThreshold = &alarm.RegisterThreshold{
 		Value:    update.Value,
 		SendMail: update.SendMail,
@@ -145,6 +147,9 @@ func (a *AlarmService) UpdateDhcpThresHold(update *alarm.UpdateThreshold) {
 }
 
 func (a *AlarmService) UpdateLpsThresHold(update *alarm.UpdateThreshold) {
+	if update.Name != alarm.ThresholdName_lps {
+		return
+	}
 	a.LpsThreshold = &alarm.RegisterThreshold{
 		Value:    update.Value,
 		SendMail: update.SendMail,

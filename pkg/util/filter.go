@@ -232,12 +232,3 @@ func checkSubnetOrIp(subnetOrIp string) net.IP {
 
 	return net.ParseIP(subnetOrIp)
 }
-
-func ReverseSlice(slice []string) {
-	length := len(slice)
-	for i := 0; i < length/2; i++ {
-		temp := slice[i]
-		slice[i] = slice[length-i-1]
-		slice[length-i-1] = temp
-	}
-}

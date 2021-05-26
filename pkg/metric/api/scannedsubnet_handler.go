@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
@@ -22,11 +21,6 @@ type ScannedSubnetHandler struct {
 
 func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
 	searchInterval := DefaultSearchInterval
-	if conf := config.GetConfig(); conf != nil {
-		// if conf.IllegalDHCPServerScan.Interval != 0 {
-		// 	searchInterval = int(conf.IllegalDHCPServerScan.Interval)
-		// }
-	}
 
 	dhcpClient, err := dhcpclient.New()
 	if err != nil {
@@ -39,13 +33,12 @@ func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
 	}
 
 	alarmService := services.NewAlarmService()
-	err = alarmService.RegisterThresholdToKafka(services.IllegalDhcpAlarm, alarmService.DhcpThreshold)
+	err = alarmService.RegisterThresholdToKafka(services.RegisterThreshold, alarmService.DhcpThreshold)
 	if err != nil {
-		logrus.Error(err)
-		return nil, err
+		panic(err)
 	}
 
-	go alarmService.HandleUpdateThresholdEvent(services.UpdateThreshold, alarmService.UpdateDhcpThresHold)
+	go alarmService.HandleUpdateThresholdEvent(services.ThresholdDhcpTopic, alarmService.UpdateDhcpThresHold)
 
 	go h.searchIllegalDHCPServer(searchInterval)
 	return h, nil

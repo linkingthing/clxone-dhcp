@@ -2,13 +2,12 @@ package server
 
 import (
 	"context"
-	"net"
-	"strings"
 	"time"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/user"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/gorest"
 	resterror "github.com/zdnscloud/gorest/error"
@@ -18,7 +17,7 @@ import (
 func JWTMiddleWare() gorest.HandlerFunc {
 	return func(c *restresource.Context) *resterror.APIError {
 		token := c.Request.Header.Get("authorization")
-		clientIP := getClientIP(c.Request.RemoteAddr)
+		clientIP := util.ClientIP(c.Request)
 
 		conn, err := pb.NewConn(config.GetConfig().CallServices.User)
 		if err != nil {
@@ -41,12 +40,4 @@ func JWTMiddleWare() gorest.HandlerFunc {
 		c.Set("AuthedUser", user)
 		return nil
 	}
-}
-
-func getClientIP(remoteAddr string) string {
-	if ip, _, err := net.SplitHostPort(strings.TrimSpace(remoteAddr)); err == nil {
-		return ip
-	}
-
-	return ""
 }
