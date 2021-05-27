@@ -22,11 +22,22 @@ var globalLoggingService *LoggingService
 var onceLoggingService sync.Once
 
 type LoggingService struct {
+	kafakWrite *kafka.Writer
 }
 
 func NewLoggingService() *LoggingService {
 	onceLoggingService.Do(func() {
 		globalLoggingService = &LoggingService{}
+		w := kafka.NewWriter(kafka.WriterConfig{
+			Brokers:   config.GetConfig().Kafka.Addr,
+			Topic:     LoggingTopic,
+			BatchSize: 1,
+			Dialer: &kafka.Dialer{
+				Timeout:   time.Second * 10,
+				DualStack: true,
+				KeepAlive: time.Second * 5},
+		})
+		globalLoggingService.kafakWrite = w
 	})
 	return globalLoggingService
 }
@@ -37,19 +48,7 @@ func (a *LoggingService) Log(req *logging.LoggingRequest) (err error) {
 		return fmt.Errorf("register threshold mashal failed: %s ", err.Error())
 	}
 
-	w := kafka.NewWriter(kafka.WriterConfig{
-		Brokers:   config.GetConfig().Kafka.Addr,
-		Topic:     LoggingTopic,
-		BatchSize: 1,
-		Dialer: &kafka.Dialer{
-			Timeout:   time.Second * 10,
-			DualStack: true,
-			KeepAlive: time.Second * 5},
-	})
-
-	defer w.Close()
-
-	err = w.WriteMessages(context.Background(),
+	err = a.kafakWrite.WriteMessages(context.Background(),
 		kafka.Message{
 			Key:   []byte(LoggingRequest),
 			Value: data,
