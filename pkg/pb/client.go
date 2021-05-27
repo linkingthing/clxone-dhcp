@@ -3,7 +3,6 @@ package pb
 import (
 	"context"
 	"io"
-	"log"
 	"os"
 	"sync"
 	"time"
@@ -62,8 +61,7 @@ func NewConn(serviceName string) (*grpc.ClientConn, error) {
 		grpc.WithInsecure(),
 	)
 	if err != nil {
-		log.Printf("did not connect: %v", err)
-		return nil, err
+		panic(err)
 	}
 
 	connManager.Store(serviceName, conn)
