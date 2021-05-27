@@ -46,7 +46,6 @@ type AlarmService struct {
 	DhcpThreshold *alarm.RegisterThreshold
 	LpsThreshold  *alarm.RegisterThreshold
 	kafkaWriter   *kafka.Writer
-	kafkaReader   *kafka.Reader
 }
 
 func NewAlarmService() *AlarmService {
@@ -87,20 +86,6 @@ func NewAlarmService() *AlarmService {
 			})
 			globalAlarmService.kafkaWriter = w
 		}
-		{
-			r := kafka.NewReader(kafka.ReaderConfig{
-				Brokers:        config.GetConfig().Kafka.Addr,
-				GroupID:        config.GetConfig().Kafka.GroupUpdateThresholdEvent,
-				MinBytes:       10,
-				MaxBytes:       10e6,
-				SessionTimeout: time.Second * 10,
-				Dialer: &kafka.Dialer{
-					Timeout:   time.Second * 10,
-					DualStack: true,
-					KeepAlive: time.Second * 5},
-			})
-			globalAlarmService.kafkaReader = r
-		}
 	})
 	return globalAlarmService
 }
@@ -125,9 +110,22 @@ func (a *AlarmService) RegisterThresholdToKafka(key string, threshold *alarm.Reg
 }
 
 func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(*alarm.UpdateThreshold)) {
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers:        config.GetConfig().Kafka.Addr,
+		GroupID:        config.GetConfig().Kafka.GroupUpdateThresholdEvent,
+		Topic:          topic,
+		MinBytes:       10,
+		MaxBytes:       10e6,
+		SessionTimeout: time.Second * 10,
+		Dialer: &kafka.Dialer{
+			Timeout:   time.Second * 10,
+			DualStack: true,
+			KeepAlive: time.Second * 5},
+	})
+	globalAlarmService.kafkaReader = r
 	for {
 		ctx := context.Background()
-		message, err := a.kafkaReader.ReadMessage(ctx)
+		message, err := r.ReadMessage(ctx)
 		if err != nil {
 			break
 		}
