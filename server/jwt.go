@@ -34,7 +34,7 @@ func JWTMiddleWare() gorest.HandlerFunc {
 
 		if err != nil {
 			logrus.Error(err)
-			return resterror.NewAPIError(resterror.ServerError, err.Error())
+			return resterror.NewAPIError(resterror.Unauthorized, err.Error())
 		}
 
 		c.Set("AuthedUser", user)
