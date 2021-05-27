@@ -122,7 +122,9 @@ func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(
 			DualStack: true,
 			KeepAlive: time.Second * 5},
 	})
-	globalAlarmService.kafkaReader = r
+
+	defer r.Close()
+
 	for {
 		ctx := context.Background()
 		message, err := r.ReadMessage(ctx)
