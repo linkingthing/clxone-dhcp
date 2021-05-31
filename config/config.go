@@ -12,7 +12,6 @@ type DHCPConfig struct {
 	Server        ServerConf        `yaml:"server"`
 	Kafka         KafkaConf         `yaml:"kafka"`
 	Prometheus    PrometheusConf    `yaml:"prometheus"`
-	Elasticsearch ElasticsearchConf `yaml:"elasticsearch"`
 	Consul        ConsulConf        `yaml:"consul"`
 	CallServices  CallServices      `yaml:"call_services"`
 }
@@ -35,16 +34,10 @@ type ServerConf struct {
 	Port        int    `yaml:"port"`
 	GrpcPort    int    `yaml:"grpc_port"`
 	Hostname    string `yaml:"hostname"`
-	TlsCertFile string `yaml:"tls_cert_file"`
-	TlsKeyFile  string `yaml:"tls_key_file"`
-	Master      string `yaml:"master"`
-	NotifyAddr  string `yaml:"notify_addr"`
 }
 
 type KafkaConf struct {
 	Addr                      []string `yaml:"kafka_addrs"`
-	GroupIdAgentEvent         string   `yaml:"group_id_agentevent"`
-	GroupIdUploadLog          string   `yaml:"group_id_uploadlog"`
 	GroupUpdateThresholdEvent string   `yaml:"group_id_update_threshold_event"`
 }
 
@@ -66,14 +59,6 @@ type PrometheusConf struct {
 	ExportPort int    `yaml:"export_port"`
 }
 
-type MonitorNodeConf struct {
-	TimeOut int64 `yaml:"time_out"`
-}
-
-type ElasticsearchConf struct {
-	Addr  []string `yaml:"es_addrs"`
-	Index string   `yaml:"index"`
-}
 
 type ConsulConf struct {
 	Address string    `yaml:"address"`
