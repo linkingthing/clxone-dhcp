@@ -9,6 +9,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/linkingthing/clxone-dhcp/pkg/pb/logging"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/zdnscloud/gorest"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -61,7 +62,7 @@ func LoggingMiddleWare() gorest.EndHandlerFunc {
 			SourceIp:     sourceIp,
 			Method:       method,
 			ResourceKind: restresource.DefaultKindName(ctx.Resource),
-			ResourcePath: ctx.Request.URL.Path,
+			ResourcePath: util.ClientIP(c.Request),
 			ResourceId:   ctx.Resource.GetID(),
 			Parameters:   string(data),
 			Success:      succeed,
