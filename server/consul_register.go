@@ -73,7 +73,7 @@ func register(advertiseAddress string,
 	consulClient, err := consulapi.NewClient(conf)
 	if err != nil {
 		logger.Log("err", err)
-		os.Exit(1)
+		panic(err)
 	}
 
 	checks := consulapi.AgentServiceChecks{
@@ -95,6 +95,6 @@ func register(advertiseAddress string,
 		Checks:  checks,
 	}
 	client := consulsd.NewClient(consulClient)
-	registar = consulsd.NewRegistrar(client, &asr, logger)
+	registar = NewRegistrar(client, &asr, logger)
 	return
 }

@@ -40,7 +40,7 @@ type WebHandler interface {
 }
 
 func NewServer() (*Server, error) {
-	gin.SetMode(gin.DebugMode)
+	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = os.Stdout
 	router := gin.New()
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
