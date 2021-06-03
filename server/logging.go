@@ -62,7 +62,7 @@ func LoggingMiddleWare() gorest.EndHandlerFunc {
 			SourceIp:     sourceIp,
 			Method:       method,
 			ResourceKind: restresource.DefaultKindName(ctx.Resource),
-			ResourcePath: util.ClientIP(c.Request),
+			ResourcePath: util.ClientIP(ctx.Request),
 			ResourceId:   ctx.Resource.GetID(),
 			Parameters:   string(data),
 			Success:      succeed,
