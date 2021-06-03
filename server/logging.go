@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
@@ -52,17 +51,12 @@ func LoggingMiddleWare() gorest.EndHandlerFunc {
 			errMsg = respErr.Error()
 		}
 
-		sourceIp := ctx.Request.RemoteAddr
-		if strings.Contains(sourceIp, ":") {
-			sourceIp = strings.Split(sourceIp, ":")[0]
-		}
-
 		auditLog := &logging.LoggingRequest{
 			UserName:     "admin",
-			SourceIp:     sourceIp,
+			SourceIp:     util.ClientIP(ctx.Request),
 			Method:       method,
 			ResourceKind: restresource.DefaultKindName(ctx.Resource),
-			ResourcePath: util.ClientIP(ctx.Request),
+			ResourcePath: ctx.Request.URL.Path,
 			ResourceId:   ctx.Resource.GetID(),
 			Parameters:   string(data),
 			Success:      succeed,
