@@ -60,6 +60,7 @@ func NewAlarmService() *AlarmService {
 				},
 				Value:    0,
 				SendMail: false,
+				Enabled: true,
 			}
 			globalAlarmService.DhcpThreshold = dhcpThreshold
 		}
@@ -72,6 +73,7 @@ func NewAlarmService() *AlarmService {
 				},
 				Value:    3000,
 				SendMail: false,
+				Enabled: true,
 			}
 			globalAlarmService.LpsThreshold = lpsThreshold
 		}
