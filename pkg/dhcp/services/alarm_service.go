@@ -150,6 +150,7 @@ func (a *AlarmService) UpdateDhcpThresHold(update *alarm.UpdateThreshold) {
 	a.DhcpThreshold = &alarm.RegisterThreshold{
 		Value:    update.Value,
 		SendMail: update.SendMail,
+		Enabled:  update.Enabled,
 	}
 }
 
@@ -160,6 +161,7 @@ func (a *AlarmService) UpdateLpsThresHold(update *alarm.UpdateThreshold) {
 	a.LpsThreshold = &alarm.RegisterThreshold{
 		Value:    update.Value,
 		SendMail: update.SendMail,
+		Enabled:  update.Enabled,
 	}
 }
 

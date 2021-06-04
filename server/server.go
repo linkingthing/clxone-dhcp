@@ -56,6 +56,7 @@ func NewServer() (*Server, error) {
 		)
 	}))
 
+	router.StaticFS(util.PublicStaticPath, http.Dir(util.FileRootPath))
 	router.GET("/health", func(context *gin.Context) {
 		context.Writer.Header().Set("Content-Type", "Application/Json")
 		context.String(http.StatusOK, `{"status": "ok"}`)

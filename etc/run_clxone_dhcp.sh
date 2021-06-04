@@ -1,4 +1,5 @@
 docker run -d --name clxone-dhcp \
+--network host \
 --restart=always \
 -p 58085:58085 \
 -p 58885:58885 \

@@ -107,12 +107,15 @@ func (h *LPSHandler) collectLPSMetric(nodeIP string,
 	threshold *alarm.RegisterThreshold,
 	period *TimePeriodParams) error {
 
+	alarmService := services.NewAlarmService()
+	if !alarmService.LpsThreshold.Enabled {
+		return nil
+	}
+
 	dhcp, err := getLps(&MetricContext{PrometheusAddr: h.prometheusAddr, NodeIP: nodeIP, Period: period})
 	if err != nil {
 		return fmt.Errorf("get node %s lps failed: %s", nodeIP, err.Error())
 	}
-
-	alarmService := services.NewAlarmService()
 
 	var exceedThresholdCount int
 	var latestTime time.Time
@@ -131,6 +134,7 @@ func (h *LPSHandler) collectLPSMetric(nodeIP string,
 				BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
 				Time:          latestTime.Format(time.RFC3339),
 				SendMail:      alarmService.DhcpThreshold.SendMail,
+				Threshold:     alarmService.LpsThreshold.Value,
 			},
 			LatestValue: latestValue,
 		})

@@ -15,7 +15,7 @@ const (
 	UTF8BOM       = "\xEF\xBB\xBF"
 	TimeFormat    = "2006-01-02 15:04:05"
 	FileRootPath  = "/opt/website"
-	FileGeoPath   = "/opt/website/geo"
+	PublicStaticPath = "/public/dhcp"
 	CSVFileSuffix = ".csv"
 
 	ActionNameImportCSV         = "importcsv"
@@ -53,7 +53,8 @@ func (importFileResponse *ImportFileResponse) AddFailedMessages(msg ...string) {
 }
 
 func WriteCSVFile(fileName string, tableHeader []string, contents [][]string) (string, error) {
-	filepath := path.Join(FileRootPath, fileName+CSVFileSuffix)
+	fileName = fileName + CSVFileSuffix
+	filepath := path.Join(FileRootPath, fileName)
 	file, err := os.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return "", fmt.Errorf("create csv file %s failed: %s", filepath, err.Error())
@@ -71,6 +72,7 @@ func WriteCSVFile(fileName string, tableHeader []string, contents [][]string) (s
 	}
 
 	w.Flush()
+	filepath = path.Join(PublicStaticPath, fileName)
 	return filepath, nil
 }
 

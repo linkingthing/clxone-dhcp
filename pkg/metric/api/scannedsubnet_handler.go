@@ -51,28 +51,26 @@ func (h *ScannedSubnetHandler) searchIllegalDHCPServer(searchInterval int) {
 	for {
 		select {
 		case <-ticker.C:
-
 			dhcpServers := h.dhcpClient.FindIllegalDHCPServer()
-
 			alarmService := services.NewAlarmService()
+			if alarmService.DhcpThreshold.Enabled {
+				for _, dhcpServer := range dhcpServers {
+					ip := dhcpServer.IPv4
+					if ip == "" {
+						ip = dhcpServer.IPv6
+					}
 
-			for _, dhcpServer := range dhcpServers {
-				ip := dhcpServer.IPv4
-				if ip == "" {
-					ip = dhcpServer.IPv6
+					alarmService.SendEventWithValues(&alarm.IllegalDhcpAlarm{
+						BaseAlarm: &alarm.BaseAlarm{
+							BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
+							Time:          time.Now().Format(time.RFC3339),
+							SendMail:      alarmService.DhcpThreshold.SendMail,
+						},
+						IllegalDhcpIp:  ip,
+						IllegalDhcpMac: dhcpServer.Mac,
+					})
 				}
-
-				alarmService.SendEventWithValues(&alarm.IllegalDhcpAlarm{
-					BaseAlarm: &alarm.BaseAlarm{
-						BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
-						Time:          time.Now().Format(time.RFC3339),
-						SendMail:      alarmService.DhcpThreshold.SendMail,
-					},
-					IllegalDhcpIp:  ip,
-					IllegalDhcpMac: dhcpServer.Mac,
-				})
 			}
-
 		}
 	}
 }
