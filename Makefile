@@ -14,10 +14,9 @@ build-image:
 
 docker:
 	docker build -t linkingthing/clxone-dhcp:${VERSION} .
-	docker image prune -f
-	docker rmi ${REGISTRY}/linkingthing/clxone-dhcp:${VERSION}
 	docker tag linkingthing/clxone-dhcp:${VERSION} ${REGISTRY}/linkingthing/clxone-dhcp:${VERSION}
 	docker push ${REGISTRY}/linkingthing/clxone-dhcp:${VERSION}
+	docker image prune -f
 
 clean:
 	rm -rf clxone_dhcp
