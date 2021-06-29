@@ -75,12 +75,16 @@ func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
 			return nil, err
 		}
 
-		ip := strings.Split(response.(string), ":")[0]
-		node := &metricresource.Node{
-			Ip:       ip,
-			HostName: ip,
+		addr, err := net.ResolveTCPAddr("tcp", response.(string))
+		if err != nil {
+			logrus.Error(err)
+			return nil, err
 		}
-		node.SetID(ip)
+		node := &metricresource.Node{
+			Ip:       addr.IP.String(),
+			HostName: addr.IP.String(),
+		}
+		node.SetID(addr.IP.String())
 
 		nodes = append(nodes, node)
 	}
