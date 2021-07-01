@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
@@ -60,7 +60,7 @@ func NewAlarmService() *AlarmService {
 				},
 				Value:    0,
 				SendMail: false,
-				Enabled: true,
+				Enabled:  true,
 			}
 			globalAlarmService.DhcpThreshold = dhcpThreshold
 		}
@@ -73,13 +73,13 @@ func NewAlarmService() *AlarmService {
 				},
 				Value:    3000,
 				SendMail: false,
-				Enabled: true,
+				Enabled:  true,
 			}
 			globalAlarmService.LpsThreshold = lpsThreshold
 		}
 		{
 			w := kafka.NewWriter(kafka.WriterConfig{
-				Brokers:   config.GetConfig().Kafka.Addr,
+				Brokers:   config.GetConfig().Kafka.Addrs,
 				BatchSize: 1,
 				Dialer: &kafka.Dialer{
 					Timeout:   time.Second * 10,
@@ -113,7 +113,7 @@ func (a *AlarmService) RegisterThresholdToKafka(key string, threshold *alarm.Reg
 
 func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(*alarm.UpdateThreshold)) {
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:        config.GetConfig().Kafka.Addr,
+		Brokers:        config.GetConfig().Kafka.Addrs,
 		GroupID:        config.GetConfig().Kafka.GroupUpdateThresholdEvent,
 		Topic:          topic,
 		MinBytes:       10,

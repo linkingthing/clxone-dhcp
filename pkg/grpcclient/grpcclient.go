@@ -4,8 +4,8 @@ import (
 	"sync"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb"
-	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
+	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
+	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"google.golang.org/grpc"
 )
 

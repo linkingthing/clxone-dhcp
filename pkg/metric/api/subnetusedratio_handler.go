@@ -52,7 +52,7 @@ func getSubnetUsedRatios(ctx *MetricContext) (*resource.Dhcp, *resterror.APIErro
 }
 
 func getSubnetsFromDB() (map[string]string, error) {
-	var subnets []*dhcpresource.Subnet
+	var subnets []*dhcpresource.Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &subnets)
 	}); err != nil {

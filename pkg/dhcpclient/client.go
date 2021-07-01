@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp-agent"
+	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
+	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 const (
@@ -46,7 +46,7 @@ func New() (*DHCPClient, error) {
 	return &DHCPClient{clients: clients}, nil
 }
 
-func getDHCPNodeList() (nodes []*dhcpagent.GetDhcpNodesResponse, err error) {
+func getDHCPNodeList() (nodes []*dhcpagent.GetDHCPNodesResponse, err error) {
 	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
 		logrus.Error(err)
@@ -72,7 +72,7 @@ func getDHCPNodeList() (nodes []*dhcpagent.GetDhcpNodesResponse, err error) {
 		defer conn.Close()
 
 		client := dhcpagent.NewDHCPManagerClient(conn)
-		resp, err := client.GetDhcpNodes(ctx, &dhcpagent.GetDhcpNodesRequest{})
+		resp, err := client.GetDHCPNodes(ctx, &dhcpagent.GetDHCPNodesRequest{})
 
 		if err != nil {
 			logrus.Error(err)
@@ -123,7 +123,7 @@ func (cli *DHCPClient) FindIllegalDHCPServer() []*DHCPServer {
 	return dhcpServers
 }
 
-func isDHCPNodeIPv4(nodes []*dhcpagent.GetDhcpNodesResponse, ip string) bool {
+func isDHCPNodeIPv4(nodes []*dhcpagent.GetDHCPNodesResponse, ip string) bool {
 	for _, node := range nodes {
 		if slice.SliceIndex(node.Ipv4S, ip) != -1 {
 			return true
@@ -133,7 +133,7 @@ func isDHCPNodeIPv4(nodes []*dhcpagent.GetDhcpNodesResponse, ip string) bool {
 	return false
 }
 
-func isDHCPNodeIPv6(nodes []*dhcpagent.GetDhcpNodesResponse, ip string) bool {
+func isDHCPNodeIPv6(nodes []*dhcpagent.GetDHCPNodesResponse, ip string) bool {
 	for _, node := range nodes {
 		if slice.SliceIndex(node.Ipv6S, ip) != -1 {
 			return true

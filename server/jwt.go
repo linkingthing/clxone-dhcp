@@ -4,14 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb/user"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/gorest"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto/user"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 func JWTMiddleWare() gorest.HandlerFunc {

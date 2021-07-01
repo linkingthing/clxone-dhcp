@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/zdnscloud/gorest"
 	"github.com/zdnscloud/gorest/adaptor"
 	"github.com/zdnscloud/gorest/resource/schema"
@@ -17,9 +18,9 @@ import (
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/transports"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb/dhcp"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -76,64 +77,60 @@ func (s *Server) RegisterHandler(h WebHandler) error {
 	return h.RegisterHandler(s.apiServer, s.router)
 }
 
-func (s *Server) Run(conf *config.DHCPConfig) (err error) {
-	errc := make(chan error)
+func (s *Server) Run(conf *config.DHCPConfig) error {
+	errch := make(chan error)
 	adaptor.RegisterHandler(s.group, s.apiServer, s.apiServer.Schemas.GenerateResourceRoute())
 
-	{
-		// register rest api service to consul
-		serviceName := conf.Consul.Name + "-api"
-		serviceID := serviceName + conf.Server.IP
-		registar := RegisterForHttp(conf.Server.IP,
-			conf.Server.Port,
-			serviceID,
-			serviceName,
-		)
-		registar.Register()
-		defer registar.Deregister()
+	if apiRegister, err := NewHttpRegister(consulapi.AgentServiceRegistration{
+		ID:      conf.Consul.Name + "-api-" + conf.Server.IP,
+		Name:    conf.Consul.Name + "-api",
+		Address: conf.Server.IP,
+		Port:    conf.Server.Port,
+	}); err != nil {
+		return err
+	} else {
+		apiRegister.Register()
+		defer apiRegister.Deregister()
 	}
 
-	{
-		// register grpc api service to consul
-		grpcServiceName := conf.Consul.Name + "-grpc"
-		grpcServiceID := grpcServiceName + conf.Server.IP
-		registar := RegisterForGrpc(conf.Server.IP,
-			conf.Server.GrpcPort,
-			grpcServiceID,
-			grpcServiceName,
-		)
-		registar.Register()
-		defer registar.Deregister()
+	if grpcRegister, err := NewGrpcRegister(
+		consulapi.AgentServiceRegistration{
+			ID:      conf.Consul.Name + "-grpc-" + conf.Server.IP,
+			Name:    conf.Consul.Name + "-grpc",
+			Address: conf.Server.IP,
+			Port:    conf.Server.GrpcPort,
+		}); err != nil {
+		return err
+	} else {
+		grpcRegister.Register()
+		defer grpcRegister.Deregister()
 	}
 
-	{
-		go func() {
-			errc <- s.router.Run(fmt.Sprintf(":%d", conf.Server.Port))
-		}()
+	go func() {
+		errch <- s.router.Run(fmt.Sprintf(":%d", conf.Server.Port))
+	}()
 
-		go func() {
-			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
-			errc <- fmt.Errorf("%s", <-c)
-		}()
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+		errch <- fmt.Errorf("%s", <-c)
+	}()
 
-		go func() {
-			grpcListener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.Server.GrpcPort))
-			if err != nil {
-				errc <- err
-				return
-			}
-			baseServer := grpc.NewServer()
-			healthServer := health.NewServer()
-			hv1.RegisterHealthServer(baseServer, healthServer)
+	go func() {
+		grpcListener, err := net.Listen("tcp", fmt.Sprintf(":%d", conf.Server.GrpcPort))
+		if err != nil {
+			errch <- err
+			return
+		}
 
-			dhcp.RegisterDhcpServiceServer(baseServer,
-				transports.DHCPServiceBinding{DHCPService: services.NewDHCPService()})
+		grpcServer := grpc.NewServer()
+		hv1.RegisterHealthServer(grpcServer, health.NewServer())
+		dhcp.RegisterDhcpServiceServer(grpcServer,
+			transports.DHCPServiceBinding{DHCPService: service.GetDHCPService()})
 
-			errc <- baseServer.Serve(grpcListener)
-		}()
-	}
+		errch <- grpcServer.Serve(grpcListener)
+	}()
 
-	err = <-errc
+	err := <-errch
 	return err
 }

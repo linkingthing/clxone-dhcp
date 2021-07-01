@@ -6,7 +6,7 @@ REGISTRY=10.0.0.79:8888
 build: clxone_dhcp
 
 clxone_dhcp: $(GOSRC)
-	CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/controller/dhcp.go
+	CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/dhcp/dhcp.go
 
 build-image:
 	docker build -t linkingthing/clxone-dhcp:${VERSION} .

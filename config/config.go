@@ -6,14 +6,14 @@ import (
 )
 
 type DHCPConfig struct {
-	Path          string            `yaml:"-"`
-	Log           LogConf           `yaml:"log"`
-	DB            DBConf            `yaml:"db"`
-	Server        ServerConf        `yaml:"server"`
-	Kafka         KafkaConf         `yaml:"kafka"`
-	Prometheus    PrometheusConf    `yaml:"prometheus"`
-	Consul        ConsulConf        `yaml:"consul"`
-	CallServices  CallServices      `yaml:"call_services"`
+	Path         string         `yaml:"-"`
+	Log          LogConf        `yaml:"log"`
+	DB           DBConf         `yaml:"db"`
+	Server       ServerConf     `yaml:"server"`
+	Kafka        KafkaConf      `yaml:"kafka"`
+	Prometheus   PrometheusConf `yaml:"prometheus"`
+	Consul       ConsulConf     `yaml:"consul"`
+	CallServices CallServices   `yaml:"call_services"`
 }
 
 type LogConf struct {
@@ -30,14 +30,14 @@ type DBConf struct {
 }
 
 type ServerConf struct {
-	IP          string `yaml:"ip"`
-	Port        int    `yaml:"port"`
-	GrpcPort    int    `yaml:"grpc_port"`
-	Hostname    string `yaml:"hostname"`
+	IP       string `yaml:"ip"`
+	Port     int    `yaml:"port"`
+	GrpcPort int    `yaml:"grpc_port"`
+	Hostname string `yaml:"hostname"`
 }
 
 type KafkaConf struct {
-	Addr                      []string `yaml:"kafka_addrs"`
+	Addrs                     []string `yaml:"kafka_addrs"`
 	GroupUpdateThresholdEvent string   `yaml:"group_id_update_threshold_event"`
 }
 
@@ -58,7 +58,6 @@ type PrometheusConf struct {
 	Addr       string `yaml:"addr"`
 	ExportPort int    `yaml:"export_port"`
 }
-
 
 type ConsulConf struct {
 	Address string    `yaml:"address"`

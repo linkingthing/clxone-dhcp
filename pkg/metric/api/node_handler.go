@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
 	"github.com/sirupsen/logrus"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 )
 
 type NodeHandler struct{}
@@ -14,7 +15,7 @@ func NewNodeHandler() *NodeHandler {
 }
 
 func (h *NodeHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	nodes, err := services.NewDHCPService().GetNodeList()
+	nodes, err := service.GetDHCPService().GetNodeList()
 
 	if err != nil {
 		logrus.Error(err)

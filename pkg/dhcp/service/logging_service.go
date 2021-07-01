@@ -1,4 +1,4 @@
-package services
+package service
 
 import (
 	"context"
@@ -6,11 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb/logging"
 	"github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto/logging"
 )
 
 const (
@@ -29,7 +30,7 @@ func NewLoggingService() *LoggingService {
 	onceLoggingService.Do(func() {
 		globalLoggingService = &LoggingService{}
 		w := kafka.NewWriter(kafka.WriterConfig{
-			Brokers:   config.GetConfig().Kafka.Addr,
+			Brokers:   config.GetConfig().Kafka.Addrs,
 			Topic:     LoggingTopic,
 			BatchSize: 1,
 			Dialer: &kafka.Dialer{

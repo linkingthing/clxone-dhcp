@@ -15,16 +15,15 @@ var TablePdPool = restdb.ResourceDBType(&PdPool{})
 
 type PdPool struct {
 	restresource.ResourceBase `json:",inline"`
-	Subnet                    string   `json:"-" db:"ownby"`
-	Prefix                    string   `json:"prefix" rest:"required=true"`
-	PrefixLen                 uint32   `json:"prefixLen" rest:"required=true"`
-	DelegatedLen              uint32   `json:"delegatedLen" rest:"required=true"`
-	DomainServers             []string `json:"domainServers"`
-	Capacity                  uint64   `json:"capacity" rest:"description=readonly"`
+	Subnet6                   string `json:"-" db:"ownby"`
+	Prefix                    string `json:"prefix" rest:"required=true"`
+	PrefixLen                 uint32 `json:"prefixLen" rest:"required=true"`
+	DelegatedLen              uint32 `json:"delegatedLen" rest:"required=true"`
+	Capacity                  uint64 `json:"capacity" rest:"description=readonly"`
 }
 
 func (p PdPool) GetParents() []restresource.ResourceKind {
-	return []restresource.ResourceKind{Subnet{}}
+	return []restresource.ResourceKind{Subnet6{}}
 }
 
 func (p *PdPool) String() string {
@@ -46,39 +45,74 @@ func (p PdPools) Less(i, j int) bool {
 }
 
 func (pdpool *PdPool) Validate() error {
-	prefix, isv4, err := util.ParseIP(pdpool.Prefix)
-	if err != nil || isv4 {
-		return fmt.Errorf("pdpool prefix %s is invalid", pdpool.Prefix)
+	prefix, capacity, err := validPdPool(pdpool.Prefix, pdpool.PrefixLen, pdpool.DelegatedLen)
+	if err != nil {
+		return err
 	}
 
-	if pdpool.PrefixLen >= 128 {
-		return fmt.Errorf("pdpool prefix len %d should not bigger than 128)", pdpool.PrefixLen)
-	}
-
-	if pdpool.DelegatedLen < pdpool.PrefixLen || pdpool.DelegatedLen > 128 {
-		return fmt.Errorf("pdpool delegated len %d not in (%d, 128]", pdpool.DelegatedLen, pdpool.PrefixLen)
-	}
-
-	if err := util.CheckIPsValidWithVersion(false, pdpool.DomainServers...); err != nil {
-		return fmt.Errorf("domain servers %v invalid: %s", pdpool.DomainServers, err.Error())
-	}
-
-	pdpool.Prefix = prefix.String()
-	pdpool.Capacity = (1 << (pdpool.DelegatedLen - pdpool.PrefixLen)) - 1
+	pdpool.Prefix = prefix
+	pdpool.Capacity = capacity
 	return nil
 }
 
+func (pdpool *PdPool) CheckConflictWithAnother(another *PdPool) bool {
+	return pdpool.Contains(another.String()) || another.Contains(pdpool.String())
+}
+
+func (pdpool *PdPool) Contains(prefix string) bool {
+	ip, ipnet, err := net.ParseCIDR(prefix)
+	if err != nil || ip.To4() != nil {
+		return false
+	}
+
+	if ones, _ := ipnet.Mask.Size(); uint32(ones) <= pdpool.PrefixLen ||
+		uint32(ones) > pdpool.DelegatedLen {
+		return false
+	}
+
+	return ipToIPNet(net.ParseIP(pdpool.Prefix), pdpool.PrefixLen).Contains(ip)
+}
+
+func ipToIPNet(ip net.IP, prefixLen uint32) *net.IPNet {
+	return &net.IPNet{
+		IP:   ip,
+		Mask: net.CIDRMask(int(prefixLen), 128),
+	}
+}
+
+func validPdPool(prefix string, prefixLen, delegatedLen uint32) (string, uint64, error) {
+	prefixIp, isv4, err := util.ParseIP(prefix)
+	if err != nil || isv4 {
+		return "", 0, fmt.Errorf("pdpool prefix %s is invalid", prefix)
+	}
+
+	if prefixLen >= 64 {
+		return "", 0, fmt.Errorf("pdpool prefix len %d should not bigger than 64)", prefixLen)
+	}
+
+	if delegatedLen < prefixLen || delegatedLen > 64 {
+		return "", 0, fmt.Errorf("pdpool delegated len %d not in (%d, 64]",
+			delegatedLen, prefixLen)
+	}
+
+	return prefixIp.String(), (1 << (delegatedLen - prefixLen)) - 1, nil
+}
+
 func (pdpool *PdPool) GetRange() (string, string) {
-	prefixTo16 := net.ParseIP(pdpool.Prefix).To16()
+	return getPdPoolRange(pdpool.Prefix, pdpool.PrefixLen, pdpool.DelegatedLen)
+}
+
+func getPdPoolRange(prefix string, prefixLen, delegatedLen uint32) (string, string) {
+	prefixTo16 := net.ParseIP(prefix).To16()
 	prefixBytes := make([]byte, len(prefixTo16))
 	copy(prefixBytes, prefixTo16)
-	beginIndex := (pdpool.PrefixLen - 1) / 8
-	endIndex := (pdpool.DelegatedLen - 1) / 8
+	beginIndex := (prefixLen - 1) / 8
+	endIndex := (delegatedLen - 1) / 8
 	for i := endIndex; i > beginIndex; i-- {
 		if prefixBytes[i] == 0 {
 			prefixBytes[i] += 255
 		}
 	}
 
-	return pdpool.Prefix, net.IP(prefixBytes).String()
+	return prefix, net.IP(prefixBytes).String()
 }

@@ -6,12 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb/logging"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/zdnscloud/gorest"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto/logging"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var IgnoreAuditLog = "ignoreAuditLog"
@@ -64,7 +65,7 @@ func LoggingMiddleWare() gorest.EndHandlerFunc {
 			Time:         time.Now().Format(time.RFC3339),
 		}
 
-		services.NewLoggingService().Log(auditLog)
+		service.NewLoggingService().Log(auditLog)
 
 		return nil
 	}

@@ -11,90 +11,39 @@ import (
 	"github.com/linkingthing/clxone-dhcp/config"
 )
 
-func RegisterForHttp(
-	advertiseAddress string,
-	advertisePort int,
-	serviceID string,
-	serviceName string) (registar sd.Registrar) {
-
-	check := consulapi.AgentServiceCheck{
-		HTTP:                           fmt.Sprintf("http://%v:%v/health", advertiseAddress, advertisePort),
+func NewHttpRegister(registration consulapi.AgentServiceRegistration) (sd.Registrar, error) {
+	return register(registration, consulapi.AgentServiceCheck{
+		HTTP:                           fmt.Sprintf("http://%v:%v/health", registration.Address, registration.Port),
 		Interval:                       config.GetConfig().Consul.Check.Interval,
 		Timeout:                        config.GetConfig().Consul.Check.Timeout,
 		DeregisterCriticalServiceAfter: config.GetConfig().Consul.Check.DeregisterCriticalServiceAfter,
 		TLSSkipVerify:                  config.GetConfig().Consul.Check.TLSSkipVerify,
-	}
-
-	registar = register(advertiseAddress,
-		advertisePort,
-		serviceID,
-		serviceName,
-		check)
-	return registar
+	})
 }
 
-func RegisterForGrpc(
-	advertiseAddress string,
-	advertisePort int,
-	serviceID string,
-	serviceName string) (registar sd.Registrar) {
-
-	check := consulapi.AgentServiceCheck{
-		GRPC:                           fmt.Sprintf("%v:%v", advertiseAddress, advertisePort),
+func NewGrpcRegister(registration consulapi.AgentServiceRegistration) (sd.Registrar, error) {
+	return register(registration, consulapi.AgentServiceCheck{
+		GRPC:                           fmt.Sprintf("%v:%v", registration.Address, registration.Port),
 		Interval:                       config.GetConfig().Consul.Check.Interval,
 		Timeout:                        config.GetConfig().Consul.Check.Timeout,
 		DeregisterCriticalServiceAfter: config.GetConfig().Consul.Check.DeregisterCriticalServiceAfter,
 		TLSSkipVerify:                  config.GetConfig().Consul.Check.TLSSkipVerify,
-	}
-
-	registar = register(advertiseAddress,
-		advertisePort,
-		serviceID,
-		serviceName,
-		check)
-	return registar
+	})
 }
 
-func register(advertiseAddress string,
-	advertisePort int,
-	serviceID string,
-	serviceName string,
-	check consulapi.AgentServiceCheck) (registar sd.Registrar) {
-
-	var logger log.Logger
-	{
-		logger = log.NewLogfmtLogger(os.Stderr)
-		logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-		logger = log.With(logger, "caller", log.DefaultCaller)
-	}
+func register(registration consulapi.AgentServiceRegistration, check consulapi.AgentServiceCheck) (sd.Registrar, error) {
+	logger := log.NewLogfmtLogger(os.Stderr)
+	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
+	logger = log.With(logger, "caller", log.DefaultCaller)
 
 	conf := consulapi.DefaultConfig()
 	conf.Address = config.GetConfig().Consul.Address
 	consulClient, err := consulapi.NewClient(conf)
 	if err != nil {
-		logger.Log("err", err)
-		panic(err)
+		return nil, fmt.Errorf("new consul client failed: %s", err.Error())
 	}
 
-	checks := consulapi.AgentServiceChecks{
-		// {
-		// 	AliasService: pb.UserGrpc,
-		// },
-		// {
-		// 	AliasService: "postgres",
-		// },
-		&check,
-	}
-
-	asr := consulapi.AgentServiceRegistration{
-		ID:      serviceID,
-		Name:    serviceName,
-		Address: advertiseAddress,
-		Port:    advertisePort,
-		Tags:    config.GetConfig().Consul.Tags,
-		Checks:  checks,
-	}
-	client := consulsd.NewClient(consulClient)
-	registar = NewRegistrar(client, &asr, logger)
-	return
+	registration.Tags = config.GetConfig().Consul.Tags
+	registration.Checks = consulapi.AgentServiceChecks{&check}
+	return NewRegistrar(consulsd.NewClient(consulClient), &registration, logger), nil
 }

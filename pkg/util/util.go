@@ -17,6 +17,12 @@ func ReverseSlice(slice []string) {
 	}
 }
 
+func Ipv4FromUint32(val uint32) net.IP {
+	addr := make([]byte, 4)
+	binary.BigEndian.PutUint32(addr, val)
+	return net.IP(addr)
+}
+
 func Ipv4StringToUint32(ipv4 string) (uint32, bool) {
 	return Ipv4ToUint32(net.ParseIP(ipv4))
 }

@@ -11,9 +11,9 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/services"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/pb/alarm"
+	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
 )
@@ -51,13 +51,13 @@ type LPSHandler struct {
 }
 
 func NewLPSHandler(conf *config.DHCPConfig) *LPSHandler {
-	alarmService := services.NewAlarmService()
-	err := alarmService.RegisterThresholdToKafka(services.RegisterThreshold, alarmService.LpsThreshold)
+	alarmService := service.NewAlarmService()
+	err := alarmService.RegisterThresholdToKafka(service.RegisterThreshold, alarmService.LpsThreshold)
 	if err != nil {
 		panic(err)
 	}
 
-	go alarmService.HandleUpdateThresholdEvent(services.ThresholdDhcpTopic, alarmService.UpdateLpsThresHold)
+	go alarmService.HandleUpdateThresholdEvent(service.ThresholdDhcpTopic, alarmService.UpdateLpsThresHold)
 
 	h := &LPSHandler{
 		prometheusAddr: conf.Prometheus.Addr,
@@ -74,7 +74,7 @@ func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
 	for {
 		select {
 		case <-ticker.C:
-			nodes, err := services.NewDHCPService().GetNodeList()
+			nodes, err := service.GetDHCPService().GetNodeList()
 			if err != nil {
 				logrus.Error(err)
 				continue
@@ -107,7 +107,7 @@ func (h *LPSHandler) collectLPSMetric(nodeIP string,
 	threshold *alarm.RegisterThreshold,
 	period *TimePeriodParams) error {
 
-	alarmService := services.NewAlarmService()
+	alarmService := service.NewAlarmService()
 	if !alarmService.LpsThreshold.Enabled {
 		return nil
 	}

@@ -1,7 +1,6 @@
 package db
 
 import (
-	"errors"
 	"fmt"
 
 	restdb "github.com/zdnscloud/gorest/db"
@@ -11,16 +10,6 @@ import (
 )
 
 const ConnStr string = "user=%s password=%s host=%s port=%d database=%s sslmode=disable pool_max_conns=10"
-
-var (
-	RecordNotFound  = errors.New("record not found")
-	RecordConflict  = errors.New("record conflict")
-	RecordExist     = errors.New("record exist")
-	RecordDuplicate = func(record string) error { return errors.New(record + " is duplicate") }
-
-	BadResourcePattern = func(content string) error { return errors.New(content + " is bad resource pattern") }
-	EmptyParameter     = errors.New("empty parameter")
-)
 
 var globalResources []resource.Resource
 
@@ -40,7 +29,9 @@ func Init(conf *config.DHCPConfig) error {
 		return err
 	}
 
-	globalDB, err = restdb.NewRStore(fmt.Sprintf(ConnStr, conf.DB.User, conf.DB.Password, conf.DB.Host, conf.DB.Port, conf.DB.Name), meta)
+	globalDB, err = restdb.NewRStore(fmt.Sprintf(ConnStr,
+		conf.DB.User, conf.DB.Password, conf.DB.Host, conf.DB.Port, conf.DB.Name),
+		meta)
 	return err
 }
 
