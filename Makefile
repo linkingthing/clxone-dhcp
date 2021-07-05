@@ -1,6 +1,6 @@
 GOSRC = $(shell find . -type f -name '*.go')
 
-VERSION=v1.5.0
+VERSION=v1.5.1
 REGISTRY=10.0.0.79:8888
 
 build: clxone_dhcp
