@@ -6,14 +6,15 @@ import (
 )
 
 type DHCPConfig struct {
-	Path         string         `yaml:"-"`
-	Log          LogConf        `yaml:"log"`
-	DB           DBConf         `yaml:"db"`
-	Server       ServerConf     `yaml:"server"`
-	Kafka        KafkaConf      `yaml:"kafka"`
-	Prometheus   PrometheusConf `yaml:"prometheus"`
-	Consul       ConsulConf     `yaml:"consul"`
-	CallServices CallServices   `yaml:"call_services"`
+	Path         string          `yaml:"-"`
+	Log          LogConf         `yaml:"log"`
+	DB           DBConf          `yaml:"db"`
+	Server       ServerConf      `yaml:"server"`
+	Kafka        KafkaConf       `yaml:"kafka"`
+	Prometheus   PrometheusConf  `yaml:"prometheus"`
+	Consul       ConsulConf      `yaml:"consul"`
+	CallServices CallServiceConf `yaml:"call_services"`
+	DHCPScan     DHCPScanConf    `yaml:"dhcp_scan"`
 }
 
 type LogConf struct {
@@ -41,7 +42,7 @@ type KafkaConf struct {
 	GroupUpdateThresholdEvent string   `yaml:"group_id_update_threshold_event"`
 }
 
-type CallServices struct {
+type CallServiceConf struct {
 	Logging   string `yaml:"logging"`
 	User      string `yaml:"user"`
 	Ipam      string `yaml:"ipam"`
@@ -54,6 +55,9 @@ type CallServices struct {
 	Alarm     string `yaml:"alarm"`
 }
 
+type DHCPScanConf struct {
+	Interval uint32 `yanl:"interval"`
+}
 type PrometheusConf struct {
 	Addr       string `yaml:"addr"`
 	ExportPort int    `yaml:"export_port"`

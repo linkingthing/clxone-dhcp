@@ -1,60 +1,55 @@
 package api
 
 import (
-	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
 	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 )
 
 const (
-	DefaultSearchInterval = 750 //12 min 30s
+	DefaultSearchInterval uint32 = 750 //12 min 30s
 )
 
-type ScannedSubnetHandler struct {
+type ScannedDHCPHandler struct {
 	dhcpClient *dhcpclient.DHCPClient
-	lock       sync.RWMutex
 }
 
-func NewScannedSubnetHandler() (*ScannedSubnetHandler, error) {
+func InitScannedDHCPHandler(conf *config.DHCPConfig) error {
 	searchInterval := DefaultSearchInterval
+	if conf.DHCPScan.Interval != 0 {
+		searchInterval = conf.DHCPScan.Interval
+	}
 
 	dhcpClient, err := dhcpclient.New()
 	if err != nil {
-		logrus.Error(err)
-		return nil, err
-	}
-
-	h := &ScannedSubnetHandler{
-		dhcpClient: dhcpClient,
+		return err
 	}
 
 	alarmService := service.NewAlarmService()
-	err = alarmService.RegisterThresholdToKafka(service.RegisterThreshold, alarmService.DhcpThreshold)
-	if err != nil {
-		panic(err)
+	if err := alarmService.RegisterThresholdToKafka(service.RegisterThreshold,
+		alarmService.DhcpThreshold); err != nil {
+		return err
 	}
 
 	go alarmService.HandleUpdateThresholdEvent(service.ThresholdDhcpTopic, alarmService.UpdateDhcpThresHold)
+	h := &ScannedDHCPHandler{dhcpClient: dhcpClient}
+	go h.scanIllegalDHCPServer(searchInterval)
 
-	go h.searchIllegalDHCPServer(searchInterval)
-	return h, nil
+	return nil
 }
 
-func (h *ScannedSubnetHandler) searchIllegalDHCPServer(searchInterval int) {
+func (h *ScannedDHCPHandler) scanIllegalDHCPServer(searchInterval uint32) {
 	ticker := time.NewTicker(time.Duration(searchInterval) * time.Second)
 	defer ticker.Stop()
 	defer h.dhcpClient.Close()
 	for {
 		select {
 		case <-ticker.C:
-			dhcpServers := h.dhcpClient.FindIllegalDHCPServer()
-			alarmService := service.NewAlarmService()
-			if alarmService.DhcpThreshold.Enabled {
+			if alarmService := service.NewAlarmService(); alarmService.DhcpThreshold.Enabled {
+				dhcpServers := h.dhcpClient.ScanIllegalDHCPServer()
 				for _, dhcpServer := range dhcpServers {
 					ip := dhcpServer.IPv4
 					if ip == "" {

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/log"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -15,57 +14,25 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
-	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
-)
-
-const (
-	PromQueryUrl = "http://%s/api/v1/query_range?query=%s{node='%s'}&start=%d&end=%d&step=%d"
-)
-
-const (
-	MetricLabelNode     = "node"
-	MetricLabelType     = "type"
-	MetricLabelVersion  = "version"
-	MetricLabelView     = "view"
-	MetricLabelRcode    = "rcode"
-	MetricLabelSubnetId = "subnet_id"
-
-	MetricNameDNSQPS                 = "lx_dns_qps"
-	MetricNameDNSQueriesTotal        = "lx_dns_queries_total"
-	MetricNameDNSQueryTypeRatios     = "lx_dns_query_type_ratios"
-	MetricNameDNSCacheHits           = "lx_dns_cache_hits"
-	MetricNameDNSCacheHitsRatioTotal = "lx_dns_cache_hits_ratio_total"
-	MetricNameDNSCacheHitsRatio      = "lx_dns_cache_hits_ratio"
-	MetricNameDNSResolvedRatios      = "lx_dns_resolved_ratios"
-
-	MetricNameDHCPLPS          = "lx_dhcp_lps"
-	MetricNameDHCPPacketsStats = "lx_dhcp_packets_stats"
-	MetricNameDHCPLeasesTotal  = "lx_dhcp_leases_total"
-	MetricNameDHCPUsages       = "lx_dhcp_usages"
 )
 
 type LPSHandler struct {
 	prometheusAddr string
-	exportPort     int
-	LocalIP        string
 }
 
-func NewLPSHandler(conf *config.DHCPConfig) *LPSHandler {
+func NewLPSHandler(conf *config.DHCPConfig) (*LPSHandler, error) {
 	alarmService := service.NewAlarmService()
 	err := alarmService.RegisterThresholdToKafka(service.RegisterThreshold, alarmService.LpsThreshold)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	go alarmService.HandleUpdateThresholdEvent(service.ThresholdDhcpTopic, alarmService.UpdateLpsThresHold)
 
-	h := &LPSHandler{
-		prometheusAddr: conf.Prometheus.Addr,
-		exportPort:     conf.Prometheus.ExportPort,
-		LocalIP:        conf.Server.IP,
-	}
+	h := &LPSHandler{prometheusAddr: conf.Prometheus.Addr}
 	go h.monitor(alarmService.LpsThreshold)
-	return h
+
+	return h, nil
 }
 
 func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
@@ -74,147 +41,150 @@ func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
 	for {
 		select {
 		case <-ticker.C:
-			nodes, err := service.GetDHCPService().GetNodeList()
-			if err != nil {
-				logrus.Error(err)
-				continue
+			if alarmService := service.NewAlarmService(); alarmService.LpsThreshold.Enabled {
+				nodes, err := service.GetDHCPService().GetNodeList()
+				if err != nil {
+					log.Warnf("get dhcp agent nodes failed: %s", err.Error())
+				} else {
+					h.collectLPS(nodes, threshold)
+				}
 			}
-			h.collectNodesMetric(nodes, threshold)
 		}
 	}
 }
 
-func (h *LPSHandler) collectNodesMetric(nodes []*resource.Node, threshold *alarm.RegisterThreshold) (err error) {
+func (h *LPSHandler) collectLPS(nodes []*resource.Node, threshold *alarm.RegisterThreshold) {
 	if len(nodes) == 0 {
-		return nil
+		return
 	}
 
-	period := genMonitorTimestamp(300)
+	now := time.Now().Unix()
+	period := &TimePeriod{
+		Begin: now - 300,
+		End:   now,
+		Step:  10,
+	}
 	for _, node := range nodes {
-
-		err = h.collectLPSMetric(node.Ip, threshold, period)
-
-		if err != nil {
+		if err := h.collectLPSWithNode(node.Ip, threshold, period); err != nil {
 			log.Warnf("get node %s metrics failed: %s", node.Ip, err.Error())
 		}
-
 	}
 
-	return nil
+	return
 }
 
-func (h *LPSHandler) collectLPSMetric(nodeIP string,
-	threshold *alarm.RegisterThreshold,
-	period *TimePeriodParams) error {
-
+func (h *LPSHandler) collectLPSWithNode(nodeIP string, threshold *alarm.RegisterThreshold, period *TimePeriod) error {
 	alarmService := service.NewAlarmService()
-	if !alarmService.LpsThreshold.Enabled {
+	if alarmService.LpsThreshold.Enabled == false {
 		return nil
 	}
 
-	dhcp, err := getLps(&MetricContext{PrometheusAddr: h.prometheusAddr, NodeIP: nodeIP, Period: period})
+	ctx := &MetricContext{
+		PromQuery:      PromQueryNode,
+		PrometheusAddr: h.prometheusAddr,
+		MetricName:     MetricNameDHCPLPS,
+		Period:         period,
+		NodeIP:         nodeIP,
+	}
+
+	resp, err := prometheusRequest(ctx)
 	if err != nil {
-		return fmt.Errorf("get node %s lps failed: %s", nodeIP, err.Error())
+		return err
+	}
+
+	lpsValues := make(map[string][]resource.ValueWithTimestamp)
+	for _, r := range resp.Data.Results {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && ctx.NodeIP == nodeIp {
+			if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok {
+				lpsValues[version] = getValuesWithTimestamp(r.Values, ctx.Period)
+			}
+		}
+	}
+
+	if len(lpsValues) == 0 {
+		return nil
 	}
 
 	var exceedThresholdCount int
 	var latestTime time.Time
 	var latestValue uint64
-	for _, value := range dhcp.Lps.Values {
-		if value.Value >= threshold.Value {
-			latestTime = time.Time(value.Timestamp)
-			latestValue = value.Value
-			exceedThresholdCount += 1
-		}
-	}
 
-	if float64(exceedThresholdCount)/float64(len(dhcp.Lps.Values)) > 0.6 {
-		alarmService.SendEventWithValues(&alarm.LpsAlarm{
-			BaseAlarm: &alarm.BaseAlarm{
-				BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
-				Time:          latestTime.Format(time.RFC3339),
-				SendMail:      alarmService.DhcpThreshold.SendMail,
-				Threshold:     alarmService.LpsThreshold.Value,
-			},
-			LatestValue: latestValue,
-		})
+	for _, values := range lpsValues {
+		for _, value := range values {
+			if value.Value >= threshold.Value {
+				latestTime = time.Time(value.Timestamp)
+				latestValue = value.Value
+				exceedThresholdCount += 1
+			}
+		}
+
+		if float64(exceedThresholdCount)/float64(len(values)) > 0.6 {
+			alarmService.SendEventWithValues(&alarm.LpsAlarm{
+				BaseAlarm: &alarm.BaseAlarm{
+					BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
+					Time:          latestTime.Format(time.RFC3339),
+					SendMail:      alarmService.DhcpThreshold.SendMail,
+					Threshold:     alarmService.LpsThreshold.Value,
+				},
+				LatestValue: latestValue,
+			})
+		}
 	}
 	return nil
 }
 
-func genMonitorTimestamp(period int64) *TimePeriodParams {
-	now := time.Now().Unix()
-	return &TimePeriodParams{
-		Begin: now - period,
-		End:   now,
-		Step:  period / 30,
-	}
-}
-
-var TableHeaderLPS = []string{"日期", "LPS"}
-
-type PrometheusResponse struct {
-	Status string         `json:"status"`
-	Data   PrometheusData `json:"data"`
-}
-
-type PrometheusData struct {
-	Results []PrometheusDataResult `json:"result"`
-}
-
-type PrometheusDataResult struct {
-	MetricLabels map[string]string `json:"metric"`
-	Values       [][]interface{}   `json:"values"`
-}
-
-func getLps(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
-	ctx.MetricName = MetricNameDHCPLPS
-	lpsValues, err := getValuesFromPrometheus(ctx)
+func (h *LPSHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	nodeIpAndValues, err := getNodeIpAndValuesFromPrometheus(ctx, &MetricContext{
+		PrometheusAddr: h.prometheusAddr,
+		MetricName:     MetricNameDHCPLPS,
+		PromQuery:      PromQueryVersion,
+	})
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get lps with node %s failed: %s", ctx.NodeIP, err.Error()))
+			"get lpses from prometheus failed: "+err.Error())
 	}
 
-	dhcp := &resource.Dhcp{Lps: resource.Lps{Values: lpsValues}}
-	dhcp.SetID(resource.ResourceIDLPS)
-	return dhcp, nil
+	var lpses []*resource.Lps
+	for nodeIp, values := range nodeIpAndValues {
+		lps := &resource.Lps{Values: values}
+		lps.SetID(nodeIp)
+		lpses = append(lpses, lps)
+	}
+
+	return lpses, nil
 }
 
-func getValuesFromPrometheus(ctx *MetricContext) ([]resource.ValueWithTimestamp, error) {
-	resp, err := prometheusRequest(ctx)
+func getNodeIpAndValuesFromPrometheus(ctx *restresource.Context, metricCtx *MetricContext) (map[string][]resource.ValueWithTimestamp, error) {
+	if err := resetMetricContext(ctx, metricCtx); err != nil {
+		return nil, err
+	}
+
+	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
 		return nil, err
 	}
 
+	nodeIpAndValues := make(map[string][]resource.ValueWithTimestamp)
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok && nodeIp == ctx.NodeIP {
-			return getValuesWithTimestamp(r.Values, ctx.Period), nil
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+			nodeIpAndValues[nodeIp] = getValuesWithTimestamp(r.Values, metricCtx.Period)
 		}
 	}
 
-	return nil, nil
+	return nodeIpAndValues, nil
 }
 
-func prometheusRequest(ctx *MetricContext) (*PrometheusResponse, error) {
-	var resp PrometheusResponse
-	if err := httpclient.GetHttpClient().Get(genPrometheusUrl(ctx), &resp); err != nil {
-		return nil, err
+func resetMetricContext(ctx *restresource.Context, metricCtx *MetricContext) (err error) {
+	metricCtx.Period, err = getTimePeriodFromFilter(ctx.GetFilters())
+	if err != nil {
+		return
 	}
 
-	if resp.Status != "success" {
-		return nil, fmt.Errorf("get node %s %s failed with status: %s",
-			ctx.NodeIP, ctx.MetricName, resp.Status)
-	}
-
-	return &resp, nil
+	metricCtx.Version, err = getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID())
+	return
 }
 
-func genPrometheusUrl(ctx *MetricContext) string {
-	return fmt.Sprintf(PromQueryUrl, ctx.PrometheusAddr, ctx.MetricName, ctx.NodeIP,
-		ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
-}
-
-func getValuesWithTimestamp(values [][]interface{}, period *TimePeriodParams) []resource.ValueWithTimestamp {
+func getValuesWithTimestamp(values [][]interface{}, period *TimePeriod) []resource.ValueWithTimestamp {
 	var valueWithTimestamps []resource.ValueWithTimestamp
 	for i := period.Begin; i <= period.End; i += period.Step {
 		valueWithTimestamps = append(valueWithTimestamps, resource.ValueWithTimestamp{
@@ -234,32 +204,107 @@ func getValuesWithTimestamp(values [][]interface{}, period *TimePeriodParams) []
 	return valueWithTimestamps
 }
 
-func exportLps(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	ctx.MetricName = MetricNameDHCPLPS
-	ctx.TableHeader = TableHeaderLPS
-	return exportTwoColumns(ctx)
-}
-
-func exportTwoColumns(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	resp, err := prometheusRequest(ctx)
+func (h *LPSHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	lps := ctx.Resource.(*resource.Lps)
+	values, err := getValuesFromPrometheus(ctx, &MetricContext{
+		PrometheusAddr: h.prometheusAddr,
+		MetricName:     MetricNameDHCPLPS,
+		PromQuery:      PromQueryVersionNode,
+		NodeIP:         lps.GetID(),
+	})
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("get node %s %s from prometheus failed: %s", ctx.NodeIP, ctx.MetricName, err.Error()))
+			fmt.Sprintf("get lps with node %s failed: %s", lps.GetID(), err.Error()))
+	}
+
+	lps.Values = values
+	return lps, nil
+}
+
+func getValuesFromPrometheus(ctx *restresource.Context, metricCtx *MetricContext) ([]resource.ValueWithTimestamp, error) {
+	if err := resetMetricContext(ctx, metricCtx); err != nil {
+		return nil, err
+	}
+
+	resp, err := prometheusRequest(metricCtx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, r := range resp.Data.Results {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && nodeIp == metricCtx.NodeIP {
+			return getValuesWithTimestamp(r.Values, metricCtx.Period), nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (h *LPSHandler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case resource.ActionNameExportCSV:
+		return h.export(ctx)
+	default:
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
+	}
+}
+
+var TableHeaderLPS = []string{"日期", "LPS"}
+
+func (h *LPSHandler) export(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if result, err := exportTwoColumns(ctx, &MetricContext{
+		NodeIP:         ctx.Resource.GetID(),
+		PrometheusAddr: h.prometheusAddr,
+		PromQuery:      PromQueryVersionNode,
+		MetricName:     MetricNameDHCPLPS,
+		TableHeader:    TableHeaderLPS,
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("lps %s export action failed: %s", ctx.Resource.GetID(), err.Error()))
+	} else {
+		return result, nil
+	}
+}
+
+func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (interface{}, error) {
+	filter, ok := ctx.Resource.GetAction().Input.(*resource.ExportFilter)
+	if ok == false {
+		return nil, fmt.Errorf("action input is not export filter")
+	}
+
+	timePeriod, err := parseTimePeriod(filter.From, filter.To)
+	if err != nil {
+		return nil, err
+	}
+
+	version, err := getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID())
+	if err != nil {
+		return nil, err
+	}
+
+	metricCtx.Period = timePeriod
+	metricCtx.Version = version
+	resp, err := prometheusRequest(metricCtx)
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("get node %s %s from prometheus failed: %s",
+				metricCtx.NodeIP, metricCtx.MetricName, err.Error()))
 	}
 
 	var result PrometheusDataResult
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok && nodeIp == ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && nodeIp == metricCtx.NodeIP {
 			result = r
 			break
 		}
 	}
 
-	return exportTwoColumnsWithResult(ctx, result)
+	return exportTwoColumnsWithResult(metricCtx, result)
 }
 
 func exportTwoColumnsWithResult(ctx *MetricContext, result PrometheusDataResult) (interface{}, *resterror.APIError) {
-	strMatrix := genStrMatrix(result.Values, ctx.Period)
+	strMatrix := genTwoStrMatrix(result.Values, ctx)
 	filepath, err := exportFile(ctx, strMatrix)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, fmt.Sprintf("export node %s %s failed: %s",
@@ -269,15 +314,16 @@ func exportTwoColumnsWithResult(ctx *MetricContext, result PrometheusDataResult)
 	return &resource.FileInfo{Path: filepath}, nil
 }
 
-func genStrMatrix(values [][]interface{}, period *TimePeriodParams) [][]string {
+func genTwoStrMatrix(values [][]interface{}, ctx *MetricContext) [][]string {
 	var strMatrix [][]string
-	for i := period.Begin; i <= period.End; i += period.Step {
-		strMatrix = append(strMatrix, append([]string{time.Unix(int64(i), 0).Format(util.TimeFormat)}, "0"))
+	for i := ctx.Period.Begin; i <= ctx.Period.End; i += ctx.Period.Step {
+		strMatrix = append(strMatrix,
+			append([]string{time.Unix(int64(i), 0).Format(util.TimeFormat)}, "0"))
 	}
 
 	for _, vs := range values {
-		if timestamp, value := getTimestampAndValue(vs); timestamp != 0 && timestamp >= period.Begin {
-			strMatrix[(timestamp-period.Begin)/period.Step][1] = value
+		if timestamp, value := getTimestampAndValue(vs); timestamp != 0 && timestamp >= ctx.Period.Begin {
+			strMatrix[(timestamp-ctx.Period.Begin)/ctx.Period.Step][1] = value
 		}
 	}
 

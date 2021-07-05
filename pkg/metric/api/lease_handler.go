@@ -4,28 +4,81 @@ import (
 	"fmt"
 
 	resterror "github.com/zdnscloud/gorest/error"
+	restresource "github.com/zdnscloud/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
+type LeaseHandler struct {
+	prometheusAddr string
+}
+
+func NewLeaseHandler(conf *config.DHCPConfig) *LeaseHandler {
+	return &LeaseHandler{prometheusAddr: conf.Prometheus.Addr}
+}
+
+func (h *LeaseHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	nodeIpAndValues, err := getNodeIpAndValuesFromPrometheus(ctx, &MetricContext{
+		PrometheusAddr: h.prometheusAddr,
+		MetricName:     MetricNameDHCPLeaseCountTotal,
+		PromQuery:      PromQueryVersion,
+	})
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			"get leases count from prometheus failed: "+err.Error())
+	}
+
+	var leases []*resource.Lease
+	for nodeIp, values := range nodeIpAndValues {
+		lease := &resource.Lease{Values: values}
+		lease.SetID(nodeIp)
+		leases = append(leases, lease)
+	}
+
+	return leases, nil
+}
+
+func (h *LeaseHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	lease := ctx.Resource.(*resource.Lease)
+	values, err := getValuesFromPrometheus(ctx, &MetricContext{
+		PrometheusAddr: h.prometheusAddr,
+		MetricName:     MetricNameDHCPLeaseCountTotal,
+		PromQuery:      PromQueryVersionNode,
+		NodeIP:         lease.GetID(),
+	})
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("get leases count with node %s failed: %s", lease.GetID(), err.Error()))
+	}
+
+	lease.Values = values
+	return lease, nil
+}
+
+func (h *LeaseHandler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case resource.ActionNameExportCSV:
+		return h.export(ctx)
+	default:
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
+	}
+}
 
 var TableHeaderLease = []string{"日期", "租赁总数"}
 
-func getLease(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
-	ctx.MetricName = MetricNameDHCPLeasesTotal
-	leaseValues, err := getValuesFromPrometheus(ctx)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get node %s leases failed: %s", ctx.NodeIP, err.Error()))
+func (h *LeaseHandler) export(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if result, err := exportTwoColumns(ctx, &MetricContext{
+		NodeIP:         ctx.Resource.GetID(),
+		PrometheusAddr: h.prometheusAddr,
+		PromQuery:      PromQueryVersionNode,
+		MetricName:     MetricNameDHCPLeaseCountTotal,
+		TableHeader:    TableHeaderLease,
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("leases count %s export action failed: %s", ctx.Resource.GetID(), err.Error()))
+	} else {
+		return result, nil
 	}
-
-	dhcp := &resource.Dhcp{Lease: resource.Lease{Values: leaseValues}}
-	dhcp.SetID(resource.ResourceIDLease)
-	return dhcp, nil
-}
-
-func exportLease(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	ctx.MetricName = MetricNameDHCPLeasesTotal
-	ctx.TableHeader = TableHeaderLease
-	return exportTwoColumns(ctx)
 }

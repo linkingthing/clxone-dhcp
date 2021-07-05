@@ -1,14 +1,23 @@
 package resource
 
-import restresource "github.com/zdnscloud/gorest/resource"
-
-const ResourceIDLPS = "lps"
+import (
+	restresource "github.com/zdnscloud/gorest/resource"
+)
 
 type Lps struct {
-	Values []ValueWithTimestamp `json:"values"`
+	restresource.ResourceBase `json:",inline"`
+	Values                    []ValueWithTimestamp `json:"values"`
 }
 
 type ValueWithTimestamp struct {
 	Timestamp restresource.ISOTime `json:"timestamp"`
 	Value     uint64               `json:"value"`
+}
+
+func (l Lps) GetParents() []restresource.ResourceKind {
+	return []restresource.ResourceKind{Dhcp{}}
+}
+
+func (l Lps) GetActions() []restresource.Action {
+	return exportActions
 }

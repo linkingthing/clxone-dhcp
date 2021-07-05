@@ -4,13 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
 
@@ -39,7 +37,7 @@ func GetDHCPService() *DHCPService {
 }
 
 func (a *DHCPService) GetSubnet4ByIDs(ids ...string) (subnets []*resource.Subnet4, err error) {
-	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if len(ids) > 0 {
 			subnetIndex, subnetAgrs := genSqlArgsAndIndex(ids)
 			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnetsWithIdSql, subnetIndex), subnetAgrs...)
@@ -47,15 +45,12 @@ func (a *DHCPService) GetSubnet4ByIDs(ids ...string) (subnets []*resource.Subnet
 			err = tx.Fill(nil, &subnets)
 		}
 		return err
-
-	}); err != nil {
-		logrus.Error(err)
-	}
+	})
 	return
 }
 
 func (a *DHCPService) GetSubnet6ByIDs(ids ...string) (subnets []*resource.Subnet6, err error) {
-	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if len(ids) > 0 {
 			subnetIndex, subnetAgrs := genSqlArgsAndIndex(ids)
 			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnetsWithIdSql, subnetIndex), subnetAgrs...)
@@ -64,58 +59,46 @@ func (a *DHCPService) GetSubnet6ByIDs(ids ...string) (subnets []*resource.Subnet
 		}
 		return err
 
-	}); err != nil {
-		logrus.Error(err)
-	}
+	})
 	return
 }
 
 func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
 	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
-		logrus.Error(err)
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("found clxone-dhcp-agnet-grpc: %s", err.Error()))
 	}
+
 	for _, end := range endpoints {
 		response, err := end(context.Background(), struct{}{})
 		if err != nil {
-			logrus.Error(err)
 			return nil, err
 		}
 
+		ip, _, err := net.SplitHostPort(response.(string))
 		if err != nil {
-			log.Printf("did not connect: %v", err)
 			return nil, err
 		}
 
-		ip := strings.Split(response.(string), ":")[0]
 		node := &metricresource.Node{
 			Ip:       ip,
-			HostName: ip,
+			Hostname: ip,
 		}
 		node.SetID(ip)
-
 		nodes = append(nodes, node)
 	}
 
 	return
 }
 
-func (a *DHCPService) GetClosestSubnet4ByIDs(ids []string, ip string) (subnet *resource.Subnet4, err error) {
+func (a *DHCPService) GetClosestSubnet4ByIDs(ids []string, ip string) (*resource.Subnet4, error) {
 	subnets, err := a.GetSubnet4ByIDs(ids...)
 	if err != nil {
-		logrus.Error(err)
-		return
+		return nil, err
 	}
 
-	subnet, err = getClosestSubnet4(subnets, net.ParseIP(ip))
-
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	return
+	return getClosestSubnet4(subnets, net.ParseIP(ip))
 }
 
 func getClosestSubnet4(subnets []*resource.Subnet4, ip net.IP) (subnet *resource.Subnet4, err error) {
@@ -136,19 +119,13 @@ func getClosestSubnet4(subnets []*resource.Subnet4, ip net.IP) (subnet *resource
 	return
 }
 
-func (a *DHCPService) GetClosestSubnet6ByIDs(ids []string, ip string) (subnet *resource.Subnet6, err error) {
+func (a *DHCPService) GetClosestSubnet6ByIDs(ids []string, ip string) (*resource.Subnet6, error) {
 	subnets, err := a.GetSubnet6ByIDs(ids...)
 	if err != nil {
-		logrus.Error(err)
-		return
+		return nil, err
 	}
 
-	subnet, err = getClosestSubnet6(subnets, net.ParseIP(ip))
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	return
+	return getClosestSubnet6(subnets, net.ParseIP(ip))
 }
 
 func getClosestSubnet6(subnets []*resource.Subnet6, ip net.IP) (subnet *resource.Subnet6, err error) {

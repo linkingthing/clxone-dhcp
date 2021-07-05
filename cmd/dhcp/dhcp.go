@@ -30,6 +30,7 @@ func main() {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
 
+	//TODO remove it
 	logrus.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
 	})
@@ -37,7 +38,6 @@ func main() {
 	logrus.SetReportCaller(conf.Log.ReportCaller)
 
 	db.RegisterResources(dhcp.PersistentResources()...)
-	db.RegisterResources(metric.PersistentResources()...)
 	if err := db.Init(conf); err != nil {
 		log.Fatalf("init db failed: %s", err.Error())
 	}
@@ -49,8 +49,13 @@ func main() {
 		log.Fatalf("new server failed: %s", err.Error())
 	}
 
-	server.RegisterHandler(restserver.HandlerRegister(dhcp.RegisterHandler))
-	server.RegisterHandler(restserver.HandlerRegister(metric.RegisterHandler))
+	if err := server.RegisterHandler(restserver.HandlerRegister(dhcp.RegisterHandler)); err != nil {
+		log.Fatalf("register dhcp handler failed: %s", err.Error())
+	}
+
+	if err := server.RegisterHandler(restserver.HandlerRegister(metric.RegisterHandler)); err != nil {
+		log.Fatalf("register metric handler failed: %s", err.Error())
+	}
 
 	if err := server.Run(conf); err != nil {
 		log.Fatalf("server run failed: %s", err.Error())

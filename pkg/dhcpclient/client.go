@@ -6,7 +6,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/log"
 	"github.com/zdnscloud/cement/slice"
 	"google.golang.org/grpc"
@@ -49,33 +48,25 @@ func New() (*DHCPClient, error) {
 func getDHCPNodeList() (nodes []*dhcpagent.GetDHCPNodesResponse, err error) {
 	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
-		logrus.Error(err)
 		return nil, err
 	}
 	for _, end := range endpoints {
 		response, err := end(context.Background(), struct{}{})
 		if err != nil {
-			logrus.Error(err)
 			return nil, err
 		}
 
 		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-		conn, err := grpc.DialContext(ctx,
-			response.(string),
-			grpc.WithBlock(),
-			grpc.WithInsecure(),
-		)
+		conn, err := grpc.DialContext(ctx, response.(string), grpc.WithBlock(), grpc.WithInsecure())
 		if err != nil {
-			logrus.Error(err)
 			return nil, err
 		}
 		defer conn.Close()
 
 		client := dhcpagent.NewDHCPManagerClient(conn)
 		resp, err := client.GetDHCPNodes(ctx, &dhcpagent.GetDHCPNodesRequest{})
-
 		if err != nil {
-			logrus.Error(err)
+			return nil, err
 		}
 		nodes = append(nodes, resp)
 
@@ -84,7 +75,7 @@ func getDHCPNodeList() (nodes []*dhcpagent.GetDHCPNodesResponse, err error) {
 	return
 }
 
-func (cli *DHCPClient) FindIllegalDHCPServer() []*DHCPServer {
+func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
 	dhcpServer4s := make(map[string]*DHCPServer)
 	dhcpServer6s := make(map[string]*DHCPServer)
 	for _, client := range cli.clients {
@@ -94,7 +85,8 @@ func (cli *DHCPClient) FindIllegalDHCPServer() []*DHCPServer {
 		} else {
 			nodes, err := getDHCPNodeList()
 			if err != nil {
-				log.Warnf("get dhcp node from db failed: %s", err.Error())
+				log.Warnf("get dhcp node failed: %s", err.Error())
+				continue
 			}
 
 			for _, server := range servers {
@@ -153,7 +145,7 @@ func getClients() ([]Client, error) {
 	var clients []Client
 	ifaces, err := net.Interfaces()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get interfaces failed: %s", err.Error())
 	}
 
 	clientV4 := false

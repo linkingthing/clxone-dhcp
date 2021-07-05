@@ -6,7 +6,9 @@ import (
 	"time"
 
 	resterror "github.com/zdnscloud/gorest/error"
+	restresource "github.com/zdnscloud/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
@@ -14,80 +16,156 @@ import (
 const (
 	PacketLabelPrefixVersion4 = "pkt4-"
 	PacketLabelPrefixVersion6 = "pkt6-"
-	DHCPVersion4              = "4"
-	DHCP4StatsDiscover        = "pkt4-discover-received"
-	DHCP4StatsOffer           = "pkt4-offer-sent"
-	DHCP4StatsRequest         = "pkt4-request-received"
-	DHCP4StatsAck             = "pkt4-ack-sent"
-	DHCP4PacketTypeDiscover   = "discover"
-	DHCP4PacketTypeOffer      = "offer"
-	DHCP4PacketTypeRequest    = "request"
-	DHCP4PacketTypeAck        = "ack"
-
-	DHCPVersion6             = "6"
-	DHCP6StatsSolicit        = "pkt6-solicit-received"
-	DHCP6StatsAdvertise      = "pkt6-advertise-sent"
-	DHCP6StatsRequest        = "pkt6-request-received"
-	DHCP6StatsReply          = "pkt6-reply-sent"
-	DHCP6PacketTypeSolicit   = "solicit"
-	DHCP6PacketTypeAdvertise = "advertise"
-	DHCP6PacketTypeRequest   = "request"
-	DHCP6PacketTypeReply     = "reply"
 )
 
-func getPackets(ctx *MetricContext) (*resource.Dhcp, *resterror.APIError) {
-	ctx.MetricName = MetricNameDHCPPacketsStats
-	resp, err := prometheusRequest(ctx)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get node %s packet stats failed: %s", ctx.NodeIP, err.Error()))
+type PacketStatHandler struct {
+	prometheusAddr string
+}
+
+func NewPacketStatHandler(conf *config.DHCPConfig) *PacketStatHandler {
+	return &PacketStatHandler{prometheusAddr: conf.Prometheus.Addr}
+}
+
+func (h *PacketStatHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	metricCtx := &MetricContext{
+		PrometheusAddr: h.prometheusAddr,
+		MetricName:     MetricNameDHCPPacketStats,
+		PromQuery:      PromQueryVersion,
 	}
 
-	var packets []resource.Packet
-	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
-			continue
-		}
+	if err := resetMetricContext(ctx, metricCtx); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get packet stats failed: %s", err.Error()))
+	}
 
-		if ptype, ok := r.MetricLabels[MetricLabelType]; ok {
-			if version, ok := r.MetricLabels[MetricLabelVersion]; ok {
-				packets = append(packets, resource.Packet{
-					Version: version,
-					Type:    ptype,
-					Values:  getValuesWithTimestamp(r.Values, ctx.Period),
-				})
+	resp, err := prometheusRequest(metricCtx)
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get packet stats from prometheus failed: %s", err.Error()))
+	}
+
+	nodeIpAndPackets := make(map[string][]resource.Packet)
+	for _, r := range resp.Data.Results {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+			if ptype, ok := r.MetricLabels[string(MetricLabelType)]; ok {
+				if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok &&
+					version == string(metricCtx.Version) {
+					packets := nodeIpAndPackets[nodeIp]
+					packets = append(packets, resource.Packet{
+						Type:   ptype,
+						Values: getValuesWithTimestamp(r.Values, metricCtx.Period),
+					})
+					nodeIpAndPackets[nodeIp] = packets
+				}
 			}
 		}
 	}
 
-	dhcp := &resource.Dhcp{Packets: packets}
-	dhcp.SetID(resource.ResourceIDPackets)
-	return dhcp, nil
+	var stats []*resource.PacketStat
+	for nodeIp, packets := range nodeIpAndPackets {
+		stat := &resource.PacketStat{Packets: packets}
+		stat.SetID(nodeIp)
+		stats = append(stats, stat)
+	}
+	return stats, nil
 }
 
-func exportPackets(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	ctx.MetricName = MetricNameDHCPPacketsStats
-	ctx.MetricLabel = MetricLabelType
-	return exportMultiColunms(ctx)
-}
-
-func exportMultiColunms(ctx *MetricContext) (interface{}, *resterror.APIError) {
-	resp, err := prometheusRequest(ctx)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("get node %s %s from prometheus failed: %s", ctx.NodeIP, ctx.MetricName, err.Error()))
+func (h *PacketStatHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	packetStat := ctx.Resource.(*resource.PacketStat)
+	metricCtx := &MetricContext{
+		PrometheusAddr: h.prometheusAddr,
+		MetricName:     MetricNameDHCPPacketStats,
+		PromQuery:      PromQueryVersionNode,
+		NodeIP:         packetStat.GetID(),
 	}
 
-	strMatrix, err := genHeaderAndStrMatrix(ctx, resp.Data.Results)
+	if err := resetMetricContext(ctx, metricCtx); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get packet stats failed: %s", err.Error()))
+	}
+
+	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get node %s %s from prometheus failed: %s", ctx.NodeIP, ctx.MetricName, err.Error()))
+			fmt.Sprintf("get packet stats from prometheus failed: %s", err.Error()))
 	}
 
-	filepath, err := exportFile(ctx, strMatrix)
+	for _, r := range resp.Data.Results {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && nodeIp == metricCtx.NodeIP {
+			if ptype, ok := r.MetricLabels[string(MetricLabelType)]; ok {
+				if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok &&
+					version == string(metricCtx.Version) {
+					packetStat.Packets = append(packetStat.Packets, resource.Packet{
+						Type:   ptype,
+						Values: getValuesWithTimestamp(r.Values, metricCtx.Period),
+					})
+				}
+			}
+		}
+	}
+
+	return packetStat, nil
+}
+
+func (h *PacketStatHandler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case resource.ActionNameExportCSV:
+		return h.export(ctx)
+	default:
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
+	}
+}
+
+func (h *PacketStatHandler) export(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if result, err := exportMultiColunms(ctx, &MetricContext{
+		NodeIP:         ctx.Resource.GetID(),
+		PrometheusAddr: h.prometheusAddr,
+		PromQuery:      PromQueryVersionNode,
+		MetricName:     MetricNameDHCPPacketStats,
+		MetricLabel:    MetricLabelType,
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("packet stats %s export action failed: %s", ctx.Resource.GetID(), err.Error()))
+	} else {
+		return result, nil
+	}
+}
+
+func exportMultiColunms(ctx *restresource.Context, metricCtx *MetricContext) (interface{}, error) {
+	filter, ok := ctx.Resource.GetAction().Input.(*resource.ExportFilter)
+	if ok == false {
+		return nil, fmt.Errorf("action input is not export filter")
+	}
+
+	timePeriod, err := parseTimePeriod(filter.From, filter.To)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, fmt.Sprintf("export node %s %s failed: %s",
-			ctx.NodeIP, ctx.MetricName, err.Error()))
+		return nil, err
+	}
+
+	version, err := getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID())
+	if err != nil {
+		return nil, err
+	}
+
+	metricCtx.Period = timePeriod
+	metricCtx.Version = version
+	resp, err := prometheusRequest(metricCtx)
+	if err != nil {
+		return nil, fmt.Errorf("get node %s %s from prometheus failed: %s",
+			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
+	}
+
+	strMatrix, err := genHeaderAndStrMatrix(metricCtx, resp.Data.Results)
+	if err != nil {
+		return nil, fmt.Errorf("gen node %s %s header failed: %s",
+			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
+	}
+
+	filepath, err := exportFile(metricCtx, strMatrix)
+	if err != nil {
+		return nil, fmt.Errorf("export node %s %s failed: %s",
+			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
 	}
 
 	return &resource.FileInfo{Path: filepath}, nil
@@ -97,7 +175,7 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 	headers := []string{"日期"}
 	var subnets map[string]string
 	if ctx.MetricLabel == MetricLabelSubnetId {
-		ss, err := getSubnetsFromDB()
+		ss, err := getSubnetsFromDB(ctx.Version)
 		if err != nil {
 			return nil, fmt.Errorf("list subnets failed: %s", err.Error())
 		}
@@ -107,20 +185,21 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 
 	var validResults []PrometheusDataResult
 	for _, r := range results {
-		if nodeIp, ok := r.MetricLabels[MetricLabelNode]; ok == false || nodeIp != ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok == false || nodeIp != ctx.NodeIP {
 			continue
 		}
 
-		if label, ok := r.MetricLabels[ctx.MetricLabel]; ok {
-			if ctx.MetricName == MetricNameDHCPUsages {
+		if label, ok := r.MetricLabels[string(ctx.MetricLabel)]; ok {
+			switch ctx.MetricName {
+			case MetricNameDHCPSubnetUsage:
 				subnet, ok := subnets[label]
 				if ok == false {
 					continue
 				}
 				label = subnet
-			} else if ctx.MetricName == MetricNameDHCPPacketsStats {
-				if version, ok := r.MetricLabels[MetricLabelVersion]; ok {
-					if version == DHCPVersion4 {
+			case MetricNameDHCPPacketStats:
+				if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok {
+					if version == string(DHCPVersion4) {
 						label = PacketLabelPrefixVersion4 + label
 					} else {
 						label = PacketLabelPrefixVersion6 + label

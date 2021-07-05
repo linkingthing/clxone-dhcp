@@ -8,5 +8,5 @@ type Node struct {
 	resource.ResourceBase `json:",inline"`
 
 	Ip       string `json:"ip"`
-	HostName string `json:"hostName"`
+	Hostname string `json:"hostname"`
 }

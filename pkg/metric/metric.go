@@ -17,18 +17,19 @@ var Version = restresource.APIVersion{
 
 func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	conf := config.GetConfig()
-	apiServer.Schemas.MustImport(&Version, resource.Node{}, api.NewNodeHandler())
-	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, api.NewDhcpHandler(conf))
-	_, err := api.NewScannedSubnetHandler()
-	if err != nil {
-		panic(err)
+	if err := api.InitScannedDHCPHandler(conf); err != nil {
+		return err
 	}
-	api.NewLPSHandler(conf)
-	return nil
-}
 
-func PersistentResources() []restresource.Resource {
-	return []restresource.Resource{
-		&resource.Node{},
+	lps, err := api.NewLPSHandler(conf)
+	if err != nil {
+		return err
 	}
+
+	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, api.NewDhcpHandler(conf))
+	apiServer.Schemas.MustImport(&Version, resource.Lps{}, lps)
+	apiServer.Schemas.MustImport(&Version, resource.Lease{}, api.NewLeaseHandler(conf))
+	apiServer.Schemas.MustImport(&Version, resource.PacketStat{}, api.NewPacketStatHandler(conf))
+	apiServer.Schemas.MustImport(&Version, resource.SubnetUsedRatio{}, api.NewSubnetUsedRatioHandler(conf))
+	return nil
 }
