@@ -69,6 +69,15 @@ func NewConn(serviceName string) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
+func CloseConns() {
+	connManager.Range(func(k, v interface{}) bool {
+		if conn, ok := v.(*grpc.ClientConn); ok {
+			conn.Close()
+		}
+		return true
+	})
+}
+
 func GetEndpoints(serviceName string) ([]endpoint.Endpoint, error) {
 	var logger kitlog.Logger
 	{

@@ -19,7 +19,6 @@ var IgnoreAuditLog = "ignoreAuditLog"
 
 func LoggingMiddleWare() gorest.EndHandlerFunc {
 	return func(ctx *restresource.Context, respErr *resterror.APIError) *resterror.APIError {
-
 		if _, ok := ctx.Get(IgnoreAuditLog); ok {
 			return nil
 		}
@@ -52,7 +51,7 @@ func LoggingMiddleWare() gorest.EndHandlerFunc {
 			errMsg = respErr.Error()
 		}
 
-		auditLog := &logging.LoggingRequest{
+		service.NewLoggingService().Log(&logging.LoggingRequest{
 			UserName:     "admin",
 			SourceIp:     util.ClientIP(ctx.Request),
 			Method:       method,
@@ -63,9 +62,7 @@ func LoggingMiddleWare() gorest.EndHandlerFunc {
 			Success:      succeed,
 			ErrMessage:   errMsg,
 			Time:         time.Now().Format(time.RFC3339),
-		}
-
-		service.NewLoggingService().Log(auditLog)
+		})
 
 		return nil
 	}

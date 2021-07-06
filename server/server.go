@@ -5,8 +5,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/gin-gonic/gin"
 	consulapi "github.com/hashicorp/consul/api"
@@ -41,7 +39,8 @@ type WebHandler interface {
 }
 
 func NewServer() (*Server, error) {
-	gin.SetMode(gin.ReleaseMode)
+	//gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.DebugMode)
 	gin.DefaultWriter = os.Stdout
 	router := gin.New()
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
@@ -80,7 +79,6 @@ func (s *Server) RegisterHandler(h WebHandler) error {
 func (s *Server) Run(conf *config.DHCPConfig) error {
 	errch := make(chan error)
 	adaptor.RegisterHandler(s.group, s.apiServer, s.apiServer.Schemas.GenerateResourceRoute())
-
 	if apiRegister, err := NewHttpRegister(consulapi.AgentServiceRegistration{
 		ID:      conf.Consul.Name + "-api-" + conf.Server.IP,
 		Name:    conf.Consul.Name + "-api",
@@ -89,8 +87,11 @@ func (s *Server) Run(conf *config.DHCPConfig) error {
 	}); err != nil {
 		return err
 	} else {
-		apiRegister.Register()
-		defer apiRegister.Deregister()
+		if err := apiRegister.Register(); err != nil {
+			return err
+		} else {
+			defer apiRegister.Deregister()
+		}
 	}
 
 	if grpcRegister, err := NewGrpcRegister(
@@ -102,18 +103,15 @@ func (s *Server) Run(conf *config.DHCPConfig) error {
 		}); err != nil {
 		return err
 	} else {
-		grpcRegister.Register()
-		defer grpcRegister.Deregister()
+		if err := grpcRegister.Register(); err != nil {
+			return err
+		} else {
+			defer grpcRegister.Deregister()
+		}
 	}
 
 	go func() {
 		errch <- s.router.Run(fmt.Sprintf(":%d", conf.Server.Port))
-	}()
-
-	go func() {
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
-		errch <- fmt.Errorf("%s", <-c)
 	}()
 
 	go func() {

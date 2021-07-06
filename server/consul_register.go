@@ -2,16 +2,13 @@ package server
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/sd"
 	consulsd "github.com/go-kit/kit/sd/consul"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/linkingthing/clxone-dhcp/config"
 )
 
-func NewHttpRegister(registration consulapi.AgentServiceRegistration) (sd.Registrar, error) {
+func NewHttpRegister(registration consulapi.AgentServiceRegistration) (*Registrar, error) {
 	return register(registration, consulapi.AgentServiceCheck{
 		HTTP:                           fmt.Sprintf("http://%v:%v/health", registration.Address, registration.Port),
 		Interval:                       config.GetConfig().Consul.Check.Interval,
@@ -21,7 +18,7 @@ func NewHttpRegister(registration consulapi.AgentServiceRegistration) (sd.Regist
 	})
 }
 
-func NewGrpcRegister(registration consulapi.AgentServiceRegistration) (sd.Registrar, error) {
+func NewGrpcRegister(registration consulapi.AgentServiceRegistration) (*Registrar, error) {
 	return register(registration, consulapi.AgentServiceCheck{
 		GRPC:                           fmt.Sprintf("%v:%v", registration.Address, registration.Port),
 		Interval:                       config.GetConfig().Consul.Check.Interval,
@@ -31,11 +28,7 @@ func NewGrpcRegister(registration consulapi.AgentServiceRegistration) (sd.Regist
 	})
 }
 
-func register(registration consulapi.AgentServiceRegistration, check consulapi.AgentServiceCheck) (sd.Registrar, error) {
-	logger := log.NewLogfmtLogger(os.Stderr)
-	logger = log.With(logger, "ts", log.DefaultTimestampUTC)
-	logger = log.With(logger, "caller", log.DefaultCaller)
-
+func register(registration consulapi.AgentServiceRegistration, check consulapi.AgentServiceCheck) (*Registrar, error) {
 	conf := consulapi.DefaultConfig()
 	conf.Address = config.GetConfig().Consul.Address
 	consulClient, err := consulapi.NewClient(conf)
@@ -45,5 +38,5 @@ func register(registration consulapi.AgentServiceRegistration, check consulapi.A
 
 	registration.Tags = config.GetConfig().Consul.Tags
 	registration.Checks = consulapi.AgentServiceChecks{&check}
-	return NewRegistrar(consulsd.NewClient(consulClient), &registration, logger), nil
+	return NewRegistrar(consulsd.NewClient(consulClient), &registration), nil
 }

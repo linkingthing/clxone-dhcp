@@ -1,37 +1,13 @@
 package util
 
 import (
+	"encoding/binary"
 	"fmt"
+	"math/big"
 	"net"
-	"strconv"
-
-	restresource "github.com/zdnscloud/gorest/resource"
+	"net/http"
+	"strings"
 )
-
-type IPVersion uint32
-
-const (
-	IPVersion4 IPVersion = 4
-	IPVersion6 IPVersion = 6
-)
-
-func (v IPVersion) Validate() bool {
-	return v == IPVersion4 || v == IPVersion6
-}
-
-func (v IPVersion) IsEmpty() bool {
-	return uint32(v) == 0
-}
-
-func IPVersionFromFilter(filters []restresource.Filter) (IPVersion, bool) {
-	if versionStr, ok := GetFilterValueWithEqModifierFromFilters(FilterNameVersion, filters); ok {
-		if versionInt, err := strconv.Atoi(versionStr); err == nil && IPVersion(versionInt).Validate() {
-			return IPVersion(versionInt), true
-		}
-	}
-
-	return IPVersion(0), false
-}
 
 func ParseIP(ipstr string) (net.IP, bool, error) {
 	ip := net.ParseIP(ipstr)
@@ -40,27 +16,6 @@ func ParseIP(ipstr string) (net.IP, bool, error) {
 	} else {
 		return ip, ip.To4() != nil, nil
 	}
-}
-
-func ParsePrefixVersion(prefix string, version IPVersion) error {
-	ip, ipnet, err := net.ParseCIDR(prefix)
-	if err != nil {
-		return err
-	}
-
-	if version == IPVersion4 && ip.To4() == nil {
-		return fmt.Errorf("%s is not ipv4 prefix", prefix)
-	}
-
-	if version == IPVersion6 {
-		if ip.To4() != nil {
-			return fmt.Errorf("%s is not ipv6 prefix", prefix)
-		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
-			return fmt.Errorf("ip mask size %d is bigger than 64", ones)
-		}
-	}
-
-	return nil
 }
 
 func CheckIPsValidWithVersion(isv4 bool, ips ...string) error {
@@ -88,183 +43,82 @@ func CheckIPsValid(ips ...string) error {
 	return nil
 }
 
-func CheckAddressValid(addresses ...string) error {
-	for _, address := range addresses {
-		if net.ParseIP(address) == nil {
-			if _, err := net.ResolveTCPAddr("tcp", address); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
+func Ipv4FromUint32(val uint32) net.IP {
+	addr := make([]byte, 4)
+	binary.BigEndian.PutUint32(addr, val)
+	return net.IP(addr)
 }
 
-var (
-	PrivateSubnetA  = &net.IPNet{IP: net.IP{10, 0, 0, 0}, Mask: net.IPMask{255, 0, 0, 0}}
-	PrivateSubnetB  = &net.IPNet{IP: net.IP{172, 16, 0, 0}, Mask: net.IPMask{255, 16, 0, 0}}
-	PrivateSubnetC  = &net.IPNet{IP: net.IP{192, 168, 0, 0}, Mask: net.IPMask{255, 255, 0, 0}}
-	PrivateSubnetLo = &net.IPNet{IP: net.IP{127, 0, 0, 0}, Mask: net.IPMask{255, 0, 0, 0}}
-)
+func Ipv4StringToUint32(ipv4 string) (uint32, bool) {
+	return Ipv4ToUint32(net.ParseIP(ipv4))
+}
 
-/*
-ref rfc1918:Private Address Space:
-10.0.0.0        -   10.255.255.255  (10/8 prefix)
-172.16.0.0      -   172.31.255.255  (172.16/12 prefix)
-192.168.0.0     -   192.168.255.255 (192.168/16 prefix)
-127.0.0.0     -   192.168.255.255 (127/8 prefix)
-*/
-func CheckSubnetPrivate(subNet string) (bool, error) {
-	if ip, ipnet, err := net.ParseCIDR(subNet); err != nil {
-		return false, err
+func Ipv4ToUint32(ipv4 net.IP) (uint32, bool) {
+	if ipv4_ := ipv4.To4(); ipv4_ == nil {
+		return 0, false
 	} else {
-		ones, _ := ipnet.Mask.Size()
-		onesA, _ := PrivateSubnetA.Mask.Size()
-		onesB, _ := PrivateSubnetB.Mask.Size()
-		onesC, _ := PrivateSubnetC.Mask.Size()
-		onesLo, _ := PrivateSubnetLo.Mask.Size()
-		switch {
-		case PrivateSubnetA.Contains(ip) && onesA < ones:
-			return true, nil
-		case PrivateSubnetB.Contains(ip) && onesB < ones:
-			return true, nil
-		case PrivateSubnetC.Contains(ip) && onesC < ones:
-			return true, nil
-		case PrivateSubnetLo.Contains(ip) && onesLo < ones:
-			return true, nil
-		default:
-			return false, nil
+		return binary.BigEndian.Uint32(ipv4_), true
+	}
+}
+
+func Ipv6StringToBigInt(ipv6 string) (*big.Int, bool) {
+	return Ipv6ToBigInt(net.ParseIP(ipv6))
+}
+
+func Ipv6ToBigInt(ipv6 net.IP) (*big.Int, bool) {
+	if ipv6.To4() != nil {
+		return nil, false
+	}
+
+	ipv6Int := big.NewInt(0)
+	ipv6Int.SetBytes(ipv6.To16())
+	return ipv6Int, true
+}
+
+func OneIpLessThanAnother(one, another string) bool {
+	oneIP := net.ParseIP(one)
+	anotherIP := net.ParseIP(another)
+	if oneIP.To4() != nil && anotherIP.To4() == nil {
+		return true
+	}
+
+	if oneIP.To4() == nil && anotherIP.To4() != nil {
+		return false
+	}
+
+	if oneIP.To4() != nil {
+		oneUint32, _ := Ipv4ToUint32(oneIP)
+		anotherUint32, _ := Ipv4ToUint32(anotherIP)
+		return oneUint32 < anotherUint32
+	} else {
+		oneBigInt, _ := Ipv6ToBigInt(oneIP)
+		anotherBigInt, _ := Ipv6ToBigInt(anotherIP)
+		return oneBigInt.Cmp(anotherBigInt) == -1
+	}
+}
+
+func ClientIP(request *http.Request) string {
+	clientIP := request.Header.Get("X-Forwarded-For")
+	clientIPs := strings.Split(clientIP, ",")
+	for _, ip := range clientIPs {
+		if strings.TrimSpace(ip) == "127.0.0.1" {
+			continue
 		}
-	}
-}
 
-func CheckPrefixsContainEachOther(parentPrefix string, subNet *net.IPNet) bool {
-	_, parentNet, err := net.ParseCIDR(parentPrefix)
-	if err != nil {
-		return false
+		clientIP = strings.TrimSpace(ip)
 	}
 
-	parentOnes, _ := parentNet.Mask.Size()
-	subOnes, _ := subNet.Mask.Size()
-	if parentNet.Contains(subNet.IP) && parentOnes <= subOnes {
-		return true
+	if len(clientIPs) == 0 {
+		clientIP = strings.TrimSpace(request.Header.Get("X-Real-Ip"))
 	}
 
-	if subNet.Contains(parentNet.IP) && subOnes <= parentOnes {
-		return true
+	if clientIP != "" {
+		return clientIP
 	}
 
-	return false
-}
-
-func PrefixsContainEachOther(parentPrefix, subPrefix string) (bool, error) {
-	_, parentNet, err := net.ParseCIDR(parentPrefix)
-	if err != nil {
-		return false, err
-	}
-	_, subNet, err := net.ParseCIDR(subPrefix)
-	if err != nil {
-		return false, err
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(request.RemoteAddr)); err == nil {
+		return ip
 	}
 
-	parentOnes, _ := parentNet.Mask.Size()
-	subOnes, _ := subNet.Mask.Size()
-	if parentNet.Contains(subNet.IP) && parentOnes <= subOnes {
-		return true, nil
-	}
-
-	if subNet.Contains(parentNet.IP) && subOnes <= parentOnes {
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func PrefixsContainsIpNet(parentPrefix string, subNet net.IPNet) bool {
-	_, parentNet, err := net.ParseCIDR(parentPrefix)
-	if err != nil {
-		return false
-	}
-
-	parentOnes, _ := parentNet.Mask.Size()
-	subOnes, _ := subNet.Mask.Size()
-	if parentNet.Contains(subNet.IP) && parentOnes <= subOnes {
-		return true
-	}
-
-	return false
-}
-
-func PrefixsContains(parentPrefix string, subPrefix string) bool {
-	_, parentNet, err := net.ParseCIDR(parentPrefix)
-	if err != nil {
-		return false
-	}
-	_, subNet, err := net.ParseCIDR(subPrefix)
-	if err != nil {
-		return false
-	}
-
-	parentOnes, _ := parentNet.Mask.Size()
-	subOnes, _ := subNet.Mask.Size()
-	if parentNet.Contains(subNet.IP) && parentOnes <= subOnes {
-		return true
-	}
-
-	return false
-}
-
-func PrefixsNotEqualContains(parentPrefix string, subPrefix string) bool {
-	_, parentNet, err := net.ParseCIDR(parentPrefix)
-	if err != nil {
-		return false
-	}
-	_, subNet, err := net.ParseCIDR(subPrefix)
-	if err != nil {
-		return false
-	}
-
-	parentOnes, _ := parentNet.Mask.Size()
-	subOnes, _ := subNet.Mask.Size()
-	if parentNet.Contains(subNet.IP) && parentOnes < subOnes {
-		return true
-	}
-
-	return false
-}
-
-func PrefixListContains(parentPrefixs []string, prefix string) (bool, string, string, error) {
-	for _, parentPrefix := range parentPrefixs {
-		if PrefixsContains(parentPrefix, prefix) {
-			return true, parentPrefix, prefix, nil
-		}
-	}
-
-	return false, "", "", nil
-}
-
-func CheckSubnetListContainSubnet(parentPrefixs []*net.IPNet, subNet *net.IPNet) (bool, string) {
-	for _, parentPrefix := range parentPrefixs {
-		if CheckPrefixsContainEachOther(parentPrefix.String(), subNet) {
-			return true, parentPrefix.String()
-		}
-	}
-
-	return false, ""
-}
-
-func PrefixsEqual(prevPrefix, prefix string) bool {
-	_, prevNet, err := net.ParseCIDR(prevPrefix)
-	if err != nil {
-		return false
-	}
-
-	_, ipNet, err := net.ParseCIDR(prefix)
-	if err != nil {
-		return false
-	}
-
-	parentOnes, _ := prevNet.Mask.Size()
-	subOnes, _ := ipNet.Mask.Size()
-	return prevNet.IP.Equal(ipNet.IP) && parentOnes == subOnes
+	return ""
 }

@@ -3,13 +3,13 @@ package main
 import (
 	"flag"
 
-	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/log"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric"
+	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
 	restserver "github.com/linkingthing/clxone-dhcp/server"
 )
 
@@ -30,19 +30,10 @@ func main() {
 		log.Fatalf("load config file failed: %s", err.Error())
 	}
 
-	//TODO remove it
-	logrus.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp: true,
-	})
-	logrus.SetLevel(conf.Log.Level)
-	logrus.SetReportCaller(conf.Log.ReportCaller)
-
 	db.RegisterResources(dhcp.PersistentResources()...)
 	if err := db.Init(conf); err != nil {
 		log.Fatalf("init db failed: %s", err.Error())
 	}
-
-	// conn := grpcclient.NewDhcpAgentClient()
 
 	server, err := restserver.NewServer()
 	if err != nil {
@@ -57,6 +48,7 @@ func main() {
 		log.Fatalf("register metric handler failed: %s", err.Error())
 	}
 
+	defer pb.CloseConns()
 	if err := server.Run(conf); err != nil {
 		log.Fatalf("server run failed: %s", err.Error())
 	}

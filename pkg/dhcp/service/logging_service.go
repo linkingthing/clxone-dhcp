@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/linkingthing/clxone-dhcp/config"
@@ -43,20 +42,16 @@ func NewLoggingService() *LoggingService {
 	return globalLoggingService
 }
 
-func (a *LoggingService) Log(req *logging.LoggingRequest) (err error) {
+func (a *LoggingService) Log(req *logging.LoggingRequest) error {
 	data, err := proto.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("register threshold mashal failed: %s ", err.Error())
 	}
 
-	err = a.kafakWrite.WriteMessages(context.Background(),
+	return a.kafakWrite.WriteMessages(context.Background(),
 		kafka.Message{
 			Key:   []byte(LoggingRequest),
 			Value: data,
 		},
 	)
-	if err != nil {
-		logrus.Error(err)
-	}
-	return err
 }

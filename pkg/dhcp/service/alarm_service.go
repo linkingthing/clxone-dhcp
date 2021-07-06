@@ -6,19 +6,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/segmentio/kafka-go"
+	"github.com/zdnscloud/cement/log"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
-	"github.com/segmentio/kafka-go"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 const (
-	ThresholdTopic        = "threshold"
-	ThresholdIpamTopic    = "threshold_ipam"
-	ThresholdDnsTopic     = "threshold_dns"
-	ThresholdDhcpTopic    = "threshold_dhcp"
-	ThresholdMonitorTopic = "threshold_monitor"
+	ThresholdTopic     = "threshold"
+	ThresholdDhcpTopic = "threshold_dhcp"
 
 	RegisterThreshold   = "register_threshold"
 	UpdateThreshold     = "update_threshold"
@@ -28,15 +26,8 @@ const (
 const (
 	AlarmTopic = "alarm"
 
-	NodeAlarm           = "node_alarm"
-	NodeHaAlarm         = "node_ha_alarm"
-	MetricValueAlarm    = "metric_value_alarm"
-	SubnetRadioAlarm    = "subnet_radio_alarm"
-	ConflictIpAlarm     = "conflict_ip_alarm"
-	ConflictSubnetAlarm = "conflict_subnet_alarm"
-	IllegalDhcpAlarm    = "illegal_dhcp_alarm"
-	IpBaseLineAlarm     = "ip_base_line_alarm"
-	AlarmResponse       = "alarm_response"
+	AlarmKeyIllegalDhcp = "illegal_dhcp_alarm"
+	AlarmKeyLps         = "lps_alarm"
 )
 
 var globalAlarmService *AlarmService
@@ -50,9 +41,8 @@ type AlarmService struct {
 
 func NewAlarmService() *AlarmService {
 	onceAlarmService.Do(func() {
-		globalAlarmService = &AlarmService{}
-		{
-			dhcpThreshold := &alarm.RegisterThreshold{
+		globalAlarmService = &AlarmService{
+			DhcpThreshold: &alarm.RegisterThreshold{
 				BaseThreshold: &alarm.BaseThreshold{
 					Name:  alarm.ThresholdName_illegalDhcp,
 					Level: alarm.ThresholdLevel_major,
@@ -61,11 +51,8 @@ func NewAlarmService() *AlarmService {
 				Value:    0,
 				SendMail: false,
 				Enabled:  true,
-			}
-			globalAlarmService.DhcpThreshold = dhcpThreshold
-		}
-		{
-			lpsThreshold := &alarm.RegisterThreshold{
+			},
+			LpsThreshold: &alarm.RegisterThreshold{
 				BaseThreshold: &alarm.BaseThreshold{
 					Name:  alarm.ThresholdName_lps,
 					Level: alarm.ThresholdLevel_critical,
@@ -74,19 +61,15 @@ func NewAlarmService() *AlarmService {
 				Value:    3000,
 				SendMail: false,
 				Enabled:  true,
-			}
-			globalAlarmService.LpsThreshold = lpsThreshold
-		}
-		{
-			w := kafka.NewWriter(kafka.WriterConfig{
+			},
+			kafkaWriter: kafka.NewWriter(kafka.WriterConfig{
 				Brokers:   config.GetConfig().Kafka.Addrs,
 				BatchSize: 1,
 				Dialer: &kafka.Dialer{
 					Timeout:   time.Second * 10,
 					DualStack: true,
 					KeepAlive: time.Second * 5},
-			})
-			globalAlarmService.kafkaWriter = w
+			}),
 		}
 	})
 	return globalAlarmService
@@ -98,17 +81,13 @@ func (a *AlarmService) RegisterThresholdToKafka(key string, threshold *alarm.Reg
 		return fmt.Errorf("register threshold mashal failed: %s ", err.Error())
 	}
 
-	err = a.kafkaWriter.WriteMessages(context.Background(),
+	return a.kafkaWriter.WriteMessages(context.Background(),
 		kafka.Message{
 			Key:   []byte(key),
 			Value: data,
 			Topic: ThresholdTopic,
 		},
 	)
-	if err != nil {
-		logrus.Error(err)
-	}
-	return err
 }
 
 func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(*alarm.UpdateThreshold)) {
@@ -131,57 +110,57 @@ func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(
 		ctx := context.Background()
 		message, err := r.ReadMessage(ctx)
 		if err != nil {
-			break
+			log.Warnf("read update threshold message from kafka failed: %s", err.Error())
+			continue
 		}
 
 		switch string(message.Key) {
 		case UpdateThreshold:
 			var req alarm.UpdateThreshold
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
-				logrus.Error(err)
+				log.Warnf("handle update threshold when unmarshal alarm %s threahold failed: %s",
+					message.Key, err.Error())
+			} else {
+				updateFunc(&req)
 			}
-			updateFunc(&req)
 		}
 	}
 }
 
 func (a *AlarmService) UpdateDhcpThresHold(update *alarm.UpdateThreshold) {
-	if update.Name != alarm.ThresholdName_illegalDhcp {
-		return
-	}
-	a.DhcpThreshold = &alarm.RegisterThreshold{
-		Value:    update.Value,
-		SendMail: update.SendMail,
-		Enabled:  update.Enabled,
+	if update.Name == alarm.ThresholdName_illegalDhcp {
+		a.DhcpThreshold = &alarm.RegisterThreshold{
+			Value:    update.Value,
+			SendMail: update.SendMail,
+			Enabled:  update.Enabled,
+		}
 	}
 }
 
 func (a *AlarmService) UpdateLpsThresHold(update *alarm.UpdateThreshold) {
 	if update.Name != alarm.ThresholdName_lps {
-		return
-	}
-	a.LpsThreshold = &alarm.RegisterThreshold{
-		Value:    update.Value,
-		SendMail: update.SendMail,
-		Enabled:  update.Enabled,
+		a.LpsThreshold = &alarm.RegisterThreshold{
+			Value:    update.Value,
+			SendMail: update.SendMail,
+			Enabled:  update.Enabled,
+		}
 	}
 }
 
-func (a *AlarmService) SendEventWithValues(param proto.Message) {
+func (a *AlarmService) SendEventWithValues(key string, param proto.Message) {
 	data, err := proto.Marshal(param)
 	if err != nil {
-		logrus.Error(err)
+		log.Errorf("send alarm %s when marshal param %s failed: %s", key, param, err.Error())
 		return
 	}
 
-	err = a.kafkaWriter.WriteMessages(context.Background(),
+	if err := a.kafkaWriter.WriteMessages(context.Background(),
 		kafka.Message{
 			Topic: AlarmTopic,
-			Key:   []byte(IllegalDhcpAlarm),
+			Key:   []byte(key),
 			Value: data,
 		},
-	)
-	if err != nil {
-		logrus.Error(err)
+	); err != nil {
+		log.Errorf("send alarm %s to kafka failed: %s", key, err.Error())
 	}
 }

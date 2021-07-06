@@ -4,7 +4,7 @@
 // 	protoc        v3.15.1
 // source: agent_response.proto
 
-package proto
+package dhcp_agent
 
 import (
 	proto "github.com/golang/protobuf/proto"

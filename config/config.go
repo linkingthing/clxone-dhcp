@@ -1,13 +1,11 @@
 package config
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/zdnscloud/cement/configure"
 )
 
 type DHCPConfig struct {
 	Path         string          `yaml:"-"`
-	Log          LogConf         `yaml:"log"`
 	DB           DBConf          `yaml:"db"`
 	Server       ServerConf      `yaml:"server"`
 	Kafka        KafkaConf       `yaml:"kafka"`
@@ -15,11 +13,6 @@ type DHCPConfig struct {
 	Consul       ConsulConf      `yaml:"consul"`
 	CallServices CallServiceConf `yaml:"call_services"`
 	DHCPScan     DHCPScanConf    `yaml:"dhcp_scan"`
-}
-
-type LogConf struct {
-	Level        logrus.Level `yaml:"level"`
-	ReportCaller bool         `yaml:"report_caller"`
 }
 
 type DBConf struct {

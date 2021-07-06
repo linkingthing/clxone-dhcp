@@ -119,7 +119,7 @@ func (h *LPSHandler) collectLPSWithNode(nodeIP string, threshold *alarm.Register
 		}
 
 		if float64(exceedThresholdCount)/float64(len(values)) > 0.6 {
-			alarmService.SendEventWithValues(&alarm.LpsAlarm{
+			alarmService.SendEventWithValues(service.AlarmKeyLps, &alarm.LpsAlarm{
 				BaseAlarm: &alarm.BaseAlarm{
 					BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
 					Time:          latestTime.Format(time.RFC3339),

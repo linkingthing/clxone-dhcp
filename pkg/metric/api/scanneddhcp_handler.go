@@ -56,7 +56,7 @@ func (h *ScannedDHCPHandler) scanIllegalDHCPServer(searchInterval uint32) {
 						ip = dhcpServer.IPv6
 					}
 
-					alarmService.SendEventWithValues(&alarm.IllegalDhcpAlarm{
+					alarmService.SendEventWithValues(service.AlarmKeyIllegalDhcp, &alarm.IllegalDhcpAlarm{
 						BaseAlarm: &alarm.BaseAlarm{
 							BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
 							Time:          time.Now().Format(time.RFC3339),

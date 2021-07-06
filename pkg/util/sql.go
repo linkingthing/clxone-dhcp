@@ -3,7 +3,6 @@ package util
 import (
 	"bytes"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/zdnscloud/cement/slice"
@@ -68,40 +67,4 @@ func GenSqlAndArgsByFileters(table restdb.ResourceType, filterNames []string, fr
 	buf.WriteString("'")
 	buf.WriteString(" order by create_time desc")
 	return buf.String(), args
-}
-
-func GenSqlQueryIn(table restdb.ResourceType, column string, conArray []string) string {
-	var buf bytes.Buffer
-	buf.WriteString("select * from gr_")
-	buf.WriteString(string(table))
-	buf.WriteString(" where ")
-	buf.WriteString(column)
-	buf.WriteString(" in ('")
-	buf.WriteString(strings.Join(conArray, "','"))
-	buf.WriteString("')")
-	return buf.String()
-}
-
-func GenSqlCountQueryIn(table restdb.ResourceType, column string, conArray []string) string {
-	var buf bytes.Buffer
-	buf.WriteString("select count(*) from gr_")
-	buf.WriteString(string(table))
-	buf.WriteString(" where ")
-	buf.WriteString(column)
-	buf.WriteString(" in ('")
-	buf.WriteString(strings.Join(conArray, "','"))
-	buf.WriteString("')")
-	return buf.String()
-}
-
-func GenSqlQueryArray(table restdb.ResourceType, column string, parameter string) string {
-	var buf bytes.Buffer
-	buf.WriteString("select * from gr_")
-	buf.WriteString(string(table))
-	buf.WriteString(" where '")
-	buf.WriteString(parameter)
-	buf.WriteString("'=any( ")
-	buf.WriteString(column)
-	buf.WriteString(" )")
-	return buf.String()
 }
