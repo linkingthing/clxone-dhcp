@@ -9,6 +9,7 @@ import (
 type PromQuery string
 
 const (
+	PromQueryName        PromQuery = "http://%s/api/v1/query_range?query=%s&start=%d&end=%d&step=%d"
 	PromQueryVersion     PromQuery = "http://%s/api/v1/query_range?query=%s{version='%s'}&start=%d&end=%d&step=%d"
 	PromQueryNode        PromQuery = "http://%s/api/v1/query_range?query=%s{node='%s'}&start=%d&end=%d&step=%d"
 	PromQueryVersionNode PromQuery = "http://%s/api/v1/query_range?query=%s{version='%s',node='%s'}&start=%d&end=%d&step=%d"
@@ -43,6 +44,18 @@ func prometheusRequest(ctx *MetricContext) (*PrometheusResponse, error) {
 }
 
 func genPrometheusUrl(ctx *MetricContext) string {
-	return fmt.Sprintf(string(ctx.PromQuery), ctx.PrometheusAddr, ctx.MetricName,
-		ctx.NodeIP, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
+	switch ctx.PromQuery {
+	case PromQueryVersion:
+		return fmt.Sprintf(string(ctx.PromQuery), ctx.PrometheusAddr, ctx.MetricName,
+			ctx.Version, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
+	case PromQueryNode:
+		return fmt.Sprintf(string(ctx.PromQuery), ctx.PrometheusAddr, ctx.MetricName,
+			ctx.NodeIP, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
+	case PromQueryVersionNode:
+		return fmt.Sprintf(string(ctx.PromQuery), ctx.PrometheusAddr, ctx.MetricName,
+			ctx.Version, ctx.NodeIP, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
+	default:
+		return fmt.Sprintf(string(ctx.PromQuery), ctx.PrometheusAddr, ctx.MetricName,
+			ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
+	}
 }

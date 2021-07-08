@@ -289,5 +289,6 @@ func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, reservation *resource
 		&dhcpagent.DeleteReservation4Request{
 			SubnetId:  subnetID,
 			HwAddress: reservation.HwAddress,
+			IpAddress: reservation.IpAddress,
 		})
 }
