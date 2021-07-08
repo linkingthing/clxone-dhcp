@@ -14,10 +14,10 @@ const DefaultStep = int64(24 * 12)
 type MetricLabel string
 
 const (
-	MetricLabelNode     MetricLabel = "node"
-	MetricLabelType     MetricLabel = "type"
-	MetricLabelVersion  MetricLabel = "version"
-	MetricLabelSubnetId MetricLabel = "subnet_id"
+	MetricLabelNode    MetricLabel = "node"
+	MetricLabelType    MetricLabel = "type"
+	MetricLabelVersion MetricLabel = "version"
+	MetricLabelSubnet  MetricLabel = "subnet"
 )
 
 type MetricName string

@@ -51,8 +51,8 @@ func (h *SubnetUsedRatioHandler) List(ctx *restresource.Context) (interface{}, *
 	nodeIpAndSubnetUsages := make(map[string]resource.SubnetUsages)
 	for _, r := range resp.Data.Results {
 		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
-			if subnetId, ok := r.MetricLabels[string(MetricLabelSubnetId)]; ok {
-				if subnet, ok := subnets[subnetId]; ok {
+			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
+				if _, ok := subnets[subnet]; ok {
 					subnets := nodeIpAndSubnetUsages[nodeIp]
 					subnets = append(subnets, resource.SubnetUsage{
 						Subnet:     subnet,
@@ -75,33 +75,33 @@ func (h *SubnetUsedRatioHandler) List(ctx *restresource.Context) (interface{}, *
 	return subnetUsedRatios, nil
 }
 
-func getSubnetsFromDB(version DHCPVersion) (map[string]string, error) {
-	idAndSubnets := make(map[string]string)
+func getSubnetsFromDB(version DHCPVersion) (map[string]struct{}, error) {
+	subnets := make(map[string]struct{})
 	if version == DHCPVersion4 {
-		var subnets []*dhcpresource.Subnet4
+		var subnet4s []*dhcpresource.Subnet4
 		if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-			return tx.Fill(nil, &subnets)
+			return tx.Fill(nil, &subnet4s)
 		}); err != nil {
 			return nil, err
 		}
 
-		for _, subnet := range subnets {
-			idAndSubnets[subnet.GetID()] = subnet.Subnet
+		for _, subnet := range subnet4s {
+			subnets[subnet.Subnet] = struct{}{}
 		}
 	} else {
-		var subnets []*dhcpresource.Subnet6
+		var subnet6s []*dhcpresource.Subnet6
 		if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-			return tx.Fill(nil, &subnets)
+			return tx.Fill(nil, &subnet6s)
 		}); err != nil {
 			return nil, err
 		}
 
-		for _, subnet := range subnets {
-			idAndSubnets[subnet.GetID()] = subnet.Subnet
+		for _, subnet := range subnet6s {
+			subnets[subnet.Subnet] = struct{}{}
 		}
 	}
 
-	return idAndSubnets, nil
+	return subnets, nil
 }
 
 func getRatiosWithTimestamp(values [][]interface{}, period *TimePeriod) []resource.RatioWithTimestamp {
@@ -152,8 +152,8 @@ func (h *SubnetUsedRatioHandler) Get(ctx *restresource.Context) (restresource.Re
 
 	for _, r := range resp.Data.Results {
 		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && metricCtx.NodeIP == nodeIp {
-			if subnetId, ok := r.MetricLabels[string(MetricLabelSubnetId)]; ok {
-				if subnet, ok := subnets[subnetId]; ok {
+			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
+				if _, ok := subnets[subnet]; ok {
 					subnetUsedRatio.Subnets = append(subnetUsedRatio.Subnets, resource.SubnetUsage{
 						Subnet:     subnet,
 						UsedRatios: getRatiosWithTimestamp(r.Values, metricCtx.Period),
@@ -183,7 +183,7 @@ func (h *SubnetUsedRatioHandler) export(ctx *restresource.Context) (interface{},
 		PrometheusAddr: h.prometheusAddr,
 		PromQuery:      PromQueryVersionNode,
 		MetricName:     MetricNameDHCPSubnetUsage,
-		MetricLabel:    MetricLabelSubnetId,
+		MetricLabel:    MetricLabelSubnet,
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("subnet usage %s export action failed: %s", ctx.Resource.GetID(), err.Error()))

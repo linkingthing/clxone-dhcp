@@ -137,6 +137,7 @@ func setSubnet4LeasesUsedRatio(subnet *resource.Subnet4) error {
 	}
 
 	if leasesCount != 0 {
+		subnet.UsedCount = leasesCount
 		subnet.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(subnet.Capacity))
 	}
 	return nil

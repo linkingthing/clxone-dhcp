@@ -173,8 +173,8 @@ func exportMultiColunms(ctx *restresource.Context, metricCtx *MetricContext) (in
 
 func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) ([][]string, error) {
 	headers := []string{"日期"}
-	var subnets map[string]string
-	if ctx.MetricLabel == MetricLabelSubnetId {
+	var subnets map[string]struct{}
+	if ctx.MetricLabel == MetricLabelSubnet {
 		ss, err := getSubnetsFromDB(ctx.Version)
 		if err != nil {
 			return nil, fmt.Errorf("list subnets failed: %s", err.Error())
@@ -192,11 +192,9 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 		if label, ok := r.MetricLabels[string(ctx.MetricLabel)]; ok {
 			switch ctx.MetricName {
 			case MetricNameDHCPSubnetUsage:
-				subnet, ok := subnets[label]
-				if ok == false {
+				if _, ok := subnets[label]; ok == false {
 					continue
 				}
-				label = subnet
 			case MetricNameDHCPPacketStats:
 				if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok {
 					if version == string(DHCPVersion4) {
