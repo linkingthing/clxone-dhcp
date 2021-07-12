@@ -287,9 +287,8 @@ func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (inte
 	metricCtx.Version = version
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("get node %s %s from prometheus failed: %s",
-				metricCtx.NodeIP, metricCtx.MetricName, err.Error()))
+		return nil, fmt.Errorf("get node %s %s from prometheus failed: %s",
+			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
 	}
 
 	var result PrometheusDataResult
@@ -303,12 +302,12 @@ func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (inte
 	return exportTwoColumnsWithResult(metricCtx, result)
 }
 
-func exportTwoColumnsWithResult(ctx *MetricContext, result PrometheusDataResult) (interface{}, *resterror.APIError) {
+func exportTwoColumnsWithResult(ctx *MetricContext, result PrometheusDataResult) (interface{}, error) {
 	strMatrix := genTwoStrMatrix(result.Values, ctx)
 	filepath, err := exportFile(ctx, strMatrix)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, fmt.Sprintf("export node %s %s failed: %s",
-			ctx.NodeIP, ctx.MetricName, err.Error()))
+		return nil, fmt.Errorf("export node %s %s file failed: %s",
+			ctx.NodeIP, ctx.MetricName, err.Error())
 	}
 
 	return &resource.FileInfo{Path: filepath}, nil
@@ -322,7 +321,8 @@ func genTwoStrMatrix(values [][]interface{}, ctx *MetricContext) [][]string {
 	}
 
 	for _, vs := range values {
-		if timestamp, value := getTimestampAndValue(vs); timestamp != 0 && timestamp >= ctx.Period.Begin {
+		if timestamp, value := getTimestampAndValue(vs); timestamp != 0 &&
+			timestamp >= ctx.Period.Begin && value != "0" {
 			strMatrix[(timestamp-ctx.Period.Begin)/ctx.Period.Step][1] = value
 		}
 	}

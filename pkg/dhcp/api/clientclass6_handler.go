@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	ClientClass6Option60 = "option[vendor-class-identifier].text == '%s'"
+	ClientClass6Option60 = "option vendor-class-identifier == '%s'"
 )
 
 type ClientClass6Handler struct {

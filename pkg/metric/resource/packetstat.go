@@ -15,7 +15,7 @@ type Packet struct {
 }
 
 func (p PacketStat) GetParents() []restresource.ResourceKind {
-	return []restresource.ResourceKind{Dhcp{}}
+	return []restresource.ResourceKind{DhcpSentry{}}
 }
 
 func (p PacketStat) GetActions() []restresource.Action {

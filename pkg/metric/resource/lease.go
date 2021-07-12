@@ -6,11 +6,16 @@ import (
 
 type Lease struct {
 	restresource.ResourceBase `json:",inline"`
-	Values                    []ValueWithTimestamp `json:"values"`
+	Subnets                   []SubnetLease `json:"subnets"`
+}
+
+type SubnetLease struct {
+	Subnet string               `json:"subnet"`
+	Values []ValueWithTimestamp `json:"values"`
 }
 
 func (l Lease) GetParents() []restresource.ResourceKind {
-	return []restresource.ResourceKind{Dhcp{}}
+	return []restresource.ResourceKind{DhcpServer{}}
 }
 
 func (l Lease) GetActions() []restresource.Action {

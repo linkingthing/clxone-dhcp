@@ -19,19 +19,48 @@ func NewLeaseHandler(conf *config.DHCPConfig) *LeaseHandler {
 }
 
 func (h *LeaseHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	nodeIpAndValues, err := getNodeIpAndValuesFromPrometheus(ctx, &MetricContext{
+	metricCtx := &MetricContext{
 		PrometheusAddr: h.prometheusAddr,
-		MetricName:     MetricNameDHCPLeaseCountTotal,
+		MetricName:     MetricNameDHCPLeaseCount,
 		PromQuery:      PromQueryVersion,
-	})
+	}
+
+	if err := resetMetricContext(ctx, metricCtx); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get subnets leases count failed: %s", err.Error()))
+	}
+
+	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			"get leases count from prometheus failed: "+err.Error())
+			fmt.Sprintf("get subnets leases count from prometheus failed: %s", err.Error()))
+	}
+
+	subnets, err := getSubnetsFromDB(metricCtx.Version)
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("list subnets from db failed: %s", err.Error()))
+	}
+
+	nodeIpAndSubnetLeases := make(map[string][]resource.SubnetLease)
+	for _, r := range resp.Data.Results {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
+				if _, ok := subnets[subnet]; ok {
+					subnets := nodeIpAndSubnetLeases[nodeIp]
+					subnets = append(subnets, resource.SubnetLease{
+						Subnet: subnet,
+						Values: getValuesWithTimestamp(r.Values, metricCtx.Period),
+					})
+					nodeIpAndSubnetLeases[nodeIp] = subnets
+				}
+			}
+		}
 	}
 
 	var leases []*resource.Lease
-	for nodeIp, values := range nodeIpAndValues {
-		lease := &resource.Lease{Values: values}
+	for nodeIp, subnets := range nodeIpAndSubnetLeases {
+		lease := &resource.Lease{Subnets: subnets}
 		lease.SetID(nodeIp)
 		leases = append(leases, lease)
 	}
@@ -41,18 +70,43 @@ func (h *LeaseHandler) List(ctx *restresource.Context) (interface{}, *resterror.
 
 func (h *LeaseHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	lease := ctx.Resource.(*resource.Lease)
-	values, err := getValuesFromPrometheus(ctx, &MetricContext{
+	metricCtx := &MetricContext{
 		PrometheusAddr: h.prometheusAddr,
-		MetricName:     MetricNameDHCPLeaseCountTotal,
+		MetricName:     MetricNameDHCPLeaseCount,
 		PromQuery:      PromQueryVersionNode,
 		NodeIP:         lease.GetID(),
-	})
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("get leases count with node %s failed: %s", lease.GetID(), err.Error()))
 	}
 
-	lease.Values = values
+	if err := resetMetricContext(ctx, metricCtx); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get subnet leases count failed: %s", err.Error()))
+	}
+
+	resp, err := prometheusRequest(metricCtx)
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get subnet used ratio from prometheus failed: %s", err.Error()))
+	}
+
+	subnets, err := getSubnetsFromDB(metricCtx.Version)
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("list subnets from db failed: %s", err.Error()))
+	}
+
+	for _, r := range resp.Data.Results {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && metricCtx.NodeIP == nodeIp {
+			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
+				if _, ok := subnets[subnet]; ok {
+					lease.Subnets = append(lease.Subnets, resource.SubnetLease{
+						Subnet: subnet,
+						Values: getValuesWithTimestamp(r.Values, metricCtx.Period),
+					})
+				}
+			}
+		}
+	}
+
 	return lease, nil
 }
 
@@ -66,15 +120,13 @@ func (h *LeaseHandler) Action(ctx *restresource.Context) (interface{}, *resterro
 	}
 }
 
-var TableHeaderLease = []string{"日期", "租赁总数"}
-
 func (h *LeaseHandler) export(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	if result, err := exportTwoColumns(ctx, &MetricContext{
+	if result, err := exportMultiColunms(ctx, &MetricContext{
 		NodeIP:         ctx.Resource.GetID(),
 		PrometheusAddr: h.prometheusAddr,
 		PromQuery:      PromQueryVersionNode,
-		MetricName:     MetricNameDHCPLeaseCountTotal,
-		TableHeader:    TableHeaderLease,
+		MetricName:     MetricNameDHCPLeaseCount,
+		MetricLabel:    MetricLabelSubnet,
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("leases count %s export action failed: %s", ctx.Resource.GetID(), err.Error()))

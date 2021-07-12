@@ -20,7 +20,7 @@ type RatioWithTimestamp struct {
 }
 
 func (s SubnetUsedRatio) GetParents() []restresource.ResourceKind {
-	return []restresource.ResourceKind{Dhcp{}}
+	return []restresource.ResourceKind{DhcpServer{}}
 }
 
 func (s SubnetUsedRatio) GetActions() []restresource.Action {

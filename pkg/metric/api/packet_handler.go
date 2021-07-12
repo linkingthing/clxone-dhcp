@@ -191,7 +191,7 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 
 		if label, ok := r.MetricLabels[string(ctx.MetricLabel)]; ok {
 			switch ctx.MetricName {
-			case MetricNameDHCPSubnetUsage:
+			case MetricNameDHCPSubnetUsage, MetricNameDHCPLeaseCount:
 				if _, ok := subnets[label]; ok == false {
 					continue
 				}
@@ -227,9 +227,12 @@ func genMultiStrMatrix(ctx *MetricContext, results []PrometheusDataResult) [][]s
 
 	for i, r := range results {
 		for _, vs := range r.Values {
-			if timestamp, value := getTimestampAndValue(vs); timestamp != 0 && timestamp >= ctx.Period.Begin {
-				if f, err := strconv.ParseFloat(value, 64); err == nil {
-					value = fmt.Sprintf("%.4f", f)
+			if timestamp, value := getTimestampAndValue(vs); timestamp != 0 &&
+				timestamp >= ctx.Period.Begin && value != "0" {
+				if ctx.MetricName == MetricNameDHCPSubnetUsage {
+					if f, err := strconv.ParseFloat(value, 64); err == nil {
+						value = fmt.Sprintf("%.4f", f)
+					}
 				}
 				matrix[(timestamp-ctx.Period.Begin)/ctx.Period.Step][i+1] = value
 			}

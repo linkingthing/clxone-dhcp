@@ -26,9 +26,11 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 		return err
 	}
 
-	apiServer.Schemas.MustImport(&Version, resource.Dhcp{}, api.NewDhcpHandler(conf))
+	apiServer.Schemas.MustImport(&Version, resource.DhcpSentry{}, api.NewDhcpSentryHandler())
+	apiServer.Schemas.MustImport(&Version, resource.DhcpServer{}, api.NewDhcpServerHandler())
 	apiServer.Schemas.MustImport(&Version, resource.Lps{}, lps)
 	apiServer.Schemas.MustImport(&Version, resource.Lease{}, api.NewLeaseHandler(conf))
+	apiServer.Schemas.MustImport(&Version, resource.LeaseTotal{}, api.NewLeaseTotalHandler(conf))
 	apiServer.Schemas.MustImport(&Version, resource.PacketStat{}, api.NewPacketStatHandler(conf))
 	apiServer.Schemas.MustImport(&Version, resource.SubnetUsedRatio{}, api.NewSubnetUsedRatioHandler(conf))
 	return nil

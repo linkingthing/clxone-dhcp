@@ -25,6 +25,7 @@ type MetricName string
 const (
 	MetricNameDHCPLPS             MetricName = "lx_dhcp_lps"
 	MetricNameDHCPPacketStats     MetricName = "lx_dhcp_packet_stats"
+	MetricNameDHCPLeaseCount      MetricName = "lx_dhcp_lease_count"
 	MetricNameDHCPLeaseCountTotal MetricName = "lx_dhcp_lease_count_total"
 	MetricNameDHCPSubnetUsage     MetricName = "lx_dhcp_subnet_usage"
 )
@@ -100,13 +101,13 @@ func genTimePeriod(from, to time.Time) (*TimePeriod, error) {
 	}, nil
 }
 
-func getDHCPVersionFromDHCPID(dhcpID string) (DHCPVersion, error) {
-	switch dhcpID {
-	case ResourceIDSentry4, ResourceIDServer4:
+func getDHCPVersionFromDHCPID(id string) (DHCPVersion, error) {
+	switch DHCPVersion(id) {
+	case DHCPVersion4:
 		return DHCPVersion4, nil
-	case ResourceIDSentry6, ResourceIDServer6:
+	case DHCPVersion6:
 		return DHCPVersion6, nil
 	default:
-		return DHCPVersionNone, fmt.Errorf("unsupport dhcp verison with id %s", dhcpID)
+		return DHCPVersionNone, fmt.Errorf("unsupport dhcp verison with id %s", id)
 	}
 }

@@ -4,6 +4,10 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 )
 
-type Dhcp struct {
+type DhcpSentry struct {
+	restresource.ResourceBase `json:",inline"`
+}
+
+type DhcpServer struct {
 	restresource.ResourceBase `json:",inline"`
 }

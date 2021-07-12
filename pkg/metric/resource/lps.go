@@ -15,7 +15,7 @@ type ValueWithTimestamp struct {
 }
 
 func (l Lps) GetParents() []restresource.ResourceKind {
-	return []restresource.ResourceKind{Dhcp{}}
+	return []restresource.ResourceKind{DhcpSentry{}}
 }
 
 func (l Lps) GetActions() []restresource.Action {

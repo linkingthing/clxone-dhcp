@@ -9,7 +9,6 @@ import (
 type PromQuery string
 
 const (
-	PromQueryName        PromQuery = "http://%s/api/v1/query_range?query=%s&start=%d&end=%d&step=%d"
 	PromQueryVersion     PromQuery = "http://%s/api/v1/query_range?query=%s{version='%s'}&start=%d&end=%d&step=%d"
 	PromQueryNode        PromQuery = "http://%s/api/v1/query_range?query=%s{node='%s'}&start=%d&end=%d&step=%d"
 	PromQueryVersionNode PromQuery = "http://%s/api/v1/query_range?query=%s{version='%s',node='%s'}&start=%d&end=%d&step=%d"
