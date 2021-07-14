@@ -127,13 +127,13 @@ func (p *Pool) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet) e
 	if subnet.Version == util.IPVersion4 {
 		subnetIpUint32, _ := util.Ipv4ToUint32(subnetIp)
 		beginUint32 := subnetIpUint32 + uint32(templates[0].BeginOffset)
-		endUint32 := beginUint32 + uint32(templates[0].Capacity)
+		endUint32 := beginUint32 + uint32(templates[0].Capacity-1)
 		p.BeginAddress = ipv4FromUint32(beginUint32)
 		p.EndAddress = ipv4FromUint32(endUint32)
 	} else {
 		subnetIpBigInt, _ := util.Ipv6ToBigInt(subnetIp)
 		beginBigInt := big.NewInt(0).Add(subnetIpBigInt, big.NewInt(int64(templates[0].BeginOffset)))
-		endBigInt := big.NewInt(0).Add(beginBigInt, big.NewInt(int64(templates[0].Capacity)))
+		endBigInt := big.NewInt(0).Add(beginBigInt, big.NewInt(int64(templates[0].Capacity-1)))
 		p.BeginAddress = net.IP(beginBigInt.Bytes()).String()
 		p.EndAddress = net.IP(endBigInt.Bytes()).String()
 	}
