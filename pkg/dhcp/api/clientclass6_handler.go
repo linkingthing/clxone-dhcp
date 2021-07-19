@@ -45,7 +45,7 @@ func sendCreateClientClass6CmdToAgent(clientclass *resource.ClientClass6) error 
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateClientClass6,
 		&dhcpagent.CreateClientClass6Request{
 			Name:   clientclass.Name,
-			Code:   clientclass.Code,
+			Code:   16,
 			Regexp: fmt.Sprintf(ClientClass6Option60, clientclass.Regexp),
 		})
 }
@@ -94,7 +94,7 @@ func sendUpdateClientClass6CmdToDHCPAgent(clientclass *resource.ClientClass6) er
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateClientClass6,
 		&dhcpagent.UpdateClientClass6Request{
 			Name:   clientclass.Name,
-			Code:   clientclass.Code,
+			Code:   16,
 			Regexp: fmt.Sprintf(ClientClass6Option60, clientclass.Regexp),
 		})
 }

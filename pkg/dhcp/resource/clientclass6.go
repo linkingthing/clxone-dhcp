@@ -10,7 +10,6 @@ var TableClientClass6 = restdb.ResourceDBType(&ClientClass6{})
 type ClientClass6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Name                      string `json:"name" rest:"required=true,description=immutable" db:"uk"`
-	Code                      uint32 `json:"code" rest:"required=true"`
 	Regexp                    string `json:"regexp" rest:"required=true"`
 }
 
