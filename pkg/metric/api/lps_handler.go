@@ -42,49 +42,30 @@ func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
 		select {
 		case <-ticker.C:
 			if alarmService := service.NewAlarmService(); alarmService.LpsThreshold.Enabled {
-				nodes, err := service.GetDHCPService().GetNodeList()
-				if err != nil {
-					log.Warnf("get dhcp agent nodes failed: %s", err.Error())
-				} else {
-					h.collectLPS(nodes, threshold)
+				if err := h.collectLPS(threshold); err != nil {
+					log.Warnf("collect lps failed: %s", err.Error())
 				}
 			}
 		}
 	}
 }
 
-func (h *LPSHandler) collectLPS(nodes []*resource.Node, threshold *alarm.RegisterThreshold) {
-	if len(nodes) == 0 {
-		return
-	}
-
-	now := time.Now().Unix()
-	period := &TimePeriod{
-		Begin: now - 300,
-		End:   now,
-		Step:  10,
-	}
-	for _, node := range nodes {
-		if err := h.collectLPSWithNode(node.Ip, threshold, period); err != nil {
-			log.Warnf("get node %s metrics failed: %s", node.Ip, err.Error())
-		}
-	}
-
-	return
-}
-
-func (h *LPSHandler) collectLPSWithNode(nodeIP string, threshold *alarm.RegisterThreshold, period *TimePeriod) error {
+func (h *LPSHandler) collectLPS(threshold *alarm.RegisterThreshold) error {
 	alarmService := service.NewAlarmService()
 	if alarmService.LpsThreshold.Enabled == false {
 		return nil
 	}
 
+	now := time.Now().Unix()
 	ctx := &MetricContext{
-		PromQuery:      PromQueryNode,
+		PromQuery:      PromQueryName,
 		PrometheusAddr: h.prometheusAddr,
 		MetricName:     MetricNameDHCPLPS,
-		Period:         period,
-		NodeIP:         nodeIP,
+		Period: &TimePeriod{
+			Begin: now - 300,
+			End:   now,
+			Step:  10,
+		},
 	}
 
 	resp, err := prometheusRequest(ctx)
@@ -92,11 +73,16 @@ func (h *LPSHandler) collectLPSWithNode(nodeIP string, threshold *alarm.Register
 		return err
 	}
 
-	lpsValues := make(map[string][]resource.ValueWithTimestamp)
+	lpsValues := make(map[string]map[string][]resource.ValueWithTimestamp)
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && ctx.NodeIP == nodeIp {
-			if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok {
-				lpsValues[version] = getValuesWithTimestamp(r.Values, ctx.Period)
+		if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok {
+			if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+				nodeAndValues, ok := lpsValues[version]
+				if ok == false {
+					nodeAndValues = make(map[string][]resource.ValueWithTimestamp)
+				}
+				nodeAndValues[nodeIp] = getValuesWithTimestamp(r.Values, ctx.Period)
+				lpsValues[version] = nodeAndValues
 			}
 		}
 	}
@@ -109,27 +95,31 @@ func (h *LPSHandler) collectLPSWithNode(nodeIP string, threshold *alarm.Register
 	var latestTime time.Time
 	var latestValue uint64
 
-	for _, values := range lpsValues {
-		for _, value := range values {
-			if value.Value >= threshold.Value {
-				latestTime = time.Time(value.Timestamp)
-				latestValue = value.Value
-				exceedThresholdCount += 1
+	for _, nodeAndValues := range lpsValues {
+		for nodeIp, values := range nodeAndValues {
+			for _, value := range values {
+				if value.Value >= threshold.Value {
+					latestTime = time.Time(value.Timestamp)
+					latestValue = value.Value
+					exceedThresholdCount += 1
+				}
+			}
+
+			if float64(exceedThresholdCount)/float64(len(values)) > 0.6 {
+				alarmService.SendEventWithValues(service.AlarmKeyLps, &alarm.LpsAlarm{
+					BaseAlarm: &alarm.BaseAlarm{
+						BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
+						Time:          latestTime.Format(time.RFC3339),
+						SendMail:      alarmService.DhcpThreshold.SendMail,
+						Threshold:     alarmService.LpsThreshold.Value,
+					},
+					NodeIp:      nodeIp,
+					LatestValue: latestValue,
+				})
 			}
 		}
-
-		if float64(exceedThresholdCount)/float64(len(values)) > 0.6 {
-			alarmService.SendEventWithValues(service.AlarmKeyLps, &alarm.LpsAlarm{
-				BaseAlarm: &alarm.BaseAlarm{
-					BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
-					Time:          latestTime.Format(time.RFC3339),
-					SendMail:      alarmService.DhcpThreshold.SendMail,
-					Threshold:     alarmService.LpsThreshold.Value,
-				},
-				LatestValue: latestValue,
-			})
-		}
 	}
+
 	return nil
 }
 
