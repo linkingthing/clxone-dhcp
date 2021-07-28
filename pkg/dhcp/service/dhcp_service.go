@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -17,10 +16,12 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	metricresource "github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
+	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 )
 
 const (
-	GetSubnetsWithIdSql = "select * from gr_subnet where id in (%s)"
+	GetSubnet4sWithIdSql = "select * from gr_subnet4 where id in (%s)"
+	GetSubnet6sWithIdSql = "select * from gr_subnet6 where id in (%s)"
 )
 
 var globalDHCPService *DHCPService
@@ -40,7 +41,7 @@ func (a *DHCPService) GetSubnet4ByIDs(ids ...string) (subnets []*resource.Subnet
 	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if len(ids) > 0 {
 			subnetIndex, subnetAgrs := genSqlArgsAndIndex(ids)
-			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnetsWithIdSql, subnetIndex), subnetAgrs...)
+			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnet4sWithIdSql, subnetIndex), subnetAgrs...)
 		} else {
 			err = tx.Fill(nil, &subnets)
 		}
@@ -53,7 +54,7 @@ func (a *DHCPService) GetSubnet6ByIDs(ids ...string) (subnets []*resource.Subnet
 	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if len(ids) > 0 {
 			subnetIndex, subnetAgrs := genSqlArgsAndIndex(ids)
-			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnetsWithIdSql, subnetIndex), subnetAgrs...)
+			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnet6sWithIdSql, subnetIndex), subnetAgrs...)
 		} else {
 			err = tx.Fill(nil, &subnets)
 		}
@@ -63,6 +64,7 @@ func (a *DHCPService) GetSubnet6ByIDs(ids ...string) (subnets []*resource.Subnet
 	return
 }
 
+//TODO remove it
 func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
 	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
@@ -92,7 +94,7 @@ func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
 	return
 }
 
-func (a *DHCPService) GetClosestSubnet4ByIDs(ids []string, ip string) (*resource.Subnet4, error) {
+func (a *DHCPService) GetClosestSubnet4ByIDs(ids []string, ip string) (*pbdhcp.Subnet, error) {
 	subnets, err := a.GetSubnet4ByIDs(ids...)
 	if err != nil {
 		return nil, err
@@ -101,25 +103,35 @@ func (a *DHCPService) GetClosestSubnet4ByIDs(ids []string, ip string) (*resource
 	return getClosestSubnet4(subnets, net.ParseIP(ip))
 }
 
-func getClosestSubnet4(subnets []*resource.Subnet4, ip net.IP) (subnet *resource.Subnet4, err error) {
+func getClosestSubnet4(subnets []*resource.Subnet4, ip net.IP) (*pbdhcp.Subnet, error) {
 	var maxPrefixLen int
-	for _, subnet_ := range subnets {
-		if subnet_.Ipnet.Contains(ip) {
-			if ones, _ := subnet_.Ipnet.Mask.Size(); ones > maxPrefixLen {
-				subnet = subnet_
+	var subnet4 *resource.Subnet4
+	for _, subnet := range subnets {
+		if subnet.Ipnet.Contains(ip) {
+			if ones, _ := subnet.Ipnet.Mask.Size(); ones > maxPrefixLen {
+				subnet4 = subnet
 				maxPrefixLen = ones
 			}
 		}
 	}
 
-	if subnet == nil {
-		err = errors.New("can not find subnet")
+	if subnet4 == nil {
+		return nil, fmt.Errorf("no find subnet with ip %s", ip.String())
 	}
 
-	return
+	return &pbdhcp.Subnet{
+		Id:          subnet4.ID,
+		Subnet:      subnet4.Subnet,
+		SubnetId:    uint32(subnet4.SubnetId),
+		Tags:        subnet4.Tags,
+		NetworkType: subnet4.NetworkType,
+		Capacity:    subnet4.Capacity,
+		UsedRatio:   subnet4.UsedRatio,
+		UsedCount:   subnet4.UsedCount,
+	}, nil
 }
 
-func (a *DHCPService) GetClosestSubnet6ByIDs(ids []string, ip string) (*resource.Subnet6, error) {
+func (a *DHCPService) GetClosestSubnet6ByIDs(ids []string, ip string) (*pbdhcp.Subnet, error) {
 	subnets, err := a.GetSubnet6ByIDs(ids...)
 	if err != nil {
 		return nil, err
@@ -128,22 +140,32 @@ func (a *DHCPService) GetClosestSubnet6ByIDs(ids []string, ip string) (*resource
 	return getClosestSubnet6(subnets, net.ParseIP(ip))
 }
 
-func getClosestSubnet6(subnets []*resource.Subnet6, ip net.IP) (subnet *resource.Subnet6, err error) {
+func getClosestSubnet6(subnets []*resource.Subnet6, ip net.IP) (*pbdhcp.Subnet, error) {
 	var maxPrefixLen int
-	for _, subnet_ := range subnets {
-		if subnet_.Ipnet.Contains(ip) {
-			if ones, _ := subnet_.Ipnet.Mask.Size(); ones > maxPrefixLen {
-				subnet = subnet_
+	var subnet6 *resource.Subnet6
+	for _, subnet := range subnets {
+		if subnet.Ipnet.Contains(ip) {
+			if ones, _ := subnet.Ipnet.Mask.Size(); ones > maxPrefixLen {
+				subnet6 = subnet
 				maxPrefixLen = ones
 			}
 		}
 	}
 
-	if subnet == nil {
-		err = errors.New("can not find subnet")
+	if subnet6 == nil {
+		return nil, fmt.Errorf("no find subnet with ip %s", ip.String())
 	}
 
-	return
+	return &pbdhcp.Subnet{
+		Id:          subnet6.ID,
+		Subnet:      subnet6.Subnet,
+		SubnetId:    uint32(subnet6.SubnetId),
+		Tags:        subnet6.Tags,
+		NetworkType: subnet6.NetworkType,
+		Capacity:    subnet6.Capacity,
+		UsedRatio:   subnet6.UsedRatio,
+		UsedCount:   subnet6.UsedCount,
+	}, nil
 }
 
 func genSqlArgsAndIndex(args []string) (string, []interface{}) {

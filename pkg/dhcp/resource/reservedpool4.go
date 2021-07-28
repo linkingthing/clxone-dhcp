@@ -88,7 +88,7 @@ func (p *ReservedPool4) ParseAddressWithTemplate(tx restdb.Transaction, subnet *
 		return nil
 	}
 
-	pool, capacity, err := parsePool4FromTemplate(tx, p.Template, subnet.Ipnet.IP)
+	pool, capacity, err := parsePool4FromTemplate(tx, p.Template, subnet)
 	if err != nil {
 		return err
 	}

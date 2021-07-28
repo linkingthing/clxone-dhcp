@@ -111,7 +111,7 @@ func (p *Pool4) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet4)
 		return nil
 	}
 
-	pool, capacity, err := parsePool4FromTemplate(tx, p.Template, subnet.Ipnet.IP)
+	pool, capacity, err := parsePool4FromTemplate(tx, p.Template, subnet)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (p *Pool4) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet4)
 	return nil
 }
 
-func parsePool4FromTemplate(tx restdb.Transaction, template string, subnetIp net.IP) (*TemplatePool, uint64, error) {
+func parsePool4FromTemplate(tx restdb.Transaction, template string, subnet *Subnet4) (*TemplatePool, uint64, error) {
 	var templates []*Pool4Template
 	if err := tx.Fill(map[string]interface{}{"name": template}, &templates); err != nil {
 		return nil, 0, err
@@ -132,12 +132,19 @@ func parsePool4FromTemplate(tx restdb.Transaction, template string, subnetIp net
 		return nil, 0, fmt.Errorf("no found pool template %s", template)
 	}
 
-	subnetIpUint32, _ := util.Ipv4ToUint32(subnetIp)
+	subnetIpUint32, _ := util.Ipv4ToUint32(subnet.Ipnet.IP)
 	beginUint32 := subnetIpUint32 + uint32(templates[0].BeginOffset)
 	endUint32 := beginUint32 + uint32(templates[0].Capacity-1)
+	begin := util.Ipv4FromUint32(beginUint32)
+	end := util.Ipv4FromUint32(endUint32)
+	if subnet.Ipnet.Contains(begin) == false || subnet.Ipnet.Contains(end) == false {
+		return nil, 0, fmt.Errorf("template %s pool %s-%s not belongs to subnet %s",
+			template, begin.String(), end.String(), subnet.Subnet)
+	}
+
 	return &TemplatePool{
-		BeginAddress: util.Ipv4FromUint32(beginUint32).String(),
-		EndAddress:   util.Ipv4FromUint32(endUint32).String(),
+		BeginAddress: begin.String(),
+		EndAddress:   end.String(),
 	}, templates[0].Capacity, nil
 }
 

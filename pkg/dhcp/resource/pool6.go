@@ -101,7 +101,7 @@ func (p *Pool6) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet6)
 		return nil
 	}
 
-	pool, capacity, err := parsePool6FromTemplate(tx, p.Template, subnet.Ipnet.IP)
+	pool, capacity, err := parsePool6FromTemplate(tx, p.Template, subnet)
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (p *Pool6) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet6)
 	return nil
 }
 
-func parsePool6FromTemplate(tx restdb.Transaction, template string, subnetIp net.IP) (*TemplatePool, uint64, error) {
+func parsePool6FromTemplate(tx restdb.Transaction, template string, subnet *Subnet6) (*TemplatePool, uint64, error) {
 	var templates []*Pool6Template
 	if err := tx.Fill(map[string]interface{}{"name": template}, &templates); err != nil {
 		return nil, 0, err
@@ -122,12 +122,19 @@ func parsePool6FromTemplate(tx restdb.Transaction, template string, subnetIp net
 		return nil, 0, fmt.Errorf("no found pool template %s", template)
 	}
 
-	subnetIpBigInt, _ := util.Ipv6ToBigInt(subnetIp)
+	subnetIpBigInt, _ := util.Ipv6ToBigInt(subnet.Ipnet.IP)
 	beginBigInt := big.NewInt(0).Add(subnetIpBigInt, big.NewInt(int64(templates[0].BeginOffset)))
 	endBigInt := big.NewInt(0).Add(beginBigInt, big.NewInt(int64(templates[0].Capacity-1)))
+	begin := net.IP(beginBigInt.Bytes())
+	end := net.IP(endBigInt.Bytes())
+	if subnet.Ipnet.Contains(begin) == false || subnet.Ipnet.Contains(end) == false {
+		return nil, 0, fmt.Errorf("template %s pool %s-%s not belongs to subnet %s",
+			template, begin.String(), end.String(), subnet.Subnet)
+	}
+
 	return &TemplatePool{
-		BeginAddress: net.IP(beginBigInt.Bytes()).String(),
-		EndAddress:   net.IP(endBigInt.Bytes()).String(),
+		BeginAddress: begin.String(),
+		EndAddress:   end.String(),
 	}, templates[0].Capacity, nil
 }
 
