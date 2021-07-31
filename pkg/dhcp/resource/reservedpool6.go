@@ -12,8 +12,8 @@ var TableReservedPool6 = restdb.ResourceDBType(&ReservedPool6{})
 type ReservedPool6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string `json:"-" db:"ownby"`
-	BeginAddress              string `json:"beginAddress" rest:"description=immutable" db:"uk"`
-	EndAddress                string `json:"endAddress" rest:"description=immutable" db:"uk"`
+	BeginAddress              string `json:"beginAddress" rest:"description=immutable"`
+	EndAddress                string `json:"endAddress" rest:"description=immutable"`
 	Capacity                  uint64 `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64 `json:"usedCount" rest:"description=readonly" db:"-"`

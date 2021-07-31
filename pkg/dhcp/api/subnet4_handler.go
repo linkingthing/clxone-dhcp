@@ -46,6 +46,10 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 		}
 
 		subnet.SetID(strconv.Itoa(int(subnet.SubnetId)))
+		if err := checkSubnet4ConflictWithSubnet4s(subnet, subnets); err != nil {
+			return err
+		}
+
 		if _, err := tx.Insert(subnet); err != nil {
 			return err
 		}
@@ -57,6 +61,16 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 	}
 
 	return subnet, nil
+}
+
+func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*resource.Subnet4) error {
+	for _, subnet := range subnets {
+		if subnet.CheckConflictWithAnother(subnet4) {
+			return fmt.Errorf("subnet4 %s conflict with subnet4 %s", subnet4.Subnet, subnet.Subnet)
+		}
+	}
+
+	return nil
 }
 
 func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
@@ -212,6 +226,7 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateSubnet4,
 		&dhcpagent.UpdateSubnet4Request{
 			Id:                  subnet.SubnetId,
+			Subnet:              subnet.Subnet,
 			ValidLifetime:       subnet.ValidLifetime,
 			MaxValidLifetime:    subnet.MaxValidLifetime,
 			MinValidLifetime:    subnet.MinValidLifetime,

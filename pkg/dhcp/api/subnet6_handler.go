@@ -221,6 +221,7 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateSubnet6,
 		&dhcpagent.UpdateSubnet6Request{
 			Id:                    subnet.SubnetId,
+			Subnet:                subnet.Subnet,
 			ValidLifetime:         subnet.ValidLifetime,
 			MaxValidLifetime:      subnet.MaxValidLifetime,
 			MinValidLifetime:      subnet.MinValidLifetime,

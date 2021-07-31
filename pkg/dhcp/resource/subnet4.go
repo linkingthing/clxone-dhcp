@@ -140,20 +140,25 @@ func checkCommonOptions(isv4 bool, clientClass string, domainServers, routers []
 		return fmt.Errorf("domain servers %v invalid: %s", domainServers, err.Error())
 	}
 
-	if err := checkClientClassValid(clientClass); err != nil {
+	if err := checkClientClassValid(isv4, clientClass); err != nil {
 		return fmt.Errorf("client class %s invalid: %s", clientClass, err.Error())
 	}
 
 	return nil
 }
 
-func checkClientClassValid(clientClass string) error {
+func checkClientClassValid(isv4 bool, clientClass string) error {
 	if clientClass == "" {
 		return nil
 	}
 
+	tableName := TableClientClass4
+	if isv4 == false {
+		tableName = TableClientClass6
+	}
+
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if exists, err := tx.Exists(TableClientClass4, map[string]interface{}{"name": clientClass}); err != nil {
+		if exists, err := tx.Exists(tableName, map[string]interface{}{"name": clientClass}); err != nil {
 			return err
 		} else if exists == false {
 			return fmt.Errorf("no found client class %s in db", clientClass)
@@ -161,4 +166,8 @@ func checkClientClassValid(clientClass string) error {
 			return nil
 		}
 	})
+}
+
+func (s *Subnet4) CheckConflictWithAnother(another *Subnet4) bool {
+	return s.Ipnet.Contains(another.Ipnet.IP) || another.Ipnet.Contains(s.Ipnet.IP)
 }
