@@ -35,13 +35,12 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var subnets []*resource.Subnet4
-		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc", "offset": 0, "limit": 1},
-			&subnets); err != nil {
-			return fmt.Errorf("get max subnet id from db failed: %s\n", err.Error())
+		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc"}, &subnets); err != nil {
+			return fmt.Errorf("get subnets from db failed: %s\n", err.Error())
 		}
 
 		subnet.SubnetId = 1
-		if len(subnets) == 1 {
+		if len(subnets) > 0 {
 			subnet.SubnetId = subnets[0].SubnetId + 1
 		}
 
