@@ -80,6 +80,8 @@ func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			ValidLifetime:       subnet.ValidLifetime,
 			MaxValidLifetime:    subnet.MaxValidLifetime,
 			MinValidLifetime:    subnet.MinValidLifetime,
+			RenewTime:           subnet.ValidLifetime / 2,
+			RebindTime:          subnet.ValidLifetime * 3 / 4,
 			SubnetMask:          subnet.SubnetMask,
 			DomainServers:       subnet.DomainServers,
 			Routers:             subnet.Routers,
@@ -87,6 +89,8 @@ func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			IfaceName:           subnet.IfaceName,
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 			NextServer:          subnet.NextServer,
+			TftpServer:          subnet.TftpServer,
+			Bootfile:            subnet.Bootfile,
 		})
 }
 
@@ -189,6 +193,8 @@ func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resourc
 			"iface_name":            subnet.IfaceName,
 			"relay_agent_addresses": subnet.RelayAgentAddresses,
 			"next_server":           subnet.NextServer,
+			"tftp_server":           subnet.TftpServer,
+			"bootfile":              subnet.Bootfile,
 			"tags":                  subnet.Tags,
 			"network_type":          subnet.NetworkType,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
@@ -229,12 +235,16 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			ValidLifetime:       subnet.ValidLifetime,
 			MaxValidLifetime:    subnet.MaxValidLifetime,
 			MinValidLifetime:    subnet.MinValidLifetime,
+			RenewTime:           subnet.ValidLifetime / 2,
+			RebindTime:          subnet.ValidLifetime * 3 / 4,
 			SubnetMask:          subnet.SubnetMask,
 			DomainServers:       subnet.DomainServers,
 			Routers:             subnet.Routers,
 			ClientClass:         subnet.ClientClass,
 			IfaceName:           subnet.IfaceName,
 			NextServer:          subnet.NextServer,
+			TftpServer:          subnet.TftpServer,
+			Bootfile:            subnet.Bootfile,
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 		})
 }

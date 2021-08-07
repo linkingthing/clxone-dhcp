@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"net"
+	"net/url"
 
 	restdb "github.com/zdnscloud/gorest/db"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -25,9 +26,11 @@ type Subnet4 struct {
 	DomainServers             []string  `json:"domainServers"`
 	Routers                   []string  `json:"routers"`
 	ClientClass               string    `json:"clientClass"`
+	TftpServer                string    `json:"tftpServer"`
+	Bootfile                  string    `json:"bootfile"`
+	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	IfaceName                 string    `json:"ifaceName"`
 	NextServer                string    `json:"nextServer"`
-	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	Tags                      string    `json:"tags"`
 	NetworkType               string    `json:"networkType"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
@@ -120,6 +123,10 @@ func (s *Subnet4) setSubnetDefaultValue() error {
 }
 
 func (s *Subnet4) ValidateParams() error {
+	if err := checkTFTPServer(s.TftpServer); err != nil {
+		return err
+	}
+
 	if err := util.CheckIPsValidWithVersion(true, s.RelayAgentAddresses...); err != nil {
 		return fmt.Errorf("subnet relay agent addresses invalid: %s", err.Error())
 	}
@@ -129,6 +136,16 @@ func (s *Subnet4) ValidateParams() error {
 	}
 
 	return checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime)
+}
+
+func checkTFTPServer(tftpServer string) error {
+	if tftpServer != "" {
+		if _, err := url.Parse(tftpServer); err != nil {
+			return fmt.Errorf("parse tftp server failed: %s", err.Error())
+		}
+	}
+
+	return nil
 }
 
 func checkCommonOptions(isv4 bool, clientClass string, domainServers, routers []string) error {
