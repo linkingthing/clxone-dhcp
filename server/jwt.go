@@ -21,7 +21,8 @@ func JWTMiddleWare() gorest.HandlerFunc {
 			return resterror.NewAPIError(resterror.ServerError, err.Error())
 		}
 
-		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 		user, err := user.NewUserServiceClient(conn).CheckToken(ctx, &user.CheckTokenRequest{
 			Token:    c.Request.Header.Get("authorization"),
 			ClientIp: util.ClientIP(c.Request),

@@ -13,8 +13,9 @@ import (
 	"github.com/go-kit/kit/sd/consul"
 	"github.com/go-kit/kit/sd/lb"
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/linkingthing/clxone-dhcp/config"
 	"google.golang.org/grpc"
+
+	"github.com/linkingthing/clxone-dhcp/config"
 )
 
 var connManager sync.Map
@@ -54,18 +55,14 @@ func NewConn(serviceName string) (*grpc.ClientConn, error) {
 		return nil, err
 	}
 
-	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-	conn, err := grpc.DialContext(ctx,
-		response.(string),
-		grpc.WithBlock(),
-		grpc.WithInsecure(),
-	)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	conn, err := grpc.DialContext(ctx, response.(string), grpc.WithBlock(), grpc.WithInsecure())
 	if err != nil {
-		panic(err)
+		cancel()
+		return nil, err
 	}
 
 	connManager.Store(serviceName, conn)
-
 	return conn, nil
 }
 

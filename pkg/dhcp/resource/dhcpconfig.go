@@ -15,7 +15,7 @@ const (
 	MinValidLifetime = 3600
 
 	DefaultMinValidLifetime uint32 = 10800
-	DefaultMaxValidLifetime uint32 = 14400
+	DefaultMaxValidLifetime uint32 = 28800
 	DefaultValidLifetime    uint32 = 14400
 )
 

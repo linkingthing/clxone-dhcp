@@ -3,10 +3,11 @@ package grpcclient
 import (
 	"sync"
 
+	"github.com/zdnscloud/cement/log"
+
 	"github.com/linkingthing/clxone-dhcp/config"
 	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
 	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"google.golang.org/grpc"
 )
 
 type GrpcClient struct {
@@ -16,18 +17,20 @@ type GrpcClient struct {
 var grpcClient *GrpcClient
 var once sync.Once
 
-func NewDhcpAgentClient() *grpc.ClientConn {
+func NewDhcpAgentClient() error {
 	conn, err := pb.NewConn(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
-		return nil
+		return err
 	}
 	grpcClient = &GrpcClient{DHCPClient: dhcp_agent.NewDHCPManagerClient(conn)}
-	return conn
+	return nil
 }
 
 func GetDHCPAgentGrpcClient() dhcp_agent.DHCPManagerClient {
 	once.Do(func() {
-		NewDhcpAgentClient()
+		if err := NewDhcpAgentClient(); err != nil {
+			log.Fatalf("create dhcp agent grpc client failed: %s", err.Error())
+		}
 	})
 	return grpcClient.DHCPClient
 }

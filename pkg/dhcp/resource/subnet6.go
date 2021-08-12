@@ -21,6 +21,7 @@ type Subnet6 struct {
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
+	PreferredLifetime         uint32    `json:"preferredLifetime"`
 	DomainServers             []string  `json:"domainServers"`
 	ClientClass               string    `json:"clientClass"`
 	IfaceName                 string    `json:"ifaceName"`
@@ -110,6 +111,10 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 		s.MaxValidLifetime = defaultMaxLifetime
 	}
 
+	if s.PreferredLifetime == 0 {
+		s.PreferredLifetime = defaultValidLifetime
+	}
+
 	if len(s.DomainServers) == 0 {
 		s.DomainServers = defaultDomains
 	}
@@ -126,7 +131,19 @@ func (s *Subnet6) ValidateParams() error {
 		return err
 	}
 
-	return checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime)
+	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
+		return err
+	}
+
+	return checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime, s.MinValidLifetime)
+}
+
+func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {
+	if preferredLifetime > validLifetime || preferredLifetime < minValidLifetime {
+		return fmt.Errorf("preferred lifetime should in [%d, %d]", minValidLifetime, validLifetime)
+	}
+
+	return nil
 }
 
 func (s *Subnet6) CheckConflictWithAnother(another *Subnet6) bool {
