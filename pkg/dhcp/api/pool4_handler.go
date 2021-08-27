@@ -142,11 +142,15 @@ func recalculatePool4Capacity(tx restdb.Transaction, subnetID string, pool *reso
 
 func sendCreatePool4CmdToDHCPAgent(subnetID uint64, pool *resource.Pool4) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreatePool4,
-		&dhcpagent.CreatePool4Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+		pool4ToPbCreatePool4Request(subnetID, pool))
+}
+
+func pool4ToPbCreatePool4Request(subnetID uint64, pool *resource.Pool4) *dhcpagent.CreatePool4Request {
+	return &dhcpagent.CreatePool4Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (p *Pool4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {

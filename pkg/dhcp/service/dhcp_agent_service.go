@@ -16,6 +16,8 @@ type DHCPCmd string
 const (
 	Topic = "dhcp"
 
+	CreateSubnet4sAndPools DHCPCmd = "create_subnet4s_and_pools"
+
 	CreateSubnet4 DHCPCmd = "create_subnet4"
 	UpdateSubnet4 DHCPCmd = "update_subnet4"
 	DeleteSubnet4 DHCPCmd = "delete_subnet4"
@@ -68,9 +70,10 @@ func GetDHCPAgentService() *DHCPAgentService {
 	onceDHCPAgentService.Do(func() {
 		globalDHCPAgentService = &DHCPAgentService{
 			dhcpWriter: kg.NewWriter(kg.WriterConfig{
-				Brokers:   config.GetConfig().Kafka.Addrs,
-				Topic:     Topic,
-				BatchSize: 1,
+				Brokers:    config.GetConfig().Kafka.Addrs,
+				Topic:      Topic,
+				BatchSize:  1,
+				BatchBytes: 10e8,
 				Dialer: &kg.Dialer{
 					Timeout:   time.Second * 10,
 					DualStack: true,

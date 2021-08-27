@@ -124,11 +124,15 @@ func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId 
 
 func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, reservation *resource.Reservation4) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateReservation4,
-		&dhcpagent.CreateReservation4Request{
-			SubnetId:  subnetID,
-			HwAddress: reservation.HwAddress,
-			IpAddress: reservation.IpAddress,
-		})
+		reservation4ToPbCreateReservation4Request(subnetID, reservation))
+}
+
+func reservation4ToPbCreateReservation4Request(subnetID uint64, reservation *resource.Reservation4) *dhcpagent.CreateReservation4Request {
+	return &dhcpagent.CreateReservation4Request{
+		SubnetId:  subnetID,
+		HwAddress: reservation.HwAddress,
+		IpAddress: reservation.IpAddress,
+	}
 }
 
 func (r *Reservation4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {

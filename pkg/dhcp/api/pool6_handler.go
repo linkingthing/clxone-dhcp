@@ -86,8 +86,8 @@ func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, p
 }
 
 func checkSubnet6IfCanCreateDynamicPool(subnet *resource.Subnet6) error {
-	if ones, _ := subnet.Ipnet.Mask.Size(); ones != 64 {
-		return fmt.Errorf("only can create dynamic pool when subnet mask is 64, current mask is %d",
+	if ones, _ := subnet.Ipnet.Mask.Size(); ones < 64 {
+		return fmt.Errorf("only can create dynamic pool when subnet mask >= 64, current mask is %d",
 			ones)
 	}
 

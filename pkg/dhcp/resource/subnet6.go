@@ -34,20 +34,6 @@ type Subnet6 struct {
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 }
 
-type Subnet6s []*Subnet6
-
-func (s Subnet6s) Len() int {
-	return len(s)
-}
-
-func (s Subnet6s) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s Subnet6s) Less(i, j int) bool {
-	return s[i].SubnetId < s[j].SubnetId
-}
-
 func (s *Subnet6) Validate() error {
 	ip, ipnet, err := net.ParseCIDR(s.Subnet)
 	if err != nil {
@@ -56,11 +42,6 @@ func (s *Subnet6) Validate() error {
 		return fmt.Errorf("subnet %s not is ipv6", s.Subnet)
 	} else if ip.Equal(ipnet.IP) == false {
 		return fmt.Errorf("subnet %s invalid: ip %s don`t match mask size", s.Subnet, ip.String())
-	} else {
-		ones, _ := ipnet.Mask.Size()
-		if ones > 64 {
-			return fmt.Errorf("subnet %s invalid: ip mask size %d is bigger than 64", s.Subnet, ones)
-		}
 	}
 
 	s.Ipnet = *ipnet

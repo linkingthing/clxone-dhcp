@@ -38,18 +38,21 @@ type Subnet4 struct {
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 }
 
-type Subnet4s []*Subnet4
-
-func (s Subnet4s) Len() int {
-	return len(s)
-}
-
-func (s Subnet4s) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}
-
-func (s Subnet4s) Less(i, j int) bool {
-	return s[i].SubnetId < s[j].SubnetId
+func (s Subnet4) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  util.ActionNameImportCSV,
+			Input: &util.ImportFile{},
+		},
+		restresource.Action{
+			Name:   util.ActionNameExportCSV,
+			Output: &util.ExportFile{},
+		},
+		restresource.Action{
+			Name:   util.ActionNameExportCSVTemplate,
+			Output: &util.ExportFile{},
+		},
+	}
 }
 
 func (s *Subnet4) Validate() error {
@@ -60,11 +63,6 @@ func (s *Subnet4) Validate() error {
 		return fmt.Errorf("subnet %s not is ipv4", s.Subnet)
 	} else if ip.Equal(ipnet.IP) == false {
 		return fmt.Errorf("subnet %s invalid: ip %s don`t match mask size", s.Subnet, ip.String())
-	} else {
-		ones, _ := ipnet.Mask.Size()
-		if ones > 32 {
-			return fmt.Errorf("subnet %s invalid: ip mask size %d is bigger than 32", s.Subnet, ones)
-		}
 	}
 
 	s.Ipnet = *ipnet

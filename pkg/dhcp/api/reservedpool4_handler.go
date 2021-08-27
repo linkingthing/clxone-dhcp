@@ -172,11 +172,15 @@ func getPool4ReservedCountWithReservedPool4(pool *resource.Pool4, reservedPool *
 
 func sendCreateReservedPool4CmdToDHCPAgent(subnetID uint64, pool *resource.ReservedPool4) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateReservedPool4,
-		&dhcpagent.CreateReservedPool4Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+		reservedPool4ToPbCreateReservedPool4Request(subnetID, pool))
+}
+
+func reservedPool4ToPbCreateReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *dhcpagent.CreateReservedPool4Request {
+	return &dhcpagent.CreateReservedPool4Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (p *ReservedPool4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {

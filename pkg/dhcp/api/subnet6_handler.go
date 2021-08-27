@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"fmt"
-	"sort"
 	"strconv"
 
 	"github.com/zdnscloud/cement/log"
@@ -44,7 +43,7 @@ func (s *Subnet6Handler) Create(ctx *restresource.Context) (restresource.Resourc
 			subnet.SubnetId = subnets[0].SubnetId + 1
 		}
 
-		subnet.SetID(strconv.Itoa(int(subnet.SubnetId)))
+		subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
 		if err := checkSubnet6ConflictWithSubnet6s(subnet, subnets); err != nil {
 			return err
 		}
@@ -97,7 +96,7 @@ func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		conditions[util.FileNameSubnet] = subnet
 	}
 
-	var subnets resource.Subnet6s
+	var subnets []*resource.Subnet6
 	if err := db.GetResources(conditions, &subnets); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list subnets from db failed: %s", err.Error()))
@@ -117,7 +116,6 @@ func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		}
 	}
 
-	sort.Sort(subnets)
 	return subnets, nil
 }
 
