@@ -15,7 +15,6 @@ import (
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Subnet6Handler struct {
@@ -91,18 +90,29 @@ func sendCreateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 }
 
 func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	conditions := map[string]interface{}{"orderby": "subnet_id"}
-	if subnet, ok := util.GetFilterValueWithEqModifierFromFilters(util.FileNameSubnet, ctx.GetFilters()); ok {
-		conditions[util.FileNameSubnet] = subnet
-	}
-
+	conditions, filterSubnet, hasPagination := genGetSubnetsConditions(ctx)
 	var subnets []*resource.Subnet6
-	if err := db.GetResources(conditions, &subnets); err != nil {
+	var subnetsCount int
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := tx.Fill(conditions, &subnets); err != nil {
+			return err
+		}
+
+		if hasPagination {
+			if count, err := tx.Count(resource.TableSubnet6, nil); err != nil {
+				return err
+			} else {
+				subnetsCount = int(count)
+			}
+		}
+
+		return nil
+	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list subnets from db failed: %s", err.Error()))
+			fmt.Sprintf("list subnet6s from db failed: %s", err.Error()))
 	}
 
-	subnetsLeasesCount, err := getSubnet6sLeasesCount()
+	subnetsLeasesCount, err := getSubnet6sLeasesCount(subnets, filterSubnet || hasPagination)
 	if err != nil {
 		log.Warnf("get subnets leases count failed: %s", err.Error())
 	}
@@ -116,13 +126,25 @@ func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		}
 	}
 
+	setPagination(ctx, hasPagination, subnetsCount)
 	return subnets, nil
 }
 
-func getSubnet6sLeasesCount() (map[uint64]uint64, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCount(context.TODO(),
-		&dhcpagent.GetSubnetsLeasesCountRequest{})
-	return resp.GetSubnetsLeasesCount(), err
+func getSubnet6sLeasesCount(subnets []*resource.Subnet6, useIds bool) (map[uint64]uint64, error) {
+	if useIds {
+		var ids []uint64
+		for _, subnet := range subnets {
+			ids = append(ids, subnet.SubnetId)
+		}
+
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(context.TODO(),
+			&dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+		return resp.GetSubnetsLeasesCount(), err
+	} else {
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCount(context.TODO(),
+			&dhcpagent.GetSubnetsLeasesCountRequest{})
+		return resp.GetSubnetsLeasesCount(), err
+	}
 }
 
 func (s *Subnet6Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {

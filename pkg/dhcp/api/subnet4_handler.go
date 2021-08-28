@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -112,18 +113,29 @@ func subnet4ToPbCreateSubnet4Request(subnet *resource.Subnet4) *dhcpagent.Create
 }
 
 func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	conditions := map[string]interface{}{"orderby": "subnet_id"}
-	if subnet, ok := util.GetFilterValueWithEqModifierFromFilters(util.FileNameSubnet, ctx.GetFilters()); ok {
-		conditions[util.FileNameSubnet] = subnet
-	}
-
+	conditions, filterSubnet, hasPagination := genGetSubnetsConditions(ctx)
 	var subnets []*resource.Subnet4
-	if err := db.GetResources(conditions, &subnets); err != nil {
+	var subnetsCount int
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := tx.Fill(conditions, &subnets); err != nil {
+			return err
+		}
+
+		if hasPagination {
+			if count, err := tx.Count(resource.TableSubnet4, nil); err != nil {
+				return err
+			} else {
+				subnetsCount = int(count)
+			}
+		}
+
+		return nil
+	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list subnets from db failed: %s", err.Error()))
+			fmt.Sprintf("list subnet4s from db failed: %s", err.Error()))
 	}
 
-	subnetsLeasesCount, err := getSubnet4sLeasesCount()
+	subnetsLeasesCount, err := getSubnet4sLeasesCount(subnets, filterSubnet || hasPagination)
 	if err != nil {
 		log.Warnf("get subnets leases count failed: %s", err.Error())
 	}
@@ -137,13 +149,53 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		}
 	}
 
+	setPagination(ctx, hasPagination, subnetsCount)
 	return subnets, nil
 }
 
-func getSubnet4sLeasesCount() (map[uint64]uint64, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(context.TODO(),
-		&dhcpagent.GetSubnetsLeasesCountRequest{})
-	return resp.GetSubnetsLeasesCount(), err
+func genGetSubnetsConditions(ctx *restresource.Context) (map[string]interface{}, bool, bool) {
+	conditions := map[string]interface{}{"orderby": "subnet_id"}
+	filterSubnet := false
+	hasPagination := false
+	if subnet, ok := util.GetFilterValueWithEqModifierFromFilters(util.FileNameSubnet, ctx.GetFilters()); ok {
+		filterSubnet = true
+		conditions[util.FileNameSubnet] = subnet
+	} else {
+		pagination := ctx.GetPagination()
+		if pagination.PageSize > 0 && pagination.PageNum > 0 {
+			hasPagination = true
+			conditions["offset"] = (pagination.PageNum - 1) * pagination.PageSize
+			conditions["limit"] = pagination.PageSize
+		}
+	}
+
+	return conditions, filterSubnet, hasPagination
+}
+
+func setPagination(ctx *restresource.Context, hasPagination bool, subnetsCount int) {
+	if hasPagination {
+		pagination := ctx.GetPagination()
+		pagination.Total = subnetsCount
+		pagination.PageTotal = int(math.Ceil(float64(subnetsCount) / float64(pagination.PageSize)))
+		ctx.SetPagination(pagination)
+	}
+}
+
+func getSubnet4sLeasesCount(subnets []*resource.Subnet4, useIds bool) (map[uint64]uint64, error) {
+	if useIds {
+		var ids []uint64
+		for _, subnet := range subnets {
+			ids = append(ids, subnet.SubnetId)
+		}
+
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(context.TODO(),
+			&dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+		return resp.GetSubnetsLeasesCount(), err
+	} else {
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(context.TODO(),
+			&dhcpagent.GetSubnetsLeasesCountRequest{})
+		return resp.GetSubnetsLeasesCount(), err
+	}
 }
 
 func (s *Subnet4Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
