@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/gin-gonic/gin"
 	consulapi "github.com/hashicorp/consul/api"
@@ -16,9 +17,11 @@ import (
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/transports"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
+	pb "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -61,6 +64,7 @@ func NewServer() (*Server, error) {
 		context.Writer.Header().Set("Content-Type", "Application/Json")
 		context.String(http.StatusOK, `{"status": "ok"}`)
 	})
+	router.POST(path.Join(dhcp.Version.GetUrl(), "uploadfile"), api.UploadFiles)
 	group := router.Group("/")
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
 	apiServer.Use(JWTMiddleWare())
@@ -123,7 +127,7 @@ func (s *Server) Run(conf *config.DHCPConfig) error {
 
 		grpcServer := grpc.NewServer()
 		hv1.RegisterHealthServer(grpcServer, health.NewServer())
-		dhcp.RegisterDhcpServiceServer(grpcServer,
+		pb.RegisterDhcpServiceServer(grpcServer,
 			transports.DHCPServiceBinding{DHCPService: service.GetDHCPService()})
 
 		errch <- grpcServer.Serve(grpcListener)
