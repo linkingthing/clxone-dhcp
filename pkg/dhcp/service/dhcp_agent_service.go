@@ -7,16 +7,19 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/linkingthing/clxone-dhcp/config"
 	kg "github.com/segmentio/kafka-go"
+
+	"github.com/linkingthing/clxone-dhcp/config"
 )
 
 type DHCPCmd string
 
 const (
-	Topic = "dhcp"
+	TopicDHCP   = "dhcp"
+	TopicPrefix = "dhcp_"
 
 	CreateSubnet4sAndPools DHCPCmd = "create_subnet4s_and_pools"
+	DeleteSubnet4s         DHCPCmd = "delete_subnet4s"
 
 	CreateSubnet4 DHCPCmd = "create_subnet4"
 	UpdateSubnet4 DHCPCmd = "update_subnet4"
@@ -34,6 +37,9 @@ const (
 	CreateClientClass4 DHCPCmd = "create_clientclass4"
 	DeleteClientClass4 DHCPCmd = "delete_clientclass4"
 	UpdateClientClass4 DHCPCmd = "update_clientclass4"
+
+	CreateSubnet6sAndPools DHCPCmd = "create_subnet6s_and_pools"
+	DeleteSubnet6s         DHCPCmd = "delete_subnet6s"
 
 	CreateSubnet6 DHCPCmd = "create_subnet6"
 	UpdateSubnet6 DHCPCmd = "update_subnet6"
@@ -71,7 +77,6 @@ func GetDHCPAgentService() *DHCPAgentService {
 		globalDHCPAgentService = &DHCPAgentService{
 			dhcpWriter: kg.NewWriter(kg.WriterConfig{
 				Brokers:    config.GetConfig().Kafka.Addrs,
-				Topic:      Topic,
 				BatchSize:  1,
 				BatchBytes: 10e8,
 				Dialer: &kg.Dialer{
@@ -83,11 +88,35 @@ func GetDHCPAgentService() *DHCPAgentService {
 	return globalDHCPAgentService
 }
 
+func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg proto.Message) ([]string, error) {
+	if len(nodes) == 0 {
+		return nil, nil
+	}
+
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, fmt.Errorf("marshal %s failed: %s\n", cmd, err.Error())
+	}
+
+	var succeedNodes []string
+	for _, node := range nodes {
+		if err := a.dhcpWriter.WriteMessages(context.Background(), kg.Message{
+			Topic: TopicPrefix + node, Key: []byte(cmd), Value: data}); err != nil {
+			return succeedNodes, fmt.Errorf("send kafka cmd to %s failed: %s", node, err.Error())
+		}
+
+		succeedNodes = append(succeedNodes, node)
+	}
+
+	return succeedNodes, nil
+}
+
 func (a *DHCPAgentService) SendDHCPCmd(cmd DHCPCmd, msg proto.Message) error {
 	data, err := proto.Marshal(msg)
 	if err != nil {
 		return fmt.Errorf("marshal %s failed: %s\n", cmd, err.Error())
 	}
 
-	return a.dhcpWriter.WriteMessages(context.Background(), kg.Message{Key: []byte(cmd), Value: data})
+	return a.dhcpWriter.WriteMessages(context.Background(), kg.Message{
+		Topic: TopicDHCP, Key: []byte(cmd), Value: data})
 }

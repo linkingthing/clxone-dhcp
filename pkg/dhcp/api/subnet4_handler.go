@@ -45,7 +45,8 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var subnets []*resource.Subnet4
-		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc"}, &subnets); err != nil {
+		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc"},
+			&subnets); err != nil {
 			return fmt.Errorf("get subnets from db failed: %s\n", err.Error())
 		}
 
@@ -79,7 +80,8 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*resource.Subnet4) error {
 	for _, subnet := range subnets {
 		if subnet.CheckConflictWithAnother(subnet4) {
-			return fmt.Errorf("subnet4 %s conflict with subnet4 %s", subnet4.Subnet, subnet.Subnet)
+			return fmt.Errorf("subnet4 %s conflict with subnet4 %s",
+				subnet4.Subnet, subnet.Subnet)
 		}
 	}
 
@@ -87,11 +89,21 @@ func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*reso
 }
 
 func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateSubnet4,
-		subnet4ToPbCreateSubnet4Request(subnet))
+	nodesForSucceed, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.CreateSubnet4,
+		subnet4ToCreateSubnet4Request(subnet))
+	if err != nil {
+		if _, err = dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			nodesForSucceed, dhcpservice.DeleteSubnet4,
+			&dhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId}); err != nil {
+			log.Errorf("create subnet4 %s failed, and rollback it failed: %s",
+				subnet.Subnet, err.Error())
+		}
+	}
+
+	return err
 }
 
-func subnet4ToPbCreateSubnet4Request(subnet *resource.Subnet4) *dhcpagent.CreateSubnet4Request {
+func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *dhcpagent.CreateSubnet4Request {
 	return &dhcpagent.CreateSubnet4Request{
 		Id:                  subnet.SubnetId,
 		Subnet:              subnet.Subnet,
@@ -144,7 +156,8 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		if subnet.Capacity != 0 {
 			if leasesCount, ok := subnetsLeasesCount[subnet.SubnetId]; ok {
 				subnet.UsedCount = leasesCount
-				subnet.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(subnet.Capacity))
+				subnet.UsedRatio = fmt.Sprintf("%.4f",
+					float64(leasesCount)/float64(subnet.Capacity))
 			}
 		}
 	}
@@ -157,7 +170,8 @@ func genGetSubnetsConditions(ctx *restresource.Context) (map[string]interface{},
 	conditions := map[string]interface{}{"orderby": "subnet_id"}
 	filterSubnet := false
 	hasPagination := false
-	if subnet, ok := util.GetFilterValueWithEqModifierFromFilters(util.FileNameSubnet, ctx.GetFilters()); ok {
+	if subnet, ok := util.GetFilterValueWithEqModifierFromFilters(util.FileNameSubnet,
+		ctx.GetFilters()); ok {
 		filterSubnet = true
 		conditions[util.FileNameSubnet] = subnet
 	} else {
@@ -188,12 +202,12 @@ func getSubnet4sLeasesCount(subnets []*resource.Subnet4, useIds bool) (map[uint6
 			ids = append(ids, subnet.SubnetId)
 		}
 
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(context.TODO(),
-			&dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(
+			context.TODO(), &dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
 		return resp.GetSubnetsLeasesCount(), err
 	} else {
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(context.TODO(),
-			&dhcpagent.GetSubnetsLeasesCountRequest{})
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(
+			context.TODO(), &dhcpagent.GetSubnetsLeasesCountRequest{})
 		return resp.GetSubnetsLeasesCount(), err
 	}
 }
@@ -280,7 +294,8 @@ func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resourc
 
 func setSubnet4FromDB(tx restdb.Transaction, subnet *resource.Subnet4) error {
 	var subnets []*resource.Subnet4
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnet.GetID()}, &subnets); err != nil {
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnet.GetID()},
+		&subnets); err != nil {
 		return fmt.Errorf("get subnet %s from db failed: %s", subnet.GetID(), err.Error())
 	}
 
@@ -292,11 +307,12 @@ func setSubnet4FromDB(tx restdb.Transaction, subnet *resource.Subnet4) error {
 	subnet.Capacity = subnets[0].Capacity
 	subnet.Subnet = subnets[0].Subnet
 	subnet.Ipnet = subnets[0].Ipnet
+	subnet.Nodes = subnets[0].Nodes
 	return nil
 }
 
 func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateSubnet4,
+	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.UpdateSubnet4,
 		&dhcpagent.UpdateSubnet4Request{
 			Id:                  subnet.SubnetId,
 			Subnet:              subnet.Subnet,
@@ -315,6 +331,7 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			Bootfile:            subnet.Bootfile,
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 		})
+	return err
 }
 
 func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
@@ -335,7 +352,7 @@ func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		return sendDeleteSubnet4CmdToDHCPAgent(subnet)
+		return sendDeleteSubnet4CmdToDHCPAgent(subnet, subnet.Nodes)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete subnet %s failed: %s", subnet.GetID(), err.Error()))
@@ -344,9 +361,10 @@ func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	return nil
 }
 
-func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeleteSubnet4,
+func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4, nodes []string) error {
+	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.DeleteSubnet4,
 		&dhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId})
+	return err
 }
 
 func (h *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -357,6 +375,8 @@ func (h *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 		return h.exportCSV(ctx)
 	case util.ActionNameExportCSVTemplate:
 		return h.exportCSVTemplate(ctx)
+	case resource.ActionNameUpdateNodes:
+		return h.updateNodes(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
@@ -365,7 +385,8 @@ func (h *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 
 func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	var oldSubnet4s []*resource.Subnet4
-	if err := db.GetResources(map[string]interface{}{"orderby": "subnet_id desc"}, &oldSubnet4s); err != nil {
+	if err := db.GetResources(map[string]interface{}{"orderby": "subnet_id desc"},
+		&oldSubnet4s); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("get subnet4s from db failed: %s", err.Error()))
 	}
@@ -381,7 +402,8 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 			fmt.Sprintf("action importcsv input invalid"))
 	}
 
-	validSqls, createSubnets4AndPools, err := parseSubnet4sFromFile(file.Name, oldSubnet4s)
+	validSqls, createSubnets4AndPoolsReq, deleteSubnets4Req, err := parseSubnet4sFromFile(
+		file.Name, oldSubnet4s)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("parse subnet4s from file %s failed: %s", file.Name, err.Error()))
@@ -398,8 +420,8 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 			}
 		}
 
-		return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateSubnet4sAndPools,
-			createSubnets4AndPools)
+		return sendCreateSubnet4sAndPoolsCmdToDHCPAgent(createSubnets4AndPoolsReq,
+			deleteSubnets4Req)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("import subnet4s from file %s failed: %s", file.Name, err.Error()))
@@ -408,19 +430,19 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 	return nil, nil
 }
 
-func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]string, *dhcpagent.CreateSubnets4AndPoolsRequest, error) {
+func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]string, map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, map[string]*dhcpagent.DeleteSubnets4Request, error) {
 	contents, err := util.ReadCSVFile(fileName)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	if len(contents) < 2 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	tableHeaderFields, err := util.ParseTableHeader(contents[0], TableHeaderSubnet4, SubnetMandatoryFields)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	oldSubnetsLen := len(oldSubnets)
@@ -439,12 +461,14 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 			continue
 		}
 
-		subnet, pools, reservedPools, reservations, err := parseSubnet4sAndPools(tableHeaderFields, fields)
+		subnet, pools, reservedPools, reservations, err := parseSubnet4sAndPools(
+			tableHeaderFields, fields)
 		if err != nil {
 			log.Warnf("parse subnet4 %s fields failed: %s", subnet.Subnet, err.Error())
 		} else if err := subnet.Validate(); err != nil {
 			log.Warnf("subnet %s is invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkSubnet4ConflictWithSubnet4s(subnet, append(oldSubnets, subnets...)); err != nil {
+		} else if err := checkSubnet4ConflictWithSubnet4s(subnet,
+			append(oldSubnets, subnets...)); err != nil {
 			log.Warnf(err.Error())
 		} else if err := checkReservationsValid(subnet, reservations); err != nil {
 			log.Warnf("subnet %s reservations is invalid: %s", subnet.Subnet, err.Error())
@@ -471,25 +495,31 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 	}
 
 	if len(subnets) == 0 {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	var sqls []string
-	req := &dhcpagent.CreateSubnets4AndPoolsRequest{}
-	sqls = append(sqls, subnet4sToInsertSqlAndPbRequest(subnets, req))
+	reqsForCreate := make(map[string]*dhcpagent.CreateSubnets4AndPoolsRequest)
+	reqsForDelete := make(map[string]*dhcpagent.DeleteSubnets4Request)
+	subnetAndNodes := make(map[uint64][]string)
+	sqls = append(sqls,
+		subnet4sToInsertSqlAndRequest(subnets, reqsForCreate, reqsForDelete, subnetAndNodes))
 	if len(subnetPools) != 0 {
-		sqls = append(sqls, pool4sToInsertSqlAndPbRequest(subnetPools, req))
+		sqls = append(sqls, pool4sToInsertSqlAndRequest(subnetPools,
+			reqsForCreate, subnetAndNodes))
 	}
 
 	if len(subnetReservedPools) != 0 {
-		sqls = append(sqls, reservedPool4sToInsertSqlAndPbRequest(subnetReservedPools, req))
+		sqls = append(sqls, reservedPool4sToInsertSqlAndRequest(subnetReservedPools,
+			reqsForCreate, subnetAndNodes))
 	}
 
 	if len(subnetReservations) != 0 {
-		sqls = append(sqls, reservation4sToInsertSqlAndPbRequest(subnetReservations, req))
+		sqls = append(sqls, reservation4sToInsertSqlAndRequest(subnetReservations,
+			reqsForCreate, subnetAndNodes))
 	}
 
-	return sqls, req, nil
+	return sqls, reqsForCreate, reqsForDelete, nil
 }
 
 func parseUint32FromString(field string) (uint32, error) {
@@ -516,15 +546,18 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameSubnetType:
 			subnet.NetworkType = field
 		case FieldNameValidLifetime:
-			if subnet.ValidLifetime, err = parseUint32FromString(strings.TrimSpace(field)); err != nil {
+			if subnet.ValidLifetime, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
 				break
 			}
 		case FieldNameMaxValidLifetime:
-			if subnet.MaxValidLifetime, err = parseUint32FromString(strings.TrimSpace(field)); err != nil {
+			if subnet.MaxValidLifetime, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
 				break
 			}
 		case FieldNameMinValidLifetime:
-			if subnet.MinValidLifetime, err = parseUint32FromString(strings.TrimSpace(field)); err != nil {
+			if subnet.MinValidLifetime, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
 				break
 			}
 		case FieldNameSubnetMask:
@@ -548,11 +581,13 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 				break
 			}
 		case FieldNameReservedPools:
-			if reservedPools, err = parseReservedPool4sFromString(strings.TrimSpace(field)); err != nil {
+			if reservedPools, err = parseReservedPool4sFromString(
+				strings.TrimSpace(field)); err != nil {
 				break
 			}
 		case FieldNameReservations:
-			if reservations, err = parseReservation4sFromString(strings.TrimSpace(field)); err != nil {
+			if reservations, err = parseReservation4sFromString(
+				strings.TrimSpace(field)); err != nil {
 				break
 			}
 		}
@@ -581,7 +616,8 @@ func parseReservedPool4sFromString(field string) ([]*resource.ReservedPool4, err
 	var pools []*resource.ReservedPool4
 	for _, poolStr := range strings.Split(field, ",") {
 		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 2 {
-			return nil, fmt.Errorf("parse subnet4 reserved pool %s failed with wrong regexp", poolStr)
+			return nil, fmt.Errorf("parse subnet4 reserved pool %s failed with wrong regexp",
+				poolStr)
 		} else {
 			pools = append(pools, &resource.ReservedPool4{
 				BeginAddress: poolSlices[0],
@@ -597,7 +633,8 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 	var reservations []*resource.Reservation4
 	for _, reservationStr := range strings.Split(field, ",") {
 		if reservationSlices := strings.Split(reservationStr, "-"); len(reservationSlices) != 2 {
-			return nil, fmt.Errorf("parse subnet4 reservation %s failed with wrong regexp", reservationStr)
+			return nil, fmt.Errorf("parse subnet4 reservation %s failed with wrong regexp",
+				reservationStr)
 		} else {
 			reservations = append(reservations, &resource.Reservation4{
 				HwAddress: reservationSlices[0],
@@ -672,13 +709,16 @@ func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reserv
 			return err
 		}
 
-		if checkIPsBelongsToIpnet(subnet4.Ipnet, pools[i].BeginAddress, pools[i].EndAddress) == false {
-			return fmt.Errorf("pool %s not belongs to subnet %s", pools[i].String(), subnet4.Subnet)
+		if checkIPsBelongsToIpnet(subnet4.Ipnet,
+			pools[i].BeginAddress, pools[i].EndAddress) == false {
+			return fmt.Errorf("pool %s not belongs to subnet %s",
+				pools[i].String(), subnet4.Subnet)
 		}
 
 		for j := i + 1; j < poolsLen; j++ {
 			if pools[i].CheckConflictWithAnother(pools[j]) {
-				return fmt.Errorf("pool %s conflict with another %s", pools[i].String(), pools[j].String())
+				return fmt.Errorf("pool %s conflict with another %s",
+					pools[i].String(), pools[j].String())
 			}
 		}
 
@@ -699,56 +739,126 @@ func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reserv
 	return nil
 }
 
-func subnet4sToInsertSqlAndPbRequest(subnets []*resource.Subnet4, req *dhcpagent.CreateSubnets4AndPoolsRequest) string {
+func subnet4sToInsertSqlAndRequest(subnets []*resource.Subnet4, reqsForCreate map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, reqsForDelete map[string]*dhcpagent.DeleteSubnets4Request, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_subnet4 values ")
 	for _, subnet := range subnets {
 		buf.WriteString(subnet4ToInsertDBSqlString(subnet))
-		req.Subnets = append(req.Subnets, subnet4ToPbCreateSubnet4Request(subnet))
+		nodes := subnetAndNodes[subnet.SubnetId]
+		nodes = append(nodes, subnet.Nodes...)
+		subnetAndNodes[subnet.SubnetId] = nodes
+		pbSubnet := subnet4ToCreateSubnet4Request(subnet)
+		for _, node := range subnet.Nodes {
+			createReq, ok := reqsForCreate[node]
+			deleteReq := reqsForDelete[node]
+			if ok == false {
+				createReq = &dhcpagent.CreateSubnets4AndPoolsRequest{}
+				deleteReq = &dhcpagent.DeleteSubnets4Request{}
+			}
+			createReq.Subnets = append(createReq.Subnets, pbSubnet)
+			deleteReq.Ids = append(deleteReq.Ids, subnet.SubnetId)
+			reqsForCreate[node] = createReq
+			reqsForDelete[node] = deleteReq
+		}
 	}
 
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func pool4sToInsertSqlAndPbRequest(subnetPools map[uint64][]*resource.Pool4, req *dhcpagent.CreateSubnets4AndPoolsRequest) string {
+func pool4sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool4, reqs map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_pool4 values ")
 	for subnetId, pools := range subnetPools {
 		for _, pool := range pools {
 			buf.WriteString(pool4ToInsertDBSqlString(subnetId, pool))
-			req.Pools = append(req.Pools, pool4ToPbCreatePool4Request(subnetId, pool))
+			pbPool := pool4ToCreatePool4Request(subnetId, pool)
+			for _, node := range subnetAndNodes[subnetId] {
+				if req, ok := reqs[node]; ok {
+					req.Pools = append(req.Pools, pbPool)
+				}
+			}
 		}
 	}
 
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func reservedPool4sToInsertSqlAndPbRequest(subnetReservedPools map[uint64][]*resource.ReservedPool4, req *dhcpagent.CreateSubnets4AndPoolsRequest) string {
+func reservedPool4sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resource.ReservedPool4, reqs map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_reserved_pool4 values ")
 	for subnetId, pools := range subnetReservedPools {
 		for _, pool := range pools {
 			buf.WriteString(reservedPool4ToInsertDBSqlString(subnetId, pool))
-			req.ReservedPools = append(req.ReservedPools,
-				reservedPool4ToPbCreateReservedPool4Request(subnetId, pool))
+			pbReservedPool := reservedPool4ToCreateReservedPool4Request(subnetId, pool)
+			for _, node := range subnetAndNodes[subnetId] {
+				if req, ok := reqs[node]; ok {
+					req.ReservedPools = append(req.ReservedPools, pbReservedPool)
+				}
+			}
 		}
 	}
 
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func reservation4sToInsertSqlAndPbRequest(subnetReservations map[uint64][]*resource.Reservation4, req *dhcpagent.CreateSubnets4AndPoolsRequest) string {
+func reservation4sToInsertSqlAndRequest(subnetReservations map[uint64][]*resource.Reservation4, reqs map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_reservation4 values ")
 	for subnetId, reservations := range subnetReservations {
 		for _, reservation := range reservations {
 			buf.WriteString(reservation4ToInsertDBSqlString(subnetId, reservation))
-			req.Reservations = append(req.Reservations,
-				reservation4ToPbCreateReservation4Request(subnetId, reservation))
+			pbReservation := reservation4ToCreateReservation4Request(subnetId, reservation)
+			for _, node := range subnetAndNodes[subnetId] {
+				if req, ok := reqs[node]; ok {
+					req.Reservations = append(req.Reservations, pbReservation)
+				}
+			}
 		}
 	}
 
 	return strings.TrimSuffix(buf.String(), ",") + ";"
+}
+
+func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForCreate map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, reqsForDelete map[string]*dhcpagent.DeleteSubnets4Request) error {
+	if len(reqsForCreate) == 0 {
+		return nil
+	}
+
+	var sentryNodes []string
+	for node := range reqsForCreate {
+		sentryNodes = append(sentryNodes, node)
+	}
+
+	nodes, err := getDHCPNodes(sentryNodes, true)
+	if err != nil {
+		return err
+	}
+
+	serverNodes := nodes[len(sentryNodes):]
+	var succeedNodes []string
+	for node, req := range reqsForCreate {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(append(serverNodes, node),
+			dhcpservice.CreateSubnet4sAndPools, req); err != nil {
+			deleteSubnets(reqsForDelete, succeedNodes, serverNodes)
+			return err
+		}
+
+		succeedNodes = append(succeedNodes, node)
+	}
+
+	return nil
+}
+
+func deleteSubnets(reqs map[string]*dhcpagent.DeleteSubnets4Request, sentryNodes, serverNodes []string) {
+	for _, node := range sentryNodes {
+		if req, ok := reqs[node]; ok {
+			if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				append(serverNodes, node), dhcpservice.DeleteSubnet4s, req); err != nil {
+				log.Errorf("delete subnets with node %s when rollback failed: %s",
+					node, err.Error())
+			}
+		}
+	}
 }
 
 func (h *Subnet4Handler) exportCSV(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -830,4 +940,123 @@ func (h *Subnet4Handler) exportCSVTemplate(ctx *restresource.Context) (interface
 	} else {
 		return &util.ExportFile{Path: filepath}, nil
 	}
+}
+
+func (h *Subnet4Handler) updateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	subnetID := ctx.Resource.GetID()
+	var subnets []*resource.Subnet4
+	if _, err := restdb.GetResourceWithID(db.GetDB(), subnetID, &subnets); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get subnet4 %s failed: %s", subnetID, err.Error()))
+	}
+
+	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action update subnet4 %s nodes input invalid", subnetID))
+	}
+
+	nodesForDelete, nodesForCreate := getChangedNodes(subnets[0].Nodes, subnetNode.Nodes)
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
+			"nodes": subnetNode.Nodes},
+			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
+			return err
+		}
+
+		return sendUpdateSubnet4NodesCmdToDHCPAgent(subnets[0], nodesForDelete, nodesForCreate)
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("update subnet4 %s nodes failed: %s", subnetID, err.Error()))
+	}
+
+	return nil, nil
+}
+
+func getChangedNodes(oldNodes, newNodes []string) ([]string, []string) {
+	nodesForDelete := make(map[string]struct{})
+	nodesForCreate := make(map[string]struct{})
+	for _, node := range oldNodes {
+		nodesForDelete[node] = struct{}{}
+	}
+
+	for _, node := range newNodes {
+		if _, ok := nodesForDelete[node]; ok {
+			delete(nodesForDelete, node)
+		} else {
+			nodesForCreate[node] = struct{}{}
+		}
+	}
+
+	deleteSlices := make([]string, len(nodesForDelete))
+	for node := range nodesForDelete {
+		deleteSlices = append(deleteSlices, node)
+	}
+
+	createSlices := make([]string, len(nodesForCreate))
+	for node := range nodesForCreate {
+		createSlices = append(createSlices, node)
+	}
+
+	return deleteSlices, createSlices
+}
+
+func sendUpdateSubnet4NodesCmdToDHCPAgent(subnet4 *resource.Subnet4, nodesForDelete, nodesForCreate []string) error {
+	if err := sendDeleteSubnet4CmdToDHCPAgent(subnet4, nodesForDelete); err != nil {
+		return err
+	}
+
+	if len(nodesForCreate) == 0 {
+		return nil
+	}
+
+	nodes, err := getDHCPNodes(nodesForCreate, true)
+	if err != nil {
+		return err
+	}
+
+	var pools []*resource.Pool4
+	var reservedPools []*resource.ReservedPool4
+	var reservations []*resource.Reservation4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &pools); err != nil {
+			return err
+		}
+
+		if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &reservedPools); err != nil {
+			return err
+		}
+
+		return tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &reservations)
+	}); err != nil {
+		return err
+	}
+
+	req := &dhcpagent.CreateSubnets4AndPoolsRequest{
+		Subnets: []*dhcpagent.CreateSubnet4Request{subnet4ToCreateSubnet4Request(subnet4)},
+	}
+	for _, pool := range pools {
+		req.Pools = append(req.Pools, pool4ToCreatePool4Request(subnet4.SubnetId, pool))
+	}
+	for _, pool := range reservedPools {
+		req.ReservedPools = append(req.ReservedPools,
+			reservedPool4ToCreateReservedPool4Request(subnet4.SubnetId, pool))
+	}
+	for _, reservation := range reservations {
+		req.Reservations = append(req.Reservations,
+			reservation4ToCreateReservation4Request(subnet4.SubnetId, reservation))
+	}
+
+	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
+		dhcpservice.CreateSubnet4sAndPools, req); err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			succeedNodes, dhcpservice.DeleteSubnet4,
+			&dhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
+			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
+				subnet4.Subnet, succeedNodes, err.Error())
+		}
+		return err
+	}
+
+	return nil
 }

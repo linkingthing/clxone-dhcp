@@ -30,6 +30,7 @@ const (
 	FiledNameRelayAddresses    = "中继路由地址"
 	FieldNameOption16          = "option16"
 	FieldNameOption18          = "option18"
+	FieldNameNodes             = "节点列表"
 
 	FieldNamePools         = "动态地址池"
 	FieldNameReservedPools = "保留地址池"
@@ -42,7 +43,7 @@ var (
 		FieldNameSubnet, FieldNameSubnetName, FieldNameSubnetType,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNameSubnetMask, FieldNameRouters, FieldNameDomainServers, FieldNameIfaceName,
-		FieldNameOption60, FieldNameOption82, FieldNameOption66, FieldNameOption67,
+		FieldNameOption60, FieldNameOption82, FieldNameOption66, FieldNameOption67, FieldNameNodes,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations,
 	}
 
@@ -50,7 +51,7 @@ var (
 		FieldNameSubnet, FieldNameSubnetName, FieldNameSubnetType,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameDomainServers, FieldNameIfaceName,
-		FiledNameRelayAddresses, FieldNameOption16, FieldNameOption18,
+		FiledNameRelayAddresses, FieldNameOption16, FieldNameOption18, FieldNameNodes,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations, FieldNamePdPools,
 	}
 
@@ -66,7 +67,7 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 		subnet4.SubnetMask, strings.Join(subnet4.Routers, ","),
 		strings.Join(subnet4.DomainServers, ","), subnet4.IfaceName,
 		subnet4.ClientClass, strings.Join(subnet4.RelayAgentAddresses, ","),
-		subnet4.TftpServer, subnet4.Bootfile,
+		subnet4.TftpServer, subnet4.Bootfile, strings.Join(subnet4.Nodes, ","),
 	}
 }
 
@@ -114,7 +115,9 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString(subnet4.Tags)
 	buf.WriteString("','")
 	buf.WriteString(subnet4.NetworkType)
-	buf.WriteString("','")
+	buf.WriteString("','{")
+	buf.WriteString(strings.Join(subnet4.Nodes, ","))
+	buf.WriteString("}','")
 	buf.WriteString(strconv.FormatUint(subnet4.Capacity, 10))
 	buf.WriteString("'),")
 	return buf.String()

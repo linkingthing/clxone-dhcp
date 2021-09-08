@@ -60,27 +60,26 @@ func (r *Reservation4Handler) Create(ctx *restresource.Context) (restresource.Re
 
 		if conflictPool == nil {
 			if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-				"capacity": subnet.Capacity + 1,
+				"capacity": subnet.Capacity + reservation.Capacity,
 			}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 				return fmt.Errorf("update subnet %s capacity to db failed: %s",
 					subnet.GetID(), err.Error())
 			}
 		} else {
 			if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-				"capacity": conflictPool.Capacity - 1,
+				"capacity": conflictPool.Capacity - reservation.Capacity,
 			}, map[string]interface{}{restdb.IDField: conflictPool.GetID()}); err != nil {
 				return fmt.Errorf("update pool %s capacity to db failed: %s",
 					conflictPool.String(), err.Error())
 			}
 		}
 
-		reservation.Capacity = 1
 		reservation.Subnet4 = subnet.GetID()
 		if _, err := tx.Insert(reservation); err != nil {
 			return err
 		}
 
-		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, reservation)
+		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create reservation %s failed: %s", reservation.String(), err.Error()))
@@ -122,12 +121,22 @@ func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId 
 	return nil
 }
 
-func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, reservation *resource.Reservation4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateReservation4,
-		reservation4ToPbCreateReservation4Request(subnetID, reservation))
+func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {
+	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservation4,
+		reservation4ToCreateReservation4Request(subnetID, reservation))
+	if err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			nodesForSucceed, dhcpservice.DeleteReservation4,
+			reservation4ToDeleteReservation4Request(subnetID, reservation)); err != nil {
+			log.Errorf("create subnet %d reservation4 %s failed, and rollback it failed: %s",
+				subnetID, reservation.String(), err.Error())
+		}
+	}
+
+	return err
 }
 
-func reservation4ToPbCreateReservation4Request(subnetID uint64, reservation *resource.Reservation4) *dhcpagent.CreateReservation4Request {
+func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resource.Reservation4) *dhcpagent.CreateReservation4Request {
 	return &dhcpagent.CreateReservation4Request{
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
@@ -261,7 +270,7 @@ func (r *Reservation4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			return err
 		}
 
-		return sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, reservation)
+		return sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete reservation %s with subnet %s failed: %s",
@@ -273,7 +282,8 @@ func (r *Reservation4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 
 func setReservation4FromDB(tx restdb.Transaction, reservation *resource.Reservation4) error {
 	var reservations []*resource.Reservation4
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: reservation.GetID()}, &reservations); err != nil {
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: reservation.GetID()},
+		&reservations); err != nil {
 		return err
 	}
 
@@ -288,11 +298,16 @@ func setReservation4FromDB(tx restdb.Transaction, reservation *resource.Reservat
 	return nil
 }
 
-func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, reservation *resource.Reservation4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeleteReservation4,
-		&dhcpagent.DeleteReservation4Request{
-			SubnetId:  subnetID,
-			HwAddress: reservation.HwAddress,
-			IpAddress: reservation.IpAddress,
-		})
+func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {
+	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservation4,
+		reservation4ToDeleteReservation4Request(subnetID, reservation))
+	return err
+}
+
+func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resource.Reservation4) *dhcpagent.DeleteReservation4Request {
+	return &dhcpagent.DeleteReservation4Request{
+		SubnetId:  subnetID,
+		HwAddress: reservation.HwAddress,
+		IpAddress: reservation.IpAddress,
+	}
 }

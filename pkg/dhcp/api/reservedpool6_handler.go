@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -44,7 +45,8 @@ func (p *ReservedPool6Handler) Create(ctx *restresource.Context) (restresource.R
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 			"capacity": subnet.Capacity - affectPoolsCapacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s", subnet.GetID(), err.Error())
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
 		}
 
 		for affectPoolID, capacity := range affectPools {
@@ -61,7 +63,7 @@ func (p *ReservedPool6Handler) Create(ctx *restresource.Context) (restresource.R
 			return err
 		}
 
-		return sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pool %s with subnet %s failed: %s",
@@ -172,13 +174,26 @@ func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *
 	return resource.Ipv6Pool6CapacityWithBigInt(begin, end)
 }
 
-func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, pool *resource.ReservedPool6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateReservedPool6,
-		&dhcpagent.CreateReservedPool6Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
+	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservedPool6,
+		reservedPool6ToCreateReservedPool6Request(subnetID, pool))
+	if err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			nodesForSucceed, dhcpservice.DeleteReservedPool6,
+			reservedPool6ToDeleteReservedPool6Request(subnetID, pool)); err != nil {
+			log.Errorf("create subnet %d reserved pool6 %s failed, and rollback it failed: %s",
+				subnetID, pool.String(), err.Error())
+		}
+	}
+	return err
+}
+
+func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *dhcpagent.CreateReservedPool6Request {
+	return &dhcpagent.CreateReservedPool6Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -192,7 +207,8 @@ func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *re
 		return tx.Fill(map[string]interface{}{"subnet6": subnet.GetID()}, &pools)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list pools with subnet %s from db failed: %s", subnet.GetID(), err.Error()))
+			fmt.Sprintf("list pools with subnet %s from db failed: %s",
+				subnet.GetID(), err.Error()))
 	}
 
 	sort.Sort(pools)
@@ -207,7 +223,8 @@ func (p *ReservedPool6Handler) Get(ctx *restresource.Context) (restresource.Reso
 		return tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool %s with subnet %s from db failed: %s", poolID, subnetID, err.Error()))
+			fmt.Sprintf("get pool %s with subnet %s from db failed: %s",
+				poolID, subnetID, err.Error()))
 	}
 
 	if len(pools) != 1 {
@@ -239,7 +256,8 @@ func (p *ReservedPool6Handler) Delete(ctx *restresource.Context) *resterror.APIE
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 			"capacity": subnet.Capacity + affectPoolsCapacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s", subnet.GetID(), err.Error())
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
 		}
 
 		for affectPoolID, capacity := range affectPools {
@@ -256,7 +274,7 @@ func (p *ReservedPool6Handler) Delete(ctx *restresource.Context) *resterror.APIE
 			return err
 		}
 
-		return sendDeleteReservedPool6CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendDeleteReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
@@ -283,13 +301,18 @@ func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6)
 	return nil
 }
 
-func sendDeleteReservedPool6CmdToDHCPAgent(subnetID uint64, pool *resource.ReservedPool6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeleteReservedPool6,
-		&dhcpagent.DeleteReservedPool6Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+func sendDeleteReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
+	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservedPool6,
+		reservedPool6ToDeleteReservedPool6Request(subnetID, pool))
+	return err
+}
+
+func reservedPool6ToDeleteReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *dhcpagent.DeleteReservedPool6Request {
+	return &dhcpagent.DeleteReservedPool6Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (h *ReservedPool6Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {

@@ -45,7 +45,8 @@ func (p *Pool6Handler) Create(ctx *restresource.Context) (restresource.Resource,
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 			"capacity": subnet.Capacity + pool.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s", subnet.GetID(), err.Error())
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
 		}
 
 		pool.Subnet6 = subnet.GetID()
@@ -53,7 +54,7 @@ func (p *Pool6Handler) Create(ctx *restresource.Context) (restresource.Resource,
 			return err
 		}
 
-		return sendCreatePool6CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendCreatePool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pool %s with subnet %s failed: %s",
@@ -162,13 +163,26 @@ func recalculatePool6Capacity(tx restdb.Transaction, subnetID string, pool *reso
 	return nil
 }
 
-func sendCreatePool6CmdToDHCPAgent(subnetID uint64, pool *resource.Pool6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreatePool6,
-		&dhcpagent.CreatePool6Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+func sendCreatePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool6) error {
+	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreatePool6,
+		pool6ToCreatePool6Request(subnetID, pool))
+	if err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForSucceed,
+			dhcpservice.DeletePool6, pool6ToDeletePool6Request(subnetID, pool)); err != nil {
+			log.Errorf("create subnet %d pool6 %s failed, and rollback it failed: %s",
+				subnetID, pool.String(), err.Error())
+		}
+	}
+
+	return err
+}
+
+func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *dhcpagent.CreatePool6Request {
+	return &dhcpagent.CreatePool6Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (p *Pool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -343,7 +357,8 @@ func (p *Pool6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 			"capacity": subnet.Capacity - pool.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s", subnet.GetID(), err.Error())
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
 		}
 
 		if _, err := tx.Delete(resource.TablePool6, map[string]interface{}{
@@ -351,7 +366,7 @@ func (p *Pool6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		return sendDeletePool6CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendDeletePool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
@@ -378,13 +393,18 @@ func setPool6FromDB(tx restdb.Transaction, pool *resource.Pool6) error {
 	return nil
 }
 
-func sendDeletePool6CmdToDHCPAgent(subnetID uint64, pool *resource.Pool6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeletePool6,
-		&dhcpagent.DeletePool6Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+func sendDeletePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool6) error {
+	_, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
+		dhcpservice.DeletePool6, pool6ToDeletePool6Request(subnetID, pool))
+	return err
+}
+
+func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *dhcpagent.DeletePool6Request {
+	return &dhcpagent.DeletePool6Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (h *Pool6Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {

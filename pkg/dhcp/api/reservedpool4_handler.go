@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -61,7 +62,7 @@ func (p *ReservedPool4Handler) Create(ctx *restresource.Context) (restresource.R
 			return err
 		}
 
-		return sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pool %s with subnet %s failed: %s",
@@ -170,12 +171,22 @@ func getPool4ReservedCountWithReservedPool4(pool *resource.Pool4, reservedPool *
 	return uint64(end - begin + 1)
 }
 
-func sendCreateReservedPool4CmdToDHCPAgent(subnetID uint64, pool *resource.ReservedPool4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateReservedPool4,
-		reservedPool4ToPbCreateReservedPool4Request(subnetID, pool))
+func sendCreateReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool4) error {
+	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservedPool4,
+		reservedPool4ToCreateReservedPool4Request(subnetID, pool))
+	if err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			nodesForSucceed, dhcpservice.DeleteReservedPool4,
+			reservedPool4ToDeleteReservedPool4Request(subnetID, pool)); err != nil {
+			log.Errorf("create subnet %d reserved pool4 %s failed, and rollback it failed: %s",
+				subnetID, pool.String(), err.Error())
+		}
+	}
+
+	return err
 }
 
-func reservedPool4ToPbCreateReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *dhcpagent.CreateReservedPool4Request {
+func reservedPool4ToCreateReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *dhcpagent.CreateReservedPool4Request {
 	return &dhcpagent.CreateReservedPool4Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
@@ -239,7 +250,8 @@ func (p *ReservedPool4Handler) Delete(ctx *restresource.Context) *resterror.APIE
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
 			"capacity": subnet.Capacity + affectPoolsCapacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s", subnet.GetID(), err.Error())
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
 		}
 
 		for affectPoolID, capacity := range affectPools {
@@ -256,7 +268,7 @@ func (p *ReservedPool4Handler) Delete(ctx *restresource.Context) *resterror.APIE
 			return err
 		}
 
-		return sendDeleteReservedPool4CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendDeleteReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
@@ -283,13 +295,18 @@ func setReservedPool4FromDB(tx restdb.Transaction, pool *resource.ReservedPool4)
 	return nil
 }
 
-func sendDeleteReservedPool4CmdToDHCPAgent(subnetID uint64, pool *resource.ReservedPool4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeleteReservedPool4,
-		&dhcpagent.DeleteReservedPool4Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+func sendDeleteReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool4) error {
+	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservedPool4,
+		reservedPool4ToDeleteReservedPool4Request(subnetID, pool))
+	return err
+}
+
+func reservedPool4ToDeleteReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *dhcpagent.DeleteReservedPool4Request {
+	return &dhcpagent.DeleteReservedPool4Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (h *ReservedPool4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {

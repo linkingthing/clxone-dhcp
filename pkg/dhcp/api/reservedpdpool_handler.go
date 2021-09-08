@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -49,7 +50,7 @@ func (p *ReservedPdPoolHandler) Create(ctx *restresource.Context) (restresource.
 			return err
 		}
 
-		return sendCreateReservedPdPoolCmdToDHCPAgent(subnet.SubnetId, pdpool)
+		return sendCreateReservedPdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pdpool %s-%d with subnet %s failed: %s",
@@ -103,14 +104,28 @@ func checkReservedPdPoolConflictWithSubnet6Reservation6s(tx restdb.Transaction, 
 	return nil
 }
 
-func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, pdpool *resource.ReservedPdPool) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateReservedPdPool,
-		&dhcpagent.CreateReservedPdPoolRequest{
-			SubnetId:     subnetID,
-			Prefix:       pdpool.Prefix,
-			PrefixLen:    pdpool.PrefixLen,
-			DelegatedLen: pdpool.DelegatedLen,
-		})
+func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
+	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservedPdPool,
+		reservedPdPoolToCreateReservedPdPoolRequest(subnetID, pdpool))
+	if err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			nodesForSucceed, dhcpservice.DeleteReservedPdPool,
+			reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool)); err != nil {
+			log.Errorf("create subnet %d reserved pdpool %s failed, and rollback it failed: %s",
+				subnetID, pdpool.String(), err.Error())
+		}
+	}
+
+	return err
+}
+
+func reservedPdPoolToCreateReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *dhcpagent.CreateReservedPdPoolRequest {
+	return &dhcpagent.CreateReservedPdPoolRequest{
+		SubnetId:     subnetID,
+		Prefix:       pdpool.Prefix,
+		PrefixLen:    pdpool.PrefixLen,
+		DelegatedLen: pdpool.DelegatedLen,
+	}
 }
 
 func (p *ReservedPdPoolHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -163,7 +178,7 @@ func (p *ReservedPdPoolHandler) Delete(ctx *restresource.Context) *resterror.API
 			return err
 		}
 
-		return sendDeleteReservedPdPoolCmdToDHCPAgent(subnet.SubnetId, pdpool)
+		return sendDeleteReservedPdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete pdpool %s with subnet %s failed: %s",
@@ -206,12 +221,17 @@ func getReservedPdPoolLeasesCount(pdpool *resource.ReservedPdPool) (uint64, erro
 	return resp.GetLeasesCount(), err
 }
 
-func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, pdpool *resource.ReservedPdPool) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeleteReservedPdPool,
-		&dhcpagent.DeleteReservedPdPoolRequest{
-			SubnetId:     subnetID,
-			Prefix:       pdpool.Prefix,
-			PrefixLen:    pdpool.PrefixLen,
-			DelegatedLen: pdpool.DelegatedLen,
-		})
+func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
+	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservedPdPool,
+		reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool))
+	return err
+}
+
+func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *dhcpagent.DeleteReservedPdPoolRequest {
+	return &dhcpagent.DeleteReservedPdPoolRequest{
+		SubnetId:     subnetID,
+		Prefix:       pdpool.Prefix,
+		PrefixLen:    pdpool.PrefixLen,
+		DelegatedLen: pdpool.DelegatedLen,
+	}
 }

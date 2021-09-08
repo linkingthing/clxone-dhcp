@@ -55,5 +55,6 @@ func (r *Reservation4) Validate() error {
 		return fmt.Errorf("ip %s is not ipv4", r.IpAddress)
 	}
 
+	r.Capacity = 1
 	return nil
 }

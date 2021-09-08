@@ -37,6 +37,10 @@ func (s *Subnet6Handler) Create(ctx *restresource.Context) (restresource.Resourc
 			return fmt.Errorf("get subnets from db failed: %s\n", err.Error())
 		}
 
+		if len(subnets) >= MaxSubnetsCount {
+			return fmt.Errorf("subnet6s count has reached maximum (1w)")
+		}
+
 		subnet.SubnetId = 1
 		if len(subnets) > 0 {
 			subnet.SubnetId = subnets[0].SubnetId + 1
@@ -71,22 +75,36 @@ func checkSubnet6ConflictWithSubnet6s(subnet6 *resource.Subnet6, subnets []*reso
 }
 
 func sendCreateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateSubnet6,
-		&dhcpagent.CreateSubnet6Request{
-			Id:                    subnet.SubnetId,
-			Subnet:                subnet.Subnet,
-			ValidLifetime:         subnet.ValidLifetime,
-			MaxValidLifetime:      subnet.MaxValidLifetime,
-			MinValidLifetime:      subnet.MinValidLifetime,
-			PreferredLifetime:     subnet.PreferredLifetime,
-			RenewTime:             subnet.PreferredLifetime / 2,
-			RebindTime:            subnet.PreferredLifetime * 3 / 4,
-			DnsServers:            subnet.DomainServers,
-			ClientClass:           subnet.ClientClass,
-			IfaceName:             subnet.IfaceName,
-			RelayAgentAddresses:   subnet.RelayAgentAddresses,
-			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
-		})
+	nodesForSucceed, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(subnet.Nodes,
+		dhcpservice.CreateSubnet6, subnet6ToCreateSubnet6Request(subnet))
+	if err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			nodesForSucceed, dhcpservice.DeleteSubnet6,
+			&dhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId}); err != nil {
+			log.Errorf("create subnet6 %s failed, and rollback it failed: %s",
+				subnet.Subnet, err.Error())
+		}
+	}
+
+	return err
+}
+
+func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *dhcpagent.CreateSubnet6Request {
+	return &dhcpagent.CreateSubnet6Request{
+		Id:                    subnet.SubnetId,
+		Subnet:                subnet.Subnet,
+		ValidLifetime:         subnet.ValidLifetime,
+		MaxValidLifetime:      subnet.MaxValidLifetime,
+		MinValidLifetime:      subnet.MinValidLifetime,
+		PreferredLifetime:     subnet.PreferredLifetime,
+		RenewTime:             subnet.PreferredLifetime / 2,
+		RebindTime:            subnet.PreferredLifetime * 3 / 4,
+		DnsServers:            subnet.DomainServers,
+		ClientClass:           subnet.ClientClass,
+		IfaceName:             subnet.IfaceName,
+		RelayAgentAddresses:   subnet.RelayAgentAddresses,
+		RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
+	}
 }
 
 func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -238,11 +256,12 @@ func setSubnet6FromDB(tx restdb.Transaction, subnet *resource.Subnet6) error {
 	subnet.Capacity = subnets[0].Capacity
 	subnet.Subnet = subnets[0].Subnet
 	subnet.Ipnet = subnets[0].Ipnet
+	subnet.Nodes = subnets[0].Nodes
 	return nil
 }
 
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateSubnet6,
+	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.UpdateSubnet6,
 		&dhcpagent.UpdateSubnet6Request{
 			Id:                    subnet.SubnetId,
 			Subnet:                subnet.Subnet,
@@ -258,6 +277,7 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			RelayAgentAddresses:   subnet.RelayAgentAddresses,
 			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
 		})
+	return err
 }
 
 func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
@@ -278,7 +298,7 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		return sendDeleteSubnet6CmdToDHCPAgent(subnet)
+		return sendDeleteSubnet6CmdToDHCPAgent(subnet, subnet.Nodes)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete subnet %s failed: %s", subnet.GetID(), err.Error()))
@@ -287,7 +307,131 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	return nil
 }
 
-func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeleteSubnet6,
+func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6, nodes []string) error {
+	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.DeleteSubnet6,
 		&dhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId})
+	return err
+}
+
+func (h *Subnet6Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case resource.ActionNameUpdateNodes:
+		return h.updateNodes(ctx)
+	default:
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
+	}
+}
+
+func (h *Subnet6Handler) updateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	subnetID := ctx.Resource.GetID()
+	var subnets []*resource.Subnet6
+	if _, err := restdb.GetResourceWithID(db.GetDB(), subnetID, &subnets); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get subnet6 %s failed: %s", subnetID, err.Error()))
+	}
+
+	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action update subnet6 %s nodes input invalid", subnetID))
+	}
+
+	nodesForDelete, nodesForCreate := getChangedNodes(subnets[0].Nodes, subnetNode.Nodes)
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
+			"nodes": subnetNode.Nodes},
+			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
+			return err
+		}
+
+		return sendUpdateSubnet6NodesCmdToDHCPAgent(subnets[0], nodesForDelete, nodesForCreate)
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("update subnet6 %s nodes failed: %s", subnetID, err.Error()))
+	}
+
+	return nil, nil
+}
+
+func sendUpdateSubnet6NodesCmdToDHCPAgent(subnet6 *resource.Subnet6, nodesForDelete, nodesForCreate []string) error {
+	if err := sendDeleteSubnet6CmdToDHCPAgent(subnet6, nodesForDelete); err != nil {
+		return err
+	}
+
+	if len(nodesForCreate) == 0 {
+		return nil
+	}
+
+	nodes, err := getDHCPNodes(nodesForCreate, false)
+	if err != nil {
+		return err
+	}
+
+	var pools []*resource.Pool6
+	var reservedPools []*resource.ReservedPool6
+	var reservations []*resource.Reservation6
+	var pdpools []*resource.PdPool
+	var reservedPdPools []*resource.ReservedPdPool
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pools); err != nil {
+			return err
+		}
+
+		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPools); err != nil {
+			return err
+		}
+
+		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservations); err != nil {
+			return err
+		}
+
+		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pdpools); err != nil {
+			return err
+		}
+
+		return tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPdPools)
+	}); err != nil {
+		return err
+	}
+
+	req := &dhcpagent.CreateSubnets6AndPoolsRequest{
+		Subnets: []*dhcpagent.CreateSubnet6Request{subnet6ToCreateSubnet6Request(subnet6)},
+	}
+	for _, pool := range pools {
+		req.Pools = append(req.Pools, pool6ToCreatePool6Request(subnet6.SubnetId, pool))
+	}
+
+	for _, pool := range reservedPools {
+		req.ReservedPools = append(req.ReservedPools,
+			reservedPool6ToCreateReservedPool6Request(subnet6.SubnetId, pool))
+	}
+
+	for _, reservation := range reservations {
+		req.Reservations = append(req.Reservations,
+			reservation6ToCreateReservation6Request(subnet6.SubnetId, reservation))
+	}
+
+	for _, pdpool := range pdpools {
+		req.PdPools = append(req.PdPools,
+			pdpoolToCreatePdPoolRequest(subnet6.SubnetId, pdpool))
+	}
+
+	for _, pdpool := range reservedPdPools {
+		req.ReservedPdPools = append(req.ReservedPdPools,
+			reservedPdPoolToCreateReservedPdPoolRequest(subnet6.SubnetId, pdpool))
+	}
+
+	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
+		dhcpservice.CreateSubnet6sAndPools, req); err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			succeedNodes, dhcpservice.DeleteSubnet6,
+			&dhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
+			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
+				subnet6.Subnet, succeedNodes, err.Error())
+		}
+		return err
+	}
+
+	return nil
 }

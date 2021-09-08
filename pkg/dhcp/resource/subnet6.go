@@ -29,6 +29,7 @@ type Subnet6 struct {
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
 	Tags                      string    `json:"tags"`
 	NetworkType               string    `json:"networkType"`
+	Nodes                     []string  `json:"nodes"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
@@ -116,7 +117,11 @@ func (s *Subnet6) ValidateParams() error {
 		return err
 	}
 
-	return checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime, s.MinValidLifetime)
+	if err := checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime, s.MinValidLifetime); err != nil {
+		return err
+	}
+
+	return checkNodesValid(s.Nodes)
 }
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {

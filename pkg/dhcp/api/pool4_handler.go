@@ -55,7 +55,7 @@ func (p *Pool4Handler) Create(ctx *restresource.Context) (restresource.Resource,
 			return err
 		}
 
-		return sendCreatePool4CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendCreatePool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pool %s with subnet %s failed: %s",
@@ -140,12 +140,21 @@ func recalculatePool4Capacity(tx restdb.Transaction, subnetID string, pool *reso
 	return nil
 }
 
-func sendCreatePool4CmdToDHCPAgent(subnetID uint64, pool *resource.Pool4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreatePool4,
-		pool4ToPbCreatePool4Request(subnetID, pool))
+func sendCreatePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool4) error {
+	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreatePool4,
+		pool4ToCreatePool4Request(subnetID, pool))
+	if err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForSucceed,
+			dhcpservice.DeletePool4, pool4ToDeletePool4Request(subnetID, pool)); err != nil {
+			log.Errorf("create subnet %d pool4 %s failed, and rollback it failed: %s",
+				subnetID, pool.String(), err.Error())
+		}
+	}
+
+	return err
 }
 
-func pool4ToPbCreatePool4Request(subnetID uint64, pool *resource.Pool4) *dhcpagent.CreatePool4Request {
+func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *dhcpagent.CreatePool4Request {
 	return &dhcpagent.CreatePool4Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
@@ -334,7 +343,7 @@ func (p *Pool4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		return sendDeletePool4CmdToDHCPAgent(subnet.SubnetId, pool)
+		return sendDeletePool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
@@ -361,13 +370,18 @@ func setPool4FromDB(tx restdb.Transaction, pool *resource.Pool4) error {
 	return nil
 }
 
-func sendDeletePool4CmdToDHCPAgent(subnetID uint64, pool *resource.Pool4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeletePool4,
-		&dhcpagent.DeletePool4Request{
-			SubnetId:     subnetID,
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress,
-		})
+func sendDeletePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool4) error {
+	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeletePool4,
+		pool4ToDeletePool4Request(subnetID, pool))
+	return err
+}
+
+func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *dhcpagent.DeletePool4Request {
+	return &dhcpagent.DeletePool4Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
+	}
 }
 
 func (h *Pool4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {

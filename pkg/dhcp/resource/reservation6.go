@@ -98,5 +98,6 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
+	r.Capacity = uint64(len(r.IpAddresses) + len(r.Prefixes))
 	return nil
 }

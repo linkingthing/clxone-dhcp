@@ -33,10 +33,13 @@ type Subnet4 struct {
 	NextServer                string    `json:"nextServer"`
 	Tags                      string    `json:"tags"`
 	NetworkType               string    `json:"networkType"`
+	Nodes                     []string  `json:"nodes"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 }
+
+const ActionNameUpdateNodes = "update_nodes"
 
 func (s Subnet4) GetActions() []restresource.Action {
 	return []restresource.Action{
@@ -52,7 +55,15 @@ func (s Subnet4) GetActions() []restresource.Action {
 			Name:   util.ActionNameExportCSVTemplate,
 			Output: &util.ExportFile{},
 		},
+		restresource.Action{
+			Name:  ActionNameUpdateNodes,
+			Input: &SubnetNode{},
+		},
 	}
+}
+
+type SubnetNode struct {
+	Nodes []string `json:"nodes"`
 }
 
 func (s *Subnet4) Validate() error {
@@ -133,7 +144,11 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
-	return checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime)
+	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
+		return err
+	}
+
+	return checkNodesValid(s.Nodes)
 }
 
 func checkTFTPServer(tftpServer string) error {
@@ -181,6 +196,16 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 			return nil
 		}
 	})
+}
+
+func checkNodesValid(nodes []string) error {
+	for _, node := range nodes {
+		if net.ParseIP(node) == nil {
+			return fmt.Errorf("invalid node %s", node)
+		}
+	}
+
+	return nil
 }
 
 func (s *Subnet4) CheckConflictWithAnother(another *Subnet4) bool {

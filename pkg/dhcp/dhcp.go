@@ -18,6 +18,7 @@ var (
 )
 
 func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
+	api.InitConsulHandler()
 	apiServer.Schemas.MustImport(&Version, resource.Subnet4{}, api.NewSubnet4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Pool4{}, api.NewPool4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.ReservedPool4{}, api.NewReservedPool4Handler())
