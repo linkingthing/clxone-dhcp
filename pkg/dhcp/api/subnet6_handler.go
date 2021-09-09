@@ -132,7 +132,7 @@ func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterro
 
 	subnetsLeasesCount, err := getSubnet6sLeasesCount(subnets, filterSubnet || hasPagination)
 	if err != nil {
-		log.Warnf("get subnets leases count failed: %s", err.Error())
+		log.Warnf("get subnet6s leases count failed: %s", err.Error())
 	}
 
 	for _, subnet := range subnets {
@@ -149,6 +149,10 @@ func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterro
 }
 
 func getSubnet6sLeasesCount(subnets []*resource.Subnet6, useIds bool) (map[uint64]uint64, error) {
+	if len(subnets) == 0 {
+		return nil, nil
+	}
+
 	if useIds {
 		var ids []uint64
 		for _, subnet := range subnets {
@@ -308,7 +312,7 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 }
 
 func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6, nodes []string) error {
-	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.DeleteSubnet6,
+	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteSubnet6,
 		&dhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId})
 	return err
 }
@@ -325,27 +329,29 @@ func (h *Subnet6Handler) Action(ctx *restresource.Context) (interface{}, *rester
 
 func (h *Subnet6Handler) updateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetID()
-	var subnets []*resource.Subnet6
-	if _, err := restdb.GetResourceWithID(db.GetDB(), subnetID, &subnets); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get subnet6 %s failed: %s", subnetID, err.Error()))
-	}
-
 	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action update subnet6 %s nodes input invalid", subnetID))
 	}
 
-	nodesForDelete, nodesForCreate := getChangedNodes(subnets[0].Nodes, subnetNode.Nodes)
+	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetID}, &subnets); err != nil {
+			return err
+		}
+
+		if len(subnets) == 0 {
+			return fmt.Errorf("no found subnet6 %s", subnetID)
+		}
+
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 			"nodes": subnetNode.Nodes},
 			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 			return err
 		}
 
-		return sendUpdateSubnet6NodesCmdToDHCPAgent(subnets[0], nodesForDelete, nodesForCreate)
+		return sendUpdateSubnet6NodesCmdToDHCPAgent(tx, subnets[0], subnetNode.Nodes)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update subnet6 %s nodes failed: %s", subnetID, err.Error()))
@@ -354,7 +360,8 @@ func (h *Subnet6Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 	return nil, nil
 }
 
-func sendUpdateSubnet6NodesCmdToDHCPAgent(subnet6 *resource.Subnet6, nodesForDelete, nodesForCreate []string) error {
+func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resource.Subnet6, newNodes []string) error {
+	nodesForDelete, nodesForCreate := getChangedNodes(subnet6.Nodes, newNodes)
 	if err := sendDeleteSubnet6CmdToDHCPAgent(subnet6, nodesForDelete); err != nil {
 		return err
 	}
@@ -373,25 +380,23 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(subnet6 *resource.Subnet6, nodesForDel
 	var reservations []*resource.Reservation6
 	var pdpools []*resource.PdPool
 	var reservedPdPools []*resource.ReservedPdPool
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pools); err != nil {
-			return err
-		}
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pools); err != nil {
+		return err
+	}
 
-		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPools); err != nil {
-			return err
-		}
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPools); err != nil {
+		return err
+	}
 
-		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservations); err != nil {
-			return err
-		}
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservations); err != nil {
+		return err
+	}
 
-		if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pdpools); err != nil {
-			return err
-		}
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pdpools); err != nil {
+		return err
+	}
 
-		return tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPdPools)
-	}); err != nil {
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPdPools); err != nil {
 		return err
 	}
 

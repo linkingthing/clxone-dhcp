@@ -22,7 +22,7 @@ func sendDHCPCmdWithNodes(sentryNodes []string, cmd dhcpservice.DHCPCmd, req pro
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes, cmd, req)
 }
 
-func getDHCPNodes(nodes []string, isv4 bool) ([]string, error) {
+func getDHCPNodes(sentryNodes []string, isv4 bool) ([]string, error) {
 	checks, services, err := GetConsulHandler().GetDHCPAgentChecksAndServices()
 	if err != nil {
 		return nil, err
@@ -47,10 +47,10 @@ func getDHCPNodes(nodes []string, isv4 bool) ([]string, error) {
 		}
 	}
 
-	for _, node := range nodes {
+	for _, node := range sentryNodes {
 		if roles, ok := nodeRoles[node]; ok == false ||
 			util.SliceIndex(roles, sentryRole) == -1 {
-			return nil, fmt.Errorf("node %s is invalid, it should be sentry role", node)
+			return nil, fmt.Errorf("node %s is not a dhcp sentry node", node)
 		}
 	}
 
@@ -69,5 +69,5 @@ func getDHCPNodes(nodes []string, isv4 bool) ([]string, error) {
 		return nil, fmt.Errorf("no found valid dhcp server nodes")
 	}
 
-	return append(nodes, serverNodes...), nil
+	return append(sentryNodes, serverNodes...), nil
 }
