@@ -63,6 +63,10 @@ const (
 	CreateClientClass6 DHCPCmd = "create_clientclass6"
 	DeleteClientClass6 DHCPCmd = "delete_clientclass6"
 	UpdateClientClass6 DHCPCmd = "update_clientclass6"
+
+	CreateFingerprint DHCPCmd = "create_fingerprint"
+	DeleteFingerprint DHCPCmd = "delete_fingerprint"
+	UpdateFingerprint DHCPCmd = "update_fingerprint"
 )
 
 var globalDHCPAgentService *DHCPAgentService

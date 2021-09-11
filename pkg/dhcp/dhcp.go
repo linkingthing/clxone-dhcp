@@ -38,6 +38,7 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.Agent4{}, api.NewAgent4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Agent6{}, api.NewAgent6Handler())
 
+	apiServer.Schemas.MustImport(&Version, resource.Fingerprint{}, api.NewFingerprintHandler())
 	apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, api.NewDhcpConfigHandler())
 	return nil
 }
