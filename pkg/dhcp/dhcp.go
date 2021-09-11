@@ -38,7 +38,7 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.Agent4{}, api.NewAgent4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Agent6{}, api.NewAgent6Handler())
 
-	apiServer.Schemas.MustImport(&Version, resource.Fingerprint{}, api.NewFingerprintHandler())
+	apiServer.Schemas.MustImport(&Version, resource.DhcpFingerprint{}, api.NewDhcpFingerprintHandler())
 	apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, api.NewDhcpConfigHandler())
 	return nil
 }
@@ -60,5 +60,6 @@ func PersistentResources() []restresource.Resource {
 		&resource.ClientClass6{},
 		&resource.Pool6Template{},
 		&resource.DhcpConfig{},
+		&resource.DhcpFingerprint{},
 	}
 }

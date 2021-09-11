@@ -25,9 +25,9 @@ func (m MatchPattern) Validate() bool {
 		m == MatchPatternRegexp
 }
 
-var TableFingerprint = restdb.ResourceDBType(&Fingerprint{})
+var TableDhcpFingerprint = restdb.ResourceDBType(&DhcpFingerprint{})
 
-type Fingerprint struct {
+type DhcpFingerprint struct {
 	restresource.ResourceBase `json:",inline"`
 	Fingerprint               string       `json:"fingerprint" rest:"required=true" db:"uk"`
 	VendorId                  string       `json:"vendorId" db:"uk"`
@@ -37,7 +37,7 @@ type Fingerprint struct {
 	IsReadOnly                bool         `json:"isReadOnly"`
 }
 
-func (f *Fingerprint) Validate() error {
+func (f *DhcpFingerprint) Validate() error {
 	for _, v := range strings.Split(f.Fingerprint, ",") {
 		if _, err := strconv.Atoi(v); err != nil {
 			return fmt.Errorf("fingerprint must consist of numbers and commas, but get %s", f.Fingerprint)
