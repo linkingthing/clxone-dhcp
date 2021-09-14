@@ -39,15 +39,14 @@ type DhcpFingerprint struct {
 
 func (f *DhcpFingerprint) Validate() error {
 	for _, v := range strings.Split(f.Fingerprint, ",") {
-		if _, err := strconv.Atoi(v); err != nil {
+		if i, err := strconv.Atoi(v); err != nil {
 			return fmt.Errorf("fingerprint must consist of numbers and commas, but get %s", f.Fingerprint)
+		} else if i <= 0 || i >= 255 {
+			return fmt.Errorf("fingerprint number %s not in [1,254]", v)
 		}
 	}
 
-	if f.MatchPattern.Validate() == false {
-		return fmt.Errorf("match pattern %s not in [equal, prefix, suffix, keyword, regexp]", f.MatchPattern)
-	}
-
+	f.MatchPattern = MatchPatternEqual
 	f.IsReadOnly = false
 	return nil
 }

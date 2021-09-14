@@ -11,7 +11,18 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
+
+var (
+	Wildcard = []byte("%")
+)
+
+const (
+	OrderByCreateTime = "create_time desc"
+)
+
+var FingerprintFilterNames = []string{"fingerprint", "vendor_id", "operating_system", "client_type"}
 
 type DhcpFingerprintHandler struct{}
 
@@ -48,16 +59,36 @@ func sendCreateFingerprintCmdToAgent(fingerprint *resource.DhcpFingerprint) erro
 func fingerprintToCreateFingerprintRequest(fingerprint *resource.DhcpFingerprint) *dhcpagent.CreateFingerprintRequest {
 	return &dhcpagent.CreateFingerprintRequest{
 		Fingerprint:     fingerprint.Fingerprint,
-		VendorId:        fingerprint.VendorId,
+		VendorId:        getVendorIdByMatchPattern(fingerprint.VendorId, fingerprint.MatchPattern),
 		OperatingSystem: fingerprint.OperatingSystem,
 		ClientType:      fingerprint.ClientType,
 		MatchPattern:    string(fingerprint.MatchPattern),
 	}
 }
 
+func getVendorIdByMatchPattern(vendorId string, matchPattern resource.MatchPattern) string {
+	if len(vendorId) == 0 {
+		return vendorId
+	}
+
+	vendorBytes := []byte(vendorId)
+	switch matchPattern {
+	case resource.MatchPatternPrefix:
+		vendorBytes = append(vendorBytes, Wildcard...)
+	case resource.MatchPatternSuffix:
+		vendorBytes = append(Wildcard, vendorBytes...)
+	case resource.MatchPatternKeyword:
+		vendorBytes = append(Wildcard, vendorBytes...)
+		vendorBytes = append(vendorBytes, Wildcard...)
+	}
+
+	return string(vendorBytes)
+}
+
 func (h *DhcpFingerprintHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	var fingerprints []*resource.DhcpFingerprint
-	if err := db.GetResources(map[string]interface{}{"orderby": restdb.IDField}, &fingerprints); err != nil {
+	if err := db.GetResources(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		OrderByCreateTime, FingerprintFilterNames...), &fingerprints); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list fingerprints from db failed: %s", err.Error()))
 	}
@@ -79,6 +110,11 @@ func (h *DhcpFingerprintHandler) Get(ctx *restresource.Context) (restresource.Re
 
 func (h *DhcpFingerprintHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	fingerprint := ctx.Resource.(*resource.DhcpFingerprint)
+	if err := fingerprint.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("add fingerprint %s failed: %s", fingerprint.Fingerprint, err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var fingerprints []*resource.DhcpFingerprint
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: fingerprint.GetID()},
@@ -152,7 +188,7 @@ func sendDeleteFingerprintCmdToDHCPAgent(oldFingerprint *resource.DhcpFingerprin
 func fingerprintToDeleteFingerprintRequest(fingerprint *resource.DhcpFingerprint) *dhcpagent.DeleteFingerprintRequest {
 	return &dhcpagent.DeleteFingerprintRequest{
 		Fingerprint:     fingerprint.Fingerprint,
-		VendorId:        fingerprint.VendorId,
+		VendorId:        getVendorIdByMatchPattern(fingerprint.VendorId, fingerprint.MatchPattern),
 		OperatingSystem: fingerprint.OperatingSystem,
 		ClientType:      fingerprint.ClientType,
 	}
