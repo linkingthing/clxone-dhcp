@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -42,12 +43,20 @@ func (c *ClientClass6Handler) Create(ctx *restresource.Context) (restresource.Re
 }
 
 func sendCreateClientClass6CmdToAgent(clientclass *resource.ClientClass6) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateClientClass6,
+	err := dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateClientClass6,
 		&dhcpagent.CreateClientClass6Request{
 			Name:   clientclass.Name,
 			Code:   16,
 			Regexp: fmt.Sprintf(ClientClass6Option60, clientclass.Regexp),
 		})
+	if err != nil {
+		if err := sendDeleteClientClass6CmdToDHCPAgent(clientclass.Name); err != nil {
+			log.Errorf("add clientclass6 %s failed, rollback it failed: %s",
+				clientclass.Name, err.Error())
+		}
+	}
+
+	return err
 }
 
 func (c *ClientClass6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {

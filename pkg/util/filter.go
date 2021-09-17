@@ -48,7 +48,8 @@ func GetFilterValueWithEqModifierFromFilters(filterName string, filters []restre
 }
 
 func GetFilterValueWithEqModifierFromFilter(filter restresource.Filter) (string, bool) {
-	if filter.Modifier == restresource.Eq && len(filter.Values) == 1 {
+	if filter.Modifier == restresource.Eq && len(filter.Values) == 1 &&
+		strings.TrimSpace(filter.Values[0]) != "" {
 		return filter.Values[0], true
 	}
 

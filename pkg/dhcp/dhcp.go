@@ -19,6 +19,7 @@ var (
 
 func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	api.InitConsulHandler()
+	apiServer.Schemas.MustImport(&Version, resource.SharedNetwork4{}, api.NewSharedNetwork4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Subnet4{}, api.NewSubnet4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Pool4{}, api.NewPool4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.ReservedPool4{}, api.NewReservedPool4Handler())
@@ -45,6 +46,7 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 
 func PersistentResources() []restresource.Resource {
 	return []restresource.Resource{
+		&resource.SharedNetwork4{},
 		&resource.Subnet4{},
 		&resource.Pool4{},
 		&resource.ReservedPool4{},

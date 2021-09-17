@@ -97,6 +97,8 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *dhcpagent.CreateSu
 		MaxValidLifetime:      subnet.MaxValidLifetime,
 		MinValidLifetime:      subnet.MinValidLifetime,
 		PreferredLifetime:     subnet.PreferredLifetime,
+		MinPreferredLifetime:  subnet.PreferredLifetime,
+		MaxPreferredLifetime:  subnet.PreferredLifetime,
 		RenewTime:             subnet.PreferredLifetime / 2,
 		RebindTime:            subnet.PreferredLifetime * 3 / 4,
 		DnsServers:            subnet.DomainServers,
@@ -108,33 +110,58 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *dhcpagent.CreateSu
 }
 
 func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	conditions, filterSubnet, hasPagination := genGetSubnetsConditions(ctx)
+	listCtx := genGetSubnetsContext(ctx, resource.TableSubnet6)
 	var subnets []*resource.Subnet6
 	var subnetsCount int
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(conditions, &subnets); err != nil {
-			return err
-		}
-
-		if hasPagination {
-			if count, err := tx.Count(resource.TableSubnet6, nil); err != nil {
+		if listCtx.hasPagination {
+			if count, err := tx.CountEx(resource.TableSubnet6,
+				listCtx.countSql, listCtx.params[:len(listCtx.params)-2]...); err != nil {
 				return err
 			} else {
 				subnetsCount = int(count)
 			}
 		}
 
-		return nil
+		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list subnet6s from db failed: %s", err.Error()))
 	}
 
-	subnetsLeasesCount, err := getSubnet6sLeasesCount(subnets, filterSubnet || hasPagination)
-	if err != nil {
-		log.Warnf("get subnet6s leases count failed: %s", err.Error())
+	if err := setSubnet6sLeasesUsedInfo(subnets, listCtx.isUseIds()); err != nil {
+		log.Warnf("set subnet6s leases used info failed: %s", err.Error())
 	}
 
+	setPagination(ctx, listCtx.hasPagination, subnetsCount)
+	return subnets, nil
+}
+
+func setSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
+	if len(subnets) == 0 {
+		return nil
+	}
+
+	var resp *dhcpagent.GetSubnetsLeasesCountResponse
+	var err error
+	if useIds {
+		var ids []uint64
+		for _, subnet := range subnets {
+			ids = append(ids, subnet.SubnetId)
+		}
+
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(context.TODO(),
+			&dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+	} else {
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCount(context.TODO(),
+			&dhcpagent.GetSubnetsLeasesCountRequest{})
+	}
+
+	if err != nil {
+		return err
+	}
+
+	subnetsLeasesCount := resp.GetSubnetsLeasesCount()
 	for _, subnet := range subnets {
 		if subnet.Capacity != 0 {
 			if leasesCount, ok := subnetsLeasesCount[subnet.SubnetId]; ok {
@@ -144,29 +171,7 @@ func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		}
 	}
 
-	setPagination(ctx, hasPagination, subnetsCount)
-	return subnets, nil
-}
-
-func getSubnet6sLeasesCount(subnets []*resource.Subnet6, useIds bool) (map[uint64]uint64, error) {
-	if len(subnets) == 0 {
-		return nil, nil
-	}
-
-	if useIds {
-		var ids []uint64
-		for _, subnet := range subnets {
-			ids = append(ids, subnet.SubnetId)
-		}
-
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(context.TODO(),
-			&dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
-		return resp.GetSubnetsLeasesCount(), err
-	} else {
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCount(context.TODO(),
-			&dhcpagent.GetSubnetsLeasesCountRequest{})
-		return resp.GetSubnetsLeasesCount(), err
-	}
+	return nil
 }
 
 func (s *Subnet6Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
@@ -273,6 +278,8 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			MaxValidLifetime:      subnet.MaxValidLifetime,
 			MinValidLifetime:      subnet.MinValidLifetime,
 			PreferredLifetime:     subnet.PreferredLifetime,
+			MinPreferredLifetime:  subnet.PreferredLifetime,
+			MaxPreferredLifetime:  subnet.PreferredLifetime,
 			RenewTime:             subnet.PreferredLifetime / 2,
 			RebindTime:            subnet.PreferredLifetime * 3 / 4,
 			DnsServers:            subnet.DomainServers,
@@ -361,18 +368,22 @@ func (h *Subnet6Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 }
 
 func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resource.Subnet6, newNodes []string) error {
-	nodesForDelete, nodesForCreate := getChangedNodes(subnet6.Nodes, newNodes)
-	if err := sendDeleteSubnet6CmdToDHCPAgent(subnet6, nodesForDelete); err != nil {
+	if len(subnet6.Nodes) == 0 && len(newNodes) == 0 {
+		return nil
+	}
+
+	nodesForDelete, nodesForCreate, err := getChangedNodes(subnet6.Nodes, newNodes)
+	if err != nil {
+		return err
+	}
+
+	if _, err := sendDHCPCmdWithNodes(nodesForDelete, dhcpservice.DeleteSubnet6,
+		&dhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
 		return err
 	}
 
 	if len(nodesForCreate) == 0 {
 		return nil
-	}
-
-	nodes, err := getDHCPNodes(nodesForCreate, false)
-	if err != nil {
-		return err
 	}
 
 	var pools []*resource.Pool6
@@ -427,7 +438,7 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 			reservedPdPoolToCreateReservedPdPoolRequest(subnet6.SubnetId, pdpool))
 	}
 
-	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
+	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForCreate,
 		dhcpservice.CreateSubnet6sAndPools, req); err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			succeedNodes, dhcpservice.DeleteSubnet6,

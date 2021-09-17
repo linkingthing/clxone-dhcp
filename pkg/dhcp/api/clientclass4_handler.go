@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 
+	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
 	restresource "github.com/zdnscloud/gorest/resource"
@@ -35,26 +36,34 @@ func (c *ClientClass4Handler) Create(ctx *restresource.Context) (restresource.Re
 		return sendCreateClientClass4CmdToAgent(clientclass)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("add clientclass %s failed: %s", clientclass.Name, err.Error()))
+			fmt.Sprintf("add clientclass4 %s failed: %s", clientclass.Name, err.Error()))
 	}
 
 	return clientclass, nil
 }
 
 func sendCreateClientClass4CmdToAgent(clientclass *resource.ClientClass4) error {
-	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateClientClass4,
+	err := dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateClientClass4,
 		&dhcpagent.CreateClientClass4Request{
 			Name:   clientclass.Name,
 			Code:   60,
 			Regexp: fmt.Sprintf(ClientClass4Option60, clientclass.Regexp),
 		})
+	if err != nil {
+		if err := sendDeleteClientClass4CmdToDHCPAgent(clientclass.Name); err != nil {
+			log.Errorf("add clientclass4 %s failed, rollback it failed: %s",
+				clientclass.Name, err.Error())
+		}
+	}
+
+	return err
 }
 
 func (c *ClientClass4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	var clientclasses []*resource.ClientClass4
 	if err := db.GetResources(map[string]interface{}{"orderby": "name"}, &clientclasses); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list clientclasses from db failed: %s", err.Error()))
+			fmt.Sprintf("list clientclass4s from db failed: %s", err.Error()))
 	}
 
 	return clientclasses, nil
@@ -66,7 +75,7 @@ func (c *ClientClass4Handler) Get(ctx *restresource.Context) (restresource.Resou
 	clientclass, err := restdb.GetResourceWithID(db.GetDB(), clientclassID, &clientclasses)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get clientclass %s from db failed: %s", clientclassID, err.Error()))
+			fmt.Sprintf("get clientclass4 %s from db failed: %s", clientclassID, err.Error()))
 	}
 
 	return clientclass.(*resource.ClientClass4), nil
@@ -84,7 +93,7 @@ func (c *ClientClass4Handler) Update(ctx *restresource.Context) (restresource.Re
 		return sendUpdateClientClass4CmdToDHCPAgent(clientclass)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update clientclass %s failed: %s", clientclass.GetID(), err.Error()))
+			fmt.Sprintf("update clientclass4 %s failed: %s", clientclass.GetID(), err.Error()))
 	}
 
 	return clientclass, nil
@@ -110,7 +119,7 @@ func (c *ClientClass4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 		return sendDeleteClientClass4CmdToDHCPAgent(clientclassID)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete clientclass %s failed: %s", clientclassID, err.Error()))
+			fmt.Sprintf("delete clientclass4 %s failed: %s", clientclassID, err.Error()))
 	}
 
 	return nil

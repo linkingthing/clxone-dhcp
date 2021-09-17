@@ -27,6 +27,9 @@ const (
 
 	Subnet4FileNamePrefix   = "subnet4-"
 	Subnet4TemplateFileName = "subnet4-template"
+
+	FilterNameExcludeShared  = "exclude_shared"
+	FilterNameSharedNetwork4 = "shared_network4"
 )
 
 type Subnet4Handler struct {
@@ -125,33 +128,152 @@ func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *dhcpagent.CreateSu
 }
 
 func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	conditions, filterSubnet, hasPagination := genGetSubnetsConditions(ctx)
+	listCtx := genGetSubnetsContext(ctx, resource.TableSubnet4)
 	var subnets []*resource.Subnet4
 	var subnetsCount int
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(conditions, &subnets); err != nil {
-			return err
-		}
-
-		if hasPagination {
-			if count, err := tx.Count(resource.TableSubnet4, nil); err != nil {
+		if listCtx.hasPagination {
+			if count, err := tx.CountEx(resource.TableSubnet4,
+				listCtx.countSql, listCtx.params[:len(listCtx.params)-2]...); err != nil {
 				return err
 			} else {
 				subnetsCount = int(count)
 			}
 		}
 
-		return nil
+		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list subnet4s from db failed: %s", err.Error()))
 	}
 
-	subnetsLeasesCount, err := getSubnet4sLeasesCount(subnets, filterSubnet || hasPagination)
-	if err != nil {
-		log.Warnf("get subnet4s leases count failed: %s", err.Error())
+	if err := setSubnet4sLeasesUsedInfo(subnets, listCtx); err != nil {
+		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
 	}
 
+	setPagination(ctx, listCtx.hasPagination, subnetsCount)
+	return subnets, nil
+}
+
+type listContext struct {
+	countSql        string
+	sql             string
+	params          []interface{}
+	hasFilterSubnet bool
+	hasPagination   bool
+	hasExclude      bool
+	hasShared       bool
+}
+
+func (l listContext) isUseIds() bool {
+	return l.hasPagination || l.hasFilterSubnet
+}
+
+func (l listContext) needSetSubnetsLeasesUsedInfo() bool {
+	return l.hasExclude == false && l.hasShared == false
+}
+
+func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) listContext {
+	seq := 1
+	listCtx := listContext{}
+	var subnetState string
+	var sharedNetworkState string
+	var excludeSharedState string
+	var excludeNodesState string
+	for _, filter := range ctx.GetFilters() {
+		switch filter.Name {
+		case util.FileNameSubnet:
+			if value, ok := util.GetFilterValueWithEqModifierFromFilter(filter); ok {
+				listCtx.hasFilterSubnet = true
+				listCtx.params = append(listCtx.params, value)
+				subnetState = "subnet = $" + strconv.Itoa(seq)
+				seq += 1
+			}
+		case FilterNameExcludeShared:
+			if value, ok := util.GetFilterValueWithEqModifierFromFilter(filter); ok && value == "true" {
+				listCtx.hasExclude = true
+				excludeNodesState = "nodes != '{}'"
+				excludeSharedState =
+					"subnet_id not in (select subnet_id from gr_shared_network4 where subnet_id=any(subnet_ids))"
+			}
+		case FilterNameSharedNetwork4:
+			if value, ok := util.GetFilterValueWithEqModifierFromFilter(filter); ok {
+				listCtx.hasShared = true
+				sharedNetworkState =
+					"subnet_id = any((select subnet_ids from gr_shared_network4 where name = $" +
+						strconv.Itoa(seq) + ")::numeric[])"
+				listCtx.params = append(listCtx.params, value)
+				seq += 1
+			}
+		}
+	}
+
+	sqls := []string{"select * from gr_" + string(table)}
+	var whereStates []string
+	if listCtx.hasFilterSubnet {
+		whereStates = append(whereStates, subnetState)
+	}
+
+	if listCtx.hasExclude {
+		whereStates = append(whereStates, excludeNodesState)
+	}
+
+	if listCtx.hasExclude && listCtx.hasShared {
+		whereStates = append(whereStates,
+			"("+strings.Join([]string{sharedNetworkState, excludeSharedState}, " or ")+")")
+	} else if listCtx.hasExclude {
+		whereStates = append(whereStates, excludeSharedState)
+	} else if listCtx.hasShared {
+		whereStates = append(whereStates, sharedNetworkState)
+	}
+
+	if len(whereStates) != 0 {
+		sqls = append(sqls, "where")
+		sqls = append(sqls, strings.Join(whereStates, " and "))
+	}
+
+	listCtx.countSql = strings.Replace(strings.Join(sqls, " "), "*", "count(*)", 1)
+	if listCtx.hasFilterSubnet == false {
+		sqls = append(sqls, "order by subnet_id")
+		if pagination := ctx.GetPagination(); pagination.PageSize > 0 && pagination.PageNum > 0 {
+			listCtx.hasPagination = true
+			sqls = append(sqls, "limit $"+strconv.Itoa(seq))
+			seq += 1
+			sqls = append(sqls, "offset $"+strconv.Itoa(seq))
+			listCtx.params = append(listCtx.params, pagination.PageSize)
+			listCtx.params = append(listCtx.params, (pagination.PageNum-1)*pagination.PageSize)
+		}
+	}
+
+	listCtx.sql = strings.Join(sqls, " ")
+	return listCtx
+}
+
+func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listContext) error {
+	if ctx.needSetSubnetsLeasesUsedInfo() == false || len(subnets) == 0 {
+		return nil
+	}
+
+	var resp *dhcpagent.GetSubnetsLeasesCountResponse
+	var err error
+	if ctx.isUseIds() {
+		var ids []uint64
+		for _, subnet := range subnets {
+			ids = append(ids, subnet.SubnetId)
+		}
+
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(
+			context.TODO(), &dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+	} else {
+		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(
+			context.TODO(), &dhcpagent.GetSubnetsLeasesCountRequest{})
+	}
+
+	if err != nil {
+		return err
+	}
+
+	subnetsLeasesCount := resp.GetSubnetsLeasesCount()
 	for _, subnet := range subnets {
 		if subnet.Capacity != 0 {
 			if leasesCount, ok := subnetsLeasesCount[subnet.SubnetId]; ok {
@@ -162,28 +284,7 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		}
 	}
 
-	setPagination(ctx, hasPagination, subnetsCount)
-	return subnets, nil
-}
-
-func genGetSubnetsConditions(ctx *restresource.Context) (map[string]interface{}, bool, bool) {
-	conditions := map[string]interface{}{"orderby": "subnet_id"}
-	filterSubnet := false
-	hasPagination := false
-	if subnet, ok := util.GetFilterValueWithEqModifierFromFilters(util.FileNameSubnet,
-		ctx.GetFilters()); ok {
-		filterSubnet = true
-		conditions[util.FileNameSubnet] = subnet
-	} else {
-		pagination := ctx.GetPagination()
-		if pagination.PageSize > 0 && pagination.PageNum > 0 {
-			hasPagination = true
-			conditions["offset"] = (pagination.PageNum - 1) * pagination.PageSize
-			conditions["limit"] = pagination.PageSize
-		}
-	}
-
-	return conditions, filterSubnet, hasPagination
+	return nil
 }
 
 func setPagination(ctx *restresource.Context, hasPagination bool, subnetsCount int) {
@@ -192,27 +293,6 @@ func setPagination(ctx *restresource.Context, hasPagination bool, subnetsCount i
 		pagination.Total = subnetsCount
 		pagination.PageTotal = int(math.Ceil(float64(subnetsCount) / float64(pagination.PageSize)))
 		ctx.SetPagination(pagination)
-	}
-}
-
-func getSubnet4sLeasesCount(subnets []*resource.Subnet4, useIds bool) (map[uint64]uint64, error) {
-	if len(subnets) == 0 {
-		return nil, nil
-	}
-
-	if useIds {
-		var ids []uint64
-		for _, subnet := range subnets {
-			ids = append(ids, subnet.SubnetId)
-		}
-
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(
-			context.TODO(), &dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
-		return resp.GetSubnetsLeasesCount(), err
-	} else {
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(
-			context.TODO(), &dhcpagent.GetSubnetsLeasesCountRequest{})
-		return resp.GetSubnetsLeasesCount(), err
 	}
 }
 
@@ -342,6 +422,10 @@ func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	subnet := ctx.Resource.(*resource.Subnet4)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet4FromDB(tx, subnet); err != nil {
+			return err
+		}
+
+		if err := checkUsedBySharedNetwork(tx, subnet.SubnetId); err != nil {
 			return err
 		}
 
@@ -981,7 +1065,7 @@ func (h *Subnet4Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 	return nil, nil
 }
 
-func getChangedNodes(oldNodes, newNodes []string) ([]string, []string) {
+func getChangedNodes(oldNodes, newNodes []string) ([]string, []string, error) {
 	nodesForDelete := make(map[string]struct{})
 	nodesForCreate := make(map[string]struct{})
 	for _, node := range oldNodes {
@@ -1006,22 +1090,48 @@ func getChangedNodes(oldNodes, newNodes []string) ([]string, []string) {
 		createSlices = append(createSlices, node)
 	}
 
-	return deleteSlices, createSlices
+	if len(deleteSlices) != 0 && len(createSlices) == 0 {
+		if nodes, err := getDHCPNodes(deleteSlices, true); err != nil {
+			return nil, nil, err
+		} else {
+			deleteSlices = nodes
+		}
+	}
+
+	if len(deleteSlices) == 0 && len(createSlices) != 0 {
+		if nodes, err := getDHCPNodes(createSlices, true); err != nil {
+			return nil, nil, err
+		} else {
+			createSlices = nodes
+		}
+	}
+
+	return deleteSlices, createSlices, nil
 }
 
 func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resource.Subnet4, newNodes []string) error {
-	nodesForDelete, nodesForCreate := getChangedNodes(subnet4.Nodes, newNodes)
-	if err := sendDeleteSubnet4CmdToDHCPAgent(subnet4, nodesForDelete); err != nil {
+	if len(subnet4.Nodes) == 0 && len(newNodes) == 0 {
+		return nil
+	}
+
+	if len(subnet4.Nodes) != 0 && len(newNodes) == 0 {
+		if err := checkUsedBySharedNetwork(tx, subnet4.SubnetId); err != nil {
+			return err
+		}
+	}
+
+	nodesForDelete, nodesForCreate, err := getChangedNodes(subnet4.Nodes, newNodes)
+	if err != nil {
+		return err
+	}
+
+	if _, err := sendDHCPCmdWithNodes(nodesForDelete, dhcpservice.DeleteSubnet4,
+		&dhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
 		return err
 	}
 
 	if len(nodesForCreate) == 0 {
 		return nil
-	}
-
-	nodes, err := getDHCPNodes(nodesForCreate, true)
-	if err != nil {
-		return err
 	}
 
 	var pools []*resource.Pool4
@@ -1054,7 +1164,7 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 			reservation4ToCreateReservation4Request(subnet4.SubnetId, reservation))
 	}
 
-	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
+	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForCreate,
 		dhcpservice.CreateSubnet4sAndPools, req); err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			succeedNodes, dhcpservice.DeleteSubnet4,

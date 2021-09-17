@@ -21,6 +21,10 @@ const (
 	CreateSubnet4sAndPools DHCPCmd = "create_subnet4s_and_pools"
 	DeleteSubnet4s         DHCPCmd = "delete_subnet4s"
 
+	CreateSharedNetwork4 DHCPCmd = "create_sharednetwork4"
+	UpdateSharedNetwork4 DHCPCmd = "update_sharednetwork4"
+	DeleteSharedNetwork4 DHCPCmd = "delete_sharednetwork4"
+
 	CreateSubnet4 DHCPCmd = "create_subnet4"
 	UpdateSubnet4 DHCPCmd = "update_subnet4"
 	DeleteSubnet4 DHCPCmd = "delete_subnet4"

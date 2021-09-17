@@ -17,7 +17,7 @@ type Subnet6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
 	Ipnet                     net.IPNet `json:"-"`
-	SubnetId                  uint64    `json:"-" rest:"description=readonly" db:"suk"`
+	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
@@ -33,6 +33,15 @@ type Subnet6 struct {
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
+}
+
+func (s Subnet6) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  ActionNameUpdateNodes,
+			Input: &SubnetNode{},
+		},
+	}
 }
 
 func (s *Subnet6) Validate() error {

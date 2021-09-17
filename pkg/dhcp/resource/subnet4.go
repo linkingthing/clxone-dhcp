@@ -18,7 +18,7 @@ type Subnet4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
 	Ipnet                     net.IPNet `json:"-"`
-	SubnetId                  uint64    `json:"-" rest:"description=readonly" db:"suk"`
+	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
