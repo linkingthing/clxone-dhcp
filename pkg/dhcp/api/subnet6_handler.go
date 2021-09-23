@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
@@ -298,10 +299,8 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		if leasesCount, err := getSubnet6LeasesCount(subnet); err != nil {
-			return fmt.Errorf("get subnet %s leases count failed: %s", subnet.Subnet, err.Error())
-		} else if leasesCount != 0 {
-			return fmt.Errorf("can not delete subnet with %d ips had been allocated", leasesCount)
+		if err := checkSubnet6CouldBeDelete(subnet); err != nil {
+			return err
 		}
 
 		if _, err := tx.Delete(resource.TableSubnet6,
@@ -316,6 +315,17 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	}
 
 	return nil
+}
+
+func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
+	if leasesCount, err := getSubnet6LeasesCount(subnet6); err != nil {
+		return fmt.Errorf("get subnet %s leases count failed: %s", subnet6.Subnet, err.Error())
+	} else if leasesCount != 0 {
+		return fmt.Errorf("can not delete subnet with %d ips had been allocated", leasesCount)
+	} else {
+		return nil
+	}
+
 }
 
 func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6, nodes []string) error {
@@ -372,6 +382,12 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 		return nil
 	}
 
+	if len(subnet6.Nodes) != 0 && len(newNodes) == 0 {
+		if err := checkSubnet6CouldBeDelete(subnet6); err != nil {
+			return err
+		}
+	}
+
 	nodesForDelete, nodesForCreate, err := getChangedNodes(subnet6.Nodes, newNodes)
 	if err != nil {
 		return err
@@ -386,29 +402,54 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 		return nil
 	}
 
+	req, cmd, err := genCreateSubnets6AndPoolsRequestWithSubnet6(tx, subnet6)
+	if err != nil {
+		return err
+	}
+
+	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+		nodesForCreate, cmd, req); err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			succeedNodes, dhcpservice.DeleteSubnet6,
+			&dhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
+			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
+				subnet6.Subnet, succeedNodes, err.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func genCreateSubnets6AndPoolsRequestWithSubnet6(tx restdb.Transaction, subnet6 *resource.Subnet6) (proto.Message, dhcpservice.DHCPCmd, error) {
 	var pools []*resource.Pool6
 	var reservedPools []*resource.ReservedPool6
 	var reservations []*resource.Reservation6
 	var pdpools []*resource.PdPool
 	var reservedPdPools []*resource.ReservedPdPool
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pools); err != nil {
-		return err
+		return nil, "", err
 	}
 
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPools); err != nil {
-		return err
+		return nil, "", err
 	}
 
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservations); err != nil {
-		return err
+		return nil, "", err
 	}
 
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &pdpools); err != nil {
-		return err
+		return nil, "", err
 	}
 
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnet6.GetID()}, &reservedPdPools); err != nil {
-		return err
+		return nil, "", err
+	}
+
+	if len(pools) == 0 && len(reservedPools) == 0 && len(reservations) == 0 &&
+		len(pdpools) == 0 && len(reservedPdPools) == 0 {
+		return subnet6ToCreateSubnet6Request(subnet6), dhcpservice.CreateSubnet6, nil
 	}
 
 	req := &dhcpagent.CreateSubnets6AndPoolsRequest{
@@ -438,16 +479,5 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 			reservedPdPoolToCreateReservedPdPoolRequest(subnet6.SubnetId, pdpool))
 	}
 
-	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForCreate,
-		dhcpservice.CreateSubnet6sAndPools, req); err != nil {
-		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			succeedNodes, dhcpservice.DeleteSubnet6,
-			&dhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
-			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
-				subnet6.Subnet, succeedNodes, err.Error())
-		}
-		return err
-	}
-
-	return nil
+	return req, dhcpservice.CreateSubnet6sAndPools, nil
 }

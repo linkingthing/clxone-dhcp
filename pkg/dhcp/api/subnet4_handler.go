@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
 	resterror "github.com/zdnscloud/gorest/error"
@@ -425,14 +426,8 @@ func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 			return err
 		}
 
-		if err := checkUsedBySharedNetwork(tx, subnet.SubnetId); err != nil {
+		if err := checkSubnet4CouldBeDelete(tx, subnet); err != nil {
 			return err
-		}
-
-		if leasesCount, err := getSubnet4LeasesCount(subnet); err != nil {
-			return fmt.Errorf("get subnet %s leases count failed: %s", subnet.Subnet, err.Error())
-		} else if leasesCount != 0 {
-			return fmt.Errorf("can not delete subnet with %d ips had been allocated", leasesCount)
 		}
 
 		if _, err := tx.Delete(resource.TableSubnet4,
@@ -444,6 +439,20 @@ func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete subnet %s failed: %s", subnet.GetID(), err.Error()))
+	}
+
+	return nil
+}
+
+func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4) error {
+	if err := checkUsedBySharedNetwork(tx, subnet4.SubnetId); err != nil {
+		return err
+	}
+
+	if leasesCount, err := getSubnet4LeasesCount(subnet4); err != nil {
+		return fmt.Errorf("get subnet %s leases count failed: %s", subnet4.Subnet, err.Error())
+	} else if leasesCount != 0 {
+		return fmt.Errorf("can not delete subnet with %d ips had been allocated", leasesCount)
 	}
 
 	return nil
@@ -1115,7 +1124,7 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 	}
 
 	if len(subnet4.Nodes) != 0 && len(newNodes) == 0 {
-		if err := checkUsedBySharedNetwork(tx, subnet4.SubnetId); err != nil {
+		if err := checkSubnet4CouldBeDelete(tx, subnet4); err != nil {
 			return err
 		}
 	}
@@ -1134,19 +1143,43 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 		return nil
 	}
 
+	req, cmd, err := genCreateSubnets4AndPoolsRequestWithSubnet4(tx, subnet4)
+	if err != nil {
+		return err
+	}
+
+	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+		nodesForCreate, cmd, req); err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			succeedNodes, dhcpservice.DeleteSubnet4,
+			&dhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
+			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
+				subnet4.Subnet, succeedNodes, err.Error())
+		}
+		return err
+	}
+
+	return nil
+}
+
+func genCreateSubnets4AndPoolsRequestWithSubnet4(tx restdb.Transaction, subnet4 *resource.Subnet4) (proto.Message, dhcpservice.DHCPCmd, error) {
 	var pools []*resource.Pool4
 	var reservedPools []*resource.ReservedPool4
 	var reservations []*resource.Reservation4
 	if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &pools); err != nil {
-		return err
+		return nil, "", err
 	}
 
 	if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &reservedPools); err != nil {
-		return err
+		return nil, "", err
 	}
 
 	if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &reservations); err != nil {
-		return err
+		return nil, "", err
+	}
+
+	if len(pools) == 0 && len(reservedPools) == 0 && len(reservations) == 0 {
+		return subnet4ToCreateSubnet4Request(subnet4), dhcpservice.CreateSubnet4, nil
 	}
 
 	req := &dhcpagent.CreateSubnets4AndPoolsRequest{
@@ -1164,16 +1197,5 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 			reservation4ToCreateReservation4Request(subnet4.SubnetId, reservation))
 	}
 
-	if succeedNodes, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForCreate,
-		dhcpservice.CreateSubnet4sAndPools, req); err != nil {
-		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			succeedNodes, dhcpservice.DeleteSubnet4,
-			&dhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
-			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
-				subnet4.Subnet, succeedNodes, err.Error())
-		}
-		return err
-	}
-
-	return nil
+	return req, dhcpservice.CreateSubnet4sAndPools, nil
 }
