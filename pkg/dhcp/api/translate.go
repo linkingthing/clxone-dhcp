@@ -14,7 +14,6 @@ import (
 const (
 	FieldNameSubnet            = "子网地址*"
 	FieldNameSubnetName        = "子网名称"
-	FieldNameSubnetType        = "子网类型"
 	FieldNameValidLifetime     = "租约时长"
 	FieldNameMaxValidLifetime  = "最大租约时长"
 	FieldNameMinValidLifetime  = "最小租约时长"
@@ -40,7 +39,7 @@ const (
 
 var (
 	TableHeaderSubnet4 = []string{
-		FieldNameSubnet, FieldNameSubnetName, FieldNameSubnetType,
+		FieldNameSubnet, FieldNameSubnetName,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNameSubnetMask, FieldNameRouters, FieldNameDomainServers, FieldNameIfaceName,
 		FieldNameOption60, FieldNameOption82, FieldNameOption66, FieldNameOption67, FieldNameNodes,
@@ -48,7 +47,7 @@ var (
 	}
 
 	TableHeaderSubnet6 = []string{
-		FieldNameSubnet, FieldNameSubnetName, FieldNameSubnetType,
+		FieldNameSubnet, FieldNameSubnetName,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameDomainServers, FieldNameIfaceName,
 		FiledNameRelayAddresses, FieldNameOption16, FieldNameOption18, FieldNameNodes,
@@ -60,7 +59,7 @@ var (
 
 func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 	return []string{
-		subnet4.Subnet, subnet4.Tags, subnet4.NetworkType,
+		subnet4.Subnet, subnet4.Tags,
 		lifetimeToString(subnet4.ValidLifetime),
 		lifetimeToString(subnet4.MaxValidLifetime),
 		lifetimeToString(subnet4.MinValidLifetime),
@@ -113,8 +112,6 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString(subnet4.NextServer)
 	buf.WriteString("','")
 	buf.WriteString(subnet4.Tags)
-	buf.WriteString("','")
-	buf.WriteString(subnet4.NetworkType)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet4.Nodes, ","))
 	buf.WriteString("}','")

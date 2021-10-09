@@ -52,14 +52,13 @@ func transSearchSubnetResponse(subnets []*resource.Subnet4) *dhcp.SearchSubnetRe
 	var gsubnets []*dhcp.Subnet
 	for _, subnet := range subnets {
 		gsubnets = append(gsubnets, &dhcp.Subnet{
-			Id:          subnet.ID,
-			Subnet:      subnet.Subnet,
-			SubnetId:    uint32(subnet.SubnetId),
-			Tags:        subnet.Tags,
-			NetworkType: subnet.NetworkType,
-			Capacity:    subnet.Capacity,
-			UsedRatio:   subnet.UsedRatio,
-			UsedCount:   subnet.UsedCount,
+			Id:        subnet.ID,
+			Subnet:    subnet.Subnet,
+			SubnetId:  uint32(subnet.SubnetId),
+			Tags:      subnet.Tags,
+			Capacity:  subnet.Capacity,
+			UsedRatio: subnet.UsedRatio,
+			UsedCount: subnet.UsedCount,
 		})
 	}
 

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"strconv"
@@ -9,13 +8,9 @@ import (
 	"sync"
 
 	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
 
-	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	metricresource "github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
-	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 )
 
@@ -64,36 +59,6 @@ func (a *DHCPService) GetSubnet6ByIDs(ids ...string) (subnets []*resource.Subnet
 	return
 }
 
-//TODO remove it
-func (a *DHCPService) GetNodeList() (nodes []*metricresource.Node, err error) {
-	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("found clxone-dhcp-agnet-grpc: %s", err.Error()))
-	}
-
-	for _, end := range endpoints {
-		response, err := end(context.Background(), struct{}{})
-		if err != nil {
-			return nil, err
-		}
-
-		ip, _, err := net.SplitHostPort(response.(string))
-		if err != nil {
-			return nil, err
-		}
-
-		node := &metricresource.Node{
-			Ip:       ip,
-			Hostname: ip,
-		}
-		node.SetID(ip)
-		nodes = append(nodes, node)
-	}
-
-	return
-}
-
 func (a *DHCPService) GetClosestSubnet4ByIDs(ids []string, ip string) (*pbdhcp.Subnet, error) {
 	subnets, err := a.GetSubnet4ByIDs(ids...)
 	if err != nil {
@@ -120,14 +85,13 @@ func getClosestSubnet4(subnets []*resource.Subnet4, ip net.IP) (*pbdhcp.Subnet, 
 	}
 
 	return &pbdhcp.Subnet{
-		Id:          subnet4.ID,
-		Subnet:      subnet4.Subnet,
-		SubnetId:    uint32(subnet4.SubnetId),
-		Tags:        subnet4.Tags,
-		NetworkType: subnet4.NetworkType,
-		Capacity:    subnet4.Capacity,
-		UsedRatio:   subnet4.UsedRatio,
-		UsedCount:   subnet4.UsedCount,
+		Id:        subnet4.ID,
+		Subnet:    subnet4.Subnet,
+		SubnetId:  uint32(subnet4.SubnetId),
+		Tags:      subnet4.Tags,
+		Capacity:  subnet4.Capacity,
+		UsedRatio: subnet4.UsedRatio,
+		UsedCount: subnet4.UsedCount,
 	}, nil
 }
 
@@ -157,14 +121,13 @@ func getClosestSubnet6(subnets []*resource.Subnet6, ip net.IP) (*pbdhcp.Subnet, 
 	}
 
 	return &pbdhcp.Subnet{
-		Id:          subnet6.ID,
-		Subnet:      subnet6.Subnet,
-		SubnetId:    uint32(subnet6.SubnetId),
-		Tags:        subnet6.Tags,
-		NetworkType: subnet6.NetworkType,
-		Capacity:    subnet6.Capacity,
-		UsedRatio:   subnet6.UsedRatio,
-		UsedCount:   subnet6.UsedCount,
+		Id:        subnet6.ID,
+		Subnet:    subnet6.Subnet,
+		SubnetId:  uint32(subnet6.SubnetId),
+		Tags:      subnet6.Tags,
+		Capacity:  subnet6.Capacity,
+		UsedRatio: subnet6.UsedRatio,
+		UsedCount: subnet6.UsedCount,
 	}, nil
 }
 

@@ -363,7 +363,6 @@ func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resourc
 			"tftp_server":           subnet.TftpServer,
 			"bootfile":              subnet.Bootfile,
 			"tags":                  subnet.Tags,
-			"network_type":          subnet.NetworkType,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return err
 		}
@@ -640,8 +639,6 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.Subnet = strings.TrimSpace(field)
 		case FieldNameSubnetName:
 			subnet.Tags = field
-		case FieldNameSubnetType:
-			subnet.NetworkType = field
 		case FieldNameValidLifetime:
 			if subnet.ValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {

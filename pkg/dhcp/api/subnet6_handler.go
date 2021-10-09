@@ -238,7 +238,6 @@ func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resourc
 			"relay_agent_addresses":    subnet.RelayAgentAddresses,
 			"relay_agent_interface_id": subnet.RelayAgentInterfaceId,
 			"tags":                     subnet.Tags,
-			"network_type":             subnet.NetworkType,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return err
 		}
