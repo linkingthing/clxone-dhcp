@@ -92,6 +92,10 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 		s.MaxValidLifetime = dhcpConfig.MaxValidLifetime
 	}
 
+	if s.PreferredLifetime == 0 {
+		s.PreferredLifetime = dhcpConfig.ValidLifetime
+	}
+
 	if len(s.DomainServers) == 0 {
 		s.DomainServers = dhcpConfig.DomainServers
 	}
