@@ -10,6 +10,8 @@
   * pool4template
   * clientclass4
   * agent4
+  * sharednetwork4
+  * lease4
 
 * DHCPv6:
   * subnet6
@@ -21,6 +23,7 @@
   * pool6template
   * clientclass6
   * agent6
+  * lease6
 
 * Common
   * dhcpconfig
@@ -63,6 +66,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/dhcpfingerprints
+		
 		GET /apis/linkingthing.com/dhcp/v1/dhcpfingerprints/62d5a24a4027522e80e5569c843d117f
 
 
@@ -87,6 +91,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/dhcpconfigs
+		
 		GET /apis/linkingthing.com/dhcp/v1/dhcpconfigs/dhcpglobalconfig
 
 ## Agent4
@@ -96,6 +101,7 @@
 * 仅支持查询
 
 		GET /apis/linkingthing.com/dhcp/v1/agent4s
+		
 		GET /apis/linkingthing.com/dhcp/v1/agent4s/10.0.0.98
 		
 ## ClientClass4
@@ -125,6 +131,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/clientclass4s
+		
 		GET /apis/linkingthing.com/dhcp/v1/clientclass4s/op60
 		
 * 目前只支持相等的正则表达式，所以regexp的值为LXDHCPV4OP60，意味着在DHCP服务器的配置为
@@ -169,6 +176,8 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/pool4templates
+		GET /apis/linkingthing.com/dhcp/v1/pool4templates?name=tp4_10
+		
 		GET /apis/linkingthing.com/dhcp/v1/pool4templates/tp4_10		
 
 ## Subnet4
@@ -190,6 +199,7 @@
   * bootfile  TFTP服务器启动文件(option67)
   * tags 子网名字
   * networkType 子网类型
+  * nodes 节点列表
   * capacity 子网容量
   * usedRatio 子网地址使用率
   * usedCount 子网地址已使用个数
@@ -212,7 +222,8 @@
     		"tftpServer": "http://www.linkingthing.com/tftp.xml",
     		"bootfile": "TFTP.bin",
     		"tags": "lx>dev>ipam",
-    		"networkType": "server"
+    		"networkType": "server",
+    		"nodes": ["10.0.0.91", "10.0.0.92"]
     	}
   
 * 删
@@ -237,13 +248,82 @@
     		"tftpServer": "http://www.linkingthing.com/tftp.xml",
     		"bootfile": "TFTP.bin",
     		"tags": "lx>dev>ipam",
-    		"networkType": "server"
+    		"networkType": "server",
+    		"nodes": ["10.0.0.90", "10.0.0.91"]
     	}
 
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s
+		GET /apis/linkingthing.com/dhcp/v1/subnet4s?subnet=10.0.0.0/24
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1
+
+* Action
+  * importcsv
+  * exportcsv
+  * exportcsvtemplate
+  * update_nodes 更新子网节点配置
+    * input 
+      * nodes 节点列表
+      
+			POST /apis/linkingthing.com/dhcp/v1/subnet4s/1?action=update_nodes
+			{
+				"nodes": ["10.0.0.91", "10.0.0.92"]
+			}
+
+  * could_be_created 检查subnet是否可以创建
+    * input
+      * subnet 子网
+      
+			POST /apis/linkingthing.com/dhcp/v1/subnet4s?action=could_be_created
+			{
+				"subnet": "10.0.0.0/16"
+			}
+      		
+  * list_with_subnets
+    * input
+      * subnets 子网列表
+    * output
+      * subnet4s Subnet4列表
+      
+			POST  /apis/linkingthing.com/dhcp/v1/subnet4s?action=list_with_subnets
+			{
+				"subnets": ["1.0.0.0/16","2.0.0.0/16", "3.0.0.0/16"],
+			}
+
+## SharedNetwork4
+* DHCP模块的顶级资源，配置共享网络
+* 字段
+  * name 名字
+  * subnetIds subnet4的ID列表(用于创建和更新，不用于显示)
+  * subnets subnet4的subnet列表
+* 支持增、删、改、查
+* 增
+
+		POST /apis/linkingthing.com/dhcp/v1/sharednetwork4s
+		{
+			"name": "s1",
+			"subnetIds": [1,2,3,4,5]
+		}
+* 删
+
+		DLETE /apis/linkingthing.com/dhcp/v1/sharednetwork4s/d8e8d7b24050c23080318063667cb5e5
+		
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/sharednetwork4s/d8e8d7b24050c23080318063667cb5e5
+		{
+			"name": "s2",
+			"subnetIds": [2,3,4,5]
+		}
+
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/sharednetwork4s
+		GET /apis/linkingthing.com/dhcp/v1/sharednetwork4s?name=s1
+		
+		GET /apis/linkingthing.com/dhcp/v1/sharednetwork4s/d8e8d7b24050c23080318063667cb5e5
 
 
 ## Pool4
@@ -276,6 +356,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s/22e0dfaf40b445a280606c43a7c86b89
 
 
@@ -309,6 +390,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservedpool4s
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservedpool4s/22e0dfaf40b445a280606c43a7c86b89
 
 
@@ -336,7 +418,27 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservation4s
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservation4s/ab86666240b199e080e2235d4e4982e2
+		
+## Lease4
+* DHCP模块subnet4的子资源，获取子网的所有租赁信息
+* 字段
+  * address IP地址
+  * hwAddress MAC地址
+  * clientId 客户端ID
+  * validLifetime 租赁时长
+  * expire 租赁过期时间
+  * hostname 客户端主机名
+  * fingerprint 指纹
+  * vendorId 厂商
+  * operatingSystem 操作系统
+  * clientType 客户端类型
+  * state 租赁状态
+* 只支持list
+
+		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/lease4s
+		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/lease4s?ip=10.0.0.232
 	
 ## Agent6
 * DHCP模块的顶级资源，下发DHCPv6配置时，用于选择DHCP的节点
@@ -345,6 +447,7 @@
 * 仅支持查询
 
 		GET /apis/linkingthing.com/dhcp/v1/agent6s
+		
 		GET /apis/linkingthing.com/dhcp/v1/agent6s/10.0.0.98
 	
 ## ClientClass6
@@ -374,6 +477,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/clientclass6s
+		
 		GET /apis/linkingthing.com/dhcp/v1/clientclass6s/op16
 		
 * 目前只支持相等的正则表达式，所以regexp的值为LXDHCPV6OP16，意味着在DHCP6服务器的配置为
@@ -418,6 +522,8 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/pool6templates
+		GET /apis/linkingthing.com/dhcp/v1/pool6templates?name=tp6_10
+		
 		GET /apis/linkingthing.com/dhcp/v1/pool6templates/tp6_10
 		
 				
@@ -437,6 +543,7 @@
   * relayAgentAddresses 中继路由地址列表
   * tags 子网名字
   * networkType 子网类型
+  * nodes 节点列表
   * capacity 子网容量
   * usedRatio 子网地址使用率
   * usedCount 子网地址已使用个数
@@ -456,7 +563,8 @@
     		"relayAgentInterfaceId": "Gi0/0/3",
     		"relayAgentAddresses": ["fd00:10::3"],
     		"tags": "lx>dev>ipam",
-    		"networkType": "server"
+    		"networkType": "server",
+    		"nodes": ["10.0.0.90", "10.0.0.91"],
     	}
   
 * 删
@@ -477,13 +585,47 @@
     		"relayAgentInterfaceId": "Gi0/0/3",
     		"relayAgentAddresses": ["fd00:10::3"],
     		"tags": "lx>dev>ipam",
-    		"networkType": "server"
+    		"networkType": "server",
+    		"nodes": ["10.0.0.91", "10.0.0.92"]
     	}
 
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s
-		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1	
+		GET /apis/linkingthing.com/dhcp/v1/subnet6s?subnet=fd00:10::/64
+		
+		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1
+
+* Action
+  * update_nodes 更新子网节点配置
+    * input 
+      * nodes 节点列表
+
+			POST /apis/linkingthing.com/dhcp/v1/subnet6s/1?action=update_nodes
+			{
+    			"nodes": ["10.0.0.91", "10.0.0.92"]
+			}
+			
+  * could_be_created 检查subnet是否可以创建
+    * input
+      * subnet 子网
+
+			POST /apis/linkingthing.com/dhcp/v1/subnet6s?action=could_be_created
+			{
+				"subnet": "fd00:10::/32"
+			}
+			
+  * list_with_subnets
+    * input
+      * subnets 子网列表
+    * output
+      * subnet6s Subnet6列表
+
+			POST /apis/linkingthing.com/dhcp/v1/subnet6s?action=list_with_subnets
+			{
+				"subnets": ["fd00:10::/64", "fd00:20::/64", "fd00:30::/64"]
+			}
+  
 ## Pool6
 * DHCP模块subnet6的子资源，配置subnet6的地址池
 * 字段
@@ -514,6 +656,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s/22e0dfaf40b445a280606c43a7c86b89
 		
 ## ReservedPool6
@@ -546,6 +689,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpool6s
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpool6s/22e0dfaf40b445a280606c43a7c86b89
 		
 
@@ -593,6 +737,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s/ab86666240b199e080e2235d4e4982e2
 		
 
@@ -619,6 +764,7 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/pdpools
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/pdpools/86cddeec405362a780045990082056ad
 		
 		
@@ -645,9 +791,35 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpdpools
+		
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpdpools/86cddeec405362a780045990082056ad
 		
+## Lease6
+* DHCP模块subnet6的子资源，获取子网的所有租赁信息
+* 字段
+  * address IP地址
+  * prefixLen 前缀长度（仅PD有效）
+  * duid DUID
+  * iaid IAID
+  * leaseType 租赁类型（NA TA PD V4）
+  * hwAddress MAC地址
+  * hwAddressType MAC地址类型
+  * hwAddressSource MAC地址来源
+  * clientId 客户端ID
+  * preferredLifetime 首选租赁时长
+  * validLifetime 租赁时长
+  * expire 租赁过期时间
+  * hostname 客户端主机名
+  * fingerprint 指纹
+  * vendorId 厂商
+  * operatingSystem 操作系统
+  * clientType 客户端类型
+  * state 租赁状态
+* 只支持list
 
+		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/lease6s
+		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/lease6s?address=2409:8762:317:120::2c
+		
 ## 容量计算
 * DHCPv4:
 	*  pool4: 不计算reservedpool4、reservation4的地址

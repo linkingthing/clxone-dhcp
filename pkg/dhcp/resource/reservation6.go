@@ -86,10 +86,8 @@ func (r *Reservation6) Validate() error {
 	}
 
 	for _, prefix := range r.Prefixes {
-		if ip, ipnet, err := net.ParseCIDR(prefix); err != nil {
+		if _, ipnet, err := util.ParseCIDR(prefix, false); err != nil {
 			return err
-		} else if ip.To4() != nil {
-			return fmt.Errorf("prefix %s is not ipv6", prefix)
 		} else {
 			ones, _ := ipnet.Mask.Size()
 			if ones >= 64 {

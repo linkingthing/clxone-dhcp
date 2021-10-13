@@ -9,6 +9,19 @@ import (
 	"strings"
 )
 
+func ParseCIDR(cidr string, isv4 bool) (net.IP, *net.IPNet, error) {
+	if ip, ipnet, err := net.ParseCIDR(cidr); err != nil {
+		return nil, nil, err
+	} else if ip.Equal(ipnet.IP) == false {
+		return nil, nil, fmt.Errorf("ipnet %s don`t match ip %s",
+			ipnet.String(), ip.String())
+	} else if (ip.To4() != nil) != isv4 {
+		return nil, nil, fmt.Errorf("diff from expect ip version")
+	} else {
+		return ip, ipnet, nil
+	}
+}
+
 func ParseIP(ipstr string) (net.IP, bool, error) {
 	ip := net.ParseIP(ipstr)
 	if ip == nil {

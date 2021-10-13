@@ -11,36 +11,30 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
 
-const (
-	DefaultIdentify = "dhcpglobalconfig"
-)
-
 type DhcpConfigHandler struct {
 }
 
-func NewDhcpConfigHandler() *DhcpConfigHandler {
-	return &DhcpConfigHandler{}
+func NewDhcpConfigHandler() (*DhcpConfigHandler, error) {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if exists, err := tx.Exists(resource.TableDhcpConfig, nil); err != nil {
+			return err
+		} else if exists == false {
+			_, err := tx.Insert(resource.DefaultDhcpConfig)
+			return err
+		} else {
+			return nil
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	return &DhcpConfigHandler{}, nil
 }
 
 func (d *DhcpConfigHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	var configs []*resource.DhcpConfig
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(nil, &configs); err != nil {
-			return err
-		}
-
-		if len(configs) == 0 {
-			config := &resource.DhcpConfig{
-				Identify:         DefaultIdentify,
-				MinValidLifetime: resource.DefaultMinValidLifetime,
-				MaxValidLifetime: resource.DefaultMaxValidLifetime,
-				ValidLifetime:    resource.DefaultValidLifetime,
-			}
-			tx.Insert(config)
-			configs = append(configs, config)
-		}
-
-		return nil
+		return tx.Fill(nil, &configs)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list global config from db failed: %s", err.Error()))

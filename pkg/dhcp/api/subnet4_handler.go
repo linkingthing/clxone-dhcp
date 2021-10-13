@@ -48,23 +48,11 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var subnets []*resource.Subnet4
-		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc"},
-			&subnets); err != nil {
-			return fmt.Errorf("get subnets from db failed: %s\n", err.Error())
+		if err := checkSubnet4CouldBeCreated(tx, subnet.Subnet); err != nil {
+			return err
 		}
 
-		if len(subnets) >= MaxSubnetsCount {
-			return fmt.Errorf("subnet4s count has reached maximum (1w)")
-		}
-
-		subnet.SubnetId = 1
-		if len(subnets) > 0 {
-			subnet.SubnetId = subnets[0].SubnetId + 1
-		}
-
-		subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
-		if err := checkSubnet4ConflictWithSubnet4s(subnet, subnets); err != nil {
+		if err := setSubnet4ID(tx, subnet); err != nil {
 			return err
 		}
 
@@ -81,14 +69,38 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 	return subnet, nil
 }
 
-func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*resource.Subnet4) error {
-	for _, subnet := range subnets {
-		if subnet.CheckConflictWithAnother(subnet4) {
-			return fmt.Errorf("subnet4 %s conflict with subnet4 %s",
-				subnet4.Subnet, subnet.Subnet)
-		}
+func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
+	if count, err := tx.Count(resource.TableSubnet4, nil); err != nil {
+		return fmt.Errorf("get subnet4s count failed: %s", err.Error())
+	} else if count >= MaxSubnetsCount {
+		return fmt.Errorf("subnet4s count has reached maximum (1w)")
 	}
 
+	var subnets []*resource.Subnet4
+	if err := tx.FillEx(&subnets,
+		"select * from gr_subnet4 where $1 && ipnet", subnet); err != nil {
+		return fmt.Errorf("check subnet4 conflict failed: %s", err.Error())
+	} else if len(subnets) != 0 {
+		return fmt.Errorf("conflict with subnet4 %s", subnets[0].Subnet)
+	}
+
+	return nil
+}
+
+func setSubnet4ID(tx restdb.Transaction, subnet *resource.Subnet4) error {
+	var subnets []*resource.Subnet4
+	if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc", "offset": 0, "limit": 1},
+		&subnets); err != nil {
+		return err
+	}
+
+	if len(subnets) != 0 {
+		subnet.SubnetId = subnets[0].SubnetId + 1
+	} else {
+		subnet.SubnetId = 1
+	}
+
+	subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
 	return nil
 }
 
@@ -473,6 +485,10 @@ func (h *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 		return h.exportCSVTemplate(ctx)
 	case resource.ActionNameUpdateNodes:
 		return h.updateNodes(ctx)
+	case resource.ActionNameCouldBeCreated:
+		return h.couldBeCreated(ctx)
+	case resource.ActionNameListWithSubnets:
+		return h.listWithSubnets(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
@@ -740,6 +756,17 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 	}
 
 	return reservations, nil
+}
+
+func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*resource.Subnet4) error {
+	for _, subnet := range subnets {
+		if subnet.CheckConflictWithAnother(subnet4) {
+			return fmt.Errorf("subnet4 %s conflict with subnet4 %s",
+				subnet4.Subnet, subnet.Subnet)
+		}
+	}
+
+	return nil
 }
 
 func checkReservationsValid(subnet4 *resource.Subnet4, reservations []*resource.Reservation4) error {
@@ -1195,4 +1222,56 @@ func genCreateSubnets4AndPoolsRequestWithSubnet4(tx restdb.Transaction, subnet4 
 	}
 
 	return req, dhcpservice.CreateSubnet4sAndPools, nil
+}
+
+func (h *Subnet4Handler) couldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action check subnet could be created input invalid"))
+	}
+
+	if _, _, err := util.ParseCIDR(couldBeCreatedSubnet.Subnet, true); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action check subnet could be created input invalid: %s", err.Error()))
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return checkSubnet4CouldBeCreated(tx, couldBeCreatedSubnet.Subnet)
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("action check subnet could be created: %s", err.Error()))
+	}
+
+	return nil, nil
+}
+
+func (h *Subnet4Handler) listWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action list subnet input invalid"))
+	}
+
+	for _, subnet := range subnetListInput.Subnets {
+		if _, _, err := util.ParseCIDR(subnet, true); err != nil {
+			return nil, resterror.NewAPIError(resterror.InvalidFormat,
+				fmt.Sprintf("action check subnet could be created input invalid: %s", err.Error()))
+		}
+	}
+
+	var subnets []*resource.Subnet4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, fmt.Sprintf("select * from gr_subnet4 where subnet in ('%s')",
+			strings.Join(subnetListInput.Subnets, "','")))
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("action list subnet failed: %s", err.Error()))
+	}
+
+	if err := setSubnet4sLeasesUsedInfo(subnets, listContext{hasFilterSubnet: true}); err != nil {
+		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
+	}
+
+	return &resource.Subnet4ListOutput{Subnet4s: subnets}, nil
 }

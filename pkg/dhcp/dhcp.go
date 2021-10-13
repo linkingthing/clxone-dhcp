@@ -26,6 +26,7 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.Reservation4{}, api.NewReservation4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.ClientClass4{}, api.NewClientClass4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Pool4Template{}, api.NewPool4TemplateHandler())
+	apiServer.Schemas.MustImport(&Version, resource.Lease4{}, api.NewLease4Handler())
 
 	apiServer.Schemas.MustImport(&Version, resource.Subnet6{}, api.NewSubnet6Handler())
 	apiServer.Schemas.MustImport(&Version, resource.PdPool{}, api.NewPdPoolHandler())
@@ -35,12 +36,17 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.Reservation6{}, api.NewReservation6Handler())
 	apiServer.Schemas.MustImport(&Version, resource.ClientClass6{}, api.NewClientClass6Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Pool6Template{}, api.NewPool6TemplateHandler())
+	apiServer.Schemas.MustImport(&Version, resource.Lease6{}, api.NewLease6Handler())
 
 	apiServer.Schemas.MustImport(&Version, resource.Agent4{}, api.NewAgent4Handler())
 	apiServer.Schemas.MustImport(&Version, resource.Agent6{}, api.NewAgent6Handler())
 
 	apiServer.Schemas.MustImport(&Version, resource.DhcpFingerprint{}, api.NewDhcpFingerprintHandler())
-	apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, api.NewDhcpConfigHandler())
+	if dhcpConfigHandler, err := api.NewDhcpConfigHandler(); err != nil {
+		return err
+	} else {
+		apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, dhcpConfigHandler)
+	}
 	return nil
 }
 

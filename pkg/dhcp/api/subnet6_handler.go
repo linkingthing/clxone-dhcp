@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/zdnscloud/cement/log"
@@ -16,6 +17,7 @@ import (
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Subnet6Handler struct {
@@ -33,22 +35,11 @@ func (s *Subnet6Handler) Create(ctx *restresource.Context) (restresource.Resourc
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var subnets []*resource.Subnet6
-		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc"}, &subnets); err != nil {
-			return fmt.Errorf("get subnets from db failed: %s\n", err.Error())
+		if err := checkSubnet6CouldBeCreated(tx, subnet.Subnet); err != nil {
+			return err
 		}
 
-		if len(subnets) >= MaxSubnetsCount {
-			return fmt.Errorf("subnet6s count has reached maximum (1w)")
-		}
-
-		subnet.SubnetId = 1
-		if len(subnets) > 0 {
-			subnet.SubnetId = subnets[0].SubnetId + 1
-		}
-
-		subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
-		if err := checkSubnet6ConflictWithSubnet6s(subnet, subnets); err != nil {
+		if err := setSubnet6ID(tx, subnet); err != nil {
 			return err
 		}
 
@@ -65,13 +56,38 @@ func (s *Subnet6Handler) Create(ctx *restresource.Context) (restresource.Resourc
 	return subnet, nil
 }
 
-func checkSubnet6ConflictWithSubnet6s(subnet6 *resource.Subnet6, subnets []*resource.Subnet6) error {
-	for _, subnet := range subnets {
-		if subnet.CheckConflictWithAnother(subnet6) {
-			return fmt.Errorf("subnet6 %s conflict with subnet6 %s", subnet6.Subnet, subnet.Subnet)
-		}
+func checkSubnet6CouldBeCreated(tx restdb.Transaction, subnet string) error {
+	if count, err := tx.Count(resource.TableSubnet6, nil); err != nil {
+		return fmt.Errorf("get subnet6s count failed: %s", err.Error())
+	} else if count >= MaxSubnetsCount {
+		return fmt.Errorf("subnet6s count has reached maximum (1w)")
 	}
 
+	var subnets []*resource.Subnet6
+	if err := tx.FillEx(&subnets,
+		"select * from gr_subnet6 where $1 && ipnet", subnet); err != nil {
+		return fmt.Errorf("check subnet6 conflict failed: %s", err.Error())
+	} else if len(subnets) != 0 {
+		return fmt.Errorf("subnet6 conflict with subnet6 %s", subnets[0].Subnet)
+	}
+
+	return nil
+}
+
+func setSubnet6ID(tx restdb.Transaction, subnet *resource.Subnet6) error {
+	var subnets []*resource.Subnet6
+	if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc", "offset": 0, "limit": 1},
+		&subnets); err != nil {
+		return err
+	}
+
+	if len(subnets) != 0 {
+		subnet.SubnetId = subnets[0].SubnetId + 1
+	} else {
+		subnet.SubnetId = 1
+	}
+
+	subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
 	return nil
 }
 
@@ -337,6 +353,10 @@ func (h *Subnet6Handler) Action(ctx *restresource.Context) (interface{}, *rester
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameUpdateNodes:
 		return h.updateNodes(ctx)
+	case resource.ActionNameCouldBeCreated:
+		return h.couldBeCreated(ctx)
+	case resource.ActionNameListWithSubnets:
+		return h.listWithSubnets(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
@@ -479,4 +499,56 @@ func genCreateSubnets6AndPoolsRequestWithSubnet6(tx restdb.Transaction, subnet6 
 	}
 
 	return req, dhcpservice.CreateSubnet6sAndPools, nil
+}
+
+func (h *Subnet6Handler) couldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action check subnet could be created input invalid"))
+	}
+
+	if _, _, err := util.ParseCIDR(couldBeCreatedSubnet.Subnet, false); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action check subnet could be created input invalid: %s", err.Error()))
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return checkSubnet6CouldBeCreated(tx, couldBeCreatedSubnet.Subnet)
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("action check subnet could be created: %s", err.Error()))
+	}
+
+	return nil, nil
+}
+
+func (h *Subnet6Handler) listWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("action list subnet input invalid"))
+	}
+
+	for _, subnet := range subnetListInput.Subnets {
+		if _, _, err := util.ParseCIDR(subnet, false); err != nil {
+			return nil, resterror.NewAPIError(resterror.InvalidFormat,
+				fmt.Sprintf("action check subnet could be created input invalid: %s", err.Error()))
+		}
+	}
+
+	var subnets []*resource.Subnet6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, fmt.Sprintf("select * from gr_subnet6 where subnet in ('%s')",
+			strings.Join(subnetListInput.Subnets, "','")))
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("action list subnet failed: %s", err.Error()))
+	}
+
+	if err := setSubnet6sLeasesUsedInfo(subnets, true); err != nil {
+		log.Warnf("set subnet6s leases used info failed: %s", err.Error())
+	}
+
+	return &resource.Subnet6ListOutput{Subnet6s: subnets}, nil
 }

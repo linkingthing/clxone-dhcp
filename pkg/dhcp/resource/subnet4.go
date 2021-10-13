@@ -38,7 +38,11 @@ type Subnet4 struct {
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 }
 
-const ActionNameUpdateNodes = "update_nodes"
+const (
+	ActionNameUpdateNodes     = "update_nodes"
+	ActionNameCouldBeCreated  = "could_be_created"
+	ActionNameListWithSubnets = "list_with_subnets"
+)
 
 func (s Subnet4) GetActions() []restresource.Action {
 	return []restresource.Action{
@@ -58,6 +62,15 @@ func (s Subnet4) GetActions() []restresource.Action {
 			Name:  ActionNameUpdateNodes,
 			Input: &SubnetNode{},
 		},
+		restresource.Action{
+			Name:  ActionNameCouldBeCreated,
+			Input: &CouldBeCreatedSubnet{},
+		},
+		restresource.Action{
+			Name:   ActionNameListWithSubnets,
+			Input:  &SubnetListInput{},
+			Output: &Subnet4ListOutput{},
+		},
 	}
 }
 
@@ -65,14 +78,22 @@ type SubnetNode struct {
 	Nodes []string `json:"nodes"`
 }
 
+type CouldBeCreatedSubnet struct {
+	Subnet string `json:"subnet"`
+}
+
+type SubnetListInput struct {
+	Subnets []string `json:"subnets"`
+}
+
+type Subnet4ListOutput struct {
+	Subnet4s []*Subnet4 `json:"subnet4s"`
+}
+
 func (s *Subnet4) Validate() error {
-	ip, ipnet, err := net.ParseCIDR(s.Subnet)
+	_, ipnet, err := util.ParseCIDR(s.Subnet, true)
 	if err != nil {
 		return fmt.Errorf("subnet %s invalid: %s", s.Subnet, err.Error())
-	} else if ip.To4() == nil {
-		return fmt.Errorf("subnet %s not is ipv4", s.Subnet)
-	} else if ip.Equal(ipnet.IP) == false {
-		return fmt.Errorf("subnet %s invalid: ip %s don`t match mask size", s.Subnet, ip.String())
 	}
 
 	s.Ipnet = *ipnet
@@ -89,42 +110,25 @@ func (s *Subnet4) setSubnetDefaultValue() error {
 		return nil
 	}
 
-	var configs []*DhcpConfig
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(nil, &configs)
-	}); err != nil {
+	dhcpConfig, err := getDhcpConfig(true)
+	if err != nil {
 		return fmt.Errorf("get dhcp global config failed: %s", err.Error())
 	}
 
-	defaultValidLifetime := DefaultValidLifetime
-	defaultMinLifetime := DefaultMinValidLifetime
-	defaultMaxLifetime := DefaultMaxValidLifetime
-	var defaultDomains []string
-	if len(configs) != 0 {
-		defaultValidLifetime = configs[0].ValidLifetime
-		defaultMinLifetime = configs[0].MinValidLifetime
-		defaultMaxLifetime = configs[0].MaxValidLifetime
-		for _, domain := range configs[0].DomainServers {
-			if _, isv4, err := util.ParseIP(domain); err == nil && isv4 {
-				defaultDomains = append(defaultDomains, domain)
-			}
-		}
-	}
-
 	if s.ValidLifetime == 0 {
-		s.ValidLifetime = defaultValidLifetime
+		s.ValidLifetime = dhcpConfig.ValidLifetime
 	}
 
 	if s.MinValidLifetime == 0 {
-		s.MinValidLifetime = defaultMinLifetime
+		s.MinValidLifetime = dhcpConfig.MinValidLifetime
 	}
 
 	if s.MaxValidLifetime == 0 {
-		s.MaxValidLifetime = defaultMaxLifetime
+		s.MaxValidLifetime = dhcpConfig.MaxValidLifetime
 	}
 
 	if len(s.DomainServers) == 0 {
-		s.DomainServers = defaultDomains
+		s.DomainServers = dhcpConfig.DomainServers
 	}
 
 	return nil
