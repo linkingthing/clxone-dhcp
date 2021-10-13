@@ -9,6 +9,7 @@ require (
 	github.com/hashicorp/consul/api v1.9.1
 	github.com/insomniacslk/dhcp v0.0.0-20210621130208-1cac67f12b1e
 	github.com/segmentio/kafka-go v0.4.16
+	github.com/sirupsen/logrus v1.4.2
 	github.com/zdnscloud/cement v0.0.0-20200612070849-67372f989797
 	github.com/zdnscloud/gorest v0.0.0-20210714121546-63a830b87d40
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
