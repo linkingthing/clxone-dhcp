@@ -60,13 +60,8 @@ func (pdpool *PdPool) CheckConflictWithAnother(another *PdPool) bool {
 }
 
 func (pdpool *PdPool) Contains(prefix string) bool {
-	ip, ipnet, err := util.ParseCIDR(prefix, false)
+	ip, _, err := util.ParseCIDR(prefix, false)
 	if err != nil {
-		return false
-	}
-
-	if ones, _ := ipnet.Mask.Size(); uint32(ones) <= pdpool.PrefixLen ||
-		uint32(ones) > pdpool.DelegatedLen {
 		return false
 	}
 
