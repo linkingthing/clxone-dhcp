@@ -55,6 +55,7 @@ var (
 	}
 
 	SubnetMandatoryFields = []string{FieldNameSubnet}
+	TableHeaderSubnet4Len = len(TableHeaderSubnet4)
 )
 
 func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {

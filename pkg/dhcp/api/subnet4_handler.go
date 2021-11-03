@@ -1031,17 +1031,19 @@ func (h *Subnet4Handler) exportCSV(ctx *restresource.Context) (interface{}, *res
 
 	var strMatrix [][]string
 	for _, subnet4 := range subnet4s {
-		slices := localizationSubnet4ToStrSlice(subnet4)
+		subnetSlices := localizationSubnet4ToStrSlice(subnet4)
+		slices := make([]string, TableHeaderSubnet4Len)
+		copy(slices, subnetSlices)
 		if poolSlices, ok := subnetPools[subnet4.GetID()]; ok {
-			slices = append(slices, strings.Join(poolSlices, ","))
+			slices[TableHeaderSubnet4Len-3] = strings.Join(poolSlices, ",")
 		}
 
 		if reservedPools, ok := subnetReservedPools[subnet4.GetID()]; ok {
-			slices = append(slices, strings.Join(reservedPools, ","))
+			slices[TableHeaderSubnet4Len-2] = strings.Join(reservedPools, ",")
 		}
 
 		if reservations, ok := subnetReservations[subnet4.GetID()]; ok {
-			slices = append(slices, strings.Join(reservations, ","))
+			slices[TableHeaderSubnet4Len-1] = strings.Join(reservations, ",")
 		}
 
 		strMatrix = append(strMatrix, slices)
