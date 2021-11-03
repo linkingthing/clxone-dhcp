@@ -86,7 +86,7 @@ func validPdPool(prefix string, prefixLen, delegatedLen uint32) (string, uint64,
 	}
 
 	if delegatedLen < prefixLen || delegatedLen > 64 {
-		return "", 0, fmt.Errorf("pdpool delegated len %d not in (%d, 64]",
+		return "", 0, fmt.Errorf("pdpool delegated len %d not in [%d, 64]",
 			delegatedLen, prefixLen)
 	}
 
