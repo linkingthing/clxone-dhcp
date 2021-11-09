@@ -165,28 +165,31 @@ func validPool6(beginAddr, endAddr string) (string, string, uint64, error) {
 		return "", "", 0, fmt.Errorf("pool end address %s is not ipv6", endAddr)
 	}
 
-	capacity := Ipv6Pool6Capacity(begin, end)
-	if capacity <= 0 {
-		return "", "", 0, fmt.Errorf("invalid pool capacity with begin-address %s and end-address %s",
-			beginAddr, endAddr)
+	if capacity, err := calculateIpv6Pool6Capacity(begin, end); err != nil {
+		return "", "", 0, err
+	} else {
+		return begin.String(), end.String(), capacity, nil
 	}
-
-	return begin.String(), end.String(), capacity, nil
 }
 
 const MaxUint64 uint64 = 1844674407370955165
 
-func Ipv6Pool6Capacity(begin, end net.IP) uint64 {
+func calculateIpv6Pool6Capacity(begin, end net.IP) (uint64, error) {
 	beginBigInt, _ := util.Ipv6ToBigInt(begin)
 	endBigInt, _ := util.Ipv6ToBigInt(end)
-	return Ipv6Pool6CapacityWithBigInt(beginBigInt, endBigInt)
+	return CalculateIpv6Pool6CapacityWithBigInt(beginBigInt, endBigInt)
 }
 
-func Ipv6Pool6CapacityWithBigInt(beginBigInt, endBigInt *big.Int) uint64 {
+func CalculateIpv6Pool6CapacityWithBigInt(beginBigInt, endBigInt *big.Int) (uint64, error) {
+	if endBigInt.Cmp(beginBigInt) == -1 {
+		return 0, fmt.Errorf("begin address %s bigger than end address %s",
+			beginBigInt.String(), endBigInt.String())
+	}
+
 	capacity := big.NewInt(0).Sub(endBigInt, beginBigInt)
 	if capacity_ := big.NewInt(0).Add(capacity, big.NewInt(1)); capacity_.IsUint64() {
-		return capacity_.Uint64()
+		return capacity_.Uint64(), nil
 	} else {
-		return MaxUint64
+		return MaxUint64, nil
 	}
 }

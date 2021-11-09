@@ -327,7 +327,7 @@ func (s *Subnet4Handler) Get(ctx *restresource.Context) (restresource.Resource, 
 }
 
 func setSubnet4LeasesUsedRatio(subnet *resource.Subnet4) error {
-	leasesCount, err := getSubnet4LeasesCount(subnet)
+	leasesCount, err := dhcpservice.GetSubnet4LeasesCount(subnet)
 	if err != nil {
 		return err
 	}
@@ -337,16 +337,6 @@ func setSubnet4LeasesUsedRatio(subnet *resource.Subnet4) error {
 		subnet.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(subnet.Capacity))
 	}
 	return nil
-}
-
-func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
-	if subnet.Capacity == 0 {
-		return 0, nil
-	}
-
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4LeasesCount(context.TODO(),
-		&dhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
-	return resp.GetLeasesCount(), err
 }
 
 func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
@@ -460,7 +450,7 @@ func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4)
 		return err
 	}
 
-	if leasesCount, err := getSubnet4LeasesCount(subnet4); err != nil {
+	if leasesCount, err := dhcpservice.GetSubnet4LeasesCount(subnet4); err != nil {
 		return fmt.Errorf("get subnet %s leases count failed: %s", subnet4.Subnet, err.Error())
 	} else if leasesCount != 0 {
 		return fmt.Errorf("can not delete subnet with %d ips had been allocated", leasesCount)

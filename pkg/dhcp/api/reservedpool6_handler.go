@@ -171,7 +171,8 @@ func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *
 		end = reservedPoolEnd
 	}
 
-	return resource.Ipv6Pool6CapacityWithBigInt(begin, end)
+	count, _ := resource.CalculateIpv6Pool6CapacityWithBigInt(begin, end)
+	return count
 }
 
 func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {

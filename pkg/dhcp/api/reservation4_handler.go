@@ -199,7 +199,7 @@ func (r *Reservation4Handler) Get(ctx *restresource.Context) (restresource.Resou
 	}
 
 	reservation := reservationInterface.(*resource.Reservation4)
-	if leasesCount, err := getReservation4LeasesCount(reservation); err != nil {
+	if leasesCount, err := getReservation4LeaseCount(reservation); err != nil {
 		log.Warnf("get reservation %s with subnet %s leases used ratio failed: %s",
 			reservation.String(), subnetID, err.Error())
 	} else {
@@ -216,11 +216,12 @@ func setReservation4LeasesUsedRatio(reservation *resource.Reservation4, leasesCo
 	}
 }
 
-func getReservation4LeasesCount(reservation *resource.Reservation4) (uint64, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetReservation4LeasesCount(context.TODO(),
-		&dhcpagent.GetReservation4LeasesCountRequest{
+func getReservation4LeaseCount(reservation *resource.Reservation4) (uint64, error) {
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetReservation4LeaseCount(context.TODO(),
+		&dhcpagent.GetReservation4LeaseCountRequest{
 			SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
 			HwAddress: reservation.HwAddress,
+			IpAddress: reservation.IpAddress,
 		})
 
 	return resp.GetLeasesCount(), err
@@ -238,7 +239,7 @@ func (r *Reservation4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			return err
 		}
 
-		if leasesCount, err := getReservation4LeasesCount(reservation); err != nil {
+		if leasesCount, err := getReservation4LeaseCount(reservation); err != nil {
 			return fmt.Errorf("get reservation %s leases count failed: %s",
 				reservation.String(), err.Error())
 		} else if leasesCount != 0 {

@@ -85,3 +85,21 @@ func lease4FromPbLease4(lease *dhcpagent.DHCPLease4) *resource.Lease4 {
 func isoTimeFromUinx(t int64) restresource.ISOTime {
 	return restresource.ISOTime(time.Unix(t, 0))
 }
+
+func (l *Lease4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
+	subnetId := ctx.Resource.GetParent().GetID()
+	leaseId := ctx.Resource.GetID()
+	var subnets []*resource.Subnet4
+	if _, err := restdb.GetResourceWithID(db.GetDB(), subnetId, &subnets); err != nil {
+		return resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get subnet4 %s from db failed: %s", subnetId, err.Error()))
+	}
+
+	if _, err := grpcclient.GetDHCPAgentGrpcClient().DeleteLease4(context.TODO(),
+		&dhcpagent.DeleteLease4Request{SubnetId: subnets[0].SubnetId, Address: leaseId}); err != nil {
+		return resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("delete lease %s with subnet4 %s failed: %s", leaseId, subnetId, err.Error()))
+	} else {
+		return nil
+	}
+}

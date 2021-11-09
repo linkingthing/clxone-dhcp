@@ -175,17 +175,19 @@ func validPool4(beginAddr, endAddr string) (string, string, uint64, error) {
 		return "", "", 0, fmt.Errorf("pool end address %s is not ipv4", endAddr)
 	}
 
-	capacity := ipv4Pool4Capacity(begin, end)
-	if capacity <= 0 {
-		return "", "", 0, fmt.Errorf("invalid pool capacity with begin-address %s and end-address %s",
-			beginAddr, endAddr)
+	if capacity, err := calculateIpv4Pool4Capacity(begin, end); err != nil {
+		return "", "", 0, err
+	} else {
+		return begin.String(), end.String(), capacity, nil
 	}
-
-	return begin.String(), end.String(), capacity, nil
 }
 
-func ipv4Pool4Capacity(begin, end net.IP) uint64 {
+func calculateIpv4Pool4Capacity(begin, end net.IP) (uint64, error) {
 	endUint32, _ := util.Ipv4ToUint32(end)
 	beginUint32, _ := util.Ipv4ToUint32(begin)
-	return uint64(endUint32 - beginUint32 + 1)
+	if endUint32 < beginUint32 {
+		return 0, fmt.Errorf("begin address %s bigger than end address %s", begin.String(), end.String())
+	} else {
+		return uint64(endUint32 - beginUint32 + 1), nil
+	}
 }

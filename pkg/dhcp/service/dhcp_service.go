@@ -1,143 +1,183 @@
 package service
 
 import (
+	"context"
 	"fmt"
-	"net"
-	"strconv"
-	"strings"
-	"sync"
+	"time"
 
 	restdb "github.com/zdnscloud/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
+	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
-const (
-	GetSubnet4sWithIdSql = "select * from gr_subnet4 where id in (%s)"
-	GetSubnet6sWithIdSql = "select * from gr_subnet6 where id in (%s)"
-)
+func init() {
+	globalDHCPService = &DHCPService{}
+}
 
 var globalDHCPService *DHCPService
-var onceDHCPService sync.Once
 
 type DHCPService struct {
 }
 
 func GetDHCPService() *DHCPService {
-	onceDHCPService.Do(func() {
-		globalDHCPService = &DHCPService{}
-	})
 	return globalDHCPService
 }
 
-func (a *DHCPService) GetSubnet4ByIDs(ids ...string) (subnets []*resource.Subnet4, err error) {
-	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if len(ids) > 0 {
-			subnetIndex, subnetAgrs := genSqlArgsAndIndex(ids)
-			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnet4sWithIdSql, subnetIndex), subnetAgrs...)
-		} else {
-			err = tx.Fill(nil, &subnets)
-		}
-		return err
-	})
-	return
+func (d *DHCPService) GetSubnet4WithIp(ip string) (*pbdhcp.Subnet4, error) {
+	return getSubnet4WithIp(ip)
 }
 
-func (a *DHCPService) GetSubnet6ByIDs(ids ...string) (subnets []*resource.Subnet6, err error) {
-	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if len(ids) > 0 {
-			subnetIndex, subnetAgrs := genSqlArgsAndIndex(ids)
-			err = tx.FillEx(&subnets, fmt.Sprintf(GetSubnet6sWithIdSql, subnetIndex), subnetAgrs...)
-		} else {
-			err = tx.Fill(nil, &subnets)
-		}
-		return err
+func getSubnet4WithIp(ip string) (*pbdhcp.Subnet4, error) {
+	var subnets []*resource.Subnet4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, "select * from gr_subnet4 where ipnet >> $1", ip)
+	}); err != nil {
+		return nil, fmt.Errorf("get subnet4 from db failed: %s", err.Error())
+	}
 
-	})
-	return
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("no found subnet4 with ip %s", ip)
+	}
+
+	if leasesCount, err := GetSubnet4LeasesCount(subnets[0]); err != nil {
+		return nil, fmt.Errorf("get subnet4 %s leases count failed: %s", subnets[0].Subnet, err.Error())
+	} else {
+		return pbdhcpSubnet4FromSubnet4(subnets[0], leasesCount), nil
+	}
 }
 
-func (a *DHCPService) GetClosestSubnet4ByIDs(ids []string, ip string) (*pbdhcp.Subnet, error) {
-	subnets, err := a.GetSubnet4ByIDs(ids...)
+func GetSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
+	if subnet.Capacity == 0 {
+		return 0, nil
+	}
+
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4LeasesCount(context.TODO(),
+		&dhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
+	return resp.GetLeasesCount(), err
+}
+
+func pbdhcpSubnet4FromSubnet4(subnet *resource.Subnet4, leasesCount uint64) *pbdhcp.Subnet4 {
+	return &pbdhcp.Subnet4{
+		Id:            subnet.GetID(),
+		Subnet:        subnet.Subnet,
+		SubnetId:      subnet.SubnetId,
+		Capacity:      subnet.Capacity,
+		UsedCount:     leasesCount,
+		DomainServers: subnet.DomainServers,
+		Routers:       subnet.Routers,
+	}
+}
+
+func (d *DHCPService) GetSubnet6WithIp(ip string) (*pbdhcp.Subnet6, error) {
+	return getSubnet6WithIp(ip)
+}
+
+func getSubnet6WithIp(ip string) (*pbdhcp.Subnet6, error) {
+	var subnets []*resource.Subnet6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, "select * from gr_subnet6 where ipnet >> $1", ip)
+	}); err != nil {
+		return nil, fmt.Errorf("get subnet6 from db failed: %s", err.Error())
+	}
+
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("no found subnet6 with ip %s", ip)
+	}
+
+	if leasesCount, err := GetSubnet6LeasesCount(subnets[0]); err != nil {
+		return nil, fmt.Errorf("get subnet6 %s leases count failed: %s", subnets[0].Subnet, err.Error())
+	} else {
+		return pbdhcpSubnet6FromSubnet6(subnets[0], leasesCount), nil
+	}
+}
+
+func GetSubnet6LeasesCount(subnet *resource.Subnet6) (uint64, error) {
+	if subnet.Capacity == 0 {
+		return 0, nil
+	}
+
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6LeasesCount(context.TODO(),
+		&dhcpagent.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
+	return resp.GetLeasesCount(), err
+}
+
+func pbdhcpSubnet6FromSubnet6(subnet *resource.Subnet6, leasesCount uint64) *pbdhcp.Subnet6 {
+	return &pbdhcp.Subnet6{
+		Id:            subnet.GetID(),
+		Subnet:        subnet.Subnet,
+		SubnetId:      subnet.SubnetId,
+		Capacity:      subnet.Capacity,
+		UsedCount:     leasesCount,
+		DomainServers: subnet.DomainServers,
+	}
+}
+
+func (d *DHCPService) GetSubnet4AndLease4WithIp(ip string) (*pbdhcp.Subnet4, *pbdhcp.Lease4, error) {
+	subnet, err := getSubnet4WithIp(ip)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return getClosestSubnet4(subnets, net.ParseIP(ip))
+	if resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Lease(context.TODO(),
+		&dhcpagent.GetSubnet4LeaseRequest{Id: subnet.GetSubnetId(), Address: ip}); err != nil {
+		return nil, nil, fmt.Errorf("get lease %s with subnet %s failed: %s",
+			ip, subnet.GetSubnet(), err.Error())
+	} else {
+		return subnet, pbdhcpLease4FromDHCPAgentDHCPLease4(resp.GetLease()), nil
+	}
 }
 
-func getClosestSubnet4(subnets []*resource.Subnet4, ip net.IP) (*pbdhcp.Subnet, error) {
-	var maxPrefixLen int
-	var subnet4 *resource.Subnet4
-	for _, subnet := range subnets {
-		if subnet.Ipnet.Contains(ip) {
-			if ones, _ := subnet.Ipnet.Mask.Size(); ones > maxPrefixLen {
-				subnet4 = subnet
-				maxPrefixLen = ones
-			}
-		}
+func pbdhcpLease4FromDHCPAgentDHCPLease4(lease *dhcpagent.DHCPLease4) *pbdhcp.Lease4 {
+	return &pbdhcp.Lease4{
+		Address:         lease.GetAddress(),
+		HwAddress:       lease.GetHwAddress(),
+		ClientId:        lease.GetClientId(),
+		ValidLifetime:   lease.GetValidLifetime(),
+		Expire:          time.Unix(lease.GetExpire(), 0).Format(time.RFC3339),
+		Hostname:        lease.GetHostname(),
+		VendorId:        lease.GetVendorId(),
+		OperatingSystem: lease.GetOperatingSystem(),
+		ClientType:      lease.GetClientType(),
+		State:           lease.GetState(),
 	}
-
-	if subnet4 == nil {
-		return nil, fmt.Errorf("no find subnet with ip %s", ip.String())
-	}
-
-	return &pbdhcp.Subnet{
-		Id:        subnet4.ID,
-		Subnet:    subnet4.Subnet,
-		SubnetId:  uint32(subnet4.SubnetId),
-		Tags:      subnet4.Tags,
-		Capacity:  subnet4.Capacity,
-		UsedRatio: subnet4.UsedRatio,
-		UsedCount: subnet4.UsedCount,
-	}, nil
 }
 
-func (a *DHCPService) GetClosestSubnet6ByIDs(ids []string, ip string) (*pbdhcp.Subnet, error) {
-	subnets, err := a.GetSubnet6ByIDs(ids...)
+func (d *DHCPService) GetSubnet6AndLease6WithIp(ip string) (*pbdhcp.Subnet6, *pbdhcp.Lease6, error) {
+	subnet, err := getSubnet6WithIp(ip)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return getClosestSubnet6(subnets, net.ParseIP(ip))
+	if resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(context.TODO(),
+		&dhcpagent.GetSubnet6LeaseRequest{Id: subnet.GetSubnetId(), Address: ip}); err != nil {
+		return nil, nil, fmt.Errorf("get lease %s with subnet %s failed: %s",
+			ip, subnet.GetSubnet(), err.Error())
+	} else {
+		return subnet, pbdhcpLease6FromDHCPAgentDHCPLease6(resp.GetLease()), nil
+	}
 }
 
-func getClosestSubnet6(subnets []*resource.Subnet6, ip net.IP) (*pbdhcp.Subnet, error) {
-	var maxPrefixLen int
-	var subnet6 *resource.Subnet6
-	for _, subnet := range subnets {
-		if subnet.Ipnet.Contains(ip) {
-			if ones, _ := subnet.Ipnet.Mask.Size(); ones > maxPrefixLen {
-				subnet6 = subnet
-				maxPrefixLen = ones
-			}
-		}
+func pbdhcpLease6FromDHCPAgentDHCPLease6(lease *dhcpagent.DHCPLease6) *pbdhcp.Lease6 {
+	return &pbdhcp.Lease6{
+		Address:           lease.GetAddress(),
+		PrefixLen:         lease.GetPrefixLen(),
+		Duid:              lease.GetDuid(),
+		Iaid:              lease.GetIaid(),
+		HwAddress:         lease.GetHwAddress(),
+		HwAddressType:     lease.GetHwType(),
+		HwAddressSource:   lease.GetHwAddressSource(),
+		ValidLifetime:     lease.GetValidLifetime(),
+		PreferredLifetime: lease.GetPreferredLifetime(),
+		Expire:            time.Unix(lease.GetExpire(), 0).Format(time.RFC3339),
+		LeaseType:         lease.GetLeaseType().String(),
+		Hostname:          lease.GetHostname(),
+		VendorId:          lease.GetVendorId(),
+		OperatingSystem:   lease.GetOperatingSystem(),
+		ClientType:        lease.GetClientType(),
+		State:             lease.GetState(),
 	}
-
-	if subnet6 == nil {
-		return nil, fmt.Errorf("no find subnet with ip %s", ip.String())
-	}
-
-	return &pbdhcp.Subnet{
-		Id:        subnet6.ID,
-		Subnet:    subnet6.Subnet,
-		SubnetId:  uint32(subnet6.SubnetId),
-		Tags:      subnet6.Tags,
-		Capacity:  subnet6.Capacity,
-		UsedRatio: subnet6.UsedRatio,
-		UsedCount: subnet6.UsedCount,
-	}, nil
-}
-
-func genSqlArgsAndIndex(args []string) (string, []interface{}) {
-	var indexes []string
-	var sqlAgrs []interface{}
-	for i, arg := range args {
-		indexes = append(indexes, "$"+strconv.Itoa(i+1))
-		sqlAgrs = append(sqlAgrs, arg)
-	}
-
-	return strings.Join(indexes, ","), sqlAgrs
 }

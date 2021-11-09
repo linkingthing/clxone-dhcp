@@ -86,3 +86,27 @@ func lease6FromPbLease6(lease *dhcpagent.DHCPLease6) *resource.Lease6 {
 	lease6.SetID(lease.GetAddress())
 	return lease6
 }
+
+func (l *Lease6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
+	subnetId := ctx.Resource.GetParent().GetID()
+	leaseId := ctx.Resource.GetID()
+	var subnets []*resource.Subnet6
+	if _, err := restdb.GetResourceWithID(db.GetDB(), subnetId, &subnets); err != nil {
+		return resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("get subnet6 %s from db failed: %s", subnetId, err.Error()))
+	}
+
+	leaseType := dhcpagent.DHCPv6LeaseType_TYPE_NA
+	if ones, _ := subnets[0].Ipnet.Mask.Size(); ones < 64 {
+		leaseType = dhcpagent.DHCPv6LeaseType_TYPE_PD
+	}
+
+	if _, err := grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(context.TODO(),
+		&dhcpagent.DeleteLease6Request{SubnetId: subnets[0].SubnetId,
+			LeaseType: leaseType, Address: leaseId}); err != nil {
+		return resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("delete lease %s with subnet6 %s failed: %s", leaseId, subnetId, err.Error()))
+	} else {
+		return nil
+	}
+}

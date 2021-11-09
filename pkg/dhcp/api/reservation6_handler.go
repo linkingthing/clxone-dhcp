@@ -358,9 +358,11 @@ func setReservation6LeasesUsedRatio(reservation *resource.Reservation6, leasesCo
 func getReservation6LeasesCount(reservation *resource.Reservation6) (uint64, error) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetReservation6LeasesCount(context.TODO(),
 		&dhcpagent.GetReservation6LeasesCountRequest{
-			SubnetId:  subnetIDStrToUint64(reservation.Subnet6),
-			HwAddress: reservation.HwAddress,
-			Duid:      reservation.Duid,
+			SubnetId:    subnetIDStrToUint64(reservation.Subnet6),
+			HwAddress:   reservation.HwAddress,
+			Duid:        reservation.Duid,
+			IpAddresses: reservation.IpAddresses,
+			Prefixes:    reservation.Prefixes,
 		})
 
 	return resp.GetLeasesCount(), err
