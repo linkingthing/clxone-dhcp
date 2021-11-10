@@ -108,7 +108,7 @@ func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation
 
 	for _, ipAddress := range reservation.IpAddresses {
 		count, err := tx.CountEx(resource.TableReservation6,
-			"select count(*) from gr_reservation6 where subnet6 = $1 and $2=any(ip_addresses)",
+			"select count(*) from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",
 			subnetId, ipAddress)
 		if err != nil {
 			return fmt.Errorf("check reservation %s with subnet %s exists in db failed: %s",
@@ -121,7 +121,7 @@ func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation
 
 	for _, prefix := range reservation.Prefixes {
 		count, err := tx.CountEx(resource.TableReservation6,
-			"select count(*) from gr_reservation6 where subnet6 = $1 and $2=any(prefixes)",
+			"select count(*) from gr_reservation6 where subnet6 = $1 and $2::text = any(prefixes)",
 			subnetId, prefix)
 		if err != nil {
 			return fmt.Errorf("check reservation %s with subnet %s exists in db failed: %s",
@@ -324,6 +324,17 @@ func getReservation6sLeasesCount(subnetId uint64, reservations resource.Reservat
 	}
 
 	return leasesCount
+}
+
+func reservationMapFromReservation6s(reservations []*resource.Reservation6) map[string]struct{} {
+	reservationMap := make(map[string]struct{})
+	for _, reservation := range reservations {
+		for _, ipAddress := range reservation.IpAddresses {
+			reservationMap[ipAddress] = struct{}{}
+		}
+	}
+
+	return reservationMap
 }
 
 func (r *Reservation6Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {

@@ -4,9 +4,17 @@ import (
 	restresource "github.com/zdnscloud/gorest/resource"
 )
 
+type AddressType string
+
+const (
+	AddressTypeDynamic     AddressType = "dynamic"
+	AddressTypeReservation AddressType = "reservation"
+)
+
 type Lease4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Address                   string               `json:"address"`
+	AddressType               AddressType          `json:"addressType"`
 	HwAddress                 string               `json:"hwAddress"`
 	ClientId                  string               `json:"clientId"`
 	ValidLifetime             uint32               `json:"validLifetime"`

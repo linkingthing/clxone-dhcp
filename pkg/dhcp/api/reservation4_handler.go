@@ -172,11 +172,7 @@ func getReservation4sLeasesCount(subnetId uint64, reservations resource.Reservat
 		return nil
 	}
 
-	reservationMap := make(map[string]string)
-	for _, reservation := range reservations {
-		reservationMap[reservation.IpAddress] = reservation.HwAddress
-	}
-
+	reservationMap := reservationMapFromReservation4s(reservations)
 	leasesCount := make(map[string]uint64)
 	for _, lease := range resp.GetLeases() {
 		if mac, ok := reservationMap[lease.GetAddress()]; ok && mac == lease.GetHwAddress() {
@@ -185,6 +181,15 @@ func getReservation4sLeasesCount(subnetId uint64, reservations resource.Reservat
 	}
 
 	return leasesCount
+}
+
+func reservationMapFromReservation4s(reservations []*resource.Reservation4) map[string]string {
+	reservationMap := make(map[string]string)
+	for _, reservation := range reservations {
+		reservationMap[reservation.IpAddress] = reservation.HwAddress
+	}
+
+	return reservationMap
 }
 
 func (r *Reservation4Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {

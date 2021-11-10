@@ -173,7 +173,7 @@ func sharedNetworkNameToDeleteSharedNetwork4Request(name string) *dhcpagent.Dele
 func checkUsedBySharedNetwork(tx restdb.Transaction, subnetId uint64) error {
 	var sharedNetwork4s []*resource.SharedNetwork4
 	if err := tx.FillEx(&sharedNetwork4s,
-		"select * from gr_shared_network4 where $1=any(subnet_ids)", subnetId); err != nil {
+		"select * from gr_shared_network4 where $1::numeric = any(subnet_ids)", subnetId); err != nil {
 		return fmt.Errorf("check if it is used failed: %s", err.Error())
 	} else if len(sharedNetwork4s) != 0 {
 		return fmt.Errorf("used by shared network4 %s", sharedNetwork4s[0].Name)

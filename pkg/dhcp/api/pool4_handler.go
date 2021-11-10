@@ -201,11 +201,7 @@ func loadPool4sLeases(subnet *resource.Subnet4, pools resource.Pool4s, reservati
 		return nil
 	}
 
-	reservationMap := make(map[string]struct{})
-	for _, reservation := range reservations {
-		reservationMap[reservation.IpAddress] = struct{}{}
-	}
-
+	reservationMap := reservationMapFromReservation4s(reservations)
 	leasesCount := make(map[string]uint64)
 	for _, lease := range resp.GetLeases() {
 		if _, ok := reservationMap[lease.GetAddress()]; ok {
@@ -289,11 +285,7 @@ func getPool4LeasesCount(pool *resource.Pool4, reservations resource.Reservation
 		return uint64(len(resp.GetLeases())), nil
 	}
 
-	reservationMap := make(map[string]struct{})
-	for _, reservation := range reservations {
-		reservationMap[reservation.IpAddress] = struct{}{}
-	}
-
+	reservationMap := reservationMapFromReservation4s(reservations)
 	var leasesCount uint64
 	for _, lease := range resp.GetLeases() {
 		if _, ok := reservationMap[lease.GetAddress()]; ok == false {

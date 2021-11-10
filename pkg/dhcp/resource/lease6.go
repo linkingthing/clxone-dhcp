@@ -7,6 +7,7 @@ import (
 type Lease6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Address                   string               `json:"address"`
+	AddressType               AddressType          `json:"addressType"`
 	PrefixLen                 uint32               `json:"prefixLen"`
 	Duid                      string               `json:"duid"`
 	Iaid                      uint32               `json:"iaid"`
