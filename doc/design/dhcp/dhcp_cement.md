@@ -435,10 +435,12 @@
   * operatingSystem 操作系统
   * clientType 客户端类型
   * state 租赁状态
-* 只支持list
+* 支持获取和删除
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/lease4s
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/lease4s?ip=10.0.0.232
+		
+		DELETE /apis/linkingthing.com/dhcp/v1/subnet4s/1/lease4s/10.0.0.232
 	
 ## Agent6
 * DHCP模块的顶级资源，下发DHCPv6配置时，用于选择DHCP的节点
@@ -805,7 +807,6 @@
   * hwAddress MAC地址
   * hwAddressType MAC地址类型
   * hwAddressSource MAC地址来源
-  * clientId 客户端ID
   * preferredLifetime 首选租赁时长
   * validLifetime 租赁时长
   * expire 租赁过期时间
@@ -815,10 +816,12 @@
   * operatingSystem 操作系统
   * clientType 客户端类型
   * state 租赁状态
-* 只支持list
+* 只支持获取和删除
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/lease6s
-		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/lease6s?address=2409:8762:317:120::2c
+		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/lease6s?ip=2409:8762:317:120::2c
+		
+		DELETE /apis/linkingthing.com/dhcp/v1/subnet6s/1/lease6s/2409:8762:317:120::2c
 		
 ## 容量计算
 * DHCPv4:
