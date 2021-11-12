@@ -3,31 +3,31 @@
 配置godhcp，资源包含
 
 * DHCPv4:
-  * subnet4
-  * pool4
-  * reservedpool4
-  * reservation4
-  * pool4template
-  * clientclass4
-  * agent4
-  * sharednetwork4
-  * lease4
+  * subnet4 DHCPv4子网
+  * pool4 DHCPv4动态地址池
+  * reservedpool4 DHCPv4保留地址池
+  * reservation4 DHCPv4固定地址
+  * pool4template DHCPv4地址池模版
+  * clientclass4 DHCPv4 Option60
+  * agent4 DHCPv4节点
+  * sharednetwork4 DHCPv4共享网络
+  * subnetlease4 DHCPv4子网租赁
 
 * DHCPv6:
-  * subnet6
-  * pool6
-  * reservedpool6
-  * pdpool
-  * reservedpdpool
-  * reservation6
-  * pool6template
-  * clientclass6
-  * agent6
-  * lease6
+  * subnet6 DHCPv6子网
+  * pool6 DHCPv6动态地址池
+  * reservedpool6 DHCPv6保留地址池
+  * pdpool DHCPv6前缀委派
+  * reservedpdpool DHCPv6保留前缀
+  * reservation6 DHCPv6固定地址
+  * pool6template DHCPv6地址池模版
+  * clientclass6 DHCPv4 Option16
+  * agent6 DHCPv6节点
+  * subnetlease6 DHCPv6子网租赁
 
 * Common
-  * dhcpconfig
-  * dhcpfingerprint
+  * dhcpconfig DHCP全局配置
+  * dhcpfingerprint DHCP指纹
 
 ## DhcpFingerprint
 * DHCP模块的顶级资源，用于DHCP指纹库的扩展
@@ -421,10 +421,11 @@
 		
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservation4s/ab86666240b199e080e2235d4e4982e2
 		
-## Lease4
+## SubnetLease4
 * DHCP模块subnet4的子资源，获取子网的所有租赁信息
 * 字段
   * address IP地址
+  * addressType IP地址类型（dynamic, reservation）
   * hwAddress MAC地址
   * clientId 客户端ID
   * validLifetime 租赁时长
@@ -434,7 +435,7 @@
   * vendorId 厂商
   * operatingSystem 操作系统
   * clientType 客户端类型
-  * state 租赁状态
+  * leaseState 租赁状态 （NORMAL, DECLINED, RECLAIMED）
 * 支持获取和删除
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/lease4s
@@ -796,17 +797,18 @@
 		
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpdpools/86cddeec405362a780045990082056ad
 		
-## Lease6
+## SubnetLease6
 * DHCP模块subnet6的子资源，获取子网的所有租赁信息
 * 字段
   * address IP地址
+  * addressType IP地址类型（dynamic, reservation）
   * prefixLen 前缀长度（仅PD有效）
   * duid DUID
   * iaid IAID
-  * leaseType 租赁类型（NA TA PD V4）
+  * leaseType 租赁类型（IA_NA, IA_TA, IA_PD, IA_V4）
   * hwAddress MAC地址
   * hwAddressType MAC地址类型
-  * hwAddressSource MAC地址来源
+  * hwAddressSource MAC地址来源 (DUID, IPv6_LINKLOCAL, CLIENT_LINKADDR, REMOTE_ID, DOCSIS_CMTS, DOCSIS_MODEM)
   * preferredLifetime 首选租赁时长
   * validLifetime 租赁时长
   * expire 租赁过期时间
@@ -815,7 +817,7 @@
   * vendorId 厂商
   * operatingSystem 操作系统
   * clientType 客户端类型
-  * state 租赁状态
+  * leaseState 租赁状态 (NORMAL, DECLINED, RECLAIMED)
 * 只支持获取和删除
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/lease6s
