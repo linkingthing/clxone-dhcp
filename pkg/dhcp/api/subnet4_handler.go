@@ -379,22 +379,31 @@ func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resourc
 }
 
 func setSubnet4FromDB(tx restdb.Transaction, subnet *resource.Subnet4) error {
+	oldSubnet, err := getSubnet4FromDB(tx, subnet.GetID())
+	if err != nil {
+		return err
+	}
+
+	subnet.SubnetId = oldSubnet.SubnetId
+	subnet.Capacity = oldSubnet.Capacity
+	subnet.Subnet = oldSubnet.Subnet
+	subnet.Ipnet = oldSubnet.Ipnet
+	subnet.Nodes = oldSubnet.Nodes
+	return nil
+}
+
+func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4, error) {
 	var subnets []*resource.Subnet4
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnet.GetID()},
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetId},
 		&subnets); err != nil {
-		return fmt.Errorf("get subnet %s from db failed: %s", subnet.GetID(), err.Error())
+		return nil, fmt.Errorf("get subnet %s from db failed: %s", subnetId, err.Error())
 	}
 
 	if len(subnets) == 0 {
-		return fmt.Errorf("no found subnet %s", subnet.GetID())
+		return nil, fmt.Errorf("no found subnet %s", subnetId)
 	}
 
-	subnet.SubnetId = subnets[0].SubnetId
-	subnet.Capacity = subnets[0].Capacity
-	subnet.Subnet = subnets[0].Subnet
-	subnet.Ipnet = subnets[0].Ipnet
-	subnet.Nodes = subnets[0].Nodes
-	return nil
+	return subnets[0], nil
 }
 
 func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
@@ -1065,14 +1074,10 @@ func (h *Subnet4Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 			fmt.Sprintf("action update subnet4 %s nodes input invalid", subnetID))
 	}
 
-	var subnets []*resource.Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetID}, &subnets); err != nil {
+		subnet4, err := getSubnet4FromDB(tx, subnetID)
+		if err != nil {
 			return err
-		}
-
-		if len(subnets) == 0 {
-			return fmt.Errorf("no found subnet4 %s", subnetID)
 		}
 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
@@ -1081,7 +1086,7 @@ func (h *Subnet4Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 			return err
 		}
 
-		return sendUpdateSubnet4NodesCmdToDHCPAgent(tx, subnets[0], subnetNode.Nodes)
+		return sendUpdateSubnet4NodesCmdToDHCPAgent(tx, subnet4, subnetNode.Nodes)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update subnet4 %s nodes failed: %s", subnetID, err.Error()))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/zdnscloud/cement/log"
 	restdb "github.com/zdnscloud/gorest/db"
@@ -12,49 +13,44 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
-type Lease6Handler struct{}
+type SubnetLease6Handler struct{}
 
-func NewLease6Handler() *Lease6Handler {
-	return &Lease6Handler{}
+func NewSubnetLease6Handler() *SubnetLease6Handler {
+	return &SubnetLease6Handler{}
 }
 
-func (l *Lease6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	address, hasAddressFilter := util.GetFilterValueWithEqModifierFromFilters(
+func (l *SubnetLease6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	ip, hasAddressFilter := util.GetFilterValueWithEqModifierFromFilters(
 		util.FilterNameIp, ctx.GetFilters())
 	if hasAddressFilter {
-		if _, isv4, err := util.ParseIP(address); err != nil || isv4 {
+		if _, isv4, err := util.ParseIP(ip); err != nil || isv4 {
 			return nil, nil
 		}
 	}
 
 	subnetId := ctx.Resource.GetParent().GetID()
-	var subnets []*resource.Subnet6
+	var subnet6SubnetId uint64
 	var reservations []*resource.Reservation6
+	var subnetLeases []*resource.SubnetLease6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetId}, &subnets); err != nil {
+		subnet6, err := getSubnet6FromDB(tx, subnetId)
+		if err != nil {
 			return err
 		}
 
-		if len(subnets) == 0 {
-			return fmt.Errorf("no found subnet6 %s from db", subnetId)
-		}
-
+		subnet6SubnetId = subnet6.SubnetId
 		if hasAddressFilter {
-			if subnets[0].Ipnet.Contains(net.ParseIP(address)) == false {
-				return ErrorIpNotBelongToSubnet
-			}
-
-			return tx.FillEx(&reservations,
-				"select * from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",
-				subnetId, address)
+			reservations, subnetLeases, err = getReservation6sAndSubnetLease6sWithIp(tx, subnet6, ip)
 		} else {
-			return tx.Fill(map[string]interface{}{"subnet6": subnetId}, &reservations)
+			reservations, subnetLeases, err = getReservation6sAndSubnetLease6s(tx, subnetId)
 		}
+		return err
 	}); err != nil {
 		if err == ErrorIpNotBelongToSubnet {
 			return nil, nil
@@ -64,26 +60,49 @@ func (l *Lease6Handler) List(ctx *restresource.Context) (interface{}, *resterror
 		}
 	}
 
-	reservationMap := reservationMapFromReservation6s(reservations)
 	if hasAddressFilter {
-		return getLease6sWithAddress(subnets[0].SubnetId, address, reservationMap)
+		return getSubnetLease6sWithIp(subnet6SubnetId, ip, reservations, subnetLeases)
 	} else {
-		return getLease6s(subnets[0].SubnetId, reservationMap)
+		return getSubnetLease6s(subnet6SubnetId, reservations, subnetLeases)
 	}
 }
 
-func getLease6sWithAddress(subnetId uint64, address string, reservationMap map[string]struct{}) (interface{}, *resterror.APIError) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(context.TODO(),
-		&dhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: address})
+func getReservation6sAndSubnetLease6sWithIp(tx restdb.Transaction, subnet6 *resource.Subnet6, ip string) ([]*resource.Reservation6, []*resource.SubnetLease6, error) {
+	if subnet6.Ipnet.Contains(net.ParseIP(ip)) == false {
+		return nil, nil, ErrorIpNotBelongToSubnet
+	}
+
+	return service.GetReservation6sAndSubnetLease6sWithIp(tx, subnet6.GetID(), ip)
+}
+
+func getReservation6sAndSubnetLease6s(tx restdb.Transaction, subnetId string) ([]*resource.Reservation6, []*resource.SubnetLease6, error) {
+	var reservations []*resource.Reservation6
+	var subnetLeases []*resource.SubnetLease6
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnetId},
+		&reservations); err != nil {
+		return nil, nil, err
+	}
+
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnetId}, &subnetLeases); err != nil {
+		return nil, nil, err
+	}
+
+	return reservations, subnetLeases, nil
+}
+
+func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) (interface{}, *resterror.APIError) {
+	lease6, err := service.GetSubnetLease6WithoutReclaimed(subnetId, ip, reservations, subnetLeases)
 	if err != nil {
 		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
 		return nil, nil
+	} else if lease6 == nil {
+		return nil, nil
 	}
 
-	return []*resource.Lease6{lease6FromPbLease6(resp.GetLease(), reservationMap)}, nil
+	return []*resource.SubnetLease6{lease6}, nil
 }
 
-func getLease6s(subnetId uint64, reservationMap map[string]struct{}) (interface{}, *resterror.APIError) {
+func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) (interface{}, *resterror.APIError) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
 		&dhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 	if err != nil {
@@ -91,75 +110,87 @@ func getLease6s(subnetId uint64, reservationMap map[string]struct{}) (interface{
 		return nil, nil
 	}
 
-	var leases []*resource.Lease6
+	reservationMap := reservationMapFromReservation6s(reservations)
+	reclaimedSubnetLeases := make(map[string]*resource.SubnetLease6)
+	for _, subnetLease := range subnetLeases {
+		reclaimedSubnetLeases[subnetLease.Address] = subnetLease
+	}
+
+	var leases []*resource.SubnetLease6
+	var reclaimleasesForRetain []string
 	for _, lease := range resp.GetLeases() {
-		leases = append(leases, lease6FromPbLease6(lease, reservationMap))
+		lease6 := subnetLease6FromPbLease6AndReservations(lease, reservationMap)
+		if reclaimedLease, ok := reclaimedSubnetLeases[lease6.Address]; ok &&
+			reclaimedLease.Equal(lease6) {
+			reclaimleasesForRetain = append(reclaimleasesForRetain, reclaimedLease.GetID())
+			continue
+		}
+
+		leases = append(leases, lease6)
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		_, err := tx.Exec("delete from gr_subnet_lease6 where id not in ('" +
+			strings.Join(reclaimleasesForRetain, "','") + "')")
+		return err
+	}); err != nil {
+		log.Warnf("delete reclaim leases failed: %s", err.Error())
 	}
 
 	return leases, nil
 }
 
-func lease6FromPbLease6(lease *dhcpagent.DHCPLease6, reservationMap map[string]struct{}) *resource.Lease6 {
-	lease6 := &resource.Lease6{
-		Address:           lease.GetAddress(),
-		AddressType:       resource.AddressTypeDynamic,
-		PrefixLen:         lease.GetPrefixLen(),
-		Duid:              lease.GetDuid(),
-		Iaid:              lease.GetIaid(),
-		HwAddress:         lease.GetHwAddress(),
-		HwAddressType:     lease.GetHwType(),
-		HwAddressSource:   lease.GetHwAddressSource(),
-		ValidLifetime:     lease.GetValidLifetime(),
-		PreferredLifetime: lease.GetPreferredLifetime(),
-		Expire:            isoTimeFromUinx(lease.GetExpire()),
-		LeaseType:         lease.GetLeaseType().String(),
-		Hostname:          lease.GetHostname(),
-		Fingerprint:       lease.GetFingerprint(),
-		VendorId:          lease.GetVendorId(),
-		OperatingSystem:   lease.GetOperatingSystem(),
-		ClientType:        lease.GetClientType(),
-		State:             lease.GetState(),
+func subnetLease6FromPbLease6AndReservations(lease *dhcpagent.DHCPLease6, reservationMap map[string]struct{}) *resource.SubnetLease6 {
+	subnetLease6 := service.SubnetLease6FromPbLease6(lease)
+	if _, ok := reservationMap[subnetLease6.Address]; ok {
+		subnetLease6.AddressType = resource.AddressTypeReservation
 	}
-
-	if _, ok := reservationMap[lease6.Address]; ok {
-		lease6.AddressType = resource.AddressTypeReservation
-	}
-	lease6.SetID(lease.GetAddress())
-	return lease6
+	return subnetLease6
 }
 
-func (l *Lease6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
+func (l *SubnetLease6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	subnetId := ctx.Resource.GetParent().GetID()
 	leaseId := ctx.Resource.GetID()
-	ip, isv4, err := util.ParseIP(leaseId)
+	_, isv4, err := util.ParseIP(leaseId)
 	if err != nil || isv4 {
-		return resterror.NewAPIError(resterror.ServerError,
+		return resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("subnet %s lease6 id %s is invalid ipv6", subnetId, leaseId))
 	}
 
-	var subnets []*resource.Subnet6
-	if _, err := restdb.GetResourceWithID(db.GetDB(), subnetId, &subnets); err != nil {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet6, err := getSubnet6FromDB(tx, subnetId)
+		if err != nil {
+			return err
+		}
+
+		reservations, subnetLeases, err := getReservation6sAndSubnetLease6sWithIp(
+			tx, subnet6, leaseId)
+		if err != nil {
+			return err
+		}
+
+		lease6, err := service.GetSubnetLease6WithoutReclaimed(subnet6.SubnetId, leaseId,
+			reservations, subnetLeases)
+		if err != nil {
+			return err
+		} else if lease6 == nil {
+			return nil
+		}
+
+		lease6.LeaseState = dhcpagent.LeaseState_RECLAIMED.String()
+		lease6.Subnet6 = subnetId
+		if _, err := tx.Insert(lease6); err != nil {
+			return err
+		}
+
+		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(context.TODO(),
+			&dhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId, Address: leaseId})
+		return err
+	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get subnet6 %s from db failed: %s", subnetId, err.Error()))
+			fmt.Sprintf("delete lease %s with subnet6 %s failed: %s",
+				leaseId, subnetId, err.Error()))
 	}
 
-	if subnets[0].Ipnet.Contains(ip) == false {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete lease %s failed: address not belongs to subnet6 %s",
-				leaseId, subnets[0].Subnet))
-	}
-
-	leaseType := dhcpagent.DHCPv6LeaseType_IA_NA
-	if ones, _ := subnets[0].Ipnet.Mask.Size(); ones < 64 {
-		leaseType = dhcpagent.DHCPv6LeaseType_IA_PD
-	}
-
-	if _, err := grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(context.TODO(),
-		&dhcpagent.DeleteLease6Request{SubnetId: subnets[0].SubnetId,
-			LeaseType: leaseType, Address: leaseId}); err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete lease %s with subnet6 %s failed: %s", leaseId, subnetId, err.Error()))
-	} else {
-		return nil
-	}
+	return nil
 }
