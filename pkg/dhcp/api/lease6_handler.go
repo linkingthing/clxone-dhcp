@@ -184,7 +184,8 @@ func (l *SubnetLease6Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 		}
 
 		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(context.TODO(),
-			&dhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId, Address: leaseId})
+			&dhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
+				LeaseType: lease6.LeaseType, Address: leaseId})
 		return err
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,

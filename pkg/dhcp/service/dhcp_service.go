@@ -311,7 +311,7 @@ func SubnetLease6FromPbLease6(lease *dhcpagent.DHCPLease6) *resource.SubnetLease
 		ValidLifetime:     lease.GetValidLifetime(),
 		PreferredLifetime: lease.GetPreferredLifetime(),
 		Expire:            timeFromUinx(lease.GetExpire()),
-		LeaseType:         lease.GetLeaseType().String(),
+		LeaseType:         lease.GetLeaseType(),
 		Hostname:          lease.GetHostname(),
 		Fingerprint:       lease.GetFingerprint(),
 		VendorId:          lease.GetVendorId(),
