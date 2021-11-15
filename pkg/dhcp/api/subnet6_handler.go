@@ -118,12 +118,25 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *dhcpagent.CreateSu
 		MaxPreferredLifetime:  subnet.PreferredLifetime,
 		RenewTime:             subnet.PreferredLifetime / 2,
 		RebindTime:            subnet.PreferredLifetime * 3 / 4,
-		DnsServers:            subnet.DomainServers,
 		ClientClass:           subnet.ClientClass,
 		IfaceName:             subnet.IfaceName,
 		RelayAgentAddresses:   subnet.RelayAgentAddresses,
 		RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
+		SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 	}
+}
+
+func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*dhcpagent.SubnetOption {
+	var subnetOptions []*dhcpagent.SubnetOption
+	if len(subnet.DomainServers) != 0 {
+		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+			Name: "name-servers",
+			Code: 23,
+			Data: strings.Join(subnet.DomainServers, ","),
+		})
+	}
+
+	return subnetOptions
 }
 
 func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -297,11 +310,11 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			MaxPreferredLifetime:  subnet.PreferredLifetime,
 			RenewTime:             subnet.PreferredLifetime / 2,
 			RebindTime:            subnet.PreferredLifetime * 3 / 4,
-			DnsServers:            subnet.DomainServers,
 			ClientClass:           subnet.ClientClass,
 			IfaceName:             subnet.IfaceName,
 			RelayAgentAddresses:   subnet.RelayAgentAddresses,
 			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
+			SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 		})
 	return err
 }

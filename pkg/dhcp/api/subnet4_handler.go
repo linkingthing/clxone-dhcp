@@ -128,16 +128,57 @@ func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *dhcpagent.CreateSu
 		MinValidLifetime:    subnet.MinValidLifetime,
 		RenewTime:           subnet.ValidLifetime / 2,
 		RebindTime:          subnet.ValidLifetime * 3 / 4,
-		SubnetMask:          subnet.SubnetMask,
-		DomainServers:       subnet.DomainServers,
-		Routers:             subnet.Routers,
 		ClientClass:         subnet.ClientClass,
 		IfaceName:           subnet.IfaceName,
 		RelayAgentAddresses: subnet.RelayAgentAddresses,
 		NextServer:          subnet.NextServer,
-		TftpServer:          subnet.TftpServer,
-		Bootfile:            subnet.Bootfile,
+		SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
 	}
+}
+
+func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*dhcpagent.SubnetOption {
+	var subnetOptions []*dhcpagent.SubnetOption
+	if len(subnet.SubnetMask) != 0 {
+		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+			Name: "subnet-mask",
+			Code: 1,
+			Data: subnet.SubnetMask,
+		})
+	}
+
+	if len(subnet.Routers) != 0 {
+		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+			Name: "routers",
+			Code: 3,
+			Data: strings.Join(subnet.Routers, ","),
+		})
+	}
+
+	if len(subnet.DomainServers) != 0 {
+		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+			Name: "name-servers",
+			Code: 6,
+			Data: strings.Join(subnet.DomainServers, ","),
+		})
+	}
+
+	if subnet.TftpServer != "" {
+		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+			Name: "tftp-server",
+			Code: 66,
+			Data: subnet.TftpServer,
+		})
+	}
+
+	if subnet.Bootfile != "" {
+		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+			Name: "bootfile",
+			Code: 67,
+			Data: subnet.Bootfile,
+		})
+	}
+
+	return subnetOptions
 }
 
 func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -416,15 +457,11 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			MinValidLifetime:    subnet.MinValidLifetime,
 			RenewTime:           subnet.ValidLifetime / 2,
 			RebindTime:          subnet.ValidLifetime * 3 / 4,
-			SubnetMask:          subnet.SubnetMask,
-			DomainServers:       subnet.DomainServers,
-			Routers:             subnet.Routers,
 			ClientClass:         subnet.ClientClass,
 			IfaceName:           subnet.IfaceName,
-			NextServer:          subnet.NextServer,
-			TftpServer:          subnet.TftpServer,
-			Bootfile:            subnet.Bootfile,
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
+			NextServer:          subnet.NextServer,
+			SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
 		})
 	return err
 }
