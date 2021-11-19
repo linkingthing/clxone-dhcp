@@ -1,23 +1,24 @@
 package resource
 
 import (
+	"net"
 	"strconv"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
-
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TableReservedPdPool = restdb.ResourceDBType(&ReservedPdPool{})
 
 type ReservedPdPool struct {
 	restresource.ResourceBase `json:",inline"`
-	Subnet6                   string `json:"-" db:"ownby"`
-	Prefix                    string `json:"prefix" rest:"required=true"`
-	PrefixLen                 uint32 `json:"prefixLen" rest:"required=true"`
-	DelegatedLen              uint32 `json:"delegatedLen" rest:"required=true"`
-	Capacity                  uint64 `json:"capacity" rest:"description=readonly"`
+	Subnet6                   string    `json:"-" db:"ownby"`
+	Prefix                    string    `json:"prefix" rest:"required=true"`
+	PrefixLen                 uint32    `json:"prefixLen" rest:"required=true"`
+	PrefixIpnet               net.IPNet `json:"-"`
+	DelegatedLen              uint32    `json:"delegatedLen" rest:"required=true"`
+	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
 }
 
 func (p ReservedPdPool) GetParents() []restresource.ResourceKind {
@@ -25,21 +26,7 @@ func (p ReservedPdPool) GetParents() []restresource.ResourceKind {
 }
 
 func (p *ReservedPdPool) String() string {
-	return p.Prefix + "-" + strconv.Itoa(int(p.PrefixLen)) + "-" + strconv.Itoa(int(p.DelegatedLen))
-}
-
-type ReservedPdPools []*ReservedPdPool
-
-func (p ReservedPdPools) Len() int {
-	return len(p)
-}
-
-func (p ReservedPdPools) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
-func (p ReservedPdPools) Less(i, j int) bool {
-	return util.OneIpLessThanAnother(p[i].Prefix, p[j].Prefix)
+	return p.PrefixIpnet.String() + "-" + strconv.Itoa(int(p.DelegatedLen))
 }
 
 func (pdpool *ReservedPdPool) Validate() error {
@@ -48,21 +35,25 @@ func (pdpool *ReservedPdPool) Validate() error {
 		return err
 	}
 
-	pdpool.Prefix = prefix
+	pdpool.Prefix = prefix.String()
+	pdpool.PrefixIpnet = ipToIPNet(prefix, pdpool.PrefixLen)
 	pdpool.Capacity = capacity
 	return nil
 }
 
 func (pdpool *ReservedPdPool) CheckConflictWithAnother(another *ReservedPdPool) bool {
-	return pdpool.Contains(another.String()) || another.Contains(pdpool.String())
+	return pdpool.PrefixIpnet.Contains(another.PrefixIpnet.IP) ||
+		another.PrefixIpnet.Contains(pdpool.PrefixIpnet.IP)
 }
 
 func (pdpool *ReservedPdPool) Contains(prefix string) bool {
-	pdpool_ := &PdPool{Prefix: pdpool.Prefix, PrefixLen: pdpool.PrefixLen,
-		DelegatedLen: pdpool.DelegatedLen}
-	return pdpool_.Contains(prefix)
+	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
+		return false
+	} else {
+		return pdpool.PrefixIpnet.Contains(ipnet.IP)
+	}
 }
 
 func (pdpool *ReservedPdPool) GetRange() (string, string) {
-	return getPdPoolRange(pdpool.Prefix, pdpool.PrefixLen, pdpool.DelegatedLen)
+	return pdpool.Prefix, getPdPoolEndPrefix(pdpool.PrefixIpnet, pdpool.DelegatedLen)
 }

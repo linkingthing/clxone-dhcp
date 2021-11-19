@@ -3,9 +3,9 @@ package api
 import (
 	"fmt"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -34,7 +34,8 @@ func (h *DhcpFingerprintHandler) Create(ctx *restresource.Context) (restresource
 	fingerprint := ctx.Resource.(*resource.DhcpFingerprint)
 	if err := fingerprint.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("add fingerprint %s failed: %s", fingerprint.Fingerprint, err.Error()))
+			fmt.Sprintf("add fingerprint %s failed: %s",
+				fingerprint.Fingerprint, err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -45,7 +46,8 @@ func (h *DhcpFingerprintHandler) Create(ctx *restresource.Context) (restresource
 		return sendCreateFingerprintCmdToAgent(fingerprint)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("add fingerprint %s failed: %s", fingerprint.Fingerprint, err.Error()))
+			fmt.Sprintf("add fingerprint %s failed: %s",
+				fingerprint.Fingerprint, err.Error()))
 	}
 
 	return fingerprint, nil
@@ -102,7 +104,8 @@ func (h *DhcpFingerprintHandler) Get(ctx *restresource.Context) (restresource.Re
 	_, err := restdb.GetResourceWithID(db.GetDB(), fingerprintId, &fingerprints)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get fingerprint %s from db failed: %s", fingerprintId, err.Error()))
+			fmt.Sprintf("get fingerprint %s from db failed: %s",
+				fingerprintId, err.Error()))
 	}
 
 	return fingerprints[0], nil
@@ -112,7 +115,8 @@ func (h *DhcpFingerprintHandler) Update(ctx *restresource.Context) (restresource
 	fingerprint := ctx.Resource.(*resource.DhcpFingerprint)
 	if err := fingerprint.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("add fingerprint %s failed: %s", fingerprint.Fingerprint, err.Error()))
+			fmt.Sprintf("add fingerprint %s failed: %s",
+				fingerprint.Fingerprint, err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -140,7 +144,8 @@ func (h *DhcpFingerprintHandler) Update(ctx *restresource.Context) (restresource
 		return sendUpdateFingerprintCmdToDHCPAgent(fingerprints[0], fingerprint)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update fingerprint %s failed: %s", fingerprint.GetID(), err.Error()))
+			fmt.Sprintf("update fingerprint %s failed: %s",
+				fingerprint.GetID(), err.Error()))
 	}
 
 	return fingerprint, nil

@@ -35,7 +35,8 @@ func UploadFiles(ctx *gin.Context) {
 			return
 		}
 		filename := path.Join(directory, filepath.Base(file.Filename))
-		if err := ctx.SaveUploadedFile(file, path.Join(util.FileRootPath, filename)); err != nil {
+		if err := ctx.SaveUploadedFile(file,
+			path.Join(util.FileRootPath, filename)); err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"error": err.Error(),
 			})

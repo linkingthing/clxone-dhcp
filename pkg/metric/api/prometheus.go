@@ -3,7 +3,7 @@ package api
 import (
 	"fmt"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
+	"github.com/cuityhj/gohelper/httpclient"
 )
 
 type PromQuery string
@@ -31,7 +31,10 @@ type PrometheusDataResult struct {
 
 func prometheusRequest(ctx *MetricContext) (*PrometheusResponse, error) {
 	var resp PrometheusResponse
-	if err := httpclient.GetHttpClient().Get(genPrometheusUrl(ctx), &resp); err != nil {
+	if err := httpclient.GetHttpClient().Get(&httpclient.HttpContext{
+		URL:      genPrometheusUrl(ctx),
+		Response: &resp,
+	}); err != nil {
 		return nil, err
 	}
 

@@ -2,18 +2,17 @@ package api
 
 import (
 	"fmt"
-	"sort"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type ReservedPool6Handler struct {
@@ -88,7 +87,7 @@ func checkReservedPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Su
 		}
 	}
 
-	if checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginAddress, pool.EndAddress) == false {
+	if checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) == false {
 		return fmt.Errorf("pool %s not belongs to subnet %s", pool.String(), subnet.Subnet)
 	}
 
@@ -96,7 +95,8 @@ func checkReservedPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Su
 }
 
 func checkReservedPool6ConflictWithSubnet6Pools(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool6) error {
-	if err := checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx, subnetID, pool); err != nil {
+	if err := checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx,
+		subnetID, pool); err != nil {
 		return err
 	}
 
@@ -104,16 +104,17 @@ func checkReservedPool6ConflictWithSubnet6Pools(tx restdb.Transaction, subnetID 
 }
 
 func checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool6) error {
-	var pools []*resource.ReservedPool6
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnetID}, &pools); err != nil {
-		return fmt.Errorf("get pools with subnet %s from db failed: %s", subnetID, err.Error())
+	var pools []*resource.Pool6
+	if err := tx.FillEx(&pools,
+		"select * from gr_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
+		subnetID, pool.EndIp, pool.BeginIp); err != nil {
+		return fmt.Errorf("get pools with subnet %s from db failed: %s",
+			subnetID, err.Error())
 	}
 
-	for _, p := range pools {
-		if p.CheckConflictWithAnother(pool) {
-			return fmt.Errorf("reserved pool6 %s conflict with reserved pool6 %s",
-				pool.String(), p.String())
-		}
+	if len(pools) != 0 {
+		return fmt.Errorf("reserved pool6 %s conflict with reserved pool6 %s",
+			pool.String(), pools[0].String())
 	}
 
 	return nil
@@ -121,7 +122,8 @@ func checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx restdb.Transaction, 
 
 func checkReservedPool6ConflictWithSubnet6Reservation6s(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool6) error {
 	var reservations []*resource.Reservation6
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnetID}, &reservations); err != nil {
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnetID},
+		&reservations); err != nil {
 		return err
 	}
 
@@ -139,21 +141,22 @@ func checkReservedPool6ConflictWithSubnet6Reservation6s(tx restdb.Transaction, s
 
 func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnetID string, reservedPool *resource.ReservedPool6, isCreate bool) (map[string]uint64, uint64, error) {
 	var pools []*resource.Pool6
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnetID}, &pools); err != nil {
-		return nil, 0, err
+	if err := tx.FillEx(&pools,
+		"select * from gr_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
+		subnetID, reservedPool.EndIp, reservedPool.BeginIp); err != nil {
+		return nil, 0, fmt.Errorf("get pools with subnet %s from db failed: %s",
+			subnetID, err.Error())
 	}
 
 	var affectedCount uint64
 	affectedPool6s := make(map[string]uint64)
 	for _, pool := range pools {
-		if pool.CheckConflictWithReservedPool6(reservedPool) {
-			reservedCount := getPool6ReservedCountWithReservedPool6(pool, reservedPool)
-			affectedCount += reservedCount
-			if isCreate {
-				affectedPool6s[pool.GetID()] = pool.Capacity - reservedCount
-			} else {
-				affectedPool6s[pool.GetID()] = pool.Capacity + reservedCount
-			}
+		reservedCount := getPool6ReservedCountWithReservedPool6(pool, reservedPool)
+		affectedCount += reservedCount
+		if isCreate {
+			affectedPool6s[pool.GetID()] = pool.Capacity - reservedCount
+		} else {
+			affectedPool6s[pool.GetID()] = pool.Capacity + reservedCount
 		}
 	}
 
@@ -161,13 +164,15 @@ func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnetID 
 }
 
 func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *resource.ReservedPool6) uint64 {
-	begin, _ := util.Ipv6StringToBigInt(pool.BeginAddress)
-	if reservedPoolBegin, _ := util.Ipv6StringToBigInt(reservedPool.BeginAddress); reservedPoolBegin.Cmp(begin) == 1 {
+	begin := gohelperip.IPv6ToBigInt(pool.BeginIp)
+	if reservedPoolBegin := gohelperip.IPv6ToBigInt(
+		reservedPool.BeginIp); reservedPoolBegin.Cmp(begin) == 1 {
 		begin = reservedPoolBegin
 	}
 
-	end, _ := util.Ipv6StringToBigInt(pool.EndAddress)
-	if reservedPoolEnd, _ := util.Ipv6StringToBigInt(reservedPool.EndAddress); reservedPoolEnd.Cmp(end) == -1 {
+	end := gohelperip.IPv6ToBigInt(pool.EndIp)
+	if reservedPoolEnd := gohelperip.IPv6ToBigInt(
+		reservedPool.EndIp); reservedPoolEnd.Cmp(end) == -1 {
 		end = reservedPoolEnd
 	}
 
@@ -199,27 +204,27 @@ func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.R
 
 func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
-	var pools resource.ReservedPool6s
+	var pools []*resource.ReservedPool6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet6FromDB(tx, subnet); err != nil {
 			return err
 		}
 
-		return tx.Fill(map[string]interface{}{"subnet6": subnet.GetID()}, &pools)
+		return tx.Fill(map[string]interface{}{
+			"subnet6": subnet.GetID(), "orderby": "begin_ip"}, &pools)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list pools with subnet %s from db failed: %s",
 				subnet.GetID(), err.Error()))
 	}
 
-	sort.Sort(pools)
 	return pools, nil
 }
 
 func (p *ReservedPool6Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnetID := ctx.Resource.GetParent().GetID()
 	poolID := ctx.Resource.GetID()
-	var pools resource.ReservedPool6s
+	var pools []*resource.ReservedPool6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 	}); err != nil {
@@ -287,7 +292,8 @@ func (p *ReservedPool6Handler) Delete(ctx *restresource.Context) *resterror.APIE
 
 func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6) error {
 	var pools []*resource.ReservedPool6
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()}, &pools); err != nil {
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
+		&pools); err != nil {
 		return fmt.Errorf("get pool from db failed: %s", err.Error())
 	}
 
@@ -297,7 +303,9 @@ func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6)
 
 	pool.Subnet6 = pools[0].Subnet6
 	pool.BeginAddress = pools[0].BeginAddress
+	pool.BeginIp = pools[0].BeginIp
 	pool.EndAddress = pools[0].EndAddress
+	pool.EndIp = pools[0].EndIp
 	pool.Capacity = pools[0].Capacity
 	return nil
 }
@@ -343,5 +351,7 @@ func (h *ReservedPool6Handler) validTemplate(ctx *restresource.Context) (interfa
 			fmt.Sprintf("template %s invalid: %s", pool.Template, err.Error()))
 	}
 
-	return &resource.TemplatePool{BeginAddress: pool.BeginAddress, EndAddress: pool.EndAddress}, nil
+	return &resource.TemplatePool{
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress}, nil
 }

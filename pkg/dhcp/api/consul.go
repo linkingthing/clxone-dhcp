@@ -3,8 +3,9 @@ package api
 import (
 	"fmt"
 
+	"github.com/cuityhj/gohelper/httpclient"
+
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/util/httpclient"
 )
 
 const (
@@ -21,11 +22,12 @@ const (
 )
 
 type ConsulService struct {
-	Address     string              `json:"Address"`
-	ServiceID   string              `json:"ServiceID"`
-	ServiceName string              `json:"ServiceName"`
-	ServiceTags []string            `json:"ServiceTags"`
-	Status      ConsulServiceStatus `json:"Status"`
+	Address        string              `json:"Address"`
+	ServiceID      string              `json:"ServiceID"`
+	ServiceName    string              `json:"ServiceName"`
+	ServiceAddress string              `json:"ServiceAddress"`
+	ServiceTags    []string            `json:"ServiceTags"`
+	Status         ConsulServiceStatus `json:"Status"`
 }
 
 func (cs *ConsulService) Validate() bool {
@@ -54,12 +56,18 @@ func GetConsulHandler() *ConsulHandler {
 
 func (h *ConsulHandler) GetDHCPAgentChecksAndServices() (map[string]*ConsulService, []*ConsulService, error) {
 	var checks map[string]*ConsulService
-	if err := httpclient.GetHttpClient().Get(h.consulChecksUrl, &checks); err != nil {
+	if err := httpclient.GetHttpClient().Get(&httpclient.HttpContext{
+		URL:      h.consulChecksUrl,
+		Response: &checks,
+	}); err != nil {
 		return nil, nil, fmt.Errorf("list dhcp agent checks failed: %s", err.Error())
 	}
 
 	var services []*ConsulService
-	if err := httpclient.GetHttpClient().Get(h.consulServicesUrl, &services); err != nil {
+	if err := httpclient.GetHttpClient().Get(&httpclient.HttpContext{
+		URL:      h.consulServicesUrl,
+		Response: &services,
+	}); err != nil {
 		return nil, nil, fmt.Errorf("list dhcp agents services failed: %s", err.Error())
 	}
 

@@ -3,10 +3,10 @@ package api
 import (
 	"fmt"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -36,7 +36,8 @@ func (s *SharedNetwork4Handler) Create(ctx *restresource.Context) (restresource.
 		return sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create shared network4 %s failed: %s", sharedNetwork4.Name, err.Error()))
+			fmt.Sprintf("create shared network4 %s failed: %s",
+				sharedNetwork4.Name, err.Error()))
 	}
 
 	return sharedNetwork4, nil
@@ -81,7 +82,8 @@ func (s *SharedNetwork4Handler) Get(ctx *restresource.Context) (restresource.Res
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get shared network4 %s failed: %s", sharedNetwork4.GetID(), err.Error()))
+			fmt.Sprintf("get shared network4 %s failed: %s",
+				sharedNetwork4.GetID(), err.Error()))
 	}
 
 	return sharedNetwork4, nil
@@ -113,7 +115,8 @@ func (s *SharedNetwork4Handler) Update(ctx *restresource.Context) (restresource.
 		return sendUpdateSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name, sharedNetwork4)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create shared network4 %s failed: %s", sharedNetwork4.Name, err.Error()))
+			fmt.Sprintf("create shared network4 %s failed: %s",
+				sharedNetwork4.Name, err.Error()))
 	}
 
 	return sharedNetwork4, nil
@@ -143,7 +146,8 @@ func (s *SharedNetwork4Handler) Delete(ctx *restresource.Context) *resterror.API
 		return sendDeleteSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete shared network4 %s failed: %s", sharedNetwork4Id, err.Error()))
+			fmt.Sprintf("delete shared network4 %s failed: %s",
+				sharedNetwork4Id, err.Error()))
 	}
 
 	return nil
@@ -173,7 +177,8 @@ func sharedNetworkNameToDeleteSharedNetwork4Request(name string) *dhcpagent.Dele
 func checkUsedBySharedNetwork(tx restdb.Transaction, subnetId uint64) error {
 	var sharedNetwork4s []*resource.SharedNetwork4
 	if err := tx.FillEx(&sharedNetwork4s,
-		"select * from gr_shared_network4 where $1::numeric = any(subnet_ids)", subnetId); err != nil {
+		"select * from gr_shared_network4 where $1::numeric = any(subnet_ids)",
+		subnetId); err != nil {
 		return fmt.Errorf("check if it is used failed: %s", err.Error())
 	} else if len(sharedNetwork4s) != 0 {
 		return fmt.Errorf("used by shared network4 %s", sharedNetwork4s[0].Name)

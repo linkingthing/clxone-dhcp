@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/zdnscloud/cement/log"
+	"github.com/linkingthing/cement/log"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"

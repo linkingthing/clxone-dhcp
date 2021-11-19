@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
+	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/golang/protobuf/proto"
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -89,7 +90,8 @@ func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
 
 func setSubnet4ID(tx restdb.Transaction, subnet *resource.Subnet4) error {
 	var subnets []*resource.Subnet4
-	if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id desc", "offset": 0, "limit": 1},
+	if err := tx.Fill(map[string]interface{}{
+		"orderby": "subnet_id desc", "offset": 0, "limit": 1},
 		&subnets); err != nil {
 		return err
 	}
@@ -187,8 +189,8 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 	var subnetsCount int
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if listCtx.hasPagination {
-			if count, err := tx.CountEx(resource.TableSubnet4,
-				listCtx.countSql, listCtx.params[:len(listCtx.params)-2]...); err != nil {
+			if count, err := tx.CountEx(resource.TableSubnet4, listCtx.countSql,
+				listCtx.params[:len(listCtx.params)-2]...); err != nil {
 				return err
 			} else {
 				subnetsCount = int(count)
@@ -236,7 +238,7 @@ func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) 
 	var excludeNodesState string
 	for _, filter := range ctx.GetFilters() {
 		switch filter.Name {
-		case util.FileNameSubnet:
+		case util.FilterNameSubnet:
 			if value, ok := util.GetFilterValueWithEqModifierFromFilter(filter); ok {
 				listCtx.hasFilterSubnet = true
 				listCtx.params = append(listCtx.params, value)
@@ -244,7 +246,8 @@ func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) 
 				seq += 1
 			}
 		case FilterNameExcludeShared:
-			if value, ok := util.GetFilterValueWithEqModifierFromFilter(filter); ok && value == "true" {
+			if value, ok := util.GetFilterValueWithEqModifierFromFilter(filter); ok &&
+				value == "true" {
 				listCtx.hasExclude = true
 				excludeNodesState = "nodes != '{}'"
 				excludeSharedState =
@@ -289,7 +292,8 @@ func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) 
 	listCtx.countSql = strings.Replace(strings.Join(sqls, " "), "*", "count(*)", 1)
 	if listCtx.hasFilterSubnet == false {
 		sqls = append(sqls, "order by subnet_id")
-		if pagination := ctx.GetPagination(); pagination.PageSize > 0 && pagination.PageNum > 0 {
+		if pagination := ctx.GetPagination(); pagination.PageSize > 0 &&
+			pagination.PageNum > 0 {
 			listCtx.hasPagination = true
 			sqls = append(sqls, "limit $"+strconv.Itoa(seq))
 			seq += 1
@@ -345,7 +349,8 @@ func setPagination(ctx *restresource.Context, hasPagination bool, subnetsCount i
 	if hasPagination {
 		pagination := ctx.GetPagination()
 		pagination.Total = subnetsCount
-		pagination.PageTotal = int(math.Ceil(float64(subnetsCount) / float64(pagination.PageSize)))
+		pagination.PageTotal = int(math.Ceil(float64(subnetsCount) /
+			float64(pagination.PageSize)))
 		ctx.SetPagination(pagination)
 	}
 }
@@ -375,7 +380,8 @@ func setSubnet4LeasesUsedRatio(subnet *resource.Subnet4) error {
 
 	if leasesCount != 0 {
 		subnet.UsedCount = leasesCount
-		subnet.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(subnet.Capacity))
+		subnet.UsedRatio = fmt.Sprintf("%.4f",
+			float64(leasesCount)/float64(subnet.Capacity))
 	}
 	return nil
 }
@@ -437,7 +443,8 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 	var subnets []*resource.Subnet4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetId},
 		&subnets); err != nil {
-		return nil, fmt.Errorf("get subnet %s from db failed: %s", subnetId, err.Error())
+		return nil, fmt.Errorf("get subnet %s from db failed: %s",
+			subnetId, err.Error())
 	}
 
 	if len(subnets) == 0 {
@@ -497,9 +504,11 @@ func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4)
 	}
 
 	if leasesCount, err := dhcpservice.GetSubnet4LeasesCount(subnet4); err != nil {
-		return fmt.Errorf("get subnet %s leases count failed: %s", subnet4.Subnet, err.Error())
+		return fmt.Errorf("get subnet %s leases count failed: %s",
+			subnet4.Subnet, err.Error())
 	} else if leasesCount != 0 {
-		return fmt.Errorf("can not delete subnet with %d ips had been allocated", leasesCount)
+		return fmt.Errorf("can not delete subnet with %d ips had been allocated",
+			leasesCount)
 	}
 
 	return nil
@@ -554,7 +563,8 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 		file.Name, oldSubnet4s)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("parse subnet4s from file %s failed: %s", file.Name, err.Error()))
+			fmt.Sprintf("parse subnet4s from file %s failed: %s",
+				file.Name, err.Error()))
 	}
 
 	if len(validSqls) == 0 {
@@ -564,7 +574,8 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, validSql := range validSqls {
 			if _, err := tx.Exec(validSql); err != nil {
-				return fmt.Errorf("batch insert subnet4s to db failed: %s", err.Error())
+				return fmt.Errorf("batch insert subnet4s to db failed: %s",
+					err.Error())
 			}
 		}
 
@@ -572,7 +583,8 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 			deleteSubnets4Req)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("import subnet4s from file %s failed: %s", file.Name, err.Error()))
+			fmt.Sprintf("import subnet4s from file %s failed: %s",
+				file.Name, err.Error()))
 	}
 
 	return nil, nil
@@ -588,7 +600,8 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 		return nil, nil, nil, nil
 	}
 
-	tableHeaderFields, err := util.ParseTableHeader(contents[0], TableHeaderSubnet4, SubnetMandatoryFields)
+	tableHeaderFields, err := util.ParseTableHeader(contents[0],
+		TableHeaderSubnet4, SubnetMandatoryFields)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -620,9 +633,12 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 			log.Warnf(err.Error())
 		} else if err := checkReservationsValid(subnet, reservations); err != nil {
 			log.Warnf("subnet %s reservations is invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkReservedPool4sValid(subnet, reservedPools, reservations); err != nil {
-			log.Warnf("subnet %s reserved pool4s is invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkPool4sValid(subnet, pools, reservedPools, reservations); err != nil {
+		} else if err := checkReservedPool4sValid(subnet, reservedPools,
+			reservations); err != nil {
+			log.Warnf("subnet %s reserved pool4s is invalid: %s",
+				subnet.Subnet, err.Error())
+		} else if err := checkPool4sValid(subnet, pools, reservedPools,
+			reservations); err != nil {
 			log.Warnf("subnet %s pool4s is invalid: %s", subnet.Subnet, err.Error())
 		} else {
 			subnet.SubnetId = uint64(oldSubnetsLen + len(subnets) + 1)
@@ -651,7 +667,8 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 	reqsForDelete := make(map[string]*dhcpagent.DeleteSubnets4Request)
 	subnetAndNodes := make(map[uint64][]string)
 	sqls = append(sqls,
-		subnet4sToInsertSqlAndRequest(subnets, reqsForCreate, reqsForDelete, subnetAndNodes))
+		subnet4sToInsertSqlAndRequest(subnets, reqsForCreate,
+			reqsForDelete, subnetAndNodes))
 	if len(subnetPools) != 0 {
 		sqls = append(sqls, pool4sToInsertSqlAndRequest(subnetPools,
 			reqsForCreate, subnetAndNodes))
@@ -748,7 +765,8 @@ func parsePool4sFromString(field string) ([]*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	for _, poolStr := range strings.Split(field, ",") {
 		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 2 {
-			return nil, fmt.Errorf("parse subnet4 pool %s failed with wrong regexp", poolStr)
+			return nil, fmt.Errorf("parse subnet4 pool %s failed with wrong regexp",
+				poolStr)
 		} else {
 			pools = append(pools, &resource.Pool4{
 				BeginAddress: poolSlices[0],
@@ -780,7 +798,8 @@ func parseReservedPool4sFromString(field string) ([]*resource.ReservedPool4, err
 func parseReservation4sFromString(field string) ([]*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	for _, reservationStr := range strings.Split(field, ",") {
-		if reservationSlices := strings.Split(reservationStr, "-"); len(reservationSlices) != 2 {
+		if reservationSlices := strings.Split(reservationStr,
+			"-"); len(reservationSlices) != 2 {
 			return nil, fmt.Errorf("parse subnet4 reservation %s failed with wrong regexp",
 				reservationStr)
 		} else {
@@ -812,7 +831,7 @@ func checkReservationsValid(subnet4 *resource.Subnet4, reservations []*resource.
 			return err
 		}
 
-		if checkIPsBelongsToIpnet(subnet4.Ipnet, reservation.IpAddress) == false {
+		if checkIPsBelongsToIpnet(subnet4.Ipnet, reservation.Ip) == false {
 			return fmt.Errorf("reservation %s not belongs to subnet %s",
 				reservation.IpAddress, subnet4.Subnet)
 		}
@@ -838,8 +857,8 @@ func checkReservedPool4sValid(subnet4 *resource.Subnet4, reservedPools []*resour
 			return err
 		}
 
-		if checkIPsBelongsToIpnet(subnet4.Ipnet, reservedPools[i].BeginAddress,
-			reservedPools[i].EndAddress) == false {
+		if checkIPsBelongsToIpnet(subnet4.Ipnet, reservedPools[i].BeginIp,
+			reservedPools[i].EndIp) == false {
 			return fmt.Errorf("reserved pool %s not belongs to subnet %s",
 				reservedPools[i].String(), subnet4.Subnet)
 		}
@@ -869,7 +888,7 @@ func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reserv
 		}
 
 		if checkIPsBelongsToIpnet(subnet4.Ipnet,
-			pools[i].BeginAddress, pools[i].EndAddress) == false {
+			pools[i].BeginIp, pools[i].EndIp) == false {
 			return fmt.Errorf("pool %s not belongs to subnet %s",
 				pools[i].String(), subnet4.Subnet)
 		}
@@ -889,7 +908,8 @@ func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reserv
 
 		for _, reservedPool := range reservedPools {
 			if pools[i].CheckConflictWithReservedPool4(reservedPool) {
-				pools[i].Capacity -= getPool4ReservedCountWithReservedPool4(pools[i], reservedPool)
+				pools[i].Capacity -= getPool4ReservedCountWithReservedPool4(pools[i],
+					reservedPool)
 			}
 		}
 
@@ -996,8 +1016,9 @@ func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForCreate map[string]*dhcpagen
 	serverNodes := nodes[len(sentryNodes):]
 	var succeedNodes []string
 	for node, req := range reqsForCreate {
-		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(append(serverNodes, node),
-			dhcpservice.CreateSubnet4sAndPools, req); err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			append(serverNodes, node), dhcpservice.CreateSubnet4sAndPools,
+			req); err != nil {
 			deleteSubnets(reqsForDelete, succeedNodes, serverNodes)
 			return err
 		}
@@ -1026,7 +1047,8 @@ func (h *Subnet4Handler) exportCSV(ctx *restresource.Context) (interface{}, *res
 	var reservedPools []*resource.ReservedPool4
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id"}, &subnet4s); err != nil {
+		if err := tx.Fill(map[string]interface{}{"orderby": "subnet_id"},
+			&subnet4s); err != nil {
 			return err
 		}
 
@@ -1085,8 +1107,8 @@ func (h *Subnet4Handler) exportCSV(ctx *restresource.Context) (interface{}, *res
 		strMatrix = append(strMatrix, slices)
 	}
 
-	if filepath, err := util.WriteCSVFile(Subnet4FileNamePrefix+time.Now().Format(util.TimeFormat),
-		TableHeaderSubnet4, strMatrix); err != nil {
+	if filepath, err := util.WriteCSVFile(Subnet4FileNamePrefix+
+		time.Now().Format(util.TimeFormat), TableHeaderSubnet4, strMatrix); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("export device failed: %s", err.Error()))
 	} else {
@@ -1095,7 +1117,8 @@ func (h *Subnet4Handler) exportCSV(ctx *restresource.Context) (interface{}, *res
 }
 
 func (h *Subnet4Handler) exportCSVTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	if filepath, err := util.WriteCSVFile(Subnet4TemplateFileName, TableHeaderSubnet4, nil); err != nil {
+	if filepath, err := util.WriteCSVFile(Subnet4TemplateFileName,
+		TableHeaderSubnet4, nil); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("export subnet4 template failed: %s", err.Error()))
 	} else {
@@ -1228,11 +1251,13 @@ func genCreateSubnets4AndPoolsRequestWithSubnet4(tx restdb.Transaction, subnet4 
 		return nil, "", err
 	}
 
-	if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &reservedPools); err != nil {
+	if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()},
+		&reservedPools); err != nil {
 		return nil, "", err
 	}
 
-	if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()}, &reservations); err != nil {
+	if err := tx.Fill(map[string]interface{}{"subnet4": subnet4.GetID()},
+		&reservations); err != nil {
 		return nil, "", err
 	}
 
@@ -1265,9 +1290,10 @@ func (h *Subnet4Handler) couldBeCreated(ctx *restresource.Context) (interface{},
 			fmt.Sprintf("action check subnet could be created input invalid"))
 	}
 
-	if _, _, err := util.ParseCIDR(couldBeCreatedSubnet.Subnet, true); err != nil {
+	if _, err := gohelperip.ParseCIDRv4(couldBeCreatedSubnet.Subnet); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action check subnet could be created input invalid: %s", err.Error()))
+			fmt.Sprintf("action check subnet could be created input invalid: %s",
+				err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -1288,22 +1314,26 @@ func (h *Subnet4Handler) listWithSubnets(ctx *restresource.Context) (interface{}
 	}
 
 	for _, subnet := range subnetListInput.Subnets {
-		if _, _, err := util.ParseCIDR(subnet, true); err != nil {
+		if _, err := gohelperip.ParseCIDRv4(subnet); err != nil {
+
 			return nil, resterror.NewAPIError(resterror.InvalidFormat,
-				fmt.Sprintf("action check subnet could be created input invalid: %s", err.Error()))
+				fmt.Sprintf("action check subnet could be created input invalid: %s",
+					err.Error()))
 		}
 	}
 
 	var subnets []*resource.Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, fmt.Sprintf("select * from gr_subnet4 where subnet in ('%s')",
-			strings.Join(subnetListInput.Subnets, "','")))
+		return tx.FillEx(&subnets,
+			fmt.Sprintf("select * from gr_subnet4 where subnet in ('%s')",
+				strings.Join(subnetListInput.Subnets, "','")))
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("action list subnet failed: %s", err.Error()))
 	}
 
-	if err := setSubnet4sLeasesUsedInfo(subnets, listContext{hasFilterSubnet: true}); err != nil {
+	if err := setSubnet4sLeasesUsedInfo(subnets,
+		listContext{hasFilterSubnet: true}); err != nil {
 		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
 	}
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zdnscloud/cement/uuid"
+	"github.com/linkingthing/cement/uuid"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
@@ -42,8 +42,8 @@ var (
 		FieldNameSubnet, FieldNameSubnetName,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNameSubnetMask, FieldNameRouters, FieldNameDomainServers, FieldNameIfaceName,
-		FieldNameOption60, FieldNameOption82, FieldNameOption66, FieldNameOption67, FieldNameNodes,
-		FieldNamePools, FieldNameReservedPools, FieldNameReservations,
+		FieldNameOption60, FieldNameOption82, FieldNameOption66, FieldNameOption67,
+		FieldNameNodes, FieldNamePools, FieldNameReservedPools, FieldNameReservations,
 	}
 
 	TableHeaderSubnet6 = []string{

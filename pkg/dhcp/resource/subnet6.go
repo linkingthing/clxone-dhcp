@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
-
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TableSubnet6 = restdb.ResourceDBType(&Subnet6{})
@@ -15,7 +14,7 @@ var TableSubnet6 = restdb.ResourceDBType(&Subnet6{})
 type Subnet6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
-	Ipnet                     net.IPNet `json:"-"`
+	Ipnet                     net.IPNet `json:"-" db:"suk"`
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
@@ -56,7 +55,7 @@ type Subnet6ListOutput struct {
 }
 
 func (s *Subnet6) Validate() error {
-	_, ipnet, err := util.ParseCIDR(s.Subnet, false)
+	ipnet, err := gohelperip.ParseCIDRv6(s.Subnet)
 	if err != nil {
 		return fmt.Errorf("subnet %s invalid: %s", s.Subnet, err.Error())
 	}
@@ -71,7 +70,8 @@ func (s *Subnet6) Validate() error {
 }
 
 func (s *Subnet6) setSubnet6DefaultValue() error {
-	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 && s.MaxValidLifetime != 0 && len(s.DomainServers) != 0 {
+	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 &&
+		s.MaxValidLifetime != 0 && len(s.DomainServers) != 0 {
 		return nil
 	}
 
@@ -104,7 +104,7 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 }
 
 func (s *Subnet6) ValidateParams() error {
-	if err := util.CheckIPsValidWithVersion(false, s.RelayAgentAddresses...); err != nil {
+	if err := gohelperip.CheckIPv6sValid(s.RelayAgentAddresses...); err != nil {
 		return fmt.Errorf("subnet relay agent addresses invalid: %s", err.Error())
 	}
 
@@ -112,11 +112,13 @@ func (s *Subnet6) ValidateParams() error {
 		return err
 	}
 
-	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
+	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime,
+		s.MaxValidLifetime); err != nil {
 		return err
 	}
 
-	if err := checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime, s.MinValidLifetime); err != nil {
+	if err := checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime,
+		s.MinValidLifetime); err != nil {
 		return err
 	}
 
@@ -125,7 +127,8 @@ func (s *Subnet6) ValidateParams() error {
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {
 	if preferredLifetime > validLifetime || preferredLifetime < minValidLifetime {
-		return fmt.Errorf("preferred lifetime should in [%d, %d]", minValidLifetime, validLifetime)
+		return fmt.Errorf("preferred lifetime should in [%d, %d]",
+			minValidLifetime, validLifetime)
 	}
 
 	return nil

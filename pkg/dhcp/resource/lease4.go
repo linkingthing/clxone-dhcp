@@ -1,15 +1,8 @@
 package resource
 
 import (
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
-)
-
-type AddressType string
-
-const (
-	AddressTypeDynamic     AddressType = "dynamic"
-	AddressTypeReservation AddressType = "reservation"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TableSubnetLease4 = restdb.ResourceDBType(&SubnetLease4{})

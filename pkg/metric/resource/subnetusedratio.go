@@ -1,7 +1,7 @@
 package resource
 
 import (
-	restresource "github.com/zdnscloud/gorest/resource"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 type SubnetUsedRatio struct {

@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
@@ -36,9 +36,9 @@ func (h *Agent4Handler) List(ctx *restresource.Context) (interface{}, *resterror
 	for _, check := range checks {
 		if check.Validate() {
 			if service := getSentryServiceWithServiceID(check.ServiceID, services,
-				isAgentServiceMatchRoles, AgentRoleSentry4); service != nil {
-				agent := &resource.Agent4{Ip: service.Address}
-				agent.SetID(service.Address)
+				AgentRoleSentry4); service != nil {
+				agent := &resource.Agent4{Ip: service.ServiceAddress}
+				agent.SetID(service.ServiceAddress)
 				agents = append(agents, agent)
 			}
 		}
@@ -47,9 +47,9 @@ func (h *Agent4Handler) List(ctx *restresource.Context) (interface{}, *resterror
 	return agents, nil
 }
 
-func getSentryServiceWithServiceID(id string, services []*ConsulService, isSentryFunc func(*ConsulService, ...AgentRole) bool, role ...AgentRole) *ConsulService {
+func getSentryServiceWithServiceID(id string, services []*ConsulService, role ...AgentRole) *ConsulService {
 	for _, service := range services {
-		if service.ServiceID == id && isSentryFunc(service, role...) {
+		if service.ServiceID == id && isAgentServiceMatchRoles(service, role...) {
 			return service
 		}
 	}
@@ -80,8 +80,9 @@ func (h *Agent4Handler) Get(ctx *restresource.Context) (restresource.Resource, *
 	for _, check := range checks {
 		if check.Validate() {
 			if service := getSentryServiceWithServiceID(check.ServiceID, services,
-				isAgentServiceMatchRoles, AgentRoleSentry4); service != nil && service.Address == agent.GetID() {
-				agent.Ip = service.Address
+				AgentRoleSentry4); service != nil &&
+				service.ServiceAddress == agent.GetID() {
+				agent.Ip = service.ServiceAddress
 				return agent, nil
 			}
 		}

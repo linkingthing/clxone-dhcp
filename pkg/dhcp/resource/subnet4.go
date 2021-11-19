@@ -5,8 +5,9 @@ import (
 	"net"
 	"net/url"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -17,7 +18,7 @@ var TableSubnet4 = restdb.ResourceDBType(&Subnet4{})
 type Subnet4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
-	Ipnet                     net.IPNet `json:"-"`
+	Ipnet                     net.IPNet `json:"-" db:"suk"`
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
@@ -91,7 +92,7 @@ type Subnet4ListOutput struct {
 }
 
 func (s *Subnet4) Validate() error {
-	_, ipnet, err := util.ParseCIDR(s.Subnet, true)
+	ipnet, err := gohelperip.ParseCIDRv4(s.Subnet)
 	if err != nil {
 		return fmt.Errorf("subnet %s invalid: %s", s.Subnet, err.Error())
 	}
@@ -106,7 +107,8 @@ func (s *Subnet4) Validate() error {
 }
 
 func (s *Subnet4) setSubnetDefaultValue() error {
-	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 && s.MaxValidLifetime != 0 && len(s.DomainServers) != 0 {
+	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 &&
+		s.MaxValidLifetime != 0 && len(s.DomainServers) != 0 {
 		return nil
 	}
 
@@ -139,7 +141,7 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
-	if err := util.CheckIPsValidWithVersion(true, s.RelayAgentAddresses...); err != nil {
+	if err := gohelperip.CheckIPv4sValid(s.RelayAgentAddresses...); err != nil {
 		return fmt.Errorf("subnet relay agent addresses invalid: %s", err.Error())
 	}
 
@@ -147,7 +149,8 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
-	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
+	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime,
+		s.MaxValidLifetime); err != nil {
 		return err
 	}
 
@@ -165,16 +168,26 @@ func checkTFTPServer(tftpServer string) error {
 }
 
 func checkCommonOptions(isv4 bool, clientClass string, domainServers, routers []string) error {
-	if err := util.CheckIPsValidWithVersion(isv4, routers...); err != nil {
-		return fmt.Errorf("routers %v invalid: %s", routers, err.Error())
+	if err := checkIpsValidWithVersion(isv4, routers); err != nil {
+		return err
 	}
 
-	if err := util.CheckIPsValidWithVersion(isv4, domainServers...); err != nil {
-		return fmt.Errorf("domain servers %v invalid: %s", domainServers, err.Error())
+	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
+		return err
 	}
 
 	if err := checkClientClassValid(isv4, clientClass); err != nil {
 		return fmt.Errorf("client class %s invalid: %s", clientClass, err.Error())
+	}
+
+	return nil
+}
+
+func checkIpsValidWithVersion(isv4 bool, ips []string) error {
+	for _, ip := range ips {
+		if _, err := gohelperip.ParseIP(ip, isv4); err != nil {
+			return fmt.Errorf("ip %s invalid: %s", ip, err.Error())
+		}
 	}
 
 	return nil
@@ -191,7 +204,8 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if exists, err := tx.Exists(tableName, map[string]interface{}{"name": clientClass}); err != nil {
+		if exists, err := tx.Exists(tableName, map[string]interface{}{
+			"name": clientClass}); err != nil {
 			return err
 		} else if exists == false {
 			return fmt.Errorf("no found client class %s in db", clientClass)

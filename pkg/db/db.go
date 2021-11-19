@@ -3,8 +3,8 @@ package db
 import (
 	"fmt"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	"github.com/zdnscloud/gorest/resource"
+	restdb "github.com/linkingthing/gorest/db"
+	"github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 )

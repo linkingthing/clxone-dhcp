@@ -41,7 +41,7 @@ func getDHCPNodes(sentryNodes []string, isv4 bool) ([]string, error) {
 	for _, check := range checks {
 		if check.Validate() {
 			if service := getSentryServiceWithServiceID(check.ServiceID, services,
-				isAgentServiceMatchRoles, serviceRoles...); service != nil {
+				serviceRoles...); service != nil {
 				nodeRoles[service.Address] = service.ServiceTags
 			}
 		}

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4"
-	"github.com/zdnscloud/cement/log"
+	"github.com/linkingthing/cement/log"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/sys/unix"
 )

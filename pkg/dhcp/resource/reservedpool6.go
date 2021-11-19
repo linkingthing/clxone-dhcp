@@ -1,10 +1,11 @@
 package resource
 
 import (
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"net"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TableReservedPool6 = restdb.ResourceDBType(&ReservedPool6{})
@@ -13,7 +14,9 @@ type ReservedPool6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string `json:"-" db:"ownby"`
 	BeginAddress              string `json:"beginAddress" rest:"description=immutable"`
+	BeginIp                   net.IP `json:"-"`
 	EndAddress                string `json:"endAddress" rest:"description=immutable"`
+	EndIp                     net.IP `json:"-"`
 	Capacity                  uint64 `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64 `json:"usedCount" rest:"description=readonly" db:"-"`
@@ -35,16 +38,16 @@ func (p ReservedPool6) GetActions() []restresource.Action {
 }
 
 func (p *ReservedPool6) CheckConflictWithAnother(another *ReservedPool6) bool {
-	if util.OneIpLessThanAnother(another.EndAddress, p.BeginAddress) ||
-		util.OneIpLessThanAnother(p.EndAddress, another.BeginAddress) {
-		return false
-	}
-
-	return true
+	return gohelperip.IP(another.EndIp).Cmp(gohelperip.IP(p.BeginIp)) != -1 &&
+		gohelperip.IP(another.BeginIp).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
 func (p *ReservedPool6) Contains(ip string) bool {
-	return p.CheckConflictWithAnother(&ReservedPool6{BeginAddress: ip, EndAddress: ip})
+	if ip_, err := gohelperip.ParseIPv6(ip); err != nil {
+		return false
+	} else {
+		return p.CheckConflictWithAnother(&ReservedPool6{BeginIp: ip_, EndIp: ip_})
+	}
 }
 
 func (p *ReservedPool6) Equals(another *ReservedPool6) bool {
@@ -61,20 +64,6 @@ func (p *ReservedPool6) String() string {
 	}
 }
 
-type ReservedPool6s []*ReservedPool6
-
-func (p ReservedPool6s) Len() int {
-	return len(p)
-}
-
-func (p ReservedPool6s) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
-func (p ReservedPool6s) Less(i, j int) bool {
-	return util.OneIpLessThanAnother(p[i].BeginAddress, p[j].BeginAddress)
-}
-
 func (p *ReservedPool6) Validate() error {
 	if p.Template != "" {
 		return nil
@@ -88,25 +77,29 @@ func (p *ReservedPool6) ParseAddressWithTemplate(tx restdb.Transaction, subnet *
 		return nil
 	}
 
-	pool, capacity, err := parsePool6FromTemplate(tx, p.Template, subnet)
+	beginIp, endIp, capacity, err := parsePool6FromTemplate(tx, p.Template, subnet)
 	if err != nil {
 		return err
 	}
 
-	p.BeginAddress = pool.BeginAddress
-	p.EndAddress = pool.EndAddress
-	p.Capacity = capacity
+	p.setAddrAndCapacity(beginIp, endIp, capacity)
 	return nil
 }
 
+func (p *ReservedPool6) setAddrAndCapacity(beginIp, endIp net.IP, capacity uint64) {
+	p.BeginAddress = beginIp.String()
+	p.EndAddress = endIp.String()
+	p.BeginIp = beginIp
+	p.EndIp = endIp
+	p.Capacity = capacity
+}
+
 func (p *ReservedPool6) ValidateAddress() error {
-	beginAddr, endAddr, capacity, err := validPool6(p.BeginAddress, p.EndAddress)
+	beginIp, endIp, capacity, err := validPool6(p.BeginAddress, p.EndAddress)
 	if err != nil {
 		return err
 	}
 
-	p.BeginAddress = beginAddr
-	p.EndAddress = endAddr
-	p.Capacity = capacity
+	p.setAddrAndCapacity(beginIp, endIp, capacity)
 	return nil
 }

@@ -3,7 +3,7 @@ package util
 import (
 	"strings"
 
-	restresource "github.com/zdnscloud/gorest/resource"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 const (
@@ -12,7 +12,14 @@ const (
 	FilterNameIp         = "ip"
 	FilterNameCreateTime = "create_time"
 	FilterNameVersion    = "version"
-	FileNameSubnet       = "subnet"
+	FilterNameSubnet     = "subnet"
+	FilterNameTimeFrom   = "from"
+	FilterNameTimeTo     = "to"
+
+	TimeFromSuffix  = " 00:00"
+	TimeToSuffix    = " 23:59"
+	TimeFormatYMD   = "2006-01-02"
+	TimeFormatYMDHM = "2006-01-02 15:04"
 )
 
 func GenStrConditionsFromFilters(filters []restresource.Filter, orderby string, filterNames ...string) map[string]interface{} {

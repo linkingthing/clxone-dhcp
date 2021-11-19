@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
@@ -27,11 +27,10 @@ func (h *Agent6Handler) List(ctx *restresource.Context) (interface{}, *resterror
 	for _, check := range checks {
 		if check.Validate() {
 			if service := getSentryServiceWithServiceID(check.ServiceID, services,
-				isAgentServiceMatchRoles, AgentRoleSentry6); service != nil {
-				agent := &resource.Agent6{Ip: service.Address}
-				agent.SetID(service.Address)
+				AgentRoleSentry6); service != nil {
+				agent := &resource.Agent6{Ip: service.ServiceAddress}
+				agent.SetID(service.ServiceAddress)
 				agents = append(agents, agent)
-				break
 			}
 		}
 	}
@@ -50,8 +49,9 @@ func (h *Agent6Handler) Get(ctx *restresource.Context) (restresource.Resource, *
 	for _, check := range checks {
 		if check.Validate() {
 			if service := getSentryServiceWithServiceID(check.ServiceID, services,
-				isAgentServiceMatchRoles, AgentRoleSentry6); service != nil && service.Address == agent.GetID() {
-				agent.Ip = service.Address
+				AgentRoleSentry6); service != nil &&
+				service.ServiceAddress == agent.GetID() {
+				agent.Ip = service.ServiceAddress
 				return agent, nil
 			}
 		}

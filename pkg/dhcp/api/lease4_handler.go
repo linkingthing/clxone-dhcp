@@ -6,10 +6,11 @@ import (
 	"net"
 	"strings"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -31,7 +32,7 @@ func (l *SubnetLease4Handler) List(ctx *restresource.Context) (interface{}, *res
 	ip, hasAddressFilter := util.GetFilterValueWithEqModifierFromFilters(
 		util.FilterNameIp, ctx.GetFilters())
 	if hasAddressFilter {
-		if _, isv4, err := util.ParseIP(ip); err != nil || isv4 == false {
+		if _, err := gohelperip.ParseIPv4(ip); err != nil {
 			return nil, nil
 		}
 	}
@@ -87,7 +88,8 @@ func getReservation4sAndSubnetLease4s(tx restdb.Transaction, subnetId string) ([
 		return nil, nil, err
 	}
 
-	if err := tx.Fill(map[string]interface{}{"subnet4": subnetId}, &subnetLeases); err != nil {
+	if err := tx.Fill(map[string]interface{}{"subnet4": subnetId},
+		&subnetLeases); err != nil {
 		return nil, nil, err
 	}
 
@@ -129,9 +131,9 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 			reclaimedLease.Equal(lease4) {
 			reclaimleasesForRetain = append(reclaimleasesForRetain, reclaimedLease.GetID())
 			continue
+		} else {
+			leases = append(leases, lease4)
 		}
-
-		leases = append(leases, lease4)
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -156,10 +158,11 @@ func subnetLease4FromPbLease4AndReservations(lease *dhcpagent.DHCPLease4, reserv
 func (l *SubnetLease4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	subnetId := ctx.Resource.GetParent().GetID()
 	leaseId := ctx.Resource.GetID()
-	_, isv4, err := util.ParseIP(leaseId)
-	if err != nil || isv4 == false {
+	_, err := gohelperip.ParseIPv4(leaseId)
+	if err != nil {
 		return resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("subnet %s lease4 id %s is invalid ipv4", subnetId, leaseId))
+			fmt.Sprintf("subnet %s lease4 id %s is invalid: %v",
+				subnetId, leaseId, err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

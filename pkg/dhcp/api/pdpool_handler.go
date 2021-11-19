@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"sort"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -38,11 +37,13 @@ func (p *PdPoolHandler) Create(ctx *restresource.Context) (restresource.Resource
 			return err
 		}
 
-		if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpool.Prefix, pdpool.PrefixLen); err != nil {
+		if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpool.PrefixIpnet,
+			pdpool.PrefixLen); err != nil {
 			return err
 		}
 
-		if err := checkPdPoolConflictWithSubnet6PdPools(tx, subnet.GetID(), pdpool); err != nil {
+		if err := checkPdPoolConflictWithSubnet6PdPools(tx, subnet.GetID(),
+			pdpool); err != nil {
 			return err
 		}
 
@@ -54,21 +55,22 @@ func (p *PdPoolHandler) Create(ctx *restresource.Context) (restresource.Resource
 		return sendCreatePdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create pdpool %s-%d with subnet %s failed: %s",
-				pdpool.String(), pdpool.DelegatedLen, subnet.GetID(), err.Error()))
+			fmt.Sprintf("create pdpool %s with subnet %s failed: %s",
+				pdpool.String(), subnet.GetID(), err.Error()))
 	}
 
 	return pdpool, nil
 }
 
-func checkPrefixBelongsToIpnet(ipnet net.IPNet, prefix string, prefixLen uint32) error {
+func checkPrefixBelongsToIpnet(ipnet, prefixIpnet net.IPNet, prefixLen uint32) error {
 	if ones, _ := ipnet.Mask.Size(); uint32(ones) > prefixLen {
 		return fmt.Errorf("pdpool %s prefix len %d should bigger than subnet mask len %d",
-			prefix, prefixLen, ones)
+			prefixIpnet.String(), prefixLen, ones)
 	}
 
-	if checkIPsBelongsToIpnet(ipnet, prefix) == false {
-		return fmt.Errorf("pdpool %s not belongs to subnet %s", prefix, ipnet.String())
+	if checkIPsBelongsToIpnet(ipnet, prefixIpnet.IP) == false {
+		return fmt.Errorf("pdpool %s not belongs to subnet %s",
+			prefixIpnet.String(), ipnet.String())
 	}
 
 	return nil
@@ -76,16 +78,16 @@ func checkPrefixBelongsToIpnet(ipnet net.IPNet, prefix string, prefixLen uint32)
 
 func checkPdPoolConflictWithSubnet6PdPools(tx restdb.Transaction, subnetID string, pdpool *resource.PdPool) error {
 	var pdpools []*resource.PdPool
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnetID}, &pdpools); err != nil {
+	if err := tx.FillEx(&pdpools,
+		"select * from gr_pd_pool where subnet6 = $1 and prefix_ipnet && $2",
+		subnetID, pdpool.PrefixIpnet); err != nil {
 		return fmt.Errorf("get pdpools with subnet %s from db failed: %s",
 			subnetID, err.Error())
 	}
 
-	for _, pdpool_ := range pdpools {
-		if pdpool_.CheckConflictWithAnother(pdpool) {
-			return fmt.Errorf("pdpool %s conflict with pdpool %s",
-				pdpool.String(), pdpool_.String())
-		}
+	if len(pdpools) != 0 {
+		return fmt.Errorf("pdpool %s conflict with pdpool %s",
+			pdpool.String(), pdpools[0].String())
 	}
 
 	return nil
@@ -95,8 +97,9 @@ func sendCreatePdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *res
 	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreatePdPool,
 		pdpoolToCreatePdPoolRequest(subnetID, pdpool))
 	if err != nil {
-		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForSucceed,
-			dhcpservice.DeletePdPool, pdpoolToDeletePdPoolRequest(subnetID, pdpool)); err != nil {
+		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+			nodesForSucceed, dhcpservice.DeletePdPool,
+			pdpoolToDeletePdPoolRequest(subnetID, pdpool)); err != nil {
 			log.Errorf("create subnet %d pdpool %s failed, and rollback it failed: %s",
 				subnetID, pdpool.String(), err.Error())
 		}
@@ -116,13 +119,14 @@ func pdpoolToCreatePdPoolRequest(subnetID uint64, pdpool *resource.PdPool) *dhcp
 
 func (p *PdPoolHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetParent().GetID()
-	var pdpools resource.PdPools
-	if err := db.GetResources(map[string]interface{}{"subnet6": subnetID}, &pdpools); err != nil {
+	var pdpools []*resource.PdPool
+	if err := db.GetResources(map[string]interface{}{
+		"subnet6": subnetID, "orderby": "prefix_ipnet"}, &pdpools); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list pdpools with subnet %s from db failed: %s", subnetID, err.Error()))
+			fmt.Sprintf("list pdpools with subnet %s from db failed: %s",
+				subnetID, err.Error()))
 	}
 
-	sort.Sort(pdpools)
 	return pdpools, nil
 }
 
@@ -154,9 +158,11 @@ func (p *PdPoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 
 		pdpool.Subnet6 = subnet.GetID()
 		if leasesCount, err := getPdPoolLeasesCount(pdpool); err != nil {
-			return fmt.Errorf("get pdpool %s leases count failed: %s", pdpool.String(), err.Error())
+			return fmt.Errorf("get pdpool %s leases count failed: %s",
+				pdpool.String(), err.Error())
 		} else if leasesCount != 0 {
-			return fmt.Errorf("can not delete pdpool with %d ips had been allocated", leasesCount)
+			return fmt.Errorf("can not delete pdpool with %d ips had been allocated",
+				leasesCount)
 		}
 
 		if _, err := tx.Delete(resource.TablePdPool,
@@ -176,7 +182,8 @@ func (p *PdPoolHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 
 func setPdPoolFromDB(tx restdb.Transaction, pdpool *resource.PdPool) error {
 	var pdpools []*resource.PdPool
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: pdpool.GetID()}, &pdpools); err != nil {
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: pdpool.GetID()},
+		&pdpools); err != nil {
 		return fmt.Errorf("get pdpool from db failed: %s", err.Error())
 	}
 
@@ -187,6 +194,7 @@ func setPdPoolFromDB(tx restdb.Transaction, pdpool *resource.PdPool) error {
 	pdpool.Subnet6 = pdpools[0].Subnet6
 	pdpool.Prefix = pdpools[0].Prefix
 	pdpool.PrefixLen = pdpools[0].PrefixLen
+	pdpool.PrefixIpnet = pdpools[0].PrefixIpnet
 	pdpool.DelegatedLen = pdpools[0].DelegatedLen
 	pdpool.Capacity = pdpools[0].Capacity
 	return nil

@@ -2,8 +2,8 @@ package metric
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/zdnscloud/gorest"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/gorest"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/api"

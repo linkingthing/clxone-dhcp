@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	"github.com/zdnscloud/cement/log"
+	"github.com/linkingthing/cement/log"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/linkingthing/clxone-dhcp/config"

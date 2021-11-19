@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"

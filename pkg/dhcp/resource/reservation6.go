@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
-
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
@@ -18,6 +17,7 @@ type Reservation6 struct {
 	Duid                      string   `json:"duid"`
 	HwAddress                 string   `json:"hwAddress"`
 	IpAddresses               []string `json:"ipAddresses"`
+	Ips                       []net.IP `json:"-"`
 	Prefixes                  []string `json:"prefixes"`
 	Capacity                  uint64   `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string   `json:"usedRatio" rest:"description=readonly" db:"-"`
@@ -33,24 +33,6 @@ func (r *Reservation6) String() string {
 		return "duid-" + r.Duid
 	} else {
 		return "mac-" + r.HwAddress
-	}
-}
-
-type Reservation6s []*Reservation6
-
-func (r Reservation6s) Len() int {
-	return len(r)
-}
-
-func (r Reservation6s) Swap(i, j int) {
-	r[i], r[j] = r[j], r[i]
-}
-
-func (r Reservation6s) Less(i, j int) bool {
-	if r[i].Duid == r[j].Duid {
-		return r[i].HwAddress < r[j].HwAddress
-	} else {
-		return r[i].Duid < r[j].Duid
 	}
 }
 
@@ -78,21 +60,18 @@ func (r *Reservation6) Validate() error {
 	}
 
 	for _, ip := range r.IpAddresses {
-		if _, isv4, err := util.ParseIP(ip); err != nil {
+		if ipv6, err := gohelperip.ParseIPv6(ip); err != nil {
 			return err
-		} else if isv4 {
-			return fmt.Errorf("ip %s is not ipv6", ip)
+		} else {
+			r.Ips = append(r.Ips, ipv6)
 		}
 	}
 
 	for _, prefix := range r.Prefixes {
-		if _, ipnet, err := util.ParseCIDR(prefix, false); err != nil {
+		if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 			return err
-		} else {
-			ones, _ := ipnet.Mask.Size()
-			if ones >= 64 {
-				return fmt.Errorf("prefix %s mask size %d should less than 64", prefix, ones)
-			}
+		} else if ones, _ := ipnet.Mask.Size(); ones >= 64 {
+			return fmt.Errorf("prefix %s mask size %d should less than 64", prefix, ones)
 		}
 	}
 

@@ -3,9 +3,9 @@ package api
 import (
 	"fmt"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -49,7 +49,8 @@ func (d *DhcpConfigHandler) Get(ctx *restresource.Context) (restresource.Resourc
 	config, err := restdb.GetResourceWithID(db.GetDB(), configID, &configs)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get global config %s from db failed: %s", configID, err.Error()))
+			fmt.Sprintf("get global config %s from db failed: %s",
+				configID, err.Error()))
 	}
 
 	return config.(*resource.DhcpConfig), nil
@@ -72,7 +73,8 @@ func (d *DhcpConfigHandler) Update(ctx *restresource.Context) (restresource.Reso
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update global config %s failed: %s", config.GetID(), err.Error()))
+			fmt.Sprintf("update global config %s failed: %s",
+				config.GetID(), err.Error()))
 	}
 
 	return config, nil

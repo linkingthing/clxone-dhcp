@@ -6,8 +6,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/zdnscloud/cement/log"
-	"github.com/zdnscloud/cement/slice"
+	"github.com/linkingthing/cement/log"
+	"github.com/linkingthing/cement/slice"
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/clxone-dhcp/config"

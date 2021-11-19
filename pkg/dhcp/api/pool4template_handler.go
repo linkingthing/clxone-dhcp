@@ -3,9 +3,9 @@ package api
 import (
 	"fmt"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -23,7 +23,8 @@ func (p *Pool4TemplateHandler) Create(ctx *restresource.Context) (restresource.R
 	template := ctx.Resource.(*resource.Pool4Template)
 	if err := template.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create pool template %s params invalid: %s", template.Name, err.Error()))
+			fmt.Sprintf("create pool template %s params invalid: %s",
+				template.Name, err.Error()))
 	}
 
 	template.SetID(template.Name)
@@ -32,7 +33,8 @@ func (p *Pool4TemplateHandler) Create(ctx *restresource.Context) (restresource.R
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create pool template %s failed: %s", template.Name, err.Error()))
+			fmt.Sprintf("create pool template %s failed: %s",
+				template.Name, err.Error()))
 	}
 
 	return template, nil
@@ -40,7 +42,8 @@ func (p *Pool4TemplateHandler) Create(ctx *restresource.Context) (restresource.R
 
 func (p *Pool4TemplateHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	conditions := make(map[string]interface{})
-	if name, ok := util.GetFilterValueWithEqModifierFromFilters(util.FilterNameName, ctx.GetFilters()); ok {
+	if name, ok := util.GetFilterValueWithEqModifierFromFilters(util.FilterNameName,
+		ctx.GetFilters()); ok {
 		conditions[util.FilterNameName] = name
 	} else {
 		conditions["orderby"] = "name"
@@ -61,7 +64,8 @@ func (p *Pool4TemplateHandler) Get(ctx *restresource.Context) (restresource.Reso
 	template, err := restdb.GetResourceWithID(db.GetDB(), templateID, &templates)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool template %s from db failed: %s", templateID, err.Error()))
+			fmt.Sprintf("get pool template %s from db failed: %s",
+				templateID, err.Error()))
 	}
 
 	return template.(*resource.Pool4Template), nil
@@ -71,7 +75,8 @@ func (p *Pool4TemplateHandler) Update(ctx *restresource.Context) (restresource.R
 	template := ctx.Resource.(*resource.Pool4Template)
 	if err := template.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("update pool template %s params invalid: %s", template.Name, err.Error()))
+			fmt.Sprintf("update pool template %s params invalid: %s",
+				template.Name, err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -83,7 +88,8 @@ func (p *Pool4TemplateHandler) Update(ctx *restresource.Context) (restresource.R
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update pool template %s failed: %s", template.Name, err.Error()))
+			fmt.Sprintf("update pool template %s failed: %s",
+				template.Name, err.Error()))
 	}
 
 	return template, nil
@@ -92,11 +98,13 @@ func (p *Pool4TemplateHandler) Update(ctx *restresource.Context) (restresource.R
 func (p *Pool4TemplateHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 	templateID := ctx.Resource.GetID()
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		_, err := tx.Delete(resource.TablePool4Template, map[string]interface{}{restdb.IDField: templateID})
+		_, err := tx.Delete(resource.TablePool4Template, map[string]interface{}{
+			restdb.IDField: templateID})
 		return err
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete pool template %s failed: %s", templateID, err.Error()))
+			fmt.Sprintf("delete pool template %s failed: %s",
+				templateID, err.Error()))
 	}
 
 	return nil

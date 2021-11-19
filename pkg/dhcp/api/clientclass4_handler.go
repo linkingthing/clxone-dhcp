@@ -3,10 +3,10 @@ package api
 import (
 	"fmt"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -61,7 +61,8 @@ func sendCreateClientClass4CmdToAgent(clientclass *resource.ClientClass4) error 
 
 func (c *ClientClass4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	var clientclasses []*resource.ClientClass4
-	if err := db.GetResources(map[string]interface{}{"orderby": "name"}, &clientclasses); err != nil {
+	if err := db.GetResources(map[string]interface{}{"orderby": "name"},
+		&clientclasses); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list clientclass4s from db failed: %s", err.Error()))
 	}

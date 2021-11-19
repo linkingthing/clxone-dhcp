@@ -3,10 +3,10 @@ package api
 import (
 	"fmt"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -61,7 +61,8 @@ func sendCreateClientClass6CmdToAgent(clientclass *resource.ClientClass6) error 
 
 func (c *ClientClass6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	var clientclasses []*resource.ClientClass6
-	if err := db.GetResources(map[string]interface{}{"orderby": "name"}, &clientclasses); err != nil {
+	if err := db.GetResources(map[string]interface{}{"orderby": "name"},
+		&clientclasses); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list clientclasses from db failed: %s", err.Error()))
 	}
@@ -75,7 +76,8 @@ func (c *ClientClass6Handler) Get(ctx *restresource.Context) (restresource.Resou
 	clientclass, err := restdb.GetResourceWithID(db.GetDB(), clientclassID, &clientclasses)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get clientclass %s from db failed: %s", clientclassID, err.Error()))
+			fmt.Sprintf("get clientclass %s from db failed: %s",
+				clientclassID, err.Error()))
 	}
 
 	return clientclass.(*resource.ClientClass6), nil
@@ -93,7 +95,8 @@ func (c *ClientClass6Handler) Update(ctx *restresource.Context) (restresource.Re
 		return sendUpdateClientClass6CmdToDHCPAgent(clientclass)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update clientclass %s failed: %s", clientclass.GetID(), err.Error()))
+			fmt.Sprintf("update clientclass %s failed: %s",
+				clientclass.GetID(), err.Error()))
 	}
 
 	return clientclass, nil

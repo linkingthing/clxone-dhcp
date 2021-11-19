@@ -6,10 +6,11 @@ import (
 	"net"
 	"strings"
 
-	"github.com/zdnscloud/cement/log"
-	restdb "github.com/zdnscloud/gorest/db"
-	resterror "github.com/zdnscloud/gorest/error"
-	restresource "github.com/zdnscloud/gorest/resource"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+	resterror "github.com/linkingthing/gorest/error"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -29,7 +30,7 @@ func (l *SubnetLease6Handler) List(ctx *restresource.Context) (interface{}, *res
 	ip, hasAddressFilter := util.GetFilterValueWithEqModifierFromFilters(
 		util.FilterNameIp, ctx.GetFilters())
 	if hasAddressFilter {
-		if _, isv4, err := util.ParseIP(ip); err != nil || isv4 {
+		if _, err := gohelperip.ParseIPv6(ip); err != nil {
 			return nil, nil
 		}
 	}
@@ -46,7 +47,8 @@ func (l *SubnetLease6Handler) List(ctx *restresource.Context) (interface{}, *res
 
 		subnet6SubnetId = subnet6.SubnetId
 		if hasAddressFilter {
-			reservations, subnetLeases, err = getReservation6sAndSubnetLease6sWithIp(tx, subnet6, ip)
+			reservations, subnetLeases, err = getReservation6sAndSubnetLease6sWithIp(
+				tx, subnet6, ip)
 		} else {
 			reservations, subnetLeases, err = getReservation6sAndSubnetLease6s(tx, subnetId)
 		}
@@ -83,7 +85,8 @@ func getReservation6sAndSubnetLease6s(tx restdb.Transaction, subnetId string) ([
 		return nil, nil, err
 	}
 
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnetId}, &subnetLeases); err != nil {
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnetId},
+		&subnetLeases); err != nil {
 		return nil, nil, err
 	}
 
@@ -91,7 +94,8 @@ func getReservation6sAndSubnetLease6s(tx restdb.Transaction, subnetId string) ([
 }
 
 func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) (interface{}, *resterror.APIError) {
-	lease6, err := service.GetSubnetLease6WithoutReclaimed(subnetId, ip, reservations, subnetLeases)
+	lease6, err := service.GetSubnetLease6WithoutReclaimed(subnetId, ip,
+		reservations, subnetLeases)
 	if err != nil {
 		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
 		return nil, nil
@@ -123,10 +127,9 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 		if reclaimedLease, ok := reclaimedSubnetLeases[lease6.Address]; ok &&
 			reclaimedLease.Equal(lease6) {
 			reclaimleasesForRetain = append(reclaimleasesForRetain, reclaimedLease.GetID())
-			continue
+		} else {
+			leases = append(leases, lease6)
 		}
-
-		leases = append(leases, lease6)
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -151,10 +154,11 @@ func subnetLease6FromPbLease6AndReservations(lease *dhcpagent.DHCPLease6, reserv
 func (l *SubnetLease6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	subnetId := ctx.Resource.GetParent().GetID()
 	leaseId := ctx.Resource.GetID()
-	_, isv4, err := util.ParseIP(leaseId)
-	if err != nil || isv4 {
+	_, err := gohelperip.ParseIPv6(leaseId)
+	if err != nil {
 		return resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("subnet %s lease6 id %s is invalid ipv6", subnetId, leaseId))
+			fmt.Sprintf("subnet %s lease6 id %s is invalid: %s",
+				subnetId, leaseId, err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

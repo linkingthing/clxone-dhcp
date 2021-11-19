@@ -3,7 +3,7 @@ package grpcclient
 import (
 	"sync"
 
-	"github.com/zdnscloud/cement/log"
+	"github.com/linkingthing/cement/log"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"

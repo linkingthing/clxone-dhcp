@@ -9,9 +9,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/zdnscloud/gorest"
-	"github.com/zdnscloud/gorest/adaptor"
-	"github.com/zdnscloud/gorest/resource/schema"
+	"github.com/linkingthing/gorest"
+	"github.com/linkingthing/gorest/adaptor"
+	"github.com/linkingthing/gorest/resource/schema"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	hv1 "google.golang.org/grpc/health/grpc_health_v1"

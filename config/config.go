@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/zdnscloud/cement/configure"
+	"github.com/linkingthing/cement/configure"
 )
 
 type DHCPConfig struct {

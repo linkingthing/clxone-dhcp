@@ -3,11 +3,11 @@ package resource
 import (
 	"fmt"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableDhcpConfig = restdb.ResourceDBType(&DhcpConfig{})
@@ -38,7 +38,7 @@ type DhcpConfig struct {
 }
 
 func (config *DhcpConfig) Validate() error {
-	if err := util.CheckIPsValid(config.DomainServers...); err != nil {
+	if err := gohelperip.CheckIPsValid(config.DomainServers...); err != nil {
 		return err
 	}
 
@@ -73,7 +73,7 @@ func getDhcpConfig(isv4 bool) (*DhcpConfig, error) {
 	if len(configs) != 0 {
 		var defaultDomains []string
 		for _, domain := range configs[0].DomainServers {
-			if _, v4, err := util.ParseIP(domain); err == nil && v4 == isv4 {
+			if _, err := gohelperip.ParseIP(domain, isv4); err == nil {
 				defaultDomains = append(defaultDomains, domain)
 			}
 		}

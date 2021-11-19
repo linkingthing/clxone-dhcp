@@ -3,8 +3,8 @@ package resource
 import (
 	"fmt"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TablePool6Template = restdb.ResourceDBType(&Pool6Template{})

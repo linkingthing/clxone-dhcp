@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net"
 
-	restdb "github.com/zdnscloud/gorest/db"
-	restresource "github.com/zdnscloud/gorest/resource"
-
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	gohelperip "github.com/cuityhj/gohelper/ip"
+	restdb "github.com/linkingthing/gorest/db"
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TablePool4 = restdb.ResourceDBType(&Pool4{})
@@ -16,7 +15,9 @@ type Pool4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet4                   string `json:"-" db:"ownby"`
 	BeginAddress              string `json:"beginAddress" rest:"description=immutable"`
+	BeginIp                   net.IP `json:"-"`
 	EndAddress                string `json:"endAddress" rest:"description=immutable"`
+	EndIp                     net.IP `json:"-"`
 	Capacity                  uint64 `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64 `json:"usedCount" rest:"description=readonly" db:"-"`
@@ -49,25 +50,21 @@ func (p Pool4) GetActions() []restresource.Action {
 }
 
 func (p *Pool4) CheckConflictWithAnother(another *Pool4) bool {
-	if util.OneIpLessThanAnother(another.EndAddress, p.BeginAddress) ||
-		util.OneIpLessThanAnother(p.EndAddress, another.BeginAddress) {
-		return false
-	}
-
-	return true
+	return gohelperip.IP(another.EndIp).Cmp(gohelperip.IP(p.BeginIp)) != -1 &&
+		gohelperip.IP(another.BeginIp).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
 func (p *Pool4) CheckConflictWithReservedPool4(reservedPool *ReservedPool4) bool {
-	if util.OneIpLessThanAnother(reservedPool.EndAddress, p.BeginAddress) ||
-		util.OneIpLessThanAnother(p.EndAddress, reservedPool.BeginAddress) {
-		return false
-	}
-
-	return true
+	return gohelperip.IP(reservedPool.EndIp).Cmp(gohelperip.IP(p.BeginIp)) != -1 &&
+		gohelperip.IP(reservedPool.BeginIp).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
 func (p *Pool4) Contains(ip string) bool {
-	return p.CheckConflictWithAnother(&Pool4{BeginAddress: ip, EndAddress: ip})
+	if ip_, err := gohelperip.ParseIPv4(ip); err != nil {
+		return false
+	} else {
+		return p.CheckConflictWithAnother(&Pool4{BeginIp: ip_, EndIp: ip_})
+	}
 }
 
 func (p *Pool4) Equals(another *Pool4) bool {
@@ -84,20 +81,6 @@ func (p *Pool4) String() string {
 	}
 }
 
-type Pool4s []*Pool4
-
-func (p Pool4s) Len() int {
-	return len(p)
-}
-
-func (p Pool4s) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
-}
-
-func (p Pool4s) Less(i, j int) bool {
-	return util.OneIpLessThanAnother(p[i].BeginAddress, p[j].BeginAddress)
-}
-
 func (p *Pool4) Validate() error {
 	if p.Template != "" {
 		return nil
@@ -111,82 +94,82 @@ func (p *Pool4) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet4)
 		return nil
 	}
 
-	pool, capacity, err := parsePool4FromTemplate(tx, p.Template, subnet)
+	beginIp, endIp, capacity, err := parsePool4FromTemplate(tx, p.Template, subnet)
 	if err != nil {
 		return err
 	}
 
-	p.BeginAddress = pool.BeginAddress
-	p.EndAddress = pool.EndAddress
-	p.Capacity = capacity
+	p.setAddrAndCapacity(beginIp, endIp, capacity)
 	return nil
 }
 
-func parsePool4FromTemplate(tx restdb.Transaction, template string, subnet *Subnet4) (*TemplatePool, uint64, error) {
+func (p *Pool4) setAddrAndCapacity(beginIp, endIp net.IP, capacity uint64) {
+	p.BeginAddress = beginIp.String()
+	p.EndAddress = endIp.String()
+	p.BeginIp = beginIp
+	p.EndIp = endIp
+	p.Capacity = capacity
+}
+
+func parsePool4FromTemplate(tx restdb.Transaction, template string, subnet *Subnet4) (net.IP, net.IP, uint64, error) {
 	var templates []*Pool4Template
 	if err := tx.Fill(map[string]interface{}{"name": template}, &templates); err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 
 	if len(templates) != 1 {
-		return nil, 0, fmt.Errorf("no found pool template %s", template)
+		return nil, nil, 0, fmt.Errorf("no found pool template %s", template)
 	}
 
-	subnetIpUint32, _ := util.Ipv4ToUint32(subnet.Ipnet.IP)
+	subnetIpUint32 := gohelperip.IPv4ToUint32(subnet.Ipnet.IP)
 	beginUint32 := subnetIpUint32 + uint32(templates[0].BeginOffset)
 	endUint32 := beginUint32 + uint32(templates[0].Capacity-1)
-	begin := util.Ipv4FromUint32(beginUint32)
-	end := util.Ipv4FromUint32(endUint32)
-	if subnet.Ipnet.Contains(begin) == false || subnet.Ipnet.Contains(end) == false {
-		return nil, 0, fmt.Errorf("template %s pool %s-%s not belongs to subnet %s",
-			template, begin.String(), end.String(), subnet.Subnet)
+	beginIp := gohelperip.IPv4FromUint32(beginUint32)
+	endIp := gohelperip.IPv4FromUint32(endUint32)
+	if subnet.Ipnet.Contains(beginIp) == false || subnet.Ipnet.Contains(endIp) == false {
+		return nil, nil, 0, fmt.Errorf("template %s pool %s-%s not belongs to subnet %s",
+			template, beginIp.String(), endIp.String(), subnet.Subnet)
 	}
 
-	return &TemplatePool{
-		BeginAddress: begin.String(),
-		EndAddress:   end.String(),
-	}, templates[0].Capacity, nil
+	return beginIp, endIp, templates[0].Capacity, nil
 }
 
 func (p *Pool4) ValidateAddress() error {
-	beginAddr, endAddr, capacity, err := validPool4(p.BeginAddress, p.EndAddress)
+	beginIp, endIp, capacity, err := validPool4(p.BeginAddress, p.EndAddress)
 	if err != nil {
 		return err
 	}
 
-	p.BeginAddress = beginAddr
-	p.EndAddress = endAddr
-	p.Capacity = capacity
+	p.setAddrAndCapacity(beginIp, endIp, capacity)
 	return nil
 }
 
-func validPool4(beginAddr, endAddr string) (string, string, uint64, error) {
-	begin, isv4, err := util.ParseIP(beginAddr)
+func validPool4(beginAddr, endAddr string) (net.IP, net.IP, uint64, error) {
+	beginIp, err := gohelperip.ParseIPv4(beginAddr)
 	if err != nil {
-		return "", "", 0, fmt.Errorf("pool begin address %s is invalid", beginAddr)
-	} else if isv4 == false {
-		return "", "", 0, fmt.Errorf("pool begin address %s is not ipv4", beginAddr)
+		return nil, nil, 0, fmt.Errorf("pool begin address %s is invalid: %s",
+			beginAddr, err.Error())
 	}
 
-	end, isv4, err := util.ParseIP(endAddr)
+	endIp, err := gohelperip.ParseIPv4(endAddr)
 	if err != nil {
-		return "", "", 0, fmt.Errorf("pool end address %s is invalid", endAddr)
-	} else if isv4 == false {
-		return "", "", 0, fmt.Errorf("pool end address %s is not ipv4", endAddr)
+		return nil, nil, 0, fmt.Errorf("pool end address %s is invalid: %s",
+			endAddr, err.Error())
 	}
 
-	if capacity, err := calculateIpv4Pool4Capacity(begin, end); err != nil {
-		return "", "", 0, err
+	if capacity, err := calculateIpv4Pool4Capacity(beginIp, endIp); err != nil {
+		return nil, nil, 0, err
 	} else {
-		return begin.String(), end.String(), capacity, nil
+		return beginIp, endIp, capacity, nil
 	}
 }
 
-func calculateIpv4Pool4Capacity(begin, end net.IP) (uint64, error) {
-	endUint32, _ := util.Ipv4ToUint32(end)
-	beginUint32, _ := util.Ipv4ToUint32(begin)
+func calculateIpv4Pool4Capacity(beginIp, endIp net.IP) (uint64, error) {
+	endUint32 := gohelperip.IPv4ToUint32(endIp)
+	beginUint32 := gohelperip.IPv4ToUint32(beginIp)
 	if endUint32 < beginUint32 {
-		return 0, fmt.Errorf("begin address %s bigger than end address %s", begin.String(), end.String())
+		return 0, fmt.Errorf("begin address %s bigger than end address %s",
+			beginIp.String(), endIp.String())
 	} else {
 		return uint64(endUint32 - beginUint32 + 1), nil
 	}

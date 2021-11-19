@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/zdnscloud/cement/slice"
+	"github.com/linkingthing/cement/slice"
 )
 
 const (

@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/gorest/resource"
 )
 
 type Node struct {

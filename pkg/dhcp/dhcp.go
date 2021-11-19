@@ -3,8 +3,8 @@ package dhcp
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/zdnscloud/gorest"
-	restresource "github.com/zdnscloud/gorest/resource"
+	"github.com/linkingthing/gorest"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"

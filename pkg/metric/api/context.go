@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	restresource "github.com/zdnscloud/gorest/resource"
+	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
@@ -56,8 +56,8 @@ type TimePeriod struct {
 }
 
 func getTimePeriodFromFilter(filters []restresource.Filter) (*TimePeriod, error) {
-	timeFrom, _ := util.GetFilterValueWithEqModifierFromFilters(util.FilterTimeFrom, filters)
-	timeTo, _ := util.GetFilterValueWithEqModifierFromFilters(util.FilterTimeTo, filters)
+	timeFrom, _ := util.GetFilterValueWithEqModifierFromFilters(util.FilterNameTimeFrom, filters)
+	timeTo, _ := util.GetFilterValueWithEqModifierFromFilters(util.FilterNameTimeTo, filters)
 	return parseTimePeriod(timeFrom, timeTo)
 }
 
