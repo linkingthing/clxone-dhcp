@@ -224,7 +224,7 @@ func (s *Subnet6Handler) Get(ctx *restresource.Context) (restresource.Resource, 
 }
 
 func setSubnet6LeasesUsedRatio(subnet *resource.Subnet6) error {
-	leasesCount, err := dhcpservice.GetSubnet6LeasesCount(subnet)
+	leasesCount, err := getSubnet6LeasesCount(subnet)
 	if err != nil {
 		return err
 	}
@@ -235,6 +235,16 @@ func setSubnet6LeasesUsedRatio(subnet *resource.Subnet6) error {
 			float64(leasesCount)/float64(subnet.Capacity))
 	}
 	return nil
+}
+
+func getSubnet6LeasesCount(subnet *resource.Subnet6) (uint64, error) {
+	if subnet.Capacity == 0 {
+		return 0, nil
+	}
+
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6LeasesCount(context.TODO(),
+		&dhcpagent.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
+	return resp.GetLeasesCount(), err
 }
 
 func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
@@ -349,7 +359,7 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 }
 
 func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
-	if leasesCount, err := dhcpservice.GetSubnet6LeasesCount(subnet6); err != nil {
+	if leasesCount, err := getSubnet6LeasesCount(subnet6); err != nil {
 		return fmt.Errorf("get subnet %s leases count failed: %s",
 			subnet6.Subnet, err.Error())
 	} else if leasesCount != 0 {

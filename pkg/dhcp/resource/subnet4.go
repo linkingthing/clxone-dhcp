@@ -91,6 +91,14 @@ type Subnet4ListOutput struct {
 	Subnet4s []*Subnet4 `json:"subnet4s"`
 }
 
+func (s *Subnet4) Contains(ip string) bool {
+	if ipv4, err := gohelperip.ParseIPv4(ip); err != nil {
+		return false
+	} else {
+		return s.Ipnet.Contains(ipv4)
+	}
+}
+
 func (s *Subnet4) Validate() error {
 	ipnet, err := gohelperip.ParseCIDRv4(s.Subnet)
 	if err != nil {

@@ -54,6 +54,14 @@ type Subnet6ListOutput struct {
 	Subnet6s []*Subnet6 `json:"subnet6s"`
 }
 
+func (s *Subnet6) Contains(ip string) bool {
+	if ipv6, err := gohelperip.ParseIPv6(ip); err != nil {
+		return false
+	} else {
+		return s.Ipnet.Contains(ipv6)
+	}
+}
+
 func (s *Subnet6) Validate() error {
 	ipnet, err := gohelperip.ParseCIDRv6(s.Subnet)
 	if err != nil {

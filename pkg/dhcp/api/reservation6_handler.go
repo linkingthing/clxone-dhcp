@@ -108,6 +108,7 @@ func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation
 			subnetId, reservation.HwAddress, reservation.Duid)
 	}
 
+	//TODO get from db and cmp in mem
 	for _, ipAddress := range reservation.IpAddresses {
 		count, err := tx.CountEx(resource.TableReservation6,
 			"select count(*) from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",

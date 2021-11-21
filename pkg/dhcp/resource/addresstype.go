@@ -9,3 +9,7 @@ const (
 	AddressTypeExclusion   AddressType = "exclusion"
 	AddressTypeDelegation  AddressType = "delegation"
 )
+
+func (a AddressType) String() string {
+	return string(a)
+}

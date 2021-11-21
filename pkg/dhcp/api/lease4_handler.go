@@ -77,7 +77,19 @@ func getReservation4sAndSubnetLease4sWithIp(tx restdb.Transaction, subnet4 *reso
 		return nil, nil, ErrorIpNotBelongToSubnet
 	}
 
-	return service.GetReservation4sAndSubnetLease4sWithIp(tx, subnet4.GetID(), ip)
+	var reservations []*resource.Reservation4
+	var subnetLeases []*resource.SubnetLease4
+	if err := tx.Fill(map[string]interface{}{"ip_address": ip, "subnet4": subnet4.GetID()},
+		&reservations); err != nil {
+		return nil, nil, err
+	}
+
+	if err := tx.Fill(map[string]interface{}{"address": ip, "subnet4": subnet4.GetID()},
+		&subnetLeases); err != nil {
+		return nil, nil, err
+	}
+
+	return reservations, subnetLeases, nil
 }
 
 func getReservation4sAndSubnetLease4s(tx restdb.Transaction, subnetId string) ([]*resource.Reservation4, []*resource.SubnetLease4, error) {
@@ -98,12 +110,19 @@ func getReservation4sAndSubnetLease4s(tx restdb.Transaction, subnetId string) ([
 
 func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource.Reservation4, subnetLeases []*resource.SubnetLease4) (interface{}, *resterror.APIError) {
 	lease4, err := service.GetSubnetLease4WithoutReclaimed(subnetId, ip,
-		reservations, subnetLeases)
+		subnetLeases)
 	if err != nil {
 		log.Debugf("get subnet4 %d leases failed: %s", subnetId, err.Error())
 		return nil, nil
 	} else if lease4 == nil {
 		return nil, nil
+	}
+
+	for _, reservation := range reservations {
+		if reservation.IpAddress == lease4.Address {
+			lease4.AddressType = resource.AddressTypeReservation
+			break
+		}
 	}
 
 	return []*resource.SubnetLease4{lease4}, nil
@@ -171,14 +190,14 @@ func (l *SubnetLease4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			return err
 		}
 
-		reservations, subnetLeases, err := getReservation4sAndSubnetLease4sWithIp(
+		_, subnetLeases, err := getReservation4sAndSubnetLease4sWithIp(
 			tx, subnet4, leaseId)
 		if err != nil {
 			return err
 		}
 
 		lease4, err := service.GetSubnetLease4WithoutReclaimed(subnet4.SubnetId, leaseId,
-			reservations, subnetLeases)
+			subnetLeases)
 		if err != nil {
 			return err
 		} else if lease4 == nil {

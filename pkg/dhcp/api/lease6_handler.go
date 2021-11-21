@@ -74,7 +74,20 @@ func getReservation6sAndSubnetLease6sWithIp(tx restdb.Transaction, subnet6 *reso
 		return nil, nil, ErrorIpNotBelongToSubnet
 	}
 
-	return service.GetReservation6sAndSubnetLease6sWithIp(tx, subnet6.GetID(), ip)
+	var reservations []*resource.Reservation6
+	var subnetLeases []*resource.SubnetLease6
+	if err := tx.FillEx(&reservations,
+		"select * from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",
+		subnet6.GetID(), ip); err != nil {
+		return nil, nil, err
+	}
+
+	if err := tx.Fill(map[string]interface{}{"address": ip, "subnet6": subnet6.GetID()},
+		&subnetLeases); err != nil {
+		return nil, nil, err
+	}
+
+	return reservations, subnetLeases, nil
 }
 
 func getReservation6sAndSubnetLease6s(tx restdb.Transaction, subnetId string) ([]*resource.Reservation6, []*resource.SubnetLease6, error) {
@@ -95,12 +108,25 @@ func getReservation6sAndSubnetLease6s(tx restdb.Transaction, subnetId string) ([
 
 func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) (interface{}, *resterror.APIError) {
 	lease6, err := service.GetSubnetLease6WithoutReclaimed(subnetId, ip,
-		reservations, subnetLeases)
+		subnetLeases)
 	if err != nil {
 		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
 		return nil, nil
 	} else if lease6 == nil {
 		return nil, nil
+	}
+
+	for _, reservation := range reservations {
+		for _, ipaddress := range reservation.IpAddresses {
+			if ipaddress == lease6.Address {
+				lease6.AddressType = resource.AddressTypeReservation
+				break
+			}
+		}
+
+		if lease6.AddressType == resource.AddressTypeReservation {
+			break
+		}
 	}
 
 	return []*resource.SubnetLease6{lease6}, nil
@@ -167,14 +193,14 @@ func (l *SubnetLease6Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			return err
 		}
 
-		reservations, subnetLeases, err := getReservation6sAndSubnetLease6sWithIp(
+		_, subnetLeases, err := getReservation6sAndSubnetLease6sWithIp(
 			tx, subnet6, leaseId)
 		if err != nil {
 			return err
 		}
 
 		lease6, err := service.GetSubnetLease6WithoutReclaimed(subnet6.SubnetId, leaseId,
-			reservations, subnetLeases)
+			subnetLeases)
 		if err != nil {
 			return err
 		} else if lease6 == nil {
