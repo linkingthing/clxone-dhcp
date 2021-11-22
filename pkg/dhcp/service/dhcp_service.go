@@ -645,7 +645,7 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 		return fmt.Errorf("get subnet4 leases failed: %s", err.Error())
 	}
 
-	for ip, lease4 := range resp.GetLeases4() {
+	for ip, lease4 := range resp.GetLeases() {
 		subnetLease4 := SubnetLease4FromPbLease4(lease4)
 		if subnetLease, ok := subnetLeases[ip]; ok && subnetLease.Equal(subnetLease4) {
 			continue
@@ -804,7 +804,7 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 		return fmt.Errorf("get subnet6 leases failed: %s", err.Error())
 	}
 
-	for ip, lease6 := range resp.GetLeases6() {
+	for ip, lease6 := range resp.GetLeases() {
 		subnetLease6 := SubnetLease6FromPbLease6(lease6)
 		if subnetLease, ok := subnetLeases[ip]; ok && subnetLease.Equal(subnetLease6) {
 			continue
