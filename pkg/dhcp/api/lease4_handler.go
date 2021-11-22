@@ -81,12 +81,12 @@ func getReservation4sAndSubnetLease4sWithIp(tx restdb.Transaction, subnet4 *reso
 	var subnetLeases []*resource.SubnetLease4
 	if err := tx.Fill(map[string]interface{}{"ip_address": ip, "subnet4": subnet4.GetID()},
 		&reservations); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("get reservation4 %s failed: %s", ip, err.Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{"address": ip, "subnet4": subnet4.GetID()},
 		&subnetLeases); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("get subnet lease4 %s failed: %s", ip, err.Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -97,12 +97,12 @@ func getReservation4sAndSubnetLease4s(tx restdb.Transaction, subnetId string) ([
 	var subnetLeases []*resource.SubnetLease4
 	if err := tx.Fill(map[string]interface{}{"subnet4": subnetId},
 		&reservations); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("get reservation4s failed: %s", err.Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{"subnet4": subnetId},
 		&subnetLeases); err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("get subnet lease4s failed: %s", err.Error())
 	}
 
 	return reservations, subnetLeases, nil

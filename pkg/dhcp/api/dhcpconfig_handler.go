@@ -17,10 +17,10 @@ type DhcpConfigHandler struct {
 func NewDhcpConfigHandler() (*DhcpConfigHandler, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableDhcpConfig, nil); err != nil {
-			return err
+			return fmt.Errorf("check dhcp config failed: %s", err.Error())
 		} else if exists == false {
 			_, err := tx.Insert(resource.DefaultDhcpConfig)
-			return err
+			return fmt.Errorf("insert default dhcp config failed: %s", err.Error())
 		} else {
 			return nil
 		}

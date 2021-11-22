@@ -275,7 +275,7 @@ func GetIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	addressType := resource.AddressTypeExclusion
 	if exists, err := tx.Exists(resource.TableReservation4,
 		map[string]interface{}{"ip_address": ip, "subnet4": subnetId}); err != nil {
-		return addressType, err
+		return addressType, fmt.Errorf("check ip %s in reservation4 failed: %s", ip, err.Error())
 	} else if exists {
 		return resource.AddressTypeReservation, nil
 	}
@@ -283,7 +283,7 @@ func GetIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TableReservedPool4,
 		"select count(*) from gr_reserved_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
-		return addressType, err
+		return addressType, fmt.Errorf("check ip %s in reserved pool4 failed: %s", ip, err.Error())
 	} else if count != 0 {
 		return resource.AddressTypeReserve, nil
 	}
@@ -291,7 +291,7 @@ func GetIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TablePool4,
 		"select count(*) from gr_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
-		return addressType, err
+		return addressType, fmt.Errorf("check ip %s in pool4 failed: %s", ip, err.Error())
 	} else if count != 0 {
 		return resource.AddressTypeDynamic, nil
 	}
@@ -414,7 +414,7 @@ func GetIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TableReservation6,
 		"select count(*) from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",
 		subnetId, ip); err != nil {
-		return addressType, err
+		return addressType, fmt.Errorf("check ip %s in reservation6 failed: %s", ip, err.Error())
 	} else if count != 0 {
 		return resource.AddressTypeReservation, nil
 	}
@@ -422,6 +422,7 @@ func GetIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TableReservedPool6,
 		"select count(*) from gr_reserved_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
+		return addressType, fmt.Errorf("check ip %s in reserved pool6 failed: %s", ip, err.Error())
 	} else if count != 0 {
 		return resource.AddressTypeReserve, nil
 	}
@@ -429,7 +430,7 @@ func GetIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TablePool6,
 		"select count(*) from gr_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
-		return addressType, err
+		return addressType, fmt.Errorf("check ip %s in pool6 failed: %s", ip, err.Error())
 	} else if count != 0 {
 		return resource.AddressTypeDynamic, nil
 	}
