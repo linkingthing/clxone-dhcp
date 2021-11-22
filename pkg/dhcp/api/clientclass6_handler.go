@@ -11,7 +11,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 const (
@@ -44,7 +44,7 @@ func (c *ClientClass6Handler) Create(ctx *restresource.Context) (restresource.Re
 
 func sendCreateClientClass6CmdToAgent(clientclass *resource.ClientClass6) error {
 	err := dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateClientClass6,
-		&dhcpagent.CreateClientClass6Request{
+		&pbdhcpagent.CreateClientClass6Request{
 			Name:   clientclass.Name,
 			Code:   16,
 			Regexp: fmt.Sprintf(ClientClass6Option60, clientclass.Regexp),
@@ -104,7 +104,7 @@ func (c *ClientClass6Handler) Update(ctx *restresource.Context) (restresource.Re
 
 func sendUpdateClientClass6CmdToDHCPAgent(clientclass *resource.ClientClass6) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateClientClass6,
-		&dhcpagent.UpdateClientClass6Request{
+		&pbdhcpagent.UpdateClientClass6Request{
 			Name:   clientclass.Name,
 			Code:   16,
 			Regexp: fmt.Sprintf(ClientClass6Option60, clientclass.Regexp),
@@ -137,7 +137,7 @@ func (c *ClientClass6Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 
 func sendDeleteClientClass6CmdToDHCPAgent(clientClassID string) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.DeleteClientClass6,
-		&dhcpagent.DeleteClientClass6Request{
+		&pbdhcpagent.DeleteClientClass6Request{
 			Name: clientClassID,
 		})
 }

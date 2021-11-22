@@ -11,7 +11,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto/logging"
+	pblogging "github.com/linkingthing/clxone-dhcp/pkg/proto/logging"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -51,7 +51,7 @@ func LoggingMiddleWare() gorest.EndHandlerFunc {
 			errMsg = respErr.Error()
 		}
 
-		service.NewLoggingService().Log(&logging.LoggingRequest{
+		service.NewLoggingService().Log(&pblogging.LoggingRequest{
 			UserName:     "admin",
 			SourceIp:     util.ClientIP(ctx.Request),
 			Method:       method,

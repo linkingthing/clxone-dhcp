@@ -16,7 +16,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -130,7 +130,7 @@ func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource
 
 func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, subnetLeases []*resource.SubnetLease4) (interface{}, *resterror.APIError) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Leases(context.TODO(),
-		&dhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
+		&pbdhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
 	if err != nil {
 		log.Debugf("get subnet4 %d leases failed: %s", subnetId, err.Error())
 		return nil, nil
@@ -166,7 +166,7 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 	return leases, nil
 }
 
-func subnetLease4FromPbLease4AndReservations(lease *dhcpagent.DHCPLease4, reservationMap map[string]string) *resource.SubnetLease4 {
+func subnetLease4FromPbLease4AndReservations(lease *pbdhcpagent.DHCPLease4, reservationMap map[string]string) *resource.SubnetLease4 {
 	subnetLease4 := service.SubnetLease4FromPbLease4(lease)
 	if _, ok := reservationMap[subnetLease4.Address]; ok {
 		subnetLease4.AddressType = resource.AddressTypeReservation
@@ -204,14 +204,14 @@ func (l *SubnetLease4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			return nil
 		}
 
-		lease4.LeaseState = dhcpagent.LeaseState_RECLAIMED.String()
+		lease4.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 		lease4.Subnet4 = subnetId
 		if _, err := tx.Insert(lease4); err != nil {
 			return err
 		}
 
 		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease4(context.TODO(),
-			&dhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
+			&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
 		return err
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,

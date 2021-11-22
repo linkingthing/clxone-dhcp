@@ -12,7 +12,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
+	pbalarm "github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -35,7 +35,7 @@ func NewLPSHandler(conf *config.DHCPConfig) (*LPSHandler, error) {
 	return h, nil
 }
 
-func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
+func (h *LPSHandler) monitor(threshold *pbalarm.RegisterThreshold) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 	for {
@@ -50,7 +50,7 @@ func (h *LPSHandler) monitor(threshold *alarm.RegisterThreshold) {
 	}
 }
 
-func (h *LPSHandler) collectLPS(threshold *alarm.RegisterThreshold) error {
+func (h *LPSHandler) collectLPS(threshold *pbalarm.RegisterThreshold) error {
 	alarmService := service.NewAlarmService()
 	if alarmService.LpsThreshold.Enabled == false {
 		return nil
@@ -106,8 +106,8 @@ func (h *LPSHandler) collectLPS(threshold *alarm.RegisterThreshold) error {
 			}
 
 			if float64(exceedThresholdCount)/float64(len(values)) > 0.6 {
-				alarmService.SendEventWithValues(service.AlarmKeyLps, &alarm.LpsAlarm{
-					BaseAlarm: &alarm.BaseAlarm{
+				alarmService.SendEventWithValues(service.AlarmKeyLps, &pbalarm.LpsAlarm{
+					BaseAlarm: &pbalarm.BaseAlarm{
 						BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
 						Time:          latestTime.Format(time.RFC3339),
 						SendMail:      alarmService.DhcpThreshold.SendMail,

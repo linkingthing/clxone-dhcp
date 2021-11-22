@@ -20,7 +20,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -112,7 +112,7 @@ func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			nodesForSucceed, dhcpservice.DeleteSubnet4,
-			&dhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId}); err != nil {
+			&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId}); err != nil {
 			log.Errorf("create subnet4 %s failed, and rollback it failed: %s",
 				subnet.Subnet, err.Error())
 		}
@@ -121,8 +121,8 @@ func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 	return err
 }
 
-func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *dhcpagent.CreateSubnet4Request {
-	return &dhcpagent.CreateSubnet4Request{
+func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *pbdhcpagent.CreateSubnet4Request {
+	return &pbdhcpagent.CreateSubnet4Request{
 		Id:                  subnet.SubnetId,
 		Subnet:              subnet.Subnet,
 		ValidLifetime:       subnet.ValidLifetime,
@@ -138,10 +138,10 @@ func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *dhcpagent.CreateSu
 	}
 }
 
-func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*dhcpagent.SubnetOption {
-	var subnetOptions []*dhcpagent.SubnetOption
+func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetOption {
+	var subnetOptions []*pbdhcpagent.SubnetOption
 	if len(subnet.SubnetMask) != 0 {
-		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "subnet-mask",
 			Code: 1,
 			Data: subnet.SubnetMask,
@@ -149,7 +149,7 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*dhcpagent.SubnetOpt
 	}
 
 	if len(subnet.Routers) != 0 {
-		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "routers",
 			Code: 3,
 			Data: strings.Join(subnet.Routers, ","),
@@ -157,7 +157,7 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*dhcpagent.SubnetOpt
 	}
 
 	if len(subnet.DomainServers) != 0 {
-		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "name-servers",
 			Code: 6,
 			Data: strings.Join(subnet.DomainServers, ","),
@@ -165,7 +165,7 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*dhcpagent.SubnetOpt
 	}
 
 	if subnet.TftpServer != "" {
-		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "tftp-server",
 			Code: 66,
 			Data: subnet.TftpServer,
@@ -173,7 +173,7 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*dhcpagent.SubnetOpt
 	}
 
 	if subnet.Bootfile != "" {
-		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "bootfile",
 			Code: 67,
 			Data: subnet.Bootfile,
@@ -312,7 +312,7 @@ func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listContext) err
 		return nil
 	}
 
-	var resp *dhcpagent.GetSubnetsLeasesCountResponse
+	var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
 	var err error
 	if ctx.isUseIds() {
 		var ids []uint64
@@ -321,10 +321,10 @@ func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listContext) err
 		}
 
 		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(
-			context.TODO(), &dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
 	} else {
 		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(
-			context.TODO(), &dhcpagent.GetSubnetsLeasesCountRequest{})
+			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountRequest{})
 	}
 
 	if err != nil {
@@ -392,7 +392,7 @@ func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4LeasesCount(context.TODO(),
-		&dhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
+		&pbdhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
 	return resp.GetLeasesCount(), err
 }
 
@@ -466,7 +466,7 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 
 func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.UpdateSubnet4,
-		&dhcpagent.UpdateSubnet4Request{
+		&pbdhcpagent.UpdateSubnet4Request{
 			Id:                  subnet.SubnetId,
 			Subnet:              subnet.Subnet,
 			ValidLifetime:       subnet.ValidLifetime,
@@ -526,7 +526,7 @@ func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4)
 
 func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4, nodes []string) error {
 	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteSubnet4,
-		&dhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId})
+		&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId})
 	return err
 }
 
@@ -600,7 +600,7 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 	return nil, nil
 }
 
-func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]string, map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, map[string]*dhcpagent.DeleteSubnets4Request, error) {
+func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]string, map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets4Request, error) {
 	contents, err := util.ReadCSVFile(fileName)
 	if err != nil {
 		return nil, nil, nil, err
@@ -673,8 +673,8 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 	}
 
 	var sqls []string
-	reqsForCreate := make(map[string]*dhcpagent.CreateSubnets4AndPoolsRequest)
-	reqsForDelete := make(map[string]*dhcpagent.DeleteSubnets4Request)
+	reqsForCreate := make(map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest)
+	reqsForDelete := make(map[string]*pbdhcpagent.DeleteSubnets4Request)
 	subnetAndNodes := make(map[uint64][]string)
 	sqls = append(sqls,
 		subnet4sToInsertSqlAndRequest(subnets, reqsForCreate,
@@ -928,7 +928,7 @@ func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reserv
 	return nil
 }
 
-func subnet4sToInsertSqlAndRequest(subnets []*resource.Subnet4, reqsForCreate map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, reqsForDelete map[string]*dhcpagent.DeleteSubnets4Request, subnetAndNodes map[uint64][]string) string {
+func subnet4sToInsertSqlAndRequest(subnets []*resource.Subnet4, reqsForCreate map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, reqsForDelete map[string]*pbdhcpagent.DeleteSubnets4Request, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_subnet4 values ")
 	for _, subnet := range subnets {
@@ -941,8 +941,8 @@ func subnet4sToInsertSqlAndRequest(subnets []*resource.Subnet4, reqsForCreate ma
 			createReq, ok := reqsForCreate[node]
 			deleteReq := reqsForDelete[node]
 			if ok == false {
-				createReq = &dhcpagent.CreateSubnets4AndPoolsRequest{}
-				deleteReq = &dhcpagent.DeleteSubnets4Request{}
+				createReq = &pbdhcpagent.CreateSubnets4AndPoolsRequest{}
+				deleteReq = &pbdhcpagent.DeleteSubnets4Request{}
 			}
 			createReq.Subnets = append(createReq.Subnets, pbSubnet)
 			deleteReq.Ids = append(deleteReq.Ids, subnet.SubnetId)
@@ -954,7 +954,7 @@ func subnet4sToInsertSqlAndRequest(subnets []*resource.Subnet4, reqsForCreate ma
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func pool4sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool4, reqs map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
+func pool4sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool4, reqs map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_pool4 values ")
 	for subnetId, pools := range subnetPools {
@@ -972,7 +972,7 @@ func pool4sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool4, reqs 
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func reservedPool4sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resource.ReservedPool4, reqs map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
+func reservedPool4sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resource.ReservedPool4, reqs map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_reserved_pool4 values ")
 	for subnetId, pools := range subnetReservedPools {
@@ -990,7 +990,7 @@ func reservedPool4sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resou
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func reservation4sToInsertSqlAndRequest(subnetReservations map[uint64][]*resource.Reservation4, reqs map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
+func reservation4sToInsertSqlAndRequest(subnetReservations map[uint64][]*resource.Reservation4, reqs map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
 	buf.WriteString("insert into gr_reservation4 values ")
 	for subnetId, reservations := range subnetReservations {
@@ -1008,7 +1008,7 @@ func reservation4sToInsertSqlAndRequest(subnetReservations map[uint64][]*resourc
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForCreate map[string]*dhcpagent.CreateSubnets4AndPoolsRequest, reqsForDelete map[string]*dhcpagent.DeleteSubnets4Request) error {
+func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForCreate map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, reqsForDelete map[string]*pbdhcpagent.DeleteSubnets4Request) error {
 	if len(reqsForCreate) == 0 {
 		return nil
 	}
@@ -1039,7 +1039,7 @@ func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForCreate map[string]*dhcpagen
 	return nil
 }
 
-func deleteSubnets(reqs map[string]*dhcpagent.DeleteSubnets4Request, sentryNodes, serverNodes []string) {
+func deleteSubnets(reqs map[string]*pbdhcpagent.DeleteSubnets4Request, sentryNodes, serverNodes []string) {
 	for _, node := range sentryNodes {
 		if req, ok := reqs[node]; ok {
 			if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -1226,7 +1226,7 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 	}
 
 	if _, err := sendDHCPCmdWithNodes(nodesForDelete, dhcpservice.DeleteSubnet4,
-		&dhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
+		&pbdhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
 		return err
 	}
 
@@ -1243,7 +1243,7 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 		nodesForCreate, cmd, req); err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			succeedNodes, dhcpservice.DeleteSubnet4,
-			&dhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
+			&pbdhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
 			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
 				subnet4.Subnet, succeedNodes, err.Error())
 		}
@@ -1275,8 +1275,8 @@ func genCreateSubnets4AndPoolsRequestWithSubnet4(tx restdb.Transaction, subnet4 
 		return subnet4ToCreateSubnet4Request(subnet4), dhcpservice.CreateSubnet4, nil
 	}
 
-	req := &dhcpagent.CreateSubnets4AndPoolsRequest{
-		Subnets: []*dhcpagent.CreateSubnet4Request{subnet4ToCreateSubnet4Request(subnet4)},
+	req := &pbdhcpagent.CreateSubnets4AndPoolsRequest{
+		Subnets: []*pbdhcpagent.CreateSubnet4Request{subnet4ToCreateSubnet4Request(subnet4)},
 	}
 	for _, pool := range pools {
 		req.Pools = append(req.Pools, pool4ToCreatePool4Request(subnet4.SubnetId, pool))

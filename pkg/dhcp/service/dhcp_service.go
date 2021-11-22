@@ -14,7 +14,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 func init() {
@@ -70,7 +70,7 @@ func GetSubnet4sLeasesCount(subnets map[string]*resource.Subnet4) (map[uint64]ui
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(context.TODO(),
-		&dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+		&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
 	return resp.GetSubnetsLeasesCount(), err
 }
 
@@ -135,7 +135,7 @@ func GetSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]ui
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(context.TODO(),
-		&dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+		&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
 	return resp.GetSubnetsLeasesCount(), err
 }
 
@@ -301,7 +301,7 @@ func GetIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 
 func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease4) (*resource.SubnetLease4, error) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Lease(context.TODO(),
-		&dhcpagent.GetSubnet4LeaseRequest{Id: subnetId, Address: ip})
+		&pbdhcpagent.GetSubnet4LeaseRequest{Id: subnetId, Address: ip})
 	if err != nil {
 		return nil, err
 	}
@@ -316,7 +316,7 @@ func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 	return subnetLease4, nil
 }
 
-func SubnetLease4FromPbLease4(lease *dhcpagent.DHCPLease4) *resource.SubnetLease4 {
+func SubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLease4 {
 	lease4 := &resource.SubnetLease4{
 		Address:         lease.GetAddress(),
 		AddressType:     resource.AddressTypeDynamic,
@@ -440,7 +440,7 @@ func GetIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 
 func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease6) (*resource.SubnetLease6, error) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(context.TODO(),
-		&dhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
+		&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +455,7 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 	return subnetLease6, nil
 }
 
-func SubnetLease6FromPbLease6(lease *dhcpagent.DHCPLease6) *resource.SubnetLease6 {
+func SubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.SubnetLease6 {
 	lease6 := &resource.SubnetLease6{
 		Address:           lease.GetAddress(),
 		AddressType:       resource.AddressTypeDynamic,
@@ -631,16 +631,16 @@ func getClaimedSubnetLease4s(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 }
 
 func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Information, subnetLeases map[string]*resource.SubnetLease4) error {
-	var reqs []*dhcpagent.GetSubnet4LeaseRequest
+	var reqs []*pbdhcpagent.GetSubnet4LeaseRequest
 	for ip, info := range ipv4Infos {
-		reqs = append(reqs, &dhcpagent.GetSubnet4LeaseRequest{
+		reqs = append(reqs, &pbdhcpagent.GetSubnet4LeaseRequest{
 			Id:      info.Subnet.SubnetId,
 			Address: ip,
 		})
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4LeasesWithIps(context.TODO(),
-		&dhcpagent.GetSubnet4LeasesWithIpsRequest{Addresses: reqs})
+		&pbdhcpagent.GetSubnet4LeasesWithIpsRequest{Addresses: reqs})
 	if err != nil {
 		return fmt.Errorf("get subnet4 leases failed: %s", err.Error())
 	}
@@ -790,16 +790,16 @@ func getClaimedSubnetLease6s(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 }
 
 func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Information, subnetLeases map[string]*resource.SubnetLease6) error {
-	var reqs []*dhcpagent.GetSubnet6LeaseRequest
+	var reqs []*pbdhcpagent.GetSubnet6LeaseRequest
 	for ip, info := range ipv6Infos {
-		reqs = append(reqs, &dhcpagent.GetSubnet6LeaseRequest{
+		reqs = append(reqs, &pbdhcpagent.GetSubnet6LeaseRequest{
 			Id:      info.Subnet.SubnetId,
 			Address: ip,
 		})
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6LeasesWithIps(context.TODO(),
-		&dhcpagent.GetSubnet6LeasesWithIpsRequest{Addresses: reqs})
+		&pbdhcpagent.GetSubnet6LeasesWithIpsRequest{Addresses: reqs})
 	if err != nil {
 		return fmt.Errorf("get subnet6 leases failed: %s", err.Error())
 	}

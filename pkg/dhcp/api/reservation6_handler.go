@@ -13,7 +13,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 )
@@ -273,8 +273,8 @@ func sendCreateReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reser
 	return err
 }
 
-func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resource.Reservation6) *dhcpagent.CreateReservation6Request {
-	return &dhcpagent.CreateReservation6Request{
+func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resource.Reservation6) *pbdhcpagent.CreateReservation6Request {
+	return &pbdhcpagent.CreateReservation6Request{
 		SubnetId:    subnetID,
 		HwAddress:   reservation.HwAddress,
 		Duid:        reservation.Duid,
@@ -379,7 +379,7 @@ func setReservation6LeasesUsedRatio(reservation *resource.Reservation6, leasesCo
 
 func getReservation6LeasesCount(reservation *resource.Reservation6) (uint64, error) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetReservation6LeasesCount(
-		context.TODO(), &dhcpagent.GetReservation6LeasesCountRequest{
+		context.TODO(), &pbdhcpagent.GetReservation6LeasesCountRequest{
 			SubnetId:    subnetIDStrToUint64(reservation.Subnet6),
 			HwAddress:   reservation.HwAddress,
 			Duid:        reservation.Duid,
@@ -480,8 +480,8 @@ func sendDeleteReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reser
 	return err
 }
 
-func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resource.Reservation6) *dhcpagent.DeleteReservation6Request {
-	return &dhcpagent.DeleteReservation6Request{
+func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resource.Reservation6) *pbdhcpagent.DeleteReservation6Request {
+	return &pbdhcpagent.DeleteReservation6Request{
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
 		Duid:      reservation.Duid,

@@ -10,7 +10,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -58,8 +58,8 @@ func sendCreateFingerprintCmdToAgent(fingerprint *resource.DhcpFingerprint) erro
 		fingerprintToCreateFingerprintRequest(fingerprint))
 }
 
-func fingerprintToCreateFingerprintRequest(fingerprint *resource.DhcpFingerprint) *dhcpagent.CreateFingerprintRequest {
-	return &dhcpagent.CreateFingerprintRequest{
+func fingerprintToCreateFingerprintRequest(fingerprint *resource.DhcpFingerprint) *pbdhcpagent.CreateFingerprintRequest {
+	return &pbdhcpagent.CreateFingerprintRequest{
 		Fingerprint:     fingerprint.Fingerprint,
 		VendorId:        getVendorIdByMatchPattern(fingerprint.VendorId, fingerprint.MatchPattern),
 		OperatingSystem: fingerprint.OperatingSystem,
@@ -153,7 +153,7 @@ func (h *DhcpFingerprintHandler) Update(ctx *restresource.Context) (restresource
 
 func sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, newFingerprint *resource.DhcpFingerprint) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateFingerprint,
-		&dhcpagent.UpdateFingerprintRequest{
+		&pbdhcpagent.UpdateFingerprintRequest{
 			Old: fingerprintToDeleteFingerprintRequest(oldFingerprint),
 			New: fingerprintToCreateFingerprintRequest(newFingerprint)})
 }
@@ -190,8 +190,8 @@ func sendDeleteFingerprintCmdToDHCPAgent(oldFingerprint *resource.DhcpFingerprin
 		fingerprintToDeleteFingerprintRequest(oldFingerprint))
 }
 
-func fingerprintToDeleteFingerprintRequest(fingerprint *resource.DhcpFingerprint) *dhcpagent.DeleteFingerprintRequest {
-	return &dhcpagent.DeleteFingerprintRequest{
+func fingerprintToDeleteFingerprintRequest(fingerprint *resource.DhcpFingerprint) *pbdhcpagent.DeleteFingerprintRequest {
+	return &pbdhcpagent.DeleteFingerprintRequest{
 		Fingerprint:     fingerprint.Fingerprint,
 		VendorId:        getVendorIdByMatchPattern(fingerprint.VendorId, fingerprint.MatchPattern),
 		OperatingSystem: fingerprint.OperatingSystem,

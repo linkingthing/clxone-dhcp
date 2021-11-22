@@ -6,7 +6,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
+	pbalarm "github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 )
 
 const (
@@ -56,8 +56,8 @@ func (h *ScannedDHCPHandler) scanIllegalDHCPServer(searchInterval uint32) {
 						ip = dhcpServer.IPv6
 					}
 
-					alarmService.SendEventWithValues(service.AlarmKeyIllegalDhcp, &alarm.IllegalDhcpAlarm{
-						BaseAlarm: &alarm.BaseAlarm{
+					alarmService.SendEventWithValues(service.AlarmKeyIllegalDhcp, &pbalarm.IllegalDhcpAlarm{
+						BaseAlarm: &pbalarm.BaseAlarm{
 							BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
 							Time:          time.Now().Format(time.RFC3339),
 							SendMail:      alarmService.DhcpThreshold.SendMail,

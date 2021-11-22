@@ -12,7 +12,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 type ReservedPool4Handler struct {
@@ -187,8 +187,8 @@ func sendCreateReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool
 	return err
 }
 
-func reservedPool4ToCreateReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *dhcpagent.CreateReservedPool4Request {
-	return &dhcpagent.CreateReservedPool4Request{
+func reservedPool4ToCreateReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *pbdhcpagent.CreateReservedPool4Request {
+	return &pbdhcpagent.CreateReservedPool4Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,
@@ -305,8 +305,8 @@ func sendDeleteReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool
 	return err
 }
 
-func reservedPool4ToDeleteReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *dhcpagent.DeleteReservedPool4Request {
-	return &dhcpagent.DeleteReservedPool4Request{
+func reservedPool4ToDeleteReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *pbdhcpagent.DeleteReservedPool4Request {
+	return &pbdhcpagent.DeleteReservedPool4Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,

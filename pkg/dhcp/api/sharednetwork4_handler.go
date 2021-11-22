@@ -11,7 +11,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -56,8 +56,8 @@ func sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4 *resource.SharedNetwo
 	return err
 }
 
-func sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4 *resource.SharedNetwork4) *dhcpagent.CreateSharedNetwork4Request {
-	return &dhcpagent.CreateSharedNetwork4Request{
+func sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4 *resource.SharedNetwork4) *pbdhcpagent.CreateSharedNetwork4Request {
+	return &pbdhcpagent.CreateSharedNetwork4Request{
 		Name:      sharedNetwork4.Name,
 		SubnetIds: sharedNetwork4.SubnetIds,
 	}
@@ -124,7 +124,7 @@ func (s *SharedNetwork4Handler) Update(ctx *restresource.Context) (restresource.
 
 func sendUpdateSharedNetwork4CmdToDHCPAgent(name string, sharedNetwork4 *resource.SharedNetwork4) error {
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateSharedNetwork4,
-		&dhcpagent.UpdateSharedNetwork4Request{
+		&pbdhcpagent.UpdateSharedNetwork4Request{
 			Old: sharedNetworkNameToDeleteSharedNetwork4Request(name),
 			New: sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4),
 		})
@@ -170,8 +170,8 @@ func sendDeleteSharedNetwork4CmdToDHCPAgent(name string) error {
 		sharedNetworkNameToDeleteSharedNetwork4Request(name))
 }
 
-func sharedNetworkNameToDeleteSharedNetwork4Request(name string) *dhcpagent.DeleteSharedNetwork4Request {
-	return &dhcpagent.DeleteSharedNetwork4Request{Name: name}
+func sharedNetworkNameToDeleteSharedNetwork4Request(name string) *pbdhcpagent.DeleteSharedNetwork4Request {
+	return &pbdhcpagent.DeleteSharedNetwork4Request{Name: name}
 }
 
 func checkUsedBySharedNetwork(tx restdb.Transaction, subnetId uint64) error {

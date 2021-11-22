@@ -20,7 +20,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/grpcservice"
-	pb "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
+	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -126,7 +126,7 @@ func (s *Server) Run(conf *config.DHCPConfig) error {
 
 		grpcServer := grpc.NewServer()
 		hv1.RegisterHealthServer(grpcServer, health.NewServer())
-		pb.RegisterDhcpServiceServer(grpcServer, grpcservice.NewGRPCService())
+		pbdhcp.RegisterDhcpServiceServer(grpcServer, grpcservice.NewGRPCService())
 		errch <- grpcServer.Serve(grpcListener)
 	}()
 

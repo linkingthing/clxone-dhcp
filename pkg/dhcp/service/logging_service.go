@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto/logging"
+	pblogging "github.com/linkingthing/clxone-dhcp/pkg/proto/logging"
 )
 
 const (
@@ -42,7 +42,7 @@ func NewLoggingService() *LoggingService {
 	return globalLoggingService
 }
 
-func (a *LoggingService) Log(req *logging.LoggingRequest) error {
+func (a *LoggingService) Log(req *pblogging.LoggingRequest) error {
 	data, err := proto.Marshal(req)
 	if err != nil {
 		return fmt.Errorf("register threshold mashal failed: %s ", err.Error())

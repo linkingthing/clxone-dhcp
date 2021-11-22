@@ -16,7 +16,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -134,7 +134,7 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 
 func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) (interface{}, *resterror.APIError) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
-		&dhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
+		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 	if err != nil {
 		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
 		return nil, nil
@@ -169,7 +169,7 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 	return leases, nil
 }
 
-func subnetLease6FromPbLease6AndReservations(lease *dhcpagent.DHCPLease6, reservationMap map[string]struct{}) *resource.SubnetLease6 {
+func subnetLease6FromPbLease6AndReservations(lease *pbdhcpagent.DHCPLease6, reservationMap map[string]struct{}) *resource.SubnetLease6 {
 	subnetLease6 := service.SubnetLease6FromPbLease6(lease)
 	if _, ok := reservationMap[subnetLease6.Address]; ok {
 		subnetLease6.AddressType = resource.AddressTypeReservation
@@ -207,14 +207,14 @@ func (l *SubnetLease6Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			return nil
 		}
 
-		lease6.LeaseState = dhcpagent.LeaseState_RECLAIMED.String()
+		lease6.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 		lease6.Subnet6 = subnetId
 		if _, err := tx.Insert(lease6); err != nil {
 			return err
 		}
 
 		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(context.TODO(),
-			&dhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
+			&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
 				LeaseType: lease6.LeaseType, Address: leaseId})
 		return err
 	}); err != nil {

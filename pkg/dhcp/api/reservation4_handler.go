@@ -12,7 +12,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 )
@@ -137,8 +137,8 @@ func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reser
 	return err
 }
 
-func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resource.Reservation4) *dhcpagent.CreateReservation4Request {
-	return &dhcpagent.CreateReservation4Request{
+func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resource.Reservation4) *pbdhcpagent.CreateReservation4Request {
+	return &pbdhcpagent.CreateReservation4Request{
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
 		IpAddress: reservation.IpAddress,
@@ -228,7 +228,7 @@ func setReservation4LeasesUsedRatio(reservation *resource.Reservation4, leasesCo
 
 func getReservation4LeaseCount(reservation *resource.Reservation4) (uint64, error) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetReservation4LeaseCount(
-		context.TODO(), &dhcpagent.GetReservation4LeaseCountRequest{
+		context.TODO(), &pbdhcpagent.GetReservation4LeaseCountRequest{
 			SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
 			HwAddress: reservation.HwAddress,
 			IpAddress: reservation.IpAddress,
@@ -318,8 +318,8 @@ func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reser
 	return err
 }
 
-func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resource.Reservation4) *dhcpagent.DeleteReservation4Request {
-	return &dhcpagent.DeleteReservation4Request{
+func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resource.Reservation4) *pbdhcpagent.DeleteReservation4Request {
+	return &pbdhcpagent.DeleteReservation4Request{
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
 		IpAddress: reservation.IpAddress,

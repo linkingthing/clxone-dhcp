@@ -13,7 +13,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 type Pool6Handler struct {
@@ -162,8 +162,8 @@ func sendCreatePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resour
 	return err
 }
 
-func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *dhcpagent.CreatePool6Request {
-	return &dhcpagent.CreatePool6Request{
+func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpagent.CreatePool6Request {
+	return &pbdhcpagent.CreatePool6Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,
@@ -229,9 +229,9 @@ func loadPool6sLeases(subnet *resource.Subnet6, pools []*resource.Pool6, reserva
 	return leasesCount
 }
 
-func getSubnet6Leases(subnetId uint64) (*dhcpagent.GetLeases6Response, error) {
+func getSubnet6Leases(subnetId uint64) (*pbdhcpagent.GetLeases6Response, error) {
 	return grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
-		&dhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
+		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 }
 
 func setPool6LeasesUsedRatio(pool *resource.Pool6, leasesCount uint64) {
@@ -280,7 +280,7 @@ func getPool6LeasesCount(pool *resource.Pool6, reservations []*resource.Reservat
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6Leases(context.TODO(),
-		&dhcpagent.GetPool6LeasesRequest{
+		&pbdhcpagent.GetPool6LeasesRequest{
 			SubnetId:     subnetIDStrToUint64(pool.Subnet6),
 			BeginAddress: pool.BeginAddress,
 			EndAddress:   pool.EndAddress})
@@ -382,8 +382,8 @@ func sendDeletePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resour
 	return err
 }
 
-func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *dhcpagent.DeletePool6Request {
-	return &dhcpagent.DeletePool6Request{
+func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpagent.DeletePool6Request {
+	return &pbdhcpagent.DeletePool6Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,

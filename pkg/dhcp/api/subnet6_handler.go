@@ -17,7 +17,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 type Subnet6Handler struct {
@@ -98,7 +98,7 @@ func sendCreateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			nodesForSucceed, dhcpservice.DeleteSubnet6,
-			&dhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId}); err != nil {
+			&pbdhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId}); err != nil {
 			log.Errorf("create subnet6 %s failed, and rollback it failed: %s",
 				subnet.Subnet, err.Error())
 		}
@@ -107,8 +107,8 @@ func sendCreateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 	return err
 }
 
-func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *dhcpagent.CreateSubnet6Request {
-	return &dhcpagent.CreateSubnet6Request{
+func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *pbdhcpagent.CreateSubnet6Request {
+	return &pbdhcpagent.CreateSubnet6Request{
 		Id:                    subnet.SubnetId,
 		Subnet:                subnet.Subnet,
 		ValidLifetime:         subnet.ValidLifetime,
@@ -127,10 +127,10 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *dhcpagent.CreateSu
 	}
 }
 
-func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*dhcpagent.SubnetOption {
-	var subnetOptions []*dhcpagent.SubnetOption
+func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetOption {
+	var subnetOptions []*pbdhcpagent.SubnetOption
 	if len(subnet.DomainServers) != 0 {
-		subnetOptions = append(subnetOptions, &dhcpagent.SubnetOption{
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "name-servers",
 			Code: 23,
 			Data: strings.Join(subnet.DomainServers, ","),
@@ -173,7 +173,7 @@ func setSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
 		return nil
 	}
 
-	var resp *dhcpagent.GetSubnetsLeasesCountResponse
+	var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
 	var err error
 	if useIds {
 		var ids []uint64
@@ -182,10 +182,10 @@ func setSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
 		}
 
 		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(
-			context.TODO(), &dhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
 	} else {
 		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCount(
-			context.TODO(), &dhcpagent.GetSubnetsLeasesCountRequest{})
+			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountRequest{})
 	}
 
 	if err != nil {
@@ -243,7 +243,7 @@ func getSubnet6LeasesCount(subnet *resource.Subnet6) (uint64, error) {
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6LeasesCount(context.TODO(),
-		&dhcpagent.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
+		&pbdhcpagent.GetSubnet6LeasesCountRequest{Id: subnet.SubnetId})
 	return resp.GetLeasesCount(), err
 }
 
@@ -313,7 +313,7 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.UpdateSubnet6,
-		&dhcpagent.UpdateSubnet6Request{
+		&pbdhcpagent.UpdateSubnet6Request{
 			Id:                    subnet.SubnetId,
 			Subnet:                subnet.Subnet,
 			ValidLifetime:         subnet.ValidLifetime,
@@ -373,7 +373,7 @@ func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
 
 func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6, nodes []string) error {
 	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteSubnet6,
-		&dhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId})
+		&pbdhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId})
 	return err
 }
 
@@ -437,7 +437,7 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 	}
 
 	if _, err := sendDHCPCmdWithNodes(nodesForDelete, dhcpservice.DeleteSubnet6,
-		&dhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
+		&pbdhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
 		return err
 	}
 
@@ -454,7 +454,7 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 		nodesForCreate, cmd, req); err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			succeedNodes, dhcpservice.DeleteSubnet6,
-			&dhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
+			&pbdhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
 			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
 				subnet6.Subnet, succeedNodes, err.Error())
 		}
@@ -500,8 +500,8 @@ func genCreateSubnets6AndPoolsRequestWithSubnet6(tx restdb.Transaction, subnet6 
 		return subnet6ToCreateSubnet6Request(subnet6), dhcpservice.CreateSubnet6, nil
 	}
 
-	req := &dhcpagent.CreateSubnets6AndPoolsRequest{
-		Subnets: []*dhcpagent.CreateSubnet6Request{subnet6ToCreateSubnet6Request(subnet6)},
+	req := &pbdhcpagent.CreateSubnets6AndPoolsRequest{
+		Subnets: []*pbdhcpagent.CreateSubnet6Request{subnet6ToCreateSubnet6Request(subnet6)},
 	}
 	for _, pool := range pools {
 		req.Pools = append(req.Pools, pool6ToCreatePool6Request(subnet6.SubnetId, pool))

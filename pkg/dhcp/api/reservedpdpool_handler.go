@@ -13,7 +13,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 type ReservedPdPoolHandler struct {
@@ -122,8 +122,8 @@ func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdp
 	return err
 }
 
-func reservedPdPoolToCreateReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *dhcpagent.CreateReservedPdPoolRequest {
-	return &dhcpagent.CreateReservedPdPoolRequest{
+func reservedPdPoolToCreateReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *pbdhcpagent.CreateReservedPdPoolRequest {
+	return &pbdhcpagent.CreateReservedPdPoolRequest{
 		SubnetId:     subnetID,
 		Prefix:       pdpool.Prefix,
 		PrefixLen:    pdpool.PrefixLen,
@@ -221,7 +221,7 @@ func getReservedPdPoolLeasesCount(pdpool *resource.ReservedPdPool) (uint64, erro
 
 	beginAddr, endAddr := pdpool.GetRange()
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6LeasesCount(context.TODO(),
-		&dhcpagent.GetPool6LeasesCountRequest{
+		&pbdhcpagent.GetPool6LeasesCountRequest{
 			SubnetId:     subnetIDStrToUint64(pdpool.Subnet6),
 			BeginAddress: beginAddr,
 			EndAddress:   endAddr,
@@ -235,8 +235,8 @@ func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdp
 	return err
 }
 
-func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *dhcpagent.DeleteReservedPdPoolRequest {
-	return &dhcpagent.DeleteReservedPdPoolRequest{
+func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *pbdhcpagent.DeleteReservedPdPoolRequest {
+	return &pbdhcpagent.DeleteReservedPdPoolRequest{
 		SubnetId:     subnetID,
 		Prefix:       pdpool.Prefix,
 		PrefixLen:    pdpool.PrefixLen,

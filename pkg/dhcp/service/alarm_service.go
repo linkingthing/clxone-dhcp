@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/segmentio/kafka-go"
 	"github.com/linkingthing/cement/log"
+	"github.com/segmentio/kafka-go"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
+	pbalarm "github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 )
 
 const (
@@ -34,29 +34,29 @@ var globalAlarmService *AlarmService
 var onceAlarmService sync.Once
 
 type AlarmService struct {
-	DhcpThreshold *alarm.RegisterThreshold
-	LpsThreshold  *alarm.RegisterThreshold
+	DhcpThreshold *pbalarm.RegisterThreshold
+	LpsThreshold  *pbalarm.RegisterThreshold
 	kafkaWriter   *kafka.Writer
 }
 
 func NewAlarmService() *AlarmService {
 	onceAlarmService.Do(func() {
 		globalAlarmService = &AlarmService{
-			DhcpThreshold: &alarm.RegisterThreshold{
-				BaseThreshold: &alarm.BaseThreshold{
-					Name:  alarm.ThresholdName_illegalDhcp,
-					Level: alarm.ThresholdLevel_major,
-					Type:  alarm.ThresholdType_trigger,
+			DhcpThreshold: &pbalarm.RegisterThreshold{
+				BaseThreshold: &pbalarm.BaseThreshold{
+					Name:  pbalarm.ThresholdName_illegalDhcp,
+					Level: pbalarm.ThresholdLevel_major,
+					Type:  pbalarm.ThresholdType_trigger,
 				},
 				Value:    0,
 				SendMail: false,
 				Enabled:  true,
 			},
-			LpsThreshold: &alarm.RegisterThreshold{
-				BaseThreshold: &alarm.BaseThreshold{
-					Name:  alarm.ThresholdName_lps,
-					Level: alarm.ThresholdLevel_critical,
-					Type:  alarm.ThresholdType_values,
+			LpsThreshold: &pbalarm.RegisterThreshold{
+				BaseThreshold: &pbalarm.BaseThreshold{
+					Name:  pbalarm.ThresholdName_lps,
+					Level: pbalarm.ThresholdLevel_critical,
+					Type:  pbalarm.ThresholdType_values,
 				},
 				Value:    3000,
 				SendMail: false,
@@ -75,7 +75,7 @@ func NewAlarmService() *AlarmService {
 	return globalAlarmService
 }
 
-func (a *AlarmService) RegisterThresholdToKafka(key string, threshold *alarm.RegisterThreshold) error {
+func (a *AlarmService) RegisterThresholdToKafka(key string, threshold *pbalarm.RegisterThreshold) error {
 	data, err := proto.Marshal(threshold)
 	if err != nil {
 		return fmt.Errorf("register threshold mashal failed: %s ", err.Error())
@@ -90,7 +90,7 @@ func (a *AlarmService) RegisterThresholdToKafka(key string, threshold *alarm.Reg
 	)
 }
 
-func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(*alarm.UpdateThreshold)) {
+func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(*pbalarm.UpdateThreshold)) {
 	r := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:        config.GetConfig().Kafka.Addrs,
 		GroupID:        config.GetConfig().Kafka.GroupUpdateThresholdEvent,
@@ -116,7 +116,7 @@ func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(
 
 		switch string(message.Key) {
 		case UpdateThreshold:
-			var req alarm.UpdateThreshold
+			var req pbalarm.UpdateThreshold
 			if err := proto.Unmarshal(message.Value, &req); err != nil {
 				log.Warnf("handle update threshold when unmarshal alarm %s threahold failed: %s",
 					message.Key, err.Error())
@@ -127,9 +127,9 @@ func (a *AlarmService) HandleUpdateThresholdEvent(topic string, updateFunc func(
 	}
 }
 
-func (a *AlarmService) UpdateDhcpThresHold(update *alarm.UpdateThreshold) {
-	if update.Name == alarm.ThresholdName_illegalDhcp {
-		a.DhcpThreshold = &alarm.RegisterThreshold{
+func (a *AlarmService) UpdateDhcpThresHold(update *pbalarm.UpdateThreshold) {
+	if update.Name == pbalarm.ThresholdName_illegalDhcp {
+		a.DhcpThreshold = &pbalarm.RegisterThreshold{
 			Value:    update.Value,
 			SendMail: update.SendMail,
 			Enabled:  update.Enabled,
@@ -137,9 +137,9 @@ func (a *AlarmService) UpdateDhcpThresHold(update *alarm.UpdateThreshold) {
 	}
 }
 
-func (a *AlarmService) UpdateLpsThresHold(update *alarm.UpdateThreshold) {
-	if update.Name != alarm.ThresholdName_lps {
-		a.LpsThreshold = &alarm.RegisterThreshold{
+func (a *AlarmService) UpdateLpsThresHold(update *pbalarm.UpdateThreshold) {
+	if update.Name != pbalarm.ThresholdName_lps {
+		a.LpsThreshold = &pbalarm.RegisterThreshold{
 			Value:    update.Value,
 			SendMail: update.SendMail,
 			Enabled:  update.Enabled,

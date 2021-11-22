@@ -15,7 +15,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 type Pool4Handler struct {
@@ -155,8 +155,8 @@ func sendCreatePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resour
 	return err
 }
 
-func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *dhcpagent.CreatePool4Request {
-	return &dhcpagent.CreatePool4Request{
+func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpagent.CreatePool4Request {
+	return &pbdhcpagent.CreatePool4Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,
@@ -224,9 +224,9 @@ func loadPool4sLeases(subnet *resource.Subnet4, pools []*resource.Pool4, reserva
 	return leasesCount
 }
 
-func getSubnet4Leases(subnetId uint64) (*dhcpagent.GetLeases4Response, error) {
+func getSubnet4Leases(subnetId uint64) (*pbdhcpagent.GetLeases4Response, error) {
 	return grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Leases(context.TODO(),
-		&dhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
+		&pbdhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
 }
 
 func setPool4LeasesUsedRatio(pool *resource.Pool4, leasesCount uint64) {
@@ -276,7 +276,7 @@ func getPool4LeasesCount(pool *resource.Pool4, reservations []*resource.Reservat
 	}
 
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool4Leases(context.TODO(),
-		&dhcpagent.GetPool4LeasesRequest{
+		&pbdhcpagent.GetPool4LeasesRequest{
 			SubnetId:     subnetIDStrToUint64(pool.Subnet4),
 			BeginAddress: pool.BeginAddress,
 			EndAddress:   pool.EndAddress})
@@ -384,8 +384,8 @@ func sendDeletePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resour
 	return err
 }
 
-func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *dhcpagent.DeletePool4Request {
-	return &dhcpagent.DeletePool4Request{
+func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpagent.DeletePool4Request {
+	return &pbdhcpagent.DeletePool4Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,

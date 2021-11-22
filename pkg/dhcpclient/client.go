@@ -12,7 +12,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
-	dhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 const (
@@ -45,7 +45,7 @@ func New() (*DHCPClient, error) {
 	return &DHCPClient{clients: clients}, nil
 }
 
-func getDHCPNodeList() (nodes []*dhcpagent.GetDHCPNodesResponse, err error) {
+func getDHCPNodeList() (nodes []*pbdhcpagent.GetDHCPNodesResponse, err error) {
 	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
 	if err != nil {
 		return nil, err
@@ -64,8 +64,8 @@ func getDHCPNodeList() (nodes []*dhcpagent.GetDHCPNodesResponse, err error) {
 		}
 		defer conn.Close()
 
-		client := dhcpagent.NewDHCPManagerClient(conn)
-		resp, err := client.GetDHCPNodes(ctx, &dhcpagent.GetDHCPNodesRequest{})
+		client := pbdhcpagent.NewDHCPManagerClient(conn)
+		resp, err := client.GetDHCPNodes(ctx, &pbdhcpagent.GetDHCPNodesRequest{})
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +116,7 @@ func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
 	return dhcpServers
 }
 
-func isDHCPNodeIPv4(nodes []*dhcpagent.GetDHCPNodesResponse, ip string) bool {
+func isDHCPNodeIPv4(nodes []*pbdhcpagent.GetDHCPNodesResponse, ip string) bool {
 	for _, node := range nodes {
 		if slice.SliceIndex(node.Ipv4S, ip) != -1 {
 			return true
@@ -126,7 +126,7 @@ func isDHCPNodeIPv4(nodes []*dhcpagent.GetDHCPNodesResponse, ip string) bool {
 	return false
 }
 
-func isDHCPNodeIPv6(nodes []*dhcpagent.GetDHCPNodesResponse, ip string) bool {
+func isDHCPNodeIPv6(nodes []*pbdhcpagent.GetDHCPNodesResponse, ip string) bool {
 	for _, node := range nodes {
 		if slice.SliceIndex(node.Ipv6S, ip) != -1 {
 			return true

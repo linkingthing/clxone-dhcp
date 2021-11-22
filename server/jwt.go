@@ -9,8 +9,8 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto"
-	"github.com/linkingthing/clxone-dhcp/pkg/proto/user"
+	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
+	pbuser "github.com/linkingthing/clxone-dhcp/pkg/proto/user"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -23,7 +23,7 @@ func JWTMiddleWare() gorest.HandlerFunc {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		user, err := user.NewUserServiceClient(conn).CheckToken(ctx, &user.CheckTokenRequest{
+		user, err := pbuser.NewUserServiceClient(conn).CheckToken(ctx, &pbuser.CheckTokenRequest{
 			Token:    c.Request.Header.Get("authorization"),
 			ClientIp: util.ClientIP(c.Request),
 		})

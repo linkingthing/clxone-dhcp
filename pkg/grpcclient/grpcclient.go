@@ -7,11 +7,11 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
-	dhcp_agent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 type GrpcClient struct {
-	DHCPClient dhcp_agent.DHCPManagerClient
+	DHCPClient pbdhcpagent.DHCPManagerClient
 }
 
 var grpcClient *GrpcClient
@@ -22,11 +22,11 @@ func NewDhcpAgentClient() error {
 	if err != nil {
 		return err
 	}
-	grpcClient = &GrpcClient{DHCPClient: dhcp_agent.NewDHCPManagerClient(conn)}
+	grpcClient = &GrpcClient{DHCPClient: pbdhcpagent.NewDHCPManagerClient(conn)}
 	return nil
 }
 
-func GetDHCPAgentGrpcClient() dhcp_agent.DHCPManagerClient {
+func GetDHCPAgentGrpcClient() pbdhcpagent.DHCPManagerClient {
 	once.Do(func() {
 		if err := NewDhcpAgentClient(); err != nil {
 			log.Fatalf("create dhcp agent grpc client failed: %s", err.Error())
