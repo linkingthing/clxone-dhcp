@@ -36,6 +36,30 @@ func (r *Reservation6) String() string {
 	}
 }
 
+func (r *Reservation6) CheckConflictWithAnother(another *Reservation6) bool {
+	if r.Duid == another.Duid && r.HwAddress == another.HwAddress {
+		return true
+	}
+
+	for _, ipAddress := range r.IpAddresses {
+		for _, ipAddress_ := range another.IpAddresses {
+			if ipAddress_ == ipAddress {
+				return true
+			}
+		}
+	}
+
+	for _, prefix := range r.Prefixes {
+		for _, prefix_ := range another.Prefixes {
+			if prefix_ == prefix {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (r *Reservation6) Validate() error {
 	if len(r.Duid) != 0 && len(r.HwAddress) != 0 {
 		return fmt.Errorf("duid and mac can not coexist")

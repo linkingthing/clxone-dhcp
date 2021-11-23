@@ -104,11 +104,11 @@ func checkReservedPool6ConflictWithSubnet6Pools(tx restdb.Transaction, subnetID 
 }
 
 func checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool6) error {
-	var pools []*resource.Pool6
+	var pools []*resource.ReservedPool6
 	if err := tx.FillEx(&pools,
-		"select * from gr_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
+		"select * from gr_reserved_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetID, pool.EndIp, pool.BeginIp); err != nil {
-		return fmt.Errorf("get pools with subnet %s from db failed: %s",
+		return fmt.Errorf("get reserved pool6s with subnet %s from db failed: %s",
 			subnetID, err.Error())
 	}
 

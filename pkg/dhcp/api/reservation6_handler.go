@@ -97,41 +97,16 @@ func (r *Reservation6Handler) Create(ctx *restresource.Context) (restresource.Re
 }
 
 func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation6) error {
-	count, err := tx.CountEx(resource.TableReservation6,
-		"select count(*) from gr_reservation6 where subnet6 = $1 and hw_address = $2 and duid = $3",
-		subnetId, reservation.HwAddress, reservation.Duid)
-	if err != nil {
-		return fmt.Errorf("check reservation %s with subnet %s exists in db failed: %s",
-			reservation.String(), subnetId, err.Error())
-	} else if count != 0 {
-		return fmt.Errorf("reservation exists with subnet %s and mac %s and duid %s",
-			subnetId, reservation.HwAddress, reservation.Duid)
+	var reservations []*resource.Reservation6
+	if err := tx.Fill(map[string]interface{}{"subnet6": subnetId},
+		&reservations); err != nil {
+		return fmt.Errorf("get subnet6 %s reservation6 failed: %s", subnetId, err.Error())
 	}
 
-	//TODO get from db and cmp in mem
-	for _, ipAddress := range reservation.IpAddresses {
-		count, err := tx.CountEx(resource.TableReservation6,
-			"select count(*) from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",
-			subnetId, ipAddress)
-		if err != nil {
-			return fmt.Errorf("check reservation %s with subnet %s exists in db failed: %s",
-				reservation.String(), subnetId, err.Error())
-		} else if count != 0 {
-			return fmt.Errorf("reservation exists with subnet %s and ip %s",
-				subnetId, ipAddress)
-		}
-	}
-
-	for _, prefix := range reservation.Prefixes {
-		count, err := tx.CountEx(resource.TableReservation6,
-			"select count(*) from gr_reservation6 where subnet6 = $1 and $2::text = any(prefixes)",
-			subnetId, prefix)
-		if err != nil {
-			return fmt.Errorf("check reservation %s with subnet %s exists in db failed: %s",
-				reservation.String(), subnetId, err.Error())
-		} else if count != 0 {
-			return fmt.Errorf("reservation exists with subnet %s and prefix %s",
-				subnetId, prefix)
+	for _, reservation_ := range reservations {
+		if reservation_.CheckConflictWithAnother(reservation) {
+			return fmt.Errorf("reservation6 %s conflict with exists reservation6 %s",
+				reservation.String(), reservation_.String())
 		}
 	}
 
