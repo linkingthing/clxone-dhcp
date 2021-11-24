@@ -69,9 +69,13 @@ func GetSubnet4sLeasesCount(subnets map[string]*resource.Subnet4) (map[uint64]ui
 		}
 	}
 
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(context.TODO(),
-		&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
-	return resp.GetSubnetsLeasesCount(), err
+	if len(subnetIds) == 0 {
+		return nil, nil
+	} else {
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(context.TODO(),
+			&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+		return resp.GetSubnetsLeasesCount(), err
+	}
 }
 
 func pbdhcpSubnet4sFromSubnet4s(subnets map[string]*resource.Subnet4, leasesCount map[uint64]uint64) map[string]*pbdhcp.Subnet4 {
@@ -134,9 +138,13 @@ func GetSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]ui
 		}
 	}
 
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(context.TODO(),
-		&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
-	return resp.GetSubnetsLeasesCount(), err
+	if len(subnetIds) == 0 {
+		return nil, nil
+	} else {
+		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(context.TODO(),
+			&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+		return resp.GetSubnetsLeasesCount(), err
+	}
 }
 
 func pbdhcpSubnet6sFromSubnet6s(subnets map[string]*resource.Subnet6, leasesCount map[uint64]uint64) map[string]*pbdhcp.Subnet6 {

@@ -317,11 +317,15 @@ func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listContext) err
 	if ctx.isUseIds() {
 		var ids []uint64
 		for _, subnet := range subnets {
-			ids = append(ids, subnet.SubnetId)
+			if subnet.Capacity != 0 {
+				ids = append(ids, subnet.SubnetId)
+			}
 		}
 
-		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(
-			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+		if len(ids) != 0 {
+			resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(
+				context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+		}
 	} else {
 		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(
 			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountRequest{})

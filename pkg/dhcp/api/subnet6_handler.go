@@ -178,11 +178,15 @@ func setSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
 	if useIds {
 		var ids []uint64
 		for _, subnet := range subnets {
-			ids = append(ids, subnet.SubnetId)
+			if subnet.Capacity != 0 {
+				ids = append(ids, subnet.SubnetId)
+			}
 		}
 
-		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(
-			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+		if len(ids) != 0 {
+			resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(
+				context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+		}
 	} else {
 		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCount(
 			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountRequest{})
