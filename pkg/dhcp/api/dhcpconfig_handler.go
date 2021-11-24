@@ -19,11 +19,12 @@ func NewDhcpConfigHandler() (*DhcpConfigHandler, error) {
 		if exists, err := tx.Exists(resource.TableDhcpConfig, nil); err != nil {
 			return fmt.Errorf("check dhcp config failed: %s", err.Error())
 		} else if exists == false {
-			_, err := tx.Insert(resource.DefaultDhcpConfig)
-			return fmt.Errorf("insert default dhcp config failed: %s", err.Error())
-		} else {
-			return nil
+			if _, err := tx.Insert(resource.DefaultDhcpConfig); err != nil {
+				return fmt.Errorf("insert default dhcp config failed: %s", err.Error())
+			}
 		}
+
+		return nil
 	}); err != nil {
 		return nil, err
 	}
