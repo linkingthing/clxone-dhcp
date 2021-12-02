@@ -47,6 +47,13 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	} else {
 		apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, dhcpConfigHandler)
 	}
+
+	if pingerHandler, err := api.NewPingerHandler(); err != nil {
+		return err
+	} else {
+		apiServer.Schemas.MustImport(&Version, resource.Pinger{}, pingerHandler)
+	}
+
 	return nil
 }
 
@@ -71,5 +78,6 @@ func PersistentResources() []restresource.Resource {
 		&resource.DhcpFingerprint{},
 		&resource.SubnetLease4{},
 		&resource.SubnetLease6{},
+		&resource.Pinger{},
 	}
 }

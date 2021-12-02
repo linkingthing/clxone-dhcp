@@ -13,16 +13,13 @@ import (
 var TableDhcpConfig = restdb.ResourceDBType(&DhcpConfig{})
 
 const (
-	MinValidLifetime = 3600
-
-	DefaultIdentify                = "dhcpglobalconfig"
+	MinValidLifetime        uint32 = 3600
 	DefaultMinValidLifetime uint32 = 10800
 	DefaultMaxValidLifetime uint32 = 28800
 	DefaultValidLifetime    uint32 = 14400
 )
 
 var DefaultDhcpConfig = &DhcpConfig{
-	Identify:         DefaultIdentify,
 	ValidLifetime:    DefaultValidLifetime,
 	MinValidLifetime: DefaultMinValidLifetime,
 	MaxValidLifetime: DefaultMaxValidLifetime,
@@ -30,7 +27,6 @@ var DefaultDhcpConfig = &DhcpConfig{
 
 type DhcpConfig struct {
 	restresource.ResourceBase `json:",inline"`
-	Identify                  string   `json:"-" db:"uk"`
 	ValidLifetime             uint32   `json:"validLifetime"`
 	MaxValidLifetime          uint32   `json:"maxValidLifetime"`
 	MinValidLifetime          uint32   `json:"minValidLifetime"`

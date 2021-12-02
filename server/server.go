@@ -24,6 +24,14 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
+const (
+	HealthPath = "/health"
+)
+
+var LoggerSkipPaths = []string{
+	HealthPath,
+}
+
 type Server struct {
 	group     *gin.RouterGroup
 	router    *gin.Engine
@@ -41,25 +49,27 @@ type WebHandler interface {
 }
 
 func NewServer() (*Server, error) {
-	//gin.SetMode(gin.ReleaseMode)
-	gin.SetMode(gin.DebugMode)
+	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = os.Stdout
 	router := gin.New()
-	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-		return fmt.Sprintf("[%s] client:%s \"%s %s\" %s %d %s %s\n",
-			param.TimeStamp.Format(util.TimeFormat),
-			param.ClientIP,
-			param.Method,
-			param.Path,
-			param.Request.Proto,
-			param.StatusCode,
-			param.Latency,
-			param.Request.UserAgent(),
-		)
+	router.Use(gin.LoggerWithConfig(gin.LoggerConfig{
+		SkipPaths: LoggerSkipPaths,
+		Formatter: func(param gin.LogFormatterParams) string {
+			return fmt.Sprintf("[%s] client:%s \"%s %s\" %s %d %s %s\n",
+				param.TimeStamp.Format(util.TimeFormat),
+				param.ClientIP,
+				param.Method,
+				param.Path,
+				param.Request.Proto,
+				param.StatusCode,
+				param.Latency,
+				param.Request.UserAgent(),
+			)
+		},
 	}))
 
 	router.StaticFS(util.PublicStaticPath, http.Dir(util.FileRootPath))
-	router.GET("/health", func(context *gin.Context) {
+	router.GET(HealthPath, func(context *gin.Context) {
 		context.Writer.Header().Set("Content-Type", "Application/Json")
 		context.String(http.StatusOK, `{"status": "ok"}`)
 	})
