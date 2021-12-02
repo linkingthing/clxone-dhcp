@@ -25,45 +25,48 @@ func NewConn(serviceName string) (*grpc.ClientConn, error) {
 		return value.(*grpc.ClientConn), nil
 	}
 
-	var logger kitlog.Logger
-	{
-		logger = kitlog.NewLogfmtLogger(os.Stderr)
-		logger = kitlog.With(logger, "ts", kitlog.DefaultTimestampUTC)
-		logger = kitlog.With(logger, "caller", kitlog.DefaultCaller)
-	}
-
-	conf := consulapi.DefaultConfig()
-	conf.Address = config.GetConfig().Consul.Address
-
-	c, err := consulapi.NewClient(conf)
+	endpointor, err := getDefaultEndpointer(serviceName)
 	if err != nil {
 		return nil, err
 	}
 
-	client := consul.NewClient(c)
-	instance := consul.NewInstancer(client, logger, serviceName, []string{}, true)
-	endpointor := sd.NewEndpointer(instance, getFactory, logger)
-
+	defer endpointor.Close()
 	balancer := lb.NewRoundRobin(endpointor)
-	end, err := balancer.Endpoint()
+	roundRobinEndPoint, err := balancer.Endpoint()
 	if err != nil {
 		return nil, err
 	}
 
-	response, err := end(context.Background(), struct{}{})
+	response, err := roundRobinEndPoint(context.Background(), struct{}{})
 	if err != nil {
 		return nil, err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	conn, err := grpc.DialContext(ctx, response.(string), grpc.WithBlock(), grpc.WithInsecure())
 	if err != nil {
-		cancel()
 		return nil, err
 	}
 
 	connManager.Store(serviceName, conn)
 	return conn, nil
+}
+
+func getDefaultEndpointer(serviceName string) (*sd.DefaultEndpointer, error) {
+	conf := consulapi.DefaultConfig()
+	conf.Address = config.GetConfig().Consul.Address
+	apiClient, err := consulapi.NewClient(conf)
+	if err != nil {
+		return nil, err
+	}
+
+	client := consul.NewClient(apiClient)
+	logger := kitlog.With(kitlog.NewLogfmtLogger(os.Stderr), "timestamp", kitlog.DefaultTimestampUTC)
+	instance := consul.NewInstancer(client, logger, serviceName, []string{}, true)
+	defer instance.Stop()
+
+	return sd.NewEndpointer(instance, getFactory, logger), nil
 }
 
 func CloseConns() {
@@ -76,28 +79,12 @@ func CloseConns() {
 }
 
 func GetEndpoints(serviceName string) ([]endpoint.Endpoint, error) {
-	var logger kitlog.Logger
-	{
-		logger = kitlog.NewLogfmtLogger(os.Stderr)
-		logger = kitlog.With(logger, "ts", kitlog.DefaultTimestampUTC)
-		logger = kitlog.With(logger, "caller", kitlog.DefaultCaller)
-	}
-
-	conf := consulapi.DefaultConfig()
-	conf.Address = config.GetConfig().Consul.Address
-
-	c, err := consulapi.NewClient(conf)
+	endpointor, err := getDefaultEndpointer(serviceName)
 	if err != nil {
 		return nil, err
 	}
 
-	client := consul.NewClient(c)
-	instance := consul.NewInstancer(client, logger, serviceName, []string{}, true)
-	defer instance.Stop()
-
-	endpointor := sd.NewEndpointer(instance, getFactory, logger)
 	defer endpointor.Close()
-
 	return endpointor.Endpoints()
 }
 
