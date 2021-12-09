@@ -326,18 +326,19 @@ func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 
 func SubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLease4 {
 	lease4 := &resource.SubnetLease4{
-		Address:         lease.GetAddress(),
-		AddressType:     resource.AddressTypeDynamic,
-		HwAddress:       lease.GetHwAddress(),
-		ClientId:        lease.GetClientId(),
-		ValidLifetime:   lease.GetValidLifetime(),
-		Expire:          timeFromUinx(lease.GetExpire()),
-		Hostname:        lease.GetHostname(),
-		Fingerprint:     lease.GetFingerprint(),
-		VendorId:        lease.GetVendorId(),
-		OperatingSystem: lease.GetOperatingSystem(),
-		ClientType:      lease.GetClientType(),
-		LeaseState:      lease.GetLeaseState().String(),
+		Address:               lease.GetAddress(),
+		AddressType:           resource.AddressTypeDynamic,
+		HwAddress:             lease.GetHwAddress(),
+		HwAddressOrganization: lease.GetHwAddressOrganization(),
+		ClientId:              lease.GetClientId(),
+		ValidLifetime:         lease.GetValidLifetime(),
+		Expire:                timeFromUinx(lease.GetExpire()),
+		Hostname:              lease.GetHostname(),
+		Fingerprint:           lease.GetFingerprint(),
+		VendorId:              lease.GetVendorId(),
+		OperatingSystem:       lease.GetOperatingSystem(),
+		ClientType:            lease.GetClientType(),
+		LeaseState:            lease.GetLeaseState().String(),
 	}
 
 	lease4.SetID(lease.GetAddress())
@@ -354,16 +355,17 @@ func pbdhcpLease4FromSubnetLease4(lease4 *resource.SubnetLease4) *pbdhcp.Lease4 
 	}
 
 	return &pbdhcp.Lease4{
-		Address:         lease4.Address,
-		HwAddress:       lease4.HwAddress,
-		ClientId:        lease4.ClientId,
-		ValidLifetime:   lease4.ValidLifetime,
-		Expire:          lease4.Expire,
-		Hostname:        lease4.Hostname,
-		VendorId:        lease4.VendorId,
-		OperatingSystem: lease4.OperatingSystem,
-		ClientType:      lease4.ClientType,
-		LeaseState:      lease4.LeaseState,
+		Address:               lease4.Address,
+		HwAddress:             lease4.HwAddress,
+		HwAddressOrganization: lease4.HwAddressOrganization,
+		ClientId:              lease4.ClientId,
+		ValidLifetime:         lease4.ValidLifetime,
+		Expire:                lease4.Expire,
+		Hostname:              lease4.Hostname,
+		VendorId:              lease4.VendorId,
+		OperatingSystem:       lease4.OperatingSystem,
+		ClientType:            lease4.ClientType,
+		LeaseState:            lease4.LeaseState,
 	}
 }
 
@@ -465,24 +467,25 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 
 func SubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.SubnetLease6 {
 	lease6 := &resource.SubnetLease6{
-		Address:           lease.GetAddress(),
-		AddressType:       resource.AddressTypeDynamic,
-		PrefixLen:         lease.GetPrefixLen(),
-		Duid:              lease.GetDuid(),
-		Iaid:              lease.GetIaid(),
-		HwAddress:         lease.GetHwAddress(),
-		HwAddressType:     lease.GetHwType(),
-		HwAddressSource:   lease.GetHwAddressSource().String(),
-		ValidLifetime:     lease.GetValidLifetime(),
-		PreferredLifetime: lease.GetPreferredLifetime(),
-		Expire:            timeFromUinx(lease.GetExpire()),
-		LeaseType:         lease.GetLeaseType(),
-		Hostname:          lease.GetHostname(),
-		Fingerprint:       lease.GetFingerprint(),
-		VendorId:          lease.GetVendorId(),
-		OperatingSystem:   lease.GetOperatingSystem(),
-		ClientType:        lease.GetClientType(),
-		LeaseState:        lease.GetLeaseState().String(),
+		Address:               lease.GetAddress(),
+		AddressType:           resource.AddressTypeDynamic,
+		PrefixLen:             lease.GetPrefixLen(),
+		Duid:                  lease.GetDuid(),
+		Iaid:                  lease.GetIaid(),
+		HwAddress:             lease.GetHwAddress(),
+		HwAddressType:         lease.GetHwAddressType(),
+		HwAddressSource:       lease.GetHwAddressSource().String(),
+		HwAddressOrganization: lease.GetHwAddressOrganization(),
+		ValidLifetime:         lease.GetValidLifetime(),
+		PreferredLifetime:     lease.GetPreferredLifetime(),
+		Expire:                timeFromUinx(lease.GetExpire()),
+		LeaseType:             lease.GetLeaseType(),
+		Hostname:              lease.GetHostname(),
+		Fingerprint:           lease.GetFingerprint(),
+		VendorId:              lease.GetVendorId(),
+		OperatingSystem:       lease.GetOperatingSystem(),
+		ClientType:            lease.GetClientType(),
+		LeaseState:            lease.GetLeaseState().String(),
 	}
 
 	lease6.SetID(lease.GetAddress())
@@ -495,22 +498,23 @@ func pbdhcpLease6FromSubnetLease6(lease6 *resource.SubnetLease6) *pbdhcp.Lease6 
 	}
 
 	return &pbdhcp.Lease6{
-		Address:           lease6.Address,
-		PrefixLen:         lease6.PrefixLen,
-		Duid:              lease6.Duid,
-		Iaid:              lease6.Iaid,
-		HwAddress:         lease6.HwAddress,
-		HwAddressType:     lease6.HwAddressType,
-		HwAddressSource:   lease6.HwAddressSource,
-		ValidLifetime:     lease6.ValidLifetime,
-		PreferredLifetime: lease6.PreferredLifetime,
-		Expire:            lease6.Expire,
-		LeaseType:         lease6.LeaseType,
-		Hostname:          lease6.Hostname,
-		VendorId:          lease6.VendorId,
-		OperatingSystem:   lease6.OperatingSystem,
-		ClientType:        lease6.ClientType,
-		LeaseState:        lease6.LeaseState,
+		Address:               lease6.Address,
+		PrefixLen:             lease6.PrefixLen,
+		Duid:                  lease6.Duid,
+		Iaid:                  lease6.Iaid,
+		HwAddress:             lease6.HwAddress,
+		HwAddressType:         lease6.HwAddressType,
+		HwAddressSource:       lease6.HwAddressSource,
+		HwAddressOrganization: lease6.HwAddressOrganization,
+		ValidLifetime:         lease6.ValidLifetime,
+		PreferredLifetime:     lease6.PreferredLifetime,
+		Expire:                lease6.Expire,
+		LeaseType:             lease6.LeaseType,
+		Hostname:              lease6.Hostname,
+		VendorId:              lease6.VendorId,
+		OperatingSystem:       lease6.OperatingSystem,
+		ClientType:            lease6.ClientType,
+		LeaseState:            lease6.LeaseState,
 	}
 }
 

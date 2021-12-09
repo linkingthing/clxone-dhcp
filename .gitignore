@@ -4,3 +4,4 @@ interface_generator
 clxone_controller
 clxone_dhcp
 generate.go
+*.sh

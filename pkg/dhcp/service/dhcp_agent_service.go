@@ -73,6 +73,16 @@ const (
 	UpdateFingerprint DHCPCmd = "update_fingerprint"
 
 	UpdatePinger DHCPCmd = "update_pinger"
+
+	CreateOui DHCPCmd = "create_oui"
+	DeleteOui DHCPCmd = "delete_oui"
+	UpdateOui DHCPCmd = "update_oui"
+
+	UpdateAdmit            DHCPCmd = "update_admit"
+	CreateAdmitMac         DHCPCmd = "create_admitmac"
+	DeleteAdmitMac         DHCPCmd = "delete_admitmac"
+	CreateAdmitFingerprint DHCPCmd = "create_admitfingerprint"
+	DeleteAdmitFingerprint DHCPCmd = "delete_admitfingerprint"
 )
 
 var globalDHCPAgentService *DHCPAgentService

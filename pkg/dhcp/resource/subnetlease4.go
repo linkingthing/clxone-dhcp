@@ -13,6 +13,7 @@ type SubnetLease4 struct {
 	Address                   string      `json:"address"`
 	AddressType               AddressType `json:"addressType"`
 	HwAddress                 string      `json:"hwAddress"`
+	HwAddressOrganization     string      `json:"hwAddressOrganization"`
 	ClientId                  string      `json:"clientId"`
 	ValidLifetime             uint32      `json:"validLifetime"`
 	Expire                    string      `json:"expire"`

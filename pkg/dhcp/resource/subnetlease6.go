@@ -18,6 +18,7 @@ type SubnetLease6 struct {
 	HwAddress                 string      `json:"hwAddress"`
 	HwAddressType             string      `json:"hwAddressType"`
 	HwAddressSource           string      `json:"hwAddressSource"`
+	HwAddressOrganization     string      `json:"hwAddressOrganization"`
 	LeaseType                 string      `json:"leaseType"`
 	Hostname                  string      `json:"hostname"`
 	Fingerprint               string      `json:"fingerprint"`
