@@ -243,3 +243,24 @@ func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resour
 		DelegatedLen: pdpool.DelegatedLen,
 	}
 }
+
+func (p *ReservedPdPoolHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	pool := ctx.Resource.(*resource.ReservedPdPool)
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if rows, err := tx.Update(resource.TableReservedPdPool, map[string]interface{}{
+			"comment": pool.Comment,
+		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found reserved pdpool %s", pool.GetID())
+		}
+
+		return nil
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("update reserved pdpool %s with subnet %s failed: %s",
+				pool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
+	}
+
+	return pool, nil
+}

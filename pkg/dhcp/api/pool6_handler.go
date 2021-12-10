@@ -390,6 +390,27 @@ func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 	}
 }
 
+func (p *Pool6Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	pool := ctx.Resource.(*resource.Pool6)
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if rows, err := tx.Update(resource.TablePool6, map[string]interface{}{
+			"comment": pool.Comment,
+		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found pool6 %s", pool.GetID())
+		}
+
+		return nil
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("update pool6 %s with subnet %s failed: %s",
+				pool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
+	}
+
+	return pool, nil
+}
+
 func (h *Pool6Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameValidTemplate:

@@ -392,17 +392,38 @@ func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 	}
 }
 
-func (h *Pool4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *Pool4Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	pool := ctx.Resource.(*resource.Pool4)
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if rows, err := tx.Update(resource.TablePool4, map[string]interface{}{
+			"comment": pool.Comment,
+		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found pool4 %s", pool.GetID())
+		}
+
+		return nil
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("update pool4 %s with subnet %s failed: %s",
+				pool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
+	}
+
+	return pool, nil
+}
+
+func (p *Pool4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameValidTemplate:
-		return h.validTemplate(ctx)
+		return p.validTemplate(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
 	}
 }
 
-func (h *Pool4Handler) validTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *Pool4Handler) validTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	pool := ctx.Resource.(*resource.Pool4)
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)

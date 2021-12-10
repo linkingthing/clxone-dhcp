@@ -11,6 +11,11 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
+)
+
+const (
+	FieldHwAddress = "hw_address"
 )
 
 type AdmitMacHandler struct{}
@@ -44,15 +49,14 @@ func sendCreateAdmitMacCmdToDHCPAgent(admitMac *resource.AdmitMac) error {
 }
 
 func (d *AdmitMacHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	var ouis []*resource.AdmitMac
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{"orderby": "hw_address"}, &ouis)
-	}); err != nil {
+	var macs []*resource.AdmitMac
+	if err := db.GetResources(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		FieldHwAddress, FieldHwAddress), &macs); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list admit macs from db failed: %s", err.Error()))
 	}
 
-	return ouis, nil
+	return macs, nil
 }
 
 func (d *AdmitMacHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
@@ -91,4 +95,24 @@ func sendDeleteAdmitMacCmdToDHCPAgent(admitMacId string) error {
 		&pbdhcpagent.DeleteAdmitMacRequest{
 			HwAddress: admitMacId,
 		})
+}
+
+func (d *AdmitMacHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	admitMac := ctx.Resource.(*resource.AdmitMac)
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if rows, err := tx.Update(resource.TableAdmitMac, map[string]interface{}{
+			"comment": admitMac.Comment,
+		}, map[string]interface{}{restdb.IDField: admitMac.GetID()}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found admit mac %s", admitMac.GetID())
+		}
+
+		return nil
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("create admit mac %s failed: %s", admitMac.GetID(), err.Error()))
+	}
+
+	return admitMac, nil
 }

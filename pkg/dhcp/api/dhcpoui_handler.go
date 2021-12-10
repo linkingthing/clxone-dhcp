@@ -11,6 +11,11 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
+)
+
+const (
+	FieldOUI = "oui"
 )
 
 type DhcpOuiHandler struct{}
@@ -51,9 +56,8 @@ func sendCreateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
 
 func (d *DhcpOuiHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	var ouis []*resource.DhcpOui
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{"orderby": "oui"}, &ouis)
-	}); err != nil {
+	if err := db.GetResources(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		FieldOUI, FieldOUI), &ouis); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list dhcp ouis from db failed: %s", err.Error()))
 	}

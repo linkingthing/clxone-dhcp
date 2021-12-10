@@ -22,6 +22,7 @@ type Reservation6 struct {
 	Capacity                  uint64   `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string   `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64   `json:"usedCount" rest:"description=readonly" db:"-"`
+	Comment                   string   `json:"comment"`
 }
 
 func (r Reservation6) GetParents() []restresource.ResourceKind {

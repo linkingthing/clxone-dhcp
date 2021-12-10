@@ -19,6 +19,7 @@ type ReservedPdPool struct {
 	PrefixIpnet               net.IPNet `json:"-"`
 	DelegatedLen              uint32    `json:"delegatedLen" rest:"required=true"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
+	Comment                   string    `json:"comment"`
 }
 
 func (p ReservedPdPool) GetParents() []restresource.ResourceKind {

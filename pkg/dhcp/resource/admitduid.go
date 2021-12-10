@@ -5,14 +5,14 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
-var TableAdmitMac = restdb.ResourceDBType(&AdmitMac{})
+var TableAdmitDuid = restdb.ResourceDBType(&AdmitDuid{})
 
-type AdmitMac struct {
+type AdmitDuid struct {
 	restresource.ResourceBase `json:",inline"`
-	HwAddress                 string `json:"hwAddress" rest:"required=true"`
+	Duid                      string `json:"duid" rest:"required=true"`
 	Comment                   string `json:"comment"`
 }
 
-func (a AdmitMac) GetParents() []restresource.ResourceKind {
+func (a AdmitDuid) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Admit{}}
 }

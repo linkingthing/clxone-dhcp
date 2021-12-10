@@ -229,3 +229,29 @@ func pdpoolToDeletePdPoolRequest(subnetID uint64, pdpool *resource.PdPool) *pbdh
 		DelegatedLen: pdpool.DelegatedLen,
 	}
 }
+
+func (p *PdPoolHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	pdpool := ctx.Resource.(*resource.PdPool)
+	if err := pdpool.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("create pdpool params invalid: %s", err.Error()))
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if rows, err := tx.Update(resource.TablePdPool, map[string]interface{}{
+			"comment": pdpool.Comment,
+		}, map[string]interface{}{restdb.IDField: pdpool.GetID()}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found pdpool %s", pdpool.GetID())
+		}
+
+		return nil
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("update pdpool %s with subnet %s failed: %s",
+				pdpool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
+	}
+
+	return pdpool, nil
+}

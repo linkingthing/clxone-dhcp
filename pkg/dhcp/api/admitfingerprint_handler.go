@@ -44,15 +44,15 @@ func sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint *resource.AdmitFi
 }
 
 func (d *AdmitFingerprintHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	var ouis []*resource.AdmitFingerprint
+	var fingerprints []*resource.AdmitFingerprint
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{"orderby": "client_type"}, &ouis)
+		return tx.Fill(map[string]interface{}{"orderby": "client_type"}, &fingerprints)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list admit fingerprints from db failed: %s", err.Error()))
 	}
 
-	return ouis, nil
+	return fingerprints, nil
 }
 
 func (d *AdmitFingerprintHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {

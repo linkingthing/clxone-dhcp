@@ -21,6 +21,7 @@ type ReservedPool6 struct {
 	UsedRatio                 string `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64 `json:"usedCount" rest:"description=readonly" db:"-"`
 	Template                  string `json:"template" db:"-"`
+	Comment                   string `json:"comment"`
 }
 
 func (p ReservedPool6) GetParents() []restresource.ResourceKind {

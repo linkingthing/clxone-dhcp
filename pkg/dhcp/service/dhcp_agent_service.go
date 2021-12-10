@@ -81,8 +81,18 @@ const (
 	UpdateAdmit            DHCPCmd = "update_admit"
 	CreateAdmitMac         DHCPCmd = "create_admitmac"
 	DeleteAdmitMac         DHCPCmd = "delete_admitmac"
+	CreateAdmitDuid        DHCPCmd = "create_admitduid"
+	DeleteAdmitDuid        DHCPCmd = "delete_admitduid"
 	CreateAdmitFingerprint DHCPCmd = "create_admitfingerprint"
 	DeleteAdmitFingerprint DHCPCmd = "delete_admitfingerprint"
+
+	UpdateRateLimit     DHCPCmd = "update_ratelimit"
+	CreateRateLimitMac  DHCPCmd = "create_ratelimitmac"
+	DeleteRateLimitMac  DHCPCmd = "delete_ratelimitmac"
+	UpdateRateLimitMac  DHCPCmd = "update_ratelimitmac"
+	CreateRateLimitDuid DHCPCmd = "create_ratelimitduid"
+	DeleteRateLimitDuid DHCPCmd = "delete_ratelimitduid"
+	UpdateRateLimitDuid DHCPCmd = "update_ratelimitduid"
 )
 
 var globalDHCPAgentService *DHCPAgentService

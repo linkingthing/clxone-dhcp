@@ -325,3 +325,24 @@ func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resou
 		IpAddress: reservation.IpAddress,
 	}
 }
+
+func (r *Reservation4Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	reservation := ctx.Resource.(*resource.Reservation4)
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if rows, err := tx.Update(resource.TableReservation4, map[string]interface{}{
+			"comment": reservation.Comment,
+		}, map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found reservation4 %s", reservation.GetID())
+		}
+
+		return nil
+	}); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError,
+			fmt.Sprintf("update reservation4 %s with subnet %s failed: %s",
+				reservation.String(), ctx.Resource.GetParent().GetID(), err.Error()))
+	}
+
+	return reservation, nil
+}
