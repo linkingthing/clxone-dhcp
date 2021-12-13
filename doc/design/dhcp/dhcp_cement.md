@@ -28,6 +28,47 @@
 * Common
   * dhcpconfig DHCP全局配置
   * dhcpfingerprint DHCP指纹
+  * dhcpoui 网卡厂商
+  * admit DHCP准入
+  * admitmac 准入MAC
+  * admitduid 准入DUID
+  * admitfingerprint 准入指纹
+  * ratelimit DHCP限速
+  * ratelimitmac 限速MAC
+  * ratelimitduid 限速DUID
+
+## DhcpOui 
+* DHCP模块的顶级资源，用于识别网卡厂商
+* 字段
+  * oui OUI
+  * organization 厂商
+  * isReadOnly 是否只读
+* 支持增、删、改、查
+* 增
+
+		POST /apis/linkingthing.com/dhcp/v1/dhcpouis
+		{
+			"oui": "11:22:33",
+			"organization": "huawei"
+		}
+
+* 删
+
+		DELETE /apis/linkingthing.com/dhcp/v1/dhcpouis/11:22:33
+
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/dhcpouis/11:22:33
+		{
+			"organization": cisco
+		}
+
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/dhcpouis
+		GET /apis/linkingthing.com/dhcp/v1/dhcpouis?oui=11:22:33
+		
+		GET /apis/linkingthing.com/dhcp/v1/dhcpouis/11:22:33
 
 ## DhcpFingerprint
 * DHCP模块的顶级资源，用于DHCP指纹库的扩展
@@ -66,8 +107,208 @@
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/dhcpfingerprints
+		GET /apis/linkingthing.com/dhcp/v1/dhcpfingerprints?fingerprint=1,28&operatingSystem=Linux&clientType=Linux&vendorId=dhcpd
 		
 		GET /apis/linkingthing.com/dhcp/v1/dhcpfingerprints/62d5a24a4027522e80e5569c843d117f
+
+## Admit
+* DHCP模块的顶级资源，用于配置准入是否开启
+* 字段
+  * enabled 是否开启
+* 支持改、查
+* 改
+		
+		PUT /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada
+		{
+			"enabled": true
+		}
+		
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/admits
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada
+
+## AdmitMac
+* DHCP模块的admit子资源，用于配置客户端mac是否被准入
+* 字段
+  * hwAddress 硬件地址
+  * comment 备注
+* 支持增、删、改、查
+* 增
+
+		POST /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitmacs
+		{
+			"hwAddress": "11:22:33:44:55:66",
+			"comment": "clxone"
+		}
+
+* 删
+
+		DELETE /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitmacs/11:22:33:44:55:66
+
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitmacs/11:22:33:44:55:66
+		{
+			"comment": "clxone ipam"
+		}
+
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitmacs
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitmacs?hw_address=11:22:33:44:55:66
+		
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitmacs/11:22:33:44:55:66
+
+## AdmitDUID
+* DHCP模块的admit子资源，用于配置客户端duid是否被准入
+* 字段
+  * duid DUID
+  * comment 备注
+* 支持增、删、改、查
+* 增
+
+		POST /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitduids
+		{
+			"duid": "000100012937ef93b05cda255cdf"
+			"comment": "clxone"
+		}
+
+* 删
+
+		DELETE /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitduids/000100012937ef93b05cda255cdf
+
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitduids/000100012937ef93b05cda255cdf
+		{
+			"comment": "clxone ipam6"
+		}
+		
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitduids
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitduids?duid=000100012937ef93b05cda255cdf
+		
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitduids/000100012937ef93b05cda255cdf
+		
+## AdmitFingerprint
+* DHCP模块的admit子资源，用于配置客户端指纹类型是否被准入
+* 字段
+  * clientType 客户端类型，默认类型
+    * Android
+    * AP
+    * Apple
+    * Linux
+    * Others
+    * Printer
+    * Router
+    * Switch
+    * VoIP
+    * Windows
+* 支持增、删、查
+* 增
+
+		POST /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitfingerprints
+		{
+			"clientType": "Linux"
+		}
+
+* 删
+
+		DELETE /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitfingerprints/Linux
+		
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitfingerprints
+		GET /apis/linkingthing.com/dhcp/v1/admits/sdaasfawfsada/admitfingerprints/Linux
+
+## RateLimit
+* DHCP模块的顶级资源，配置限速是否开启
+* 字段
+  * enabled 是否开启
+* 支持改、查
+* 改
+		
+		PUT /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529
+		{
+			"enabled": true
+		}
+		
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529
+		
+## RateLimitMac
+* DHCP模块的ratelimit的子资源，配置限速的mac
+* 字段
+  * hwAddress MAC地址
+  * limit 限速指标
+  * comment 备注
+* 支持增、删、改、查
+* 增
+		
+		POST /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs
+		{
+			"hwAddress": "11:22:33:44:55:66",
+			"limit": 100,
+			"comment": "test 100"
+		}
+		
+* 删
+
+		DELETE /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs/11:22:33:44:55:66
+		
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs/11:22:33:44:55:66
+		{
+			"limit": 50,
+			"comment": "test 50"
+		}
+
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs?hw_address=11:22:33:44:55:66
+		
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs/11:22:33:44:55:66
+
+## RateLimitDuid
+* DHCP模块的ratelimit的子资源，配置限速的duid
+* 字段
+  * duid DUID
+  * limit 限速指标
+  * comment 备注
+* 支持增、删、改、查
+* 增
+		
+		POST /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids
+		{
+			"duid": "000100012937ef93b05cda255cdf",
+			"limit": 100,
+			"comment": "test 100"
+		}
+		
+* 删
+
+		DELETE /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids/000100012937ef93b05cda255cdf
+		
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids/000100012937ef93b05cda255cdf
+		{
+			"limit": 50,
+			"comment": "test 50"
+		}
+
+* 查
+
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids?duid=000100012937ef93b05cda255cdf
+		
+		GET /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids/000100012937ef93b05cda255cdf
 
 
 ## DhcpConfig
@@ -298,13 +539,15 @@
   * name 名字
   * subnetIds subnet4的ID列表(用于创建和更新，不用于显示)
   * subnets subnet4的subnet列表
+  * comment 备注
 * 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/sharednetwork4s
 		{
 			"name": "s1",
-			"subnetIds": [1,2,3,4,5]
+			"subnetIds": [1,2,3,4,5],
+			"comment": "shared 12345"
 		}
 * 删
 
@@ -315,7 +558,8 @@
 		PUT /apis/linkingthing.com/dhcp/v1/sharednetwork4s/d8e8d7b24050c23080318063667cb5e5
 		{
 			"name": "s2",
-			"subnetIds": [2,3,4,5]
+			"subnetIds": [2,3,4,5],
+			"comment": "shared 2345"
 		}
 
 * 查
@@ -335,24 +579,34 @@
   * capacity 地址池容量
   * usedRatio 地址池地址使用率
   * usedCount 地址池地址已使用个数
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s
 		{
 			"beginAddress": "10.0.0.25",
     		"endAddress": "10.0.0.35",
+    		"comment"："25-35"
 		}
 		
 		POST /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s
 		{
 			"template": "tp4_10",
+			"comment"："use template tp4_10"
 		}
 
 * 删
 
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s/22e0dfaf40b445a280606c43a7c86b89
 		
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s/22e0dfaf40b445a280606c43a7c86b89
+		{
+			"comment"："update comment"
+		}
+
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s
@@ -369,23 +623,33 @@
   * capacity 地址池容量
   * usedRatio 地址池地址使用率
   * usedCount 地址池地址已使用个数
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservedpool4s
 		{
 			"beginAddress": "10.0.0.1",
     		"endAddress": "10.0.0.5",
+    		"comment": "keep 1-5"
 		}
 		
 		POST /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservedpool4s
 		{
 			"template": "tp4_5",
+			"comment"："use template tp4_5"
 		}
 
 * 删
 
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservedpool4s/22e0dfaf40b445a280606c43a7c86b89
+		
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservedpool4s/22e0dfaf40b445a280606c43a7c86b89
+		{
+			"comment"："update comment"
+		}
 		
 * 查
 
@@ -402,18 +666,27 @@
   * capacity 容量
   * usedRatio 地址使用率
   * usedCount 已使用地址个数
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservation4s
 		{
 			"hwAddress": "cc:64:a6:e0:5d:03",
 			"ipAddress": "10.0.0.254",
+			"comment": "cc"
 		}
 		
 * 删
 
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservation4s/ab86666240b199e080e2235d4e4982e2
+
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/subnet4s/1/reservation4s/ab86666240b199e080e2235d4e4982e2
+		{
+			"comment": "ccd"
+		}
 
 * 查
 
@@ -427,6 +700,7 @@
   * address IP地址
   * addressType IP地址类型（dynamic, reservation）
   * hwAddress MAC地址
+  * hwAddressOrganization MAC厂商
   * clientId 客户端ID
   * validLifetime 租赁时长
   * expire 租赁过期时间
@@ -638,24 +912,34 @@
   * capacity 地址池容量
   * usedRatio 地址池地址使用率
   * usedCount 地址池地址已使用个数
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s
 		{
 			"beginAddress": "fd00:10::25",
     		"endAddress": "fd00:10::35",
+    		"comment": "25-35"
 		}
 		
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s
 		{
 			"template": "tp6_10",
+			"comment": "use tp6_10"
 		}
 
 * 删
 
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s/22e0dfaf40b445a280606c43a7c86b89
-		
+	
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s/22e0dfaf40b445a280606c43a7c86b89
+		{
+			"comment": "2535"
+		}
+
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s
@@ -671,24 +955,34 @@
   * capacity 地址池容量
   * usedRatio 地址池地址使用率
   * usedCount 地址池地址已使用个数
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpool6s
 		{
 			"beginAddress": "fd00:10::1",
     		"endAddress": "fd00:10::5",
+    		"comment": "25-35"
 		}
 		
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpool6s
 		{
 			"template": "tp6_5",
+			"comment": "25-35"
 		}
 
 * 删
 
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpool6s/22e0dfaf40b445a280606c43a7c86b89
-		
+
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpool6s/22e0dfaf40b445a280606c43a7c86b89
+		{
+			"comment": "252335"
+		}
+			
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpool6s
@@ -706,36 +1000,48 @@
   * capacity 容量
   * usedRatio 地址使用率
   * usedCount 已使用地址个数
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s
 		{
 			"duid": "00042a342e29f765c199bacd5a1111119694",
 			"ipAddresses": ["fd00:10::254"],
+			"comment": "keep fd00:10::254 for duid"
 		}
 		
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s
 		{
 			"duid": "00042a342e29f765c199bacd5a1111119694",
 			"prefixes": ["fd00:20::/32"],
+			"comment": "keep fd00:20::/32 for duid"
 		}
 		
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s
 		{
 			"hwAddress": "cc:64:a6:e0:5d:03",
 			"ipAddresses": ["fd00:10::254"],
+			"comment": "keep fd00:10::254 for mac"
 		}
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s
 		{
 			"hwAddress": "cc:64:a6:e0:5d:03",
 			"prefixes": ["fd00:20::/32"],
+			"comment": "keep fd00:20::/32 for mac"
 		}
 		
 * 删
 
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s/ab86666240b199e080e2235d4e4982e2
+		
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservation6s/ab86666240b199e080e2235d4e4982e2
+		{
+			"comment": "keep fd00:20::/32 for mac cc:64:a6:e0:5d:03"
+		}
 
 * 查
 
@@ -751,7 +1057,8 @@
   * prefixLen 前缀长度
   * delegatedLen 委派长度
   * capacity 前缀容量
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/pdpools
@@ -759,11 +1066,19 @@
 			"prefix": "fd10:10::"
 			"prefixLen": 32,
 			"delegatedLen": 48,
+			"comment": "32-48"
 		}
 * 删
 		
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet6s/1/pdpools/86cddeec405362a780045990082056ad
-		
+
+* 改
+
+		PUT /apis/linkingthing.com/dhcp/v1/subnet6s/1/pdpools/86cddeec405362a780045990082056ad
+		{
+			"comment": "32-48 with 32"
+		}
+	
 * 查
 
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1/pdpools
@@ -778,7 +1093,8 @@
   * prefixLen 前缀长度
   * delegatedLen 委派长度
   * capacity 前缀容量
-* 支持增、删、查
+  * comment 备注
+* 支持增、删、改、查
 * 增
 
 		POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpdpools
@@ -786,10 +1102,18 @@
 			"prefix": "fd10:20::"
 			"prefixLen": 32,
 			"delegatedLen": 48,
+			"comment": "keep 32-48"
 		}
 * 删
 		
 		DELETE /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpdpools/86cddeec405362a780045990082056ad
+
+* 改
+		
+		PUT /apis/linkingthing.com/dhcp/v1/subnet6s/1/reservedpdpools/86cddeec405362a780045990082056ad
+		{
+			"comment": "keep 48"
+		}
 		
 * 查
 
@@ -809,6 +1133,7 @@
   * hwAddress MAC地址
   * hwAddressType MAC地址类型
   * hwAddressSource MAC地址来源 (DUID, IPv6_LINKLOCAL, CLIENT_LINKADDR, REMOTE_ID, DOCSIS_CMTS, DOCSIS_MODEM)
+  * hwAddressOrganization MAC厂商
   * preferredLifetime 首选租赁时长
   * validLifetime 租赁时长
   * expire 租赁过期时间
