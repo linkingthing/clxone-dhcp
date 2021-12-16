@@ -41,7 +41,7 @@ func sendCreateRateLimitMacCmdToDHCPAgent(ratelimitMac *resource.RateLimitMac) e
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateRateLimitMac,
 		&pbdhcpagent.CreateRateLimitMacRequest{
 			HwAddress: ratelimitMac.HwAddress,
-			Limit:     ratelimitMac.Limit,
+			Limit:     ratelimitMac.RateLimit,
 		})
 }
 
@@ -106,13 +106,13 @@ func (d *RateLimitMacHandler) Update(ctx *restresource.Context) (restresource.Re
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitMac, map[string]interface{}{
-			"limit":   ratelimitMac.Limit,
+			"limit":   ratelimitMac.RateLimit,
 			"comment": ratelimitMac.Comment,
 		}, map[string]interface{}{restdb.IDField: ratelimitMac.GetID()}); err != nil {
 			return err
 		}
 
-		if ratelimits[0].Limit != ratelimitMac.Limit {
+		if ratelimits[0].RateLimit != ratelimitMac.RateLimit {
 			return sendUpdateRateLimitMacCmdToDHCPAgent(ratelimitMac)
 		} else {
 			return nil
@@ -129,6 +129,6 @@ func sendUpdateRateLimitMacCmdToDHCPAgent(ratelimitMac *resource.RateLimitMac) e
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateRateLimitMac,
 		&pbdhcpagent.UpdateRateLimitMacRequest{
 			HwAddress: ratelimitMac.HwAddress,
-			Limit:     ratelimitMac.Limit,
+			Limit:     ratelimitMac.RateLimit,
 		})
 }

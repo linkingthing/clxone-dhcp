@@ -10,7 +10,7 @@ var TableRateLimitMac = restdb.ResourceDBType(&RateLimitMac{})
 type RateLimitMac struct {
 	restresource.ResourceBase `json:",inline"`
 	HwAddress                 string `json:"hwAddress" rest:"required=true"`
-	Limit                     uint32 `json:"limit" rest:"required=true"`
+	RateLimit                 uint32 `json:"rateLimit" rest:"required=true"`
 	Comment                   string `json:"comment"`
 }
 

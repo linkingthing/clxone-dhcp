@@ -10,7 +10,7 @@ var TableRateLimitDuid = restdb.ResourceDBType(&RateLimitDuid{})
 type RateLimitDuid struct {
 	restresource.ResourceBase `json:",inline"`
 	Duid                      string `json:"duid" rest:"required=true"`
-	Limit                     uint32 `json:"limit" rest:"required=true"`
+	RateLimit                 uint32 `json:"rateLimit" rest:"required=true"`
 	Comment                   string `json:"comment"`
 }
 

@@ -244,7 +244,7 @@
 * DHCP模块的ratelimit的子资源，配置限速的mac
 * 字段
   * hwAddress MAC地址
-  * limit 限速指标
+  * rateLimit 限速指标
   * comment 备注
 * 支持增、删、改、查
 * 增
@@ -252,7 +252,7 @@
 		POST /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs
 		{
 			"hwAddress": "11:22:33:44:55:66",
-			"limit": 100,
+			"rateLimit": 100,
 			"comment": "test 100"
 		}
 		
@@ -264,7 +264,7 @@
 
 		PUT /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitmacs/11:22:33:44:55:66
 		{
-			"limit": 50,
+			"rateLimit": 50,
 			"comment": "test 50"
 		}
 
@@ -279,7 +279,7 @@
 * DHCP模块的ratelimit的子资源，配置限速的duid
 * 字段
   * duid DUID
-  * limit 限速指标
+  * rateLimit 限速指标
   * comment 备注
 * 支持增、删、改、查
 * 增
@@ -287,7 +287,7 @@
 		POST /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids
 		{
 			"duid": "000100012937ef93b05cda255cdf",
-			"limit": 100,
+			"rateLimit": 100,
 			"comment": "test 100"
 		}
 		
@@ -299,7 +299,7 @@
 
 		PUT /apis/linkingthing.com/dhcp/v1/ratelimits/c033e72b4057b7a3803c1db97f339529/ratelimitduids/000100012937ef93b05cda255cdf
 		{
-			"limit": 50,
+			"rateLimit": 50,
 			"comment": "test 50"
 		}
 

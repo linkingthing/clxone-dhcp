@@ -41,7 +41,7 @@ func sendCreateRateLimitDuidCmdToDHCPAgent(ratelimitDuid *resource.RateLimitDuid
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.CreateRateLimitDuid,
 		&pbdhcpagent.CreateRateLimitDuidRequest{
 			Duid:  ratelimitDuid.Duid,
-			Limit: ratelimitDuid.Limit,
+			Limit: ratelimitDuid.RateLimit,
 		})
 }
 
@@ -106,13 +106,13 @@ func (d *RateLimitDuidHandler) Update(ctx *restresource.Context) (restresource.R
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitDuid, map[string]interface{}{
-			"limit":   ratelimitDuid.Limit,
+			"limit":   ratelimitDuid.RateLimit,
 			"comment": ratelimitDuid.Comment,
 		}, map[string]interface{}{restdb.IDField: ratelimitDuid.GetID()}); err != nil {
 			return err
 		}
 
-		if ratelimits[0].Limit != ratelimitDuid.Limit {
+		if ratelimits[0].RateLimit != ratelimitDuid.RateLimit {
 			return sendUpdateRateLimitDuidCmdToDHCPAgent(ratelimitDuid)
 		} else {
 			return nil
@@ -129,6 +129,6 @@ func sendUpdateRateLimitDuidCmdToDHCPAgent(ratelimitDuid *resource.RateLimitDuid
 	return dhcpservice.GetDHCPAgentService().SendDHCPCmd(dhcpservice.UpdateRateLimitDuid,
 		&pbdhcpagent.UpdateRateLimitDuidRequest{
 			Duid:  ratelimitDuid.Duid,
-			Limit: ratelimitDuid.Limit,
+			Limit: ratelimitDuid.RateLimit,
 		})
 }

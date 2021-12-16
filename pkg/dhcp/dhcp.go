@@ -61,7 +61,18 @@ func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
 	}
 
 	apiServer.Schemas.MustImport(&Version, resource.AdmitMac{}, api.NewAdmitMacHandler())
+	apiServer.Schemas.MustImport(&Version, resource.AdmitDuid{}, api.NewAdmitDuidHandler())
 	apiServer.Schemas.MustImport(&Version, resource.AdmitFingerprint{}, api.NewAdmitFingerprintHandler())
+
+	if ratelimitHandler, err := api.NewRateLimitHandler(); err != nil {
+		return err
+	} else {
+		apiServer.Schemas.MustImport(&Version, resource.RateLimit{}, ratelimitHandler)
+	}
+
+	apiServer.Schemas.MustImport(&Version, resource.RateLimitMac{}, api.NewRateLimitMacHandler())
+	apiServer.Schemas.MustImport(&Version, resource.RateLimitDuid{}, api.NewRateLimitDuidHandler())
+
 	apiServer.Schemas.MustImport(&Version, resource.DhcpOui{}, api.NewDhcpOuiHandler())
 	return nil
 }
@@ -91,6 +102,10 @@ func PersistentResources() []restresource.Resource {
 		&resource.DhcpOui{},
 		&resource.Admit{},
 		&resource.AdmitMac{},
+		&resource.AdmitDuid{},
 		&resource.AdmitFingerprint{},
+		&resource.RateLimit{},
+		&resource.RateLimitMac{},
+		&resource.RateLimitDuid{},
 	}
 }
