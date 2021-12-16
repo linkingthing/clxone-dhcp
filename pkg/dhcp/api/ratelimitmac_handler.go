@@ -111,8 +111,8 @@ func (d *RateLimitMacHandler) Update(ctx *restresource.Context) (restresource.Re
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitMac, map[string]interface{}{
-			"limit":   ratelimitMac.RateLimit,
-			"comment": ratelimitMac.Comment,
+			"rate_limit": ratelimitMac.RateLimit,
+			"comment":    ratelimitMac.Comment,
 		}, map[string]interface{}{restdb.IDField: ratelimitMac.GetID()}); err != nil {
 			return err
 		}

@@ -106,8 +106,8 @@ func (d *RateLimitDuidHandler) Update(ctx *restresource.Context) (restresource.R
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitDuid, map[string]interface{}{
-			"limit":   ratelimitDuid.RateLimit,
-			"comment": ratelimitDuid.Comment,
+			"rate_limit": ratelimitDuid.RateLimit,
+			"comment":    ratelimitDuid.Comment,
 		}, map[string]interface{}{restdb.IDField: ratelimitDuid.GetID()}); err != nil {
 			return err
 		}
