@@ -27,6 +27,11 @@ func NewAdmitMacHandler() *AdmitMacHandler {
 func (d *AdmitMacHandler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitMac := ctx.Resource.(*resource.AdmitMac)
 	admitMac.SetID(admitMac.HwAddress)
+	if err := admitMac.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("create admit mac %s failed: %s", admitMac.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitMac); err != nil {
 			return err

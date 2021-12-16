@@ -23,6 +23,11 @@ func NewRateLimitMacHandler() *RateLimitMacHandler {
 func (d *RateLimitMacHandler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	ratelimitMac := ctx.Resource.(*resource.RateLimitMac)
 	ratelimitMac.SetID(ratelimitMac.HwAddress)
+	if err := ratelimitMac.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("create ratelimit mac %s failed: %s", ratelimitMac.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(ratelimitMac); err != nil {
 			return err
