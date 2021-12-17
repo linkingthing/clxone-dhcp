@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"net"
 
 	restdb "github.com/linkingthing/gorest/db"
@@ -17,7 +18,10 @@ type DhcpOui struct {
 }
 
 func (d *DhcpOui) Validate() error {
-	d.IsReadOnly = false
-	_, err := net.ParseMAC(d.Oui + ":00:00:00")
-	return err
+	if _, err := net.ParseMAC(d.Oui + ":00:00:00"); err != nil {
+		return fmt.Errorf("invlaid oui %s, it should be prefix mac", d.Oui)
+	} else {
+		d.IsReadOnly = false
+		return nil
+	}
 }
