@@ -221,6 +221,8 @@ github.com/cuityhj/gohelper v0.0.3 h1:INOa2l4j+remSsf4q7CQx1RUKI+CCXPnfLUn4J57h6
 github.com/cuityhj/gohelper v0.0.3/go.mod h1:6eyD6M2NOSjb2FNyItgoX2lFtuC8F2P1QRHrrWOO4so=
 github.com/cuityhj/gohelper v0.0.4 h1:aKWskbX4n1UXV2nHm0eJ8xKYPS2gGtZREi+6KYvk+0M=
 github.com/cuityhj/gohelper v0.0.4/go.mod h1:6eyD6M2NOSjb2FNyItgoX2lFtuC8F2P1QRHrrWOO4so=
+github.com/cuityhj/gohelper v0.0.7 h1:iWPE1r8hHjkzmufkbnZuv+LzIb7TvdvdvVY5OE+A3ew=
+github.com/cuityhj/gohelper v0.0.7/go.mod h1:6eyD6M2NOSjb2FNyItgoX2lFtuC8F2P1QRHrrWOO4so=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
 github.com/d2g/dhcp4 v0.0.0-20170904100407-a1d1b6c41b1c/go.mod h1:Ct2BUK8SB0YC1SMSibvLzxjeJLnrYEVLULFNiHY9YfQ=
 github.com/d2g/dhcp4client v1.0.0/go.mod h1:j0hNfjhrt2SxUOw55nL0ATM/z4Yt3t2Kd1mW34z5W5s=
