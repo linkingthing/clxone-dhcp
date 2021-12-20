@@ -102,12 +102,12 @@ func sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId string) error {
 func (d *RateLimitMacHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	ratelimitMac := ctx.Resource.(*resource.RateLimitMac)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var ratelimits []*resource.RateLimitDuid
+		var ratelimits []*resource.RateLimitMac
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: ratelimitMac.GetID()},
 			&ratelimits); err != nil {
 			return err
 		} else if len(ratelimits) == 0 {
-			return fmt.Errorf("no found ratelimit duid %s", ratelimitMac.GetID())
+			return fmt.Errorf("no found ratelimit mac %s", ratelimitMac.GetID())
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitMac, map[string]interface{}{
