@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"strings"
 
 	restdb "github.com/linkingthing/gorest/db"
 	resterror "github.com/linkingthing/gorest/error"
@@ -55,14 +56,61 @@ func sendCreateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
 }
 
 func (d *DhcpOuiHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	listCtx := genGetOUIContext(ctx)
 	var ouis []*resource.DhcpOui
-	if err := db.GetResources(util.GenStrConditionsFromFilters(ctx.GetFilters(),
-		FieldOUI, FieldOUI), &ouis); err != nil {
+	var ouiCount int
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if listCtx.hasPagination {
+			if count, err := tx.CountEx(resource.TableDhcpOui,
+				listCtx.countSql); err != nil {
+				return err
+			} else {
+				ouiCount = int(count)
+			}
+		}
+
+		return tx.FillEx(&ouis, listCtx.sql, listCtx.params...)
+	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list dhcp ouis from db failed: %s", err.Error()))
 	}
 
+	setPagination(ctx, listCtx.hasPagination, ouiCount)
 	return ouis, nil
+}
+
+type listOUIContext struct {
+	countSql      string
+	sql           string
+	params        []interface{}
+	hasFilterOUI  bool
+	hasPagination bool
+}
+
+func genGetOUIContext(ctx *restresource.Context) listOUIContext {
+	listCtx := listOUIContext{}
+	if value, ok := util.GetFilterValueWithEqModifierFromFilters(FieldOUI,
+		ctx.GetFilters()); ok {
+		listCtx.hasFilterOUI = true
+		listCtx.sql = "select * from gr_dhcp_oui where oui = $1"
+		listCtx.params = append(listCtx.params, value)
+	} else {
+		listCtx.sql = "select * from gr_dhcp_oui"
+	}
+
+	listCtx.countSql = strings.Replace(listCtx.sql, "*", "count(*)", 1)
+	if listCtx.hasFilterOUI == false {
+		listCtx.sql += " order by oui"
+		if pagination := ctx.GetPagination(); pagination.PageSize > 0 &&
+			pagination.PageNum > 0 {
+			listCtx.hasPagination = true
+			listCtx.sql += " limit $1 offset $2"
+			listCtx.params = append(listCtx.params, pagination.PageSize)
+			listCtx.params = append(listCtx.params, (pagination.PageNum-1)*pagination.PageSize)
+		}
+	}
+
+	return listCtx
 }
 
 func (d *DhcpOuiHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {

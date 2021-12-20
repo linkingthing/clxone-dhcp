@@ -211,7 +211,7 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 	return subnets, nil
 }
 
-type listContext struct {
+type listSubnetContext struct {
 	countSql        string
 	sql             string
 	params          []interface{}
@@ -221,17 +221,17 @@ type listContext struct {
 	hasShared       bool
 }
 
-func (l listContext) isUseIds() bool {
+func (l listSubnetContext) isUseIds() bool {
 	return l.hasPagination || l.hasFilterSubnet
 }
 
-func (l listContext) needSetSubnetsLeasesUsedInfo() bool {
+func (l listSubnetContext) needSetSubnetsLeasesUsedInfo() bool {
 	return l.hasExclude == false && l.hasShared == false
 }
 
-func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) listContext {
+func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) listSubnetContext {
 	seq := 1
-	listCtx := listContext{}
+	listCtx := listSubnetContext{}
 	var subnetState string
 	var sharedNetworkState string
 	var excludeSharedState string
@@ -307,7 +307,7 @@ func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) 
 	return listCtx
 }
 
-func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listContext) error {
+func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listSubnetContext) error {
 	if ctx.needSetSubnetsLeasesUsedInfo() == false || len(subnets) == 0 {
 		return nil
 	}
@@ -349,11 +349,11 @@ func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listContext) err
 	return nil
 }
 
-func setPagination(ctx *restresource.Context, hasPagination bool, subnetsCount int) {
-	if hasPagination {
+func setPagination(ctx *restresource.Context, hasPagination bool, pageTotal int) {
+	if hasPagination && pageTotal != 0 {
 		pagination := ctx.GetPagination()
-		pagination.Total = subnetsCount
-		pagination.PageTotal = int(math.Ceil(float64(subnetsCount) /
+		pagination.Total = pageTotal
+		pagination.PageTotal = int(math.Ceil(float64(pageTotal) /
 			float64(pagination.PageSize)))
 		ctx.SetPagination(pagination)
 	}
@@ -1347,7 +1347,7 @@ func (h *Subnet4Handler) listWithSubnets(ctx *restresource.Context) (interface{}
 	}
 
 	if err := setSubnet4sLeasesUsedInfo(subnets,
-		listContext{hasFilterSubnet: true}); err != nil {
+		listSubnetContext{hasFilterSubnet: true}); err != nil {
 		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
 	}
 
