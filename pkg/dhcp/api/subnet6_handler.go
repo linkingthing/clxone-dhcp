@@ -316,7 +316,7 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 }
 
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
-	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.UpdateSubnet6,
+	_, err := sendDHCPCmdWithNodes(false, subnet.Nodes, dhcpservice.UpdateSubnet6,
 		&pbdhcpagent.UpdateSubnet6Request{
 			Id:                    subnet.SubnetId,
 			Subnet:                subnet.Subnet,
@@ -376,7 +376,7 @@ func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
 }
 
 func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6, nodes []string) error {
-	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteSubnet6,
+	_, err := sendDHCPCmdWithNodes(false, nodes, dhcpservice.DeleteSubnet6,
 		&pbdhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId})
 	return err
 }
@@ -410,7 +410,8 @@ func (h *Subnet6Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 		}
 
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-			"nodes": subnetNode.Nodes},
+			"node_names": subnetNode.NodeNames,
+			"nodes":      subnetNode.Nodes},
 			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 			return err
 		}
@@ -435,12 +436,12 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 		}
 	}
 
-	nodesForDelete, nodesForCreate, err := getChangedNodes(subnet6.Nodes, newNodes)
+	nodesForDelete, nodesForCreate, err := getChangedNodes(subnet6.Nodes, newNodes, false)
 	if err != nil {
 		return err
 	}
 
-	if _, err := sendDHCPCmdWithNodes(nodesForDelete, dhcpservice.DeleteSubnet6,
+	if _, err := sendDHCPCmdWithNodes(false, nodesForDelete, dhcpservice.DeleteSubnet6,
 		&pbdhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
 		return err
 	}

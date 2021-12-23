@@ -67,12 +67,22 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 		subnet4.SubnetMask, strings.Join(subnet4.Routers, ","),
 		strings.Join(subnet4.DomainServers, ","), subnet4.IfaceName,
 		subnet4.ClientClass, strings.Join(subnet4.RelayAgentAddresses, ","),
-		subnet4.TftpServer, subnet4.Bootfile, strings.Join(subnet4.Nodes, ","),
+		subnet4.TftpServer, subnet4.Bootfile,
+		subnetNodesToString(subnet4.NodeNames, subnet4.Nodes),
 	}
 }
 
 func lifetimeToString(lifetime uint32) string {
 	return strconv.FormatUint(uint64(lifetime), 10)
+}
+
+func subnetNodesToString(names, nodes []string) string {
+	var nameNodes []string
+	for i := range names {
+		nameNodes = append(nameNodes, names[i]+"-"+nodes[i])
+	}
+
+	return strings.Join(nameNodes, ",")
 }
 
 func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
@@ -113,6 +123,9 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString(subnet4.NextServer)
 	buf.WriteString("','")
 	buf.WriteString(subnet4.Tags)
+	buf.WriteString("','{")
+	buf.WriteString(strings.Join(subnet4.NodeNames, ","))
+	buf.WriteString("}','")
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet4.Nodes, ","))
 	buf.WriteString("}','")

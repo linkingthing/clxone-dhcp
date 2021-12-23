@@ -107,7 +107,7 @@ func setSubnet4ID(tx restdb.Transaction, subnet *resource.Subnet4) error {
 }
 
 func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
-	nodesForSucceed, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.CreateSubnet4,
+	nodesForSucceed, err := sendDHCPCmdWithNodes(true, subnet.Nodes, dhcpservice.CreateSubnet4,
 		subnet4ToCreateSubnet4Request(subnet))
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -469,7 +469,7 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 }
 
 func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
-	_, err := sendDHCPCmdWithNodes(subnet.Nodes, dhcpservice.UpdateSubnet4,
+	_, err := sendDHCPCmdWithNodes(true, subnet.Nodes, dhcpservice.UpdateSubnet4,
 		&pbdhcpagent.UpdateSubnet4Request{
 			Id:                  subnet.SubnetId,
 			Subnet:              subnet.Subnet,
@@ -529,7 +529,7 @@ func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4)
 }
 
 func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4, nodes []string) error {
-	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteSubnet4,
+	_, err := sendDHCPCmdWithNodes(true, nodes, dhcpservice.DeleteSubnet4,
 		&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId})
 	return err
 }
@@ -754,7 +754,19 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameOption67:
 			subnet.Bootfile = field
 		case FieldNameNodes:
-			subnet.Nodes = strings.Split(strings.TrimSpace(field), ",")
+			for _, nameNode := range strings.Split(strings.TrimSpace(field), ",") {
+				if nameAndNode := strings.Split(nameNode, "-"); len(nameAndNode) != 2 {
+					err = fmt.Errorf("subnet node invalid %s, it should be nodename-nodeip", nameNode)
+					break
+				} else {
+					subnet.NodeNames = append(subnet.NodeNames, nameAndNode[0])
+					subnet.Nodes = append(subnet.Nodes, nameAndNode[1])
+				}
+			}
+
+			if err != nil {
+				break
+			}
 		case FieldNamePools:
 			if pools, err = parsePool4sFromString(strings.TrimSpace(field)); err != nil {
 				break
@@ -1155,7 +1167,8 @@ func (h *Subnet4Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 		}
 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			"nodes": subnetNode.Nodes},
+			"node_names": subnetNode.NodeNames,
+			"nodes":      subnetNode.Nodes},
 			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 			return err
 		}
@@ -1169,7 +1182,7 @@ func (h *Subnet4Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 	return nil, nil
 }
 
-func getChangedNodes(oldNodes, newNodes []string) ([]string, []string, error) {
+func getChangedNodes(oldNodes, newNodes []string, isv4 bool) ([]string, []string, error) {
 	nodesForDelete := make(map[string]struct{})
 	nodesForCreate := make(map[string]struct{})
 	for _, node := range oldNodes {
@@ -1195,7 +1208,7 @@ func getChangedNodes(oldNodes, newNodes []string) ([]string, []string, error) {
 	}
 
 	if len(deleteSlices) != 0 && len(createSlices) == 0 {
-		if nodes, err := getDHCPNodes(deleteSlices, true); err != nil {
+		if nodes, err := getDHCPNodes(deleteSlices, isv4); err != nil {
 			return nil, nil, err
 		} else {
 			deleteSlices = nodes
@@ -1203,7 +1216,7 @@ func getChangedNodes(oldNodes, newNodes []string) ([]string, []string, error) {
 	}
 
 	if len(deleteSlices) == 0 && len(createSlices) != 0 {
-		if nodes, err := getDHCPNodes(createSlices, true); err != nil {
+		if nodes, err := getDHCPNodes(createSlices, isv4); err != nil {
 			return nil, nil, err
 		} else {
 			createSlices = nodes
@@ -1224,12 +1237,12 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 		}
 	}
 
-	nodesForDelete, nodesForCreate, err := getChangedNodes(subnet4.Nodes, newNodes)
+	nodesForDelete, nodesForCreate, err := getChangedNodes(subnet4.Nodes, newNodes, true)
 	if err != nil {
 		return err
 	}
 
-	if _, err := sendDHCPCmdWithNodes(nodesForDelete, dhcpservice.DeleteSubnet4,
+	if _, err := sendDHCPCmdWithNodes(true, nodesForDelete, dhcpservice.DeleteSubnet4,
 		&pbdhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
 		return err
 	}

@@ -33,6 +33,7 @@ type Subnet4 struct {
 	IfaceName                 string    `json:"ifaceName"`
 	NextServer                string    `json:"nextServer"`
 	Tags                      string    `json:"tags"`
+	NodeNames                 []string  `json:"nodeNames"`
 	Nodes                     []string  `json:"nodes"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
@@ -76,7 +77,8 @@ func (s Subnet4) GetActions() []restresource.Action {
 }
 
 type SubnetNode struct {
-	Nodes []string `json:"nodes"`
+	NodeNames []string `json:"nodeNames"`
+	Nodes     []string `json:"nodes"`
 }
 
 type CouldBeCreatedSubnet struct {
@@ -149,11 +151,15 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
-	if err := gohelperip.CheckIPv4sValid(s.RelayAgentAddresses...); err != nil {
-		return fmt.Errorf("subnet relay agent addresses invalid: %s", err.Error())
+	if err := gohelperip.CheckIPv4sValid(s.SubnetMask); err != nil {
+		return fmt.Errorf("subnet mask invalid: %s", err.Error())
 	}
 
-	if err := checkCommonOptions(true, s.ClientClass, s.DomainServers, s.Routers); err != nil {
+	if err := checkCommonOptions(true, s.ClientClass, s.DomainServers, s.RelayAgentAddresses); err != nil {
+		return err
+	}
+
+	if err := checkIpsValidWithVersion(true, s.Routers); err != nil {
 		return err
 	}
 
@@ -162,7 +168,7 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
-	return checkNodesValid(s.Nodes)
+	return checkNodesValid(s.NodeNames, s.Nodes)
 }
 
 func checkTFTPServer(tftpServer string) error {
@@ -175,12 +181,12 @@ func checkTFTPServer(tftpServer string) error {
 	return nil
 }
 
-func checkCommonOptions(isv4 bool, clientClass string, domainServers, routers []string) error {
-	if err := checkIpsValidWithVersion(isv4, routers); err != nil {
+func checkCommonOptions(isv4 bool, clientClass string, domainServers, relayAgents []string) error {
+	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
 		return err
 	}
 
-	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
+	if err := checkIpsValidWithVersion(isv4, relayAgents); err != nil {
 		return err
 	}
 
@@ -223,7 +229,12 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 	})
 }
 
-func checkNodesValid(nodes []string) error {
+func checkNodesValid(names, nodes []string) error {
+	if len(names) != len(nodes) {
+		return fmt.Errorf("node names %v length diff from node %v",
+			names, nodes)
+	}
+
 	for _, node := range nodes {
 		if net.ParseIP(node) == nil {
 			return fmt.Errorf("invalid node %s", node)

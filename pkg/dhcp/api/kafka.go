@@ -1,20 +1,22 @@
 package api
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
 
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
+	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 )
 
-func sendDHCPCmdWithNodes(sentryNodes []string, cmd dhcpservice.DHCPCmd, req proto.Message) ([]string, error) {
+func sendDHCPCmdWithNodes(isv4 bool, sentryNodes []string, cmd dhcpservice.DHCPCmd, req proto.Message) ([]string, error) {
 	if len(sentryNodes) == 0 {
 		return nil, nil
 	}
 
-	nodes, err := getDHCPNodes(sentryNodes, true)
+	nodes, err := getDHCPNodes(sentryNodes, isv4)
 	if err != nil {
 		return nil, err
 	}
@@ -23,50 +25,41 @@ func sendDHCPCmdWithNodes(sentryNodes []string, cmd dhcpservice.DHCPCmd, req pro
 }
 
 func getDHCPNodes(sentryNodes []string, isv4 bool) ([]string, error) {
-	checks, services, err := GetConsulHandler().GetDHCPAgentChecksAndServices()
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
 		return nil, err
 	}
 
-	serviceRoles := []AgentRole{AgentRoleSentry4, AgentRoleServer4}
-	sentryRole := string(AgentRoleSentry4)
-	serverRole := string(AgentRoleServer4)
+	sentryRole := AgentRoleSentry4
+	serverRole := AgentRoleServer4
 	if isv4 == false {
-		serviceRoles = []AgentRole{AgentRoleSentry6, AgentRoleServer6}
-		sentryRole = string(AgentRoleSentry6)
-		serverRole = string(AgentRoleServer6)
-	}
-
-	nodeRoles := make(map[string][]string)
-	for _, check := range checks {
-		if check.Validate() {
-			if service := getSentryServiceWithServiceID(check.ServiceID, services,
-				serviceRoles...); service != nil {
-				nodeRoles[service.ServiceAddress] = service.ServiceTags
-			}
-		}
-	}
-
-	for _, node := range sentryNodes {
-		if roles, ok := nodeRoles[node]; ok == false ||
-			util.SliceIndex(roles, sentryRole) == -1 {
-			return nil, fmt.Errorf("node %s is not a dhcp sentry node", node)
-		}
+		sentryRole = AgentRoleSentry6
+		serverRole = AgentRoleServer6
 	}
 
 	var serverNodes []string
-	hasServer := false
-	for node, roles := range nodeRoles {
-		if util.SliceIndex(roles, serverRole) != -1 {
-			hasServer = true
-			if util.SliceIndex(roles, sentryRole) == -1 {
-				serverNodes = append(serverNodes, node)
+	sentryNodeMap := make(map[string]struct{})
+	for _, node := range dhcpNodes.GetNodes() {
+		if node.GetServiceAlive() {
+			if IsAgentService(node.GetServiceTags(), sentryRole) {
+				sentryNodeMap[node.GetIpv4()] = struct{}{}
+			}
+
+			if IsAgentService(node.GetServiceTags(), serverRole) {
+				serverNodes = append(sentryNodes, node.GetIpv4())
 			}
 		}
 	}
 
-	if hasServer == false {
+	if len(serverNodes) == 0 {
 		return nil, fmt.Errorf("no found valid dhcp server nodes")
+	}
+
+	for _, sentryNode := range sentryNodes {
+		if _, ok := sentryNodeMap[sentryNode]; ok == false {
+			return nil, fmt.Errorf("invalid sentry node %s", sentryNode)
+		}
 	}
 
 	return append(sentryNodes, serverNodes...), nil

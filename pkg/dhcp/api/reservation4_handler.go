@@ -123,7 +123,7 @@ func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId 
 }
 
 func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {
-	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservation4,
+	nodesForSucceed, err := sendDHCPCmdWithNodes(true, nodes, dhcpservice.CreateReservation4,
 		reservation4ToCreateReservation4Request(subnetID, reservation))
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -313,7 +313,7 @@ func setReservation4FromDB(tx restdb.Transaction, reservation *resource.Reservat
 }
 
 func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {
-	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservation4,
+	_, err := sendDHCPCmdWithNodes(true, nodes, dhcpservice.DeleteReservation4,
 		reservation4ToDeleteReservation4Request(subnetID, reservation))
 	return err
 }

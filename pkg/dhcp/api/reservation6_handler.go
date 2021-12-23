@@ -234,7 +234,7 @@ func checkPrefixesConflictWithSubnetPdPool(tx restdb.Transaction, subnetID strin
 }
 
 func sendCreateReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {
-	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservation6,
+	nodesForSucceed, err := sendDHCPCmdWithNodes(false, nodes, dhcpservice.CreateReservation6,
 		reservation6ToCreateReservation6Request(subnetID, reservation))
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -450,7 +450,7 @@ func setReservation6FromDB(tx restdb.Transaction, reservation *resource.Reservat
 }
 
 func sendDeleteReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {
-	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservation6,
+	_, err := sendDHCPCmdWithNodes(false, nodes, dhcpservice.DeleteReservation6,
 		reservation6ToDeleteReservation6Request(subnetID, reservation))
 	return err
 }

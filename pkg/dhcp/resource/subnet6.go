@@ -26,6 +26,7 @@ type Subnet6 struct {
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
 	Tags                      string    `json:"tags"`
+	NodeNames                 []string  `json:"nodeNames"`
 	Nodes                     []string  `json:"nodes"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
@@ -112,11 +113,7 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 }
 
 func (s *Subnet6) ValidateParams() error {
-	if err := gohelperip.CheckIPv6sValid(s.RelayAgentAddresses...); err != nil {
-		return fmt.Errorf("subnet relay agent addresses invalid: %s", err.Error())
-	}
-
-	if err := checkCommonOptions(false, s.ClientClass, s.DomainServers, nil); err != nil {
+	if err := checkCommonOptions(false, s.ClientClass, s.DomainServers, s.RelayAgentAddresses); err != nil {
 		return err
 	}
 
@@ -130,7 +127,7 @@ func (s *Subnet6) ValidateParams() error {
 		return err
 	}
 
-	return checkNodesValid(s.Nodes)
+	return checkNodesValid(s.NodeNames, s.Nodes)
 }
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {

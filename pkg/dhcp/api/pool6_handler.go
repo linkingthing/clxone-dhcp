@@ -148,7 +148,7 @@ func recalculatePool6Capacity(tx restdb.Transaction, subnetID string, pool *reso
 }
 
 func sendCreatePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool6) error {
-	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreatePool6,
+	nodesForSucceed, err := sendDHCPCmdWithNodes(false, nodes, dhcpservice.CreatePool6,
 		pool6ToCreatePool6Request(subnetID, pool))
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -377,8 +377,8 @@ func setPool6FromDB(tx restdb.Transaction, pool *resource.Pool6) error {
 }
 
 func sendDeletePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool6) error {
-	_, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
-		dhcpservice.DeletePool6, pool6ToDeletePool6Request(subnetID, pool))
+	_, err := sendDHCPCmdWithNodes(false, nodes, dhcpservice.DeletePool6,
+		pool6ToDeletePool6Request(subnetID, pool))
 	return err
 }
 

@@ -108,7 +108,7 @@ func checkReservedPdPoolConflictWithSubnet6Reservation6s(tx restdb.Transaction, 
 }
 
 func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
-	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservedPdPool,
+	nodesForSucceed, err := sendDHCPCmdWithNodes(false, nodes, dhcpservice.CreateReservedPdPool,
 		reservedPdPoolToCreateReservedPdPoolRequest(subnetID, pdpool))
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -230,7 +230,7 @@ func getReservedPdPoolLeasesCount(pdpool *resource.ReservedPdPool) (uint64, erro
 }
 
 func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
-	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservedPdPool,
+	_, err := sendDHCPCmdWithNodes(false, nodes, dhcpservice.DeleteReservedPdPool,
 		reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool))
 	return err
 }

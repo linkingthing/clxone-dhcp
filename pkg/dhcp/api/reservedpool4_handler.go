@@ -173,7 +173,7 @@ func getPool4ReservedCountWithReservedPool4(pool *resource.Pool4, reservedPool *
 }
 
 func sendCreateReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool4) error {
-	nodesForSucceed, err := sendDHCPCmdWithNodes(nodes, dhcpservice.CreateReservedPool4,
+	nodesForSucceed, err := sendDHCPCmdWithNodes(true, nodes, dhcpservice.CreateReservedPool4,
 		reservedPool4ToCreateReservedPool4Request(subnetID, pool))
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -300,7 +300,7 @@ func setReservedPool4FromDB(tx restdb.Transaction, pool *resource.ReservedPool4)
 }
 
 func sendDeleteReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool4) error {
-	_, err := sendDHCPCmdWithNodes(nodes, dhcpservice.DeleteReservedPool4,
+	_, err := sendDHCPCmdWithNodes(true, nodes, dhcpservice.DeleteReservedPool4,
 		reservedPool4ToDeleteReservedPool4Request(subnetID, pool))
 	return err
 }
