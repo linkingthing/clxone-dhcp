@@ -11,6 +11,11 @@ build-image:
 	docker build -t linkingthing/clxone-dhcp:${VERSION} .
 	docker image prune -f
 
+build-package:
+	docker build -t linkingthing/clxone-dhcp:${VERSION} .
+	docker image prune -f
+	docker save -o clxone-dhcp-${VERSION}.tar.gz linkingthing/clxone-dhcp:${VERSION}
+
 docker:
 	docker build -t linkingthing/clxone-dhcp:${VERSION} .
 	docker push linkingthing/clxone-dhcp:${VERSION}
