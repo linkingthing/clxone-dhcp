@@ -18,7 +18,7 @@ var gMonitorGrpcClient *MonitorGrpcClient
 var monitorOnce sync.Once
 
 func newMonitorGrpcClient() error {
-	conn, err := pb.NewConn(config.GetConfig().CallServices.DhcpAgent)
+	conn, err := pb.NewConn(config.GetConfig().CallServices.Monitor)
 	if err != nil {
 		return err
 	}
