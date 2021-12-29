@@ -76,8 +76,6 @@ func NewServer() (*Server, error) {
 	router.POST(path.Join(dhcp.Version.GetUrl(), "uploadfile"), api.UploadFiles)
 	group := router.Group("/")
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
-	apiServer.Use(JWTMiddleWare())
-	apiServer.EndUse(LoggingMiddleWare())
 	return &Server{
 		group:     group,
 		router:    router,
