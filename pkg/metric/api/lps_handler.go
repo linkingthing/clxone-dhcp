@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/linkingthing/cement/log"
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	pbalarm "github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type LPSHandler struct {
@@ -307,7 +307,7 @@ func genTwoStrMatrix(values [][]interface{}, ctx *MetricContext) [][]string {
 	var strMatrix [][]string
 	for i := ctx.Period.Begin; i <= ctx.Period.End; i += ctx.Period.Step {
 		strMatrix = append(strMatrix,
-			append([]string{time.Unix(int64(i), 0).Format(util.TimeFormat)}, "0"))
+			append([]string{time.Unix(int64(i), 0).Format(csvutil.TimeFormat)}, "0"))
 	}
 
 	for _, vs := range values {

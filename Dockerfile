@@ -10,6 +10,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o clxone-dhcp cmd/dhcp/dhcp.go
 
 FROM alpine:3.12
 COPY --from=build /go/src/github.com/linkingthing/clxone-dhcp/clxone-dhcp /
-RUN mkdir -p /opt/website
+RUN mkdir -p /opt/files
 
 ENTRYPOINT ["/clxone-dhcp"]

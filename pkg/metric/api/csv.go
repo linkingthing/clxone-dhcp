@@ -3,10 +3,10 @@ package api
 import (
 	"time"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 )
 
 func exportFile(ctx *MetricContext, contents [][]string) (string, error) {
-	return util.WriteCSVFile(ctx.NodeIP+"-"+string(ctx.MetricName)+"-"+string(ctx.Version)+
-		"-"+time.Now().Format(util.TimeFormat), ctx.TableHeader, contents)
+	return csvutil.WriteCSVFile(ctx.NodeIP+"-"+string(ctx.MetricName)+"-"+string(ctx.Version)+
+		"-"+time.Now().Format(csvutil.TimeFormat), ctx.TableHeader, contents)
 }
