@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"time"
 
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 const (
@@ -222,7 +222,7 @@ func genMultiStrMatrix(ctx *MetricContext, results []PrometheusDataResult) [][]s
 
 	var matrix [][]string
 	for i := ctx.Period.Begin; i <= ctx.Period.End; i += ctx.Period.Step {
-		matrix = append(matrix, append([]string{time.Unix(int64(i), 0).Format(util.TimeFormat)}, values...))
+		matrix = append(matrix, append([]string{time.Unix(int64(i), 0).Format(csvutil.TimeFormat)}, values...))
 	}
 
 	for i, r := range results {

@@ -12,6 +12,7 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 	restdb "github.com/linkingthing/gorest/db"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -536,11 +537,11 @@ func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4, nodes []string) e
 
 func (h *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
-	case util.ActionNameImportCSV:
+	case csvutil.ActionNameImportCSV:
 		return h.importCSV(ctx)
-	case util.ActionNameExportCSV:
+	case csvutil.ActionNameExportCSV:
 		return h.exportCSV(ctx)
-	case util.ActionNameExportCSVTemplate:
+	case csvutil.ActionNameExportCSVTemplate:
 		return h.exportCSVTemplate(ctx)
 	case resource.ActionNameUpdateNodes:
 		return h.updateNodes(ctx)
@@ -567,7 +568,7 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 			"subnet4s count has reached maximum (1w)")
 	}
 
-	file, ok := ctx.Resource.GetAction().Input.(*util.ImportFile)
+	file, ok := ctx.Resource.GetAction().Input.(*csvutil.ImportFile)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action importcsv input invalid"))
@@ -605,7 +606,7 @@ func (h *Subnet4Handler) importCSV(ctx *restresource.Context) (interface{}, *res
 }
 
 func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]string, map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets4Request, error) {
-	contents, err := util.ReadCSVFile(fileName)
+	contents, err := csvutil.ReadCSVFile(fileName)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -614,7 +615,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 		return nil, nil, nil, nil
 	}
 
-	tableHeaderFields, err := util.ParseTableHeader(contents[0],
+	tableHeaderFields, err := csvutil.ParseTableHeader(contents[0],
 		TableHeaderSubnet4, SubnetMandatoryFields)
 	if err != nil {
 		return nil, nil, nil, err
@@ -627,7 +628,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 	subnetReservations := make(map[uint64][]*resource.Reservation4)
 	fieldcontents := contents[1:]
 	for _, fieldcontent := range fieldcontents {
-		fields, missingMandatory, emptyLine := util.ParseTableFields(fieldcontent,
+		fields, missingMandatory, emptyLine := csvutil.ParseTableFields(fieldcontent,
 			tableHeaderFields, SubnetMandatoryFields)
 		if emptyLine {
 			continue
@@ -713,7 +714,7 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 	var reservations []*resource.Reservation4
 	var err error
 	for i, field := range fields {
-		if util.IsSpaceField(field) {
+		if csvutil.IsSpaceField(field) {
 			continue
 		}
 
@@ -1133,22 +1134,22 @@ func (h *Subnet4Handler) exportCSV(ctx *restresource.Context) (interface{}, *res
 		strMatrix = append(strMatrix, slices)
 	}
 
-	if filepath, err := util.WriteCSVFile(Subnet4FileNamePrefix+
-		time.Now().Format(util.TimeFormat), TableHeaderSubnet4, strMatrix); err != nil {
+	if filepath, err := csvutil.WriteCSVFile(Subnet4FileNamePrefix+
+		time.Now().Format(csvutil.TimeFormat), TableHeaderSubnet4, strMatrix); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("export device failed: %s", err.Error()))
 	} else {
-		return &util.ExportFile{Path: filepath}, nil
+		return &csvutil.ExportFile{Path: filepath}, nil
 	}
 }
 
 func (h *Subnet4Handler) exportCSVTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	if filepath, err := util.WriteCSVFile(Subnet4TemplateFileName,
+	if filepath, err := csvutil.WriteCSVFile(Subnet4TemplateFileName,
 		TableHeaderSubnet4, nil); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("export subnet4 template failed: %s", err.Error()))
 	} else {
-		return &util.ExportFile{Path: filepath}, nil
+		return &csvutil.ExportFile{Path: filepath}, nil
 	}
 }
 

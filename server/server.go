@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 
 	"github.com/gin-gonic/gin"
 	consulapi "github.com/hashicorp/consul/api"
@@ -18,10 +17,9 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/grpcservice"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 )
 
 const (
@@ -56,7 +54,7 @@ func NewServer() (*Server, error) {
 		SkipPaths: LoggerSkipPaths,
 		Formatter: func(param gin.LogFormatterParams) string {
 			return fmt.Sprintf("[%s] client:%s \"%s %s\" %s %d %s %s\n",
-				param.TimeStamp.Format(util.TimeFormat),
+				param.TimeStamp.Format(csvutil.TimeFormat),
 				param.ClientIP,
 				param.Method,
 				param.Path,
@@ -68,12 +66,11 @@ func NewServer() (*Server, error) {
 		},
 	}))
 
-	router.StaticFS(util.PublicStaticPath, http.Dir(util.FileRootPath))
 	router.GET(HealthPath, func(context *gin.Context) {
 		context.Writer.Header().Set("Content-Type", "Application/Json")
 		context.String(http.StatusOK, `{"status": "ok"}`)
 	})
-	router.POST(path.Join(dhcp.Version.GetUrl(), "uploadfile"), api.UploadFiles)
+	csvutil.RegisterFileApi(router, dhcp.Version.GetUrl())
 	group := router.Group("/")
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
 	return &Server{
