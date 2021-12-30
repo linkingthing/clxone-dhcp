@@ -3,7 +3,7 @@ module github.com/linkingthing/clxone-dhcp
 go 1.13
 
 require (
-	github.com/cuityhj/gohelper v0.0.7
+	github.com/cuityhj/gohelper v1.0.1
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-kit/kit v0.10.0
 	github.com/golang/protobuf v1.5.2
