@@ -123,6 +123,8 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *pbdhcpagent.Create
 		IfaceName:             subnet.IfaceName,
 		RelayAgentAddresses:   subnet.RelayAgentAddresses,
 		RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
+		RapidCommit:           subnet.RapidCommit,
+		UseEui64:              subnet.UseEui64,
 		SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 	}
 }
@@ -274,6 +276,8 @@ func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resourc
 			"relay_agent_addresses":    subnet.RelayAgentAddresses,
 			"relay_agent_interface_id": subnet.RelayAgentInterfaceId,
 			"tags":                     subnet.Tags,
+			"rapid_commit":             subnet.RapidCommit,
+			"use_eui64":                subnet.UseEui64,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return err
 		}
@@ -332,6 +336,8 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			IfaceName:             subnet.IfaceName,
 			RelayAgentAddresses:   subnet.RelayAgentAddresses,
 			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
+			RapidCommit:           subnet.RapidCommit,
+			UseEui64:              subnet.UseEui64,
 			SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 		})
 	return err
