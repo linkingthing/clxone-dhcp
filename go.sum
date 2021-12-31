@@ -567,6 +567,8 @@ github.com/linkingthing/clxone-utils v0.0.0-20211228072709-84d0eae20050 h1:NNPod
 github.com/linkingthing/clxone-utils v0.0.0-20211228072709-84d0eae20050/go.mod h1:BJO4zPhkkDocwRTZ+RZF86ZiL07PBUGVsXrPxDAufnM=
 github.com/linkingthing/clxone-utils v0.0.0-20211229091157-5b2a551ff3bd h1:hpcyfF3E1pqYT/rbdQ2EWnaKpf4Oq5S7Nxw1xNEtuiY=
 github.com/linkingthing/clxone-utils v0.0.0-20211229091157-5b2a551ff3bd/go.mod h1:BJO4zPhkkDocwRTZ+RZF86ZiL07PBUGVsXrPxDAufnM=
+github.com/linkingthing/clxone-utils v0.0.0-20211231015713-d718b607102f h1:XlVVNB0nBx0VAO97draekG6LEm2c325buNkcgluWOgM=
+github.com/linkingthing/clxone-utils v0.0.0-20211231015713-d718b607102f/go.mod h1:BJO4zPhkkDocwRTZ+RZF86ZiL07PBUGVsXrPxDAufnM=
 github.com/linkingthing/gorest v1.0.0 h1:zgzjD6dOoByt8tDTauAow3zVCAqODT+GW05sY95p5Rw=
 github.com/linkingthing/gorest v1.0.0/go.mod h1:+V0+9VnoIDjAPexyVQypkyYF/rfI/jL8b5H6/I4bzTA=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
