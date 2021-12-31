@@ -34,6 +34,8 @@ func (p *ReservedPdPoolHandler) Create(ctx *restresource.Context) (restresource.
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet6FromDB(tx, subnet); err != nil {
 			return err
+		} else if subnet.UseEui64 {
+			return fmt.Errorf("subnet use EUI64, can not create reserved pdpool")
 		}
 
 		if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpool.PrefixIpnet,

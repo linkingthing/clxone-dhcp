@@ -260,9 +260,18 @@ func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resourc
 			fmt.Sprintf("update subnet params invalid: %s", err.Error()))
 	}
 
+	newUseEUI64 := subnet.UseEui64
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet6FromDB(tx, subnet); err != nil {
 			return err
+		}
+
+		if newUseEUI64 && subnet.UseEui64 == false {
+			if exists, err := subnetHasPools(tx, subnet); err != nil {
+				return err
+			} else if exists {
+				return fmt.Errorf("subnet6 has pools, can not enabled use eui64")
+			}
 		}
 
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
@@ -302,6 +311,7 @@ func setSubnet6FromDB(tx restdb.Transaction, subnet *resource.Subnet6) error {
 	subnet.Subnet = oldSubnet.Subnet
 	subnet.Ipnet = oldSubnet.Ipnet
 	subnet.Nodes = oldSubnet.Nodes
+	subnet.UseEui64 = oldSubnet.UseEui64
 	return nil
 }
 
@@ -317,6 +327,21 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 	}
 
 	return subnets[0], nil
+}
+
+func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
+	if subnet.Capacity != 0 {
+		return true, nil
+	}
+
+	if exists, err := tx.Exists(resource.TableReservedPool6,
+		map[string]interface{}{"subnet6": subnet.GetID()}); err != nil {
+		return false, err
+	} else if exists {
+		return true, nil
+	}
+
+	return tx.Exists(resource.TableReservedPdPool, map[string]interface{}{"subnet6": subnet.GetID()})
 }
 
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {

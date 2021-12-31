@@ -34,11 +34,13 @@ func (r *Reservation6Handler) Create(ctx *restresource.Context) (restresource.Re
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation6InUsed(tx, subnet.GetID(), reservation); err != nil {
+		if err := setSubnet6FromDB(tx, subnet); err != nil {
 			return err
+		} else if subnet.UseEui64 {
+			return fmt.Errorf("subnet use EUI64, can not create reservation6")
 		}
 
-		if err := setSubnet6FromDB(tx, subnet); err != nil {
+		if err := checkReservation6InUsed(tx, subnet.GetID(), reservation); err != nil {
 			return err
 		}
 
