@@ -6,6 +6,7 @@ import (
 
 type SubnetUsedRatio struct {
 	restresource.ResourceBase `json:",inline"`
+	NodeName                  string        `json:"nodeName"`
 	Subnets                   []SubnetUsage `json:"subnets"`
 }
 

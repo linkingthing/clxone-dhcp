@@ -112,3 +112,11 @@ func getDHCPVersionFromDHCPID(id string) (DHCPVersion, error) {
 		return DHCPVersionNone, fmt.Errorf("unsupport dhcp verison with id %s", id)
 	}
 }
+
+func IsDHCPVersion4(version string) bool {
+	return DHCPVersion(version) == DHCPVersion4
+}
+
+func IsDHCPVersion6(version string) bool {
+	return DHCPVersion(version) == DHCPVersion6
+}

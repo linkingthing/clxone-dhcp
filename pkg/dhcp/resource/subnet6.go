@@ -26,7 +26,7 @@ type Subnet6 struct {
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
 	Tags                      string    `json:"tags"`
-	NodeNames                 []string  `json:"nodeNames"`
+	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Nodes                     []string  `json:"nodes"`
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
@@ -77,6 +77,7 @@ func (s *Subnet6) Validate() error {
 		if ones, _ := s.Ipnet.Mask.Size(); ones != 64 {
 			return fmt.Errorf("subnet use EUI64, mask size %d is not 64", ones)
 		}
+		s.Capacity = MaxUint64
 	}
 
 	if err := s.setSubnet6DefaultValue(); err != nil {

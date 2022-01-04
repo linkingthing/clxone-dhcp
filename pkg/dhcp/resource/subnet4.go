@@ -33,7 +33,7 @@ type Subnet4 struct {
 	IfaceName                 string    `json:"ifaceName"`
 	NextServer                string    `json:"nextServer"`
 	Tags                      string    `json:"tags"`
-	NodeNames                 []string  `json:"nodeNames"`
+	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Nodes                     []string  `json:"nodes"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`

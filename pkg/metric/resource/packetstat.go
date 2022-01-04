@@ -6,6 +6,7 @@ import (
 
 type PacketStat struct {
 	restresource.ResourceBase `json:",inline"`
+	NodeName                  string   `json:"nodeName"`
 	Packets                   []Packet `json:"packets"`
 }
 

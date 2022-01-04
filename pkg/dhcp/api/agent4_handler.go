@@ -55,6 +55,32 @@ func (h *Agent4Handler) List(ctx *restresource.Context) (interface{}, *resterror
 	return agents, nil
 }
 
+func GetNodeNames(isv4 bool) (map[string]string, error) {
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+		&pbmonitor.GetDHCPNodesRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("list dhcp agent4s failed: %s", err.Error())
+	}
+
+	sentryRole := AgentRoleSentry4
+	if isv4 == false {
+		sentryRole = AgentRoleSentry6
+	}
+
+	nodeNames := make(map[string]string)
+	for _, node := range dhcpNodes.GetNodes() {
+		if IsAgentService(node.GetServiceTags(), sentryRole) {
+			if node.GetVirtualIp() != "" {
+				return map[string]string{node.GetIpv4(): node.GetName()}, nil
+			} else {
+				nodeNames[node.GetIpv4()] = node.GetName()
+			}
+		}
+	}
+
+	return nodeNames, nil
+}
+
 func IsAgentService(tags []string, role AgentRole) bool {
 	for _, tag := range tags {
 		if tag == string(role) {

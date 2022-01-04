@@ -6,12 +6,14 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	dhcpresource "github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
@@ -64,10 +66,15 @@ func (h *SubnetUsedRatioHandler) List(ctx *restresource.Context) (interface{}, *
 		}
 	}
 
+	nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
+	if err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	}
+
 	var subnetUsedRatios []*resource.SubnetUsedRatio
 	for nodeIp, subnets := range nodeIpAndSubnetUsages {
 		sort.Sort(subnets)
-		subnetUsedRatio := &resource.SubnetUsedRatio{Subnets: subnets}
+		subnetUsedRatio := &resource.SubnetUsedRatio{Subnets: subnets, NodeName: nodeNames[nodeIp]}
 		subnetUsedRatio.SetID(nodeIp)
 		subnetUsedRatios = append(subnetUsedRatios, subnetUsedRatio)
 	}
@@ -161,6 +168,12 @@ func (h *SubnetUsedRatioHandler) Get(ctx *restresource.Context) (restresource.Re
 				}
 			}
 		}
+	}
+
+	if nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID())); err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	} else {
+		subnetUsedRatio.NodeName = nodeNames[subnetUsedRatio.GetID()]
 	}
 
 	sort.Sort(resource.SubnetUsages(subnetUsedRatio.Subnets))

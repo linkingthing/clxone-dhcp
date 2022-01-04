@@ -166,6 +166,12 @@ func (s *Subnet6Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		log.Warnf("set subnet6s leases used info failed: %s", err.Error())
 	}
 
+	if nodeNames, err := GetNodeNames(false); err != nil {
+		log.Warnf("get node names failed: %s", err.Error())
+	} else {
+		setSubnet6sNodeNames(subnets, nodeNames)
+	}
+
 	setPagination(ctx, listCtx.hasPagination, subnetsCount)
 	return subnets, nil
 }
@@ -212,6 +218,12 @@ func setSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
 	return nil
 }
 
+func setSubnet6sNodeNames(subnets []*resource.Subnet6, nodeNames map[string]string) {
+	for _, subnet := range subnets {
+		subnet.NodeNames = getSubnetNodeNames(subnet.Nodes, nodeNames)
+	}
+}
+
 func (s *Subnet6Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnetID := ctx.Resource.GetID()
 	var subnets []*resource.Subnet6
@@ -224,6 +236,12 @@ func (s *Subnet6Handler) Get(ctx *restresource.Context) (restresource.Resource, 
 	subnet := subnetInterface.(*resource.Subnet6)
 	if err := setSubnet6LeasesUsedRatio(subnet); err != nil {
 		log.Warnf("get subnet %s leases used ratio failed: %s", subnetID, err.Error())
+	}
+
+	if nodeNames, err := GetNodeNames(false); err != nil {
+		log.Warnf("get node names failed: %s", err.Error())
+	} else {
+		subnet.NodeNames = getSubnetNodeNames(subnet.Nodes, nodeNames)
 	}
 
 	return subnet, nil
@@ -283,6 +301,7 @@ func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resourc
 			"tags":                     subnet.Tags,
 			"rapid_commit":             subnet.RapidCommit,
 			"use_eui64":                subnet.UseEui64,
+			"capacity":                 subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return err
 		}
@@ -337,7 +356,10 @@ func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 
 			} else if exists {
 				return fmt.Errorf("subnet6 has pools, can not enabled use eui64")
 			}
+			subnet.Capacity = resource.MaxUint64
 		}
+	} else if subnet.UseEui64 {
+		subnet.Capacity = 0
 	}
 
 	subnet.UseEui64 = newUseEUI64
@@ -456,8 +478,7 @@ func (h *Subnet6Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 		}
 
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-			"node_names": subnetNode.NodeNames,
-			"nodes":      subnetNode.Nodes},
+			"nodes": subnetNode.Nodes},
 			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 			return err
 		}
