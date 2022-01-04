@@ -73,6 +73,12 @@ func (s *Subnet6) Validate() error {
 
 	s.Ipnet = *ipnet
 	s.Subnet = ipnet.String()
+	if s.UseEui64 {
+		if ones, _ := s.Ipnet.Mask.Size(); ones != 64 {
+			return fmt.Errorf("subnet use EUI64, mask size %d is not 64", ones)
+		}
+	}
+
 	if err := s.setSubnet6DefaultValue(); err != nil {
 		return err
 	}
@@ -115,12 +121,6 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 }
 
 func (s *Subnet6) ValidateParams() error {
-	if s.UseEui64 {
-		if ones, _ := s.Ipnet.Mask.Size(); ones != 64 {
-			return fmt.Errorf("subnet use EUI64, mask size %d is not 64", ones)
-		}
-	}
-
 	if err := checkCommonOptions(false, s.ClientClass, s.DomainServers, s.RelayAgentAddresses); err != nil {
 		return err
 	}

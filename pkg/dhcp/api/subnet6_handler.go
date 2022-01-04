@@ -266,12 +266,8 @@ func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resourc
 			return err
 		}
 
-		if newUseEUI64 && subnet.UseEui64 == false {
-			if exists, err := subnetHasPools(tx, subnet); err != nil {
-				return err
-			} else if exists {
-				return fmt.Errorf("subnet6 has pools, can not enabled use eui64")
-			}
+		if err := checkUseEUI64(tx, subnet, newUseEUI64); err != nil {
+			return err
 		}
 
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
@@ -327,6 +323,25 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 	}
 
 	return subnets[0], nil
+}
+
+func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 bool) error {
+	if newUseEUI64 {
+		if ones, _ := subnet.Ipnet.Mask.Size(); ones != 64 {
+			return fmt.Errorf("subnet use EUI64, mask size %d is not 64", ones)
+		}
+
+		if subnet.UseEui64 == false {
+			if exists, err := subnetHasPools(tx, subnet); err != nil {
+				return err
+			} else if exists {
+				return fmt.Errorf("subnet6 has pools, can not enabled use eui64")
+			}
+		}
+	}
+
+	subnet.UseEui64 = newUseEUI64
+	return nil
 }
 
 func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {

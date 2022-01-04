@@ -40,6 +40,7 @@ func getDHCPNodes(sentryNodes []string, isv4 bool) ([]string, error) {
 
 	var serverNodes []string
 	sentryNodeMap := make(map[string]struct{})
+	hasServer := false
 	for _, node := range dhcpNodes.GetNodes() {
 		if node.GetServiceAlive() {
 			if IsAgentService(node.GetServiceTags(), sentryRole) {
@@ -47,12 +48,15 @@ func getDHCPNodes(sentryNodes []string, isv4 bool) ([]string, error) {
 			}
 
 			if IsAgentService(node.GetServiceTags(), serverRole) {
-				serverNodes = append(sentryNodes, node.GetIpv4())
+				hasServer = true
+				if IsAgentService(node.GetServiceTags(), sentryRole) == false {
+					serverNodes = append(serverNodes, node.GetIpv4())
+				}
 			}
 		}
 	}
 
-	if len(serverNodes) == 0 {
+	if hasServer == false {
 		return nil, fmt.Errorf("no found valid dhcp server nodes")
 	}
 
