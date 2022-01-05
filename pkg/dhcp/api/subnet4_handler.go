@@ -208,6 +208,12 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
 	}
 
+	if nodeNames, err := GetNodeNames(true); err != nil {
+		log.Warnf("get node names failed: %s", err.Error())
+	} else {
+		setSubnet4sNodeNames(subnets, nodeNames)
+	}
+
 	setPagination(ctx, listCtx.hasPagination, subnetsCount)
 	return subnets, nil
 }
@@ -360,6 +366,22 @@ func setPagination(ctx *restresource.Context, hasPagination bool, pageTotal int)
 	}
 }
 
+func setSubnet4sNodeNames(subnets []*resource.Subnet4, nodeNames map[string]string) {
+	for _, subnet := range subnets {
+		subnet.NodeNames = getSubnetNodeNames(subnet.Nodes, nodeNames)
+	}
+}
+
+func getSubnetNodeNames(nodes []string, nodeNames map[string]string) []string {
+	var names []string
+	for _, node := range nodes {
+		if name, ok := nodeNames[node]; ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 func (s *Subnet4Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnetID := ctx.Resource.GetID()
 	var subnets []*resource.Subnet4
@@ -374,7 +396,13 @@ func (s *Subnet4Handler) Get(ctx *restresource.Context) (restresource.Resource, 
 		log.Warnf("get subnet %s leases used ratio failed: %s", subnetID, err.Error())
 	}
 
-	return subnet, nil
+	if nodeNames, err := GetNodeNames(true); err != nil {
+		log.Warnf("get node names failed: %s", err.Error())
+	} else {
+		subnet.NodeNames = getSubnetNodeNames(subnet.Nodes, nodeNames)
+	}
+
+	return subnets[0], nil
 }
 
 func setSubnet4LeasesUsedRatio(subnet *resource.Subnet4) error {
@@ -755,19 +783,7 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameOption67:
 			subnet.Bootfile = field
 		case FieldNameNodes:
-			for _, nameNode := range strings.Split(strings.TrimSpace(field), ",") {
-				if nameAndNode := strings.Split(nameNode, "-"); len(nameAndNode) != 2 {
-					err = fmt.Errorf("subnet node invalid %s, it should be nodename-nodeip", nameNode)
-					break
-				} else {
-					subnet.NodeNames = append(subnet.NodeNames, nameAndNode[0])
-					subnet.Nodes = append(subnet.Nodes, nameAndNode[1])
-				}
-			}
-
-			if err != nil {
-				break
-			}
+			subnet.Nodes = strings.Split(strings.TrimSpace(field), ",")
 		case FieldNamePools:
 			if pools, err = parsePool4sFromString(strings.TrimSpace(field)); err != nil {
 				break
@@ -1168,8 +1184,7 @@ func (h *Subnet4Handler) updateNodes(ctx *restresource.Context) (interface{}, *r
 		}
 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			"node_names": subnetNode.NodeNames,
-			"nodes":      subnetNode.Nodes},
+			"nodes": subnetNode.Nodes},
 			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 			return err
 		}

@@ -6,6 +6,7 @@ import (
 
 type Lps struct {
 	restresource.ResourceBase `json:",inline"`
+	NodeName                  string               `json:"nodeName"`
 	Values                    []ValueWithTimestamp `json:"values"`
 }
 

@@ -11,6 +11,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	pbalarm "github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
@@ -134,9 +135,14 @@ func (h *LPSHandler) List(ctx *restresource.Context) (interface{}, *resterror.AP
 			"get lpses from prometheus failed: "+err.Error())
 	}
 
+	nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
+	if err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	}
+
 	var lpses []*resource.Lps
 	for nodeIp, values := range nodeIpAndValues {
-		lps := &resource.Lps{Values: values}
+		lps := &resource.Lps{Values: values, NodeName: nodeNames[nodeIp]}
 		lps.SetID(nodeIp)
 		lpses = append(lpses, lps)
 	}
@@ -205,6 +211,12 @@ func (h *LPSHandler) Get(ctx *restresource.Context) (restresource.Resource, *res
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("get lps with node %s failed: %s", lps.GetID(), err.Error()))
+	}
+
+	if nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID())); err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	} else {
+		lps.NodeName = nodeNames[lps.GetID()]
 	}
 
 	lps.Values = values

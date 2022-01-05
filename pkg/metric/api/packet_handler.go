@@ -5,11 +5,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/linkingthing/cement/log"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
@@ -61,9 +63,14 @@ func (h *PacketStatHandler) List(ctx *restresource.Context) (interface{}, *reste
 		}
 	}
 
+	nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
+	if err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	}
+
 	var stats []*resource.PacketStat
 	for nodeIp, packets := range nodeIpAndPackets {
-		stat := &resource.PacketStat{Packets: packets}
+		stat := &resource.PacketStat{Packets: packets, NodeName: nodeNames[nodeIp]}
 		stat.SetID(nodeIp)
 		stats = append(stats, stat)
 	}
@@ -102,6 +109,12 @@ func (h *PacketStatHandler) Get(ctx *restresource.Context) (restresource.Resourc
 				}
 			}
 		}
+	}
+
+	if nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID())); err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	} else {
+		packetStat.NodeName = nodeNames[packetStat.GetID()]
 	}
 
 	return packetStat, nil

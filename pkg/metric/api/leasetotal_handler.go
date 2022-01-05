@@ -3,10 +3,12 @@ package api
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
@@ -29,9 +31,14 @@ func (h *LeaseTotalHandler) List(ctx *restresource.Context) (interface{}, *reste
 			"get leases total count from prometheus failed: "+err.Error())
 	}
 
+	nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
+	if err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	}
+
 	var leases []*resource.LeaseTotal
 	for nodeIp, values := range nodeIpAndValues {
-		lease := &resource.LeaseTotal{Values: values}
+		lease := &resource.LeaseTotal{Values: values, NodeName: nodeNames[nodeIp]}
 		lease.SetID(nodeIp)
 		leases = append(leases, lease)
 	}
@@ -50,6 +57,12 @@ func (h *LeaseTotalHandler) Get(ctx *restresource.Context) (restresource.Resourc
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("get leases count with node %s failed: %s", lease.GetID(), err.Error()))
+	}
+
+	if nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID())); err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	} else {
+		lease.NodeName = nodeNames[lease.GetID()]
 	}
 
 	lease.Values = values

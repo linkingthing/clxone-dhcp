@@ -6,6 +6,7 @@ import (
 
 type Lease struct {
 	restresource.ResourceBase `json:",inline"`
+	NodeName                  string        `json:"nodeName"`
 	Subnets                   []SubnetLease `json:"subnets"`
 }
 

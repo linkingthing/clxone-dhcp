@@ -3,10 +3,12 @@ package api
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
@@ -58,9 +60,14 @@ func (h *LeaseHandler) List(ctx *restresource.Context) (interface{}, *resterror.
 		}
 	}
 
+	nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
+	if err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	}
+
 	var leases []*resource.Lease
 	for nodeIp, subnets := range nodeIpAndSubnetLeases {
-		lease := &resource.Lease{Subnets: subnets}
+		lease := &resource.Lease{Subnets: subnets, NodeName: nodeNames[nodeIp]}
 		lease.SetID(nodeIp)
 		leases = append(leases, lease)
 	}
@@ -105,6 +112,12 @@ func (h *LeaseHandler) Get(ctx *restresource.Context) (restresource.Resource, *r
 				}
 			}
 		}
+	}
+
+	if nodeNames, err := api.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID())); err != nil {
+		log.Warnf("list agent nodes failed: %s", err.Error())
+	} else {
+		lease.NodeName = nodeNames[lease.GetID()]
 	}
 
 	return lease, nil
