@@ -43,7 +43,6 @@ func main() {
 	if err := server.RegisterHandler(restserver.HandlerRegister(dhcp.RegisterHandler)); err != nil {
 		log.Fatalf("register dhcp handler failed: %s", err.Error())
 	}
-
 	if err := server.RegisterHandler(restserver.HandlerRegister(metric.RegisterHandler)); err != nil {
 		log.Fatalf("register metric handler failed: %s", err.Error())
 	}

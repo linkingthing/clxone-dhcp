@@ -3,10 +3,11 @@ package api
 import (
 	"time"
 
+	"github.com/linkingthing/cement/log"
+	pbutil "github.com/linkingthing/clxone-utils/alarm/proto"
+
 	"github.com/linkingthing/clxone-dhcp/config"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
-	pbalarm "github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 )
 
 const (
@@ -27,14 +28,6 @@ func InitScannedDHCPHandler(conf *config.DHCPConfig) error {
 	if err != nil {
 		return err
 	}
-
-	alarmService := service.NewAlarmService()
-	if err := alarmService.RegisterThresholdToKafka(service.RegisterThreshold,
-		alarmService.DhcpThreshold); err != nil {
-		return err
-	}
-
-	go alarmService.HandleUpdateThresholdEvent(service.ThresholdDhcpTopic, alarmService.UpdateDhcpThresHold)
 	h := &ScannedDHCPHandler{dhcpClient: dhcpClient}
 	go h.scanIllegalDHCPServer(searchInterval)
 
@@ -48,23 +41,19 @@ func (h *ScannedDHCPHandler) scanIllegalDHCPServer(searchInterval uint32) {
 	for {
 		select {
 		case <-ticker.C:
-			if alarmService := service.NewAlarmService(); alarmService.DhcpThreshold.Enabled {
-				dhcpServers := h.dhcpClient.ScanIllegalDHCPServer()
-				for _, dhcpServer := range dhcpServers {
-					ip := dhcpServer.IPv4
-					if ip == "" {
-						ip = dhcpServer.IPv6
-					}
-
-					alarmService.SendEventWithValues(service.AlarmKeyIllegalDhcp, &pbalarm.IllegalDhcpAlarm{
-						BaseAlarm: &pbalarm.BaseAlarm{
-							BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
-							Time:          time.Now().Format(time.RFC3339),
-							SendMail:      alarmService.DhcpThreshold.SendMail,
-						},
-						IllegalDhcpIp:  ip,
-						IllegalDhcpMac: dhcpServer.Mac,
-					})
+			threshold := GetAlarmService().GetThreshold(pbutil.ThresholdName_illegalDhcp)
+			if threshold == nil {
+				continue
+			}
+			dhcpServers := h.dhcpClient.ScanIllegalDHCPServer()
+			for _, dhcpServer := range dhcpServers {
+				ip := dhcpServer.IPv4
+				if ip == "" {
+					ip = dhcpServer.IPv6
+				}
+				if err := GetAlarmService().AddIllegalDHCPAlarm(ip, dhcpServer.Mac); err != nil {
+					log.Warnf("add dhcp illegal alarm failed:%s", err.Error())
+					continue
 				}
 			}
 		}

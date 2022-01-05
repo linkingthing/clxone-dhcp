@@ -6,54 +6,43 @@ import (
 	"time"
 
 	"github.com/linkingthing/cement/log"
+	pbutil "github.com/linkingthing/clxone-utils/alarm/proto"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
-	pbalarm "github.com/linkingthing/clxone-dhcp/pkg/proto/alarm"
 )
 
 type LPSHandler struct {
 	prometheusAddr string
 }
 
-func NewLPSHandler(conf *config.DHCPConfig) (*LPSHandler, error) {
-	alarmService := service.NewAlarmService()
-	err := alarmService.RegisterThresholdToKafka(service.RegisterThreshold, alarmService.LpsThreshold)
-	if err != nil {
-		return nil, err
-	}
-
-	go alarmService.HandleUpdateThresholdEvent(service.ThresholdDhcpTopic, alarmService.UpdateLpsThresHold)
-
+func NewLPSHandler(conf *config.DHCPConfig) *LPSHandler {
 	h := &LPSHandler{prometheusAddr: conf.Prometheus.Addr}
-	go h.monitor(alarmService.LpsThreshold)
-
-	return h, nil
+	go h.monitor()
+	return h
 }
 
-func (h *LPSHandler) monitor(threshold *pbalarm.RegisterThreshold) {
+func (h *LPSHandler) monitor() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ticker.C:
-			if alarmService := service.NewAlarmService(); alarmService.LpsThreshold.Enabled {
-				if err := h.collectLPS(threshold); err != nil {
-					log.Warnf("collect lps failed: %s", err.Error())
-				}
+			if err := h.collectLPS(); err != nil {
+				log.Warnf("collect lps failed: %s", err.Error())
 			}
 		}
 	}
 }
 
-func (h *LPSHandler) collectLPS(threshold *pbalarm.RegisterThreshold) error {
-	alarmService := service.NewAlarmService()
-	if alarmService.LpsThreshold.Enabled == false {
+func (h *LPSHandler) collectLPS() error {
+	threshold := GetAlarmService().GetThreshold(pbutil.ThresholdName_lps)
+	if threshold == nil {
 		return nil
 	}
 
@@ -93,30 +82,18 @@ func (h *LPSHandler) collectLPS(threshold *pbalarm.RegisterThreshold) error {
 	}
 
 	var exceedThresholdCount int
-	var latestTime time.Time
 	var latestValue uint64
-
 	for _, nodeAndValues := range lpsValues {
 		for nodeIp, values := range nodeAndValues {
 			for _, value := range values {
 				if value.Value >= threshold.Value {
-					latestTime = time.Time(value.Timestamp)
 					latestValue = value.Value
 					exceedThresholdCount += 1
 				}
 			}
 
 			if float64(exceedThresholdCount)/float64(len(values)) > 0.6 {
-				alarmService.SendEventWithValues(service.AlarmKeyLps, &pbalarm.LpsAlarm{
-					BaseAlarm: &pbalarm.BaseAlarm{
-						BaseThreshold: alarmService.DhcpThreshold.BaseThreshold,
-						Time:          latestTime.Format(time.RFC3339),
-						SendMail:      alarmService.DhcpThreshold.SendMail,
-						Threshold:     alarmService.LpsThreshold.Value,
-					},
-					NodeIp:      nodeIp,
-					LatestValue: latestValue,
-				})
+				return GetAlarmService().AddLPSAlarm(nodeIp, latestValue)
 			}
 		}
 	}
