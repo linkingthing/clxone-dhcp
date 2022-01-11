@@ -77,8 +77,7 @@ func (s Subnet4) GetActions() []restresource.Action {
 }
 
 type SubnetNode struct {
-	NodeNames []string `json:"nodeNames"`
-	Nodes     []string `json:"nodes"`
+	Nodes []string `json:"nodes"`
 }
 
 type CouldBeCreatedSubnet struct {
@@ -170,7 +169,7 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
-	return checkNodesValid(s.NodeNames, s.Nodes)
+	return checkNodesValid(s.Nodes)
 }
 
 func checkTFTPServer(tftpServer string) error {
@@ -231,12 +230,7 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 	})
 }
 
-func checkNodesValid(names, nodes []string) error {
-	if len(names) != len(nodes) {
-		return fmt.Errorf("node names %v length diff from node %v",
-			names, nodes)
-	}
-
+func checkNodesValid(nodes []string) error {
 	for _, node := range nodes {
 		if net.ParseIP(node) == nil {
 			return fmt.Errorf("invalid node %s", node)

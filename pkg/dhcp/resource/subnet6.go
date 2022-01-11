@@ -136,7 +136,7 @@ func (s *Subnet6) ValidateParams() error {
 		return err
 	}
 
-	return checkNodesValid(s.NodeNames, s.Nodes)
+	return checkNodesValid(s.Nodes)
 }
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {
