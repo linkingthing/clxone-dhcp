@@ -807,13 +807,14 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 func parsePool4sFromString(field string) ([]*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 2 {
+		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet4 pool %s failed with wrong regexp",
 				poolStr)
 		} else {
 			pools = append(pools, &resource.Pool4{
 				BeginAddress: poolSlices[0],
 				EndAddress:   poolSlices[1],
+				Comment:      poolSlices[2],
 			})
 		}
 	}
@@ -824,13 +825,14 @@ func parsePool4sFromString(field string) ([]*resource.Pool4, error) {
 func parseReservedPool4sFromString(field string) ([]*resource.ReservedPool4, error) {
 	var pools []*resource.ReservedPool4
 	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 2 {
+		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet4 reserved pool %s failed with wrong regexp",
 				poolStr)
 		} else {
 			pools = append(pools, &resource.ReservedPool4{
 				BeginAddress: poolSlices[0],
 				EndAddress:   poolSlices[1],
+				Comment:      poolSlices[2],
 			})
 		}
 	}
@@ -842,13 +844,14 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 	var reservations []*resource.Reservation4
 	for _, reservationStr := range strings.Split(field, ",") {
 		if reservationSlices := strings.Split(reservationStr,
-			"-"); len(reservationSlices) != 2 {
+			"-"); len(reservationSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet4 reservation %s failed with wrong regexp",
 				reservationStr)
 		} else {
 			reservations = append(reservations, &resource.Reservation4{
 				HwAddress: reservationSlices[0],
 				IpAddress: reservationSlices[1],
+				Comment:   reservationSlices[2],
 			})
 		}
 	}
@@ -1112,21 +1115,21 @@ func (h *Subnet4Handler) exportCSV(ctx *restresource.Context) (interface{}, *res
 	subnetPools := make(map[string][]string)
 	for _, pool := range pools {
 		poolSlices := subnetPools[pool.Subnet4]
-		poolSlices = append(poolSlices, pool.String())
+		poolSlices = append(poolSlices, pool.String()+"-"+pool.Comment)
 		subnetPools[pool.Subnet4] = poolSlices
 	}
 
 	subnetReservedPools := make(map[string][]string)
 	for _, reservedPool := range reservedPools {
 		reservedPoolSlices := subnetReservedPools[reservedPool.Subnet4]
-		reservedPoolSlices = append(reservedPoolSlices, reservedPool.String())
+		reservedPoolSlices = append(reservedPoolSlices, reservedPool.String()+"-"+reservedPool.Comment)
 		subnetReservedPools[reservedPool.Subnet4] = reservedPoolSlices
 	}
 
 	subnetReservations := make(map[string][]string)
 	for _, reservation := range reservations {
 		reservationSlices := subnetReservations[reservation.Subnet4]
-		reservationSlices = append(reservationSlices, reservation.String())
+		reservationSlices = append(reservationSlices, reservation.String()+"-"+reservation.Comment)
 		subnetReservations[reservation.Subnet4] = reservationSlices
 	}
 
