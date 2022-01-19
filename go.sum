@@ -593,6 +593,10 @@ github.com/linkingthing/clxone-utils v0.0.0-20220105111030-4fca83548723 h1:JJMhb
 github.com/linkingthing/clxone-utils v0.0.0-20220105111030-4fca83548723/go.mod h1:fGoZlsRouTPysmBsBuy6MA7+2UDK0Y9Fxd4jjlriVmU=
 github.com/linkingthing/clxone-utils v0.0.0-20220106032501-e83fbeb5a438 h1:75n0e0lIKSG0WEKW/DGwwFEGE8W7YTLctv9+r6v9MlQ=
 github.com/linkingthing/clxone-utils v0.0.0-20220106032501-e83fbeb5a438/go.mod h1:fGoZlsRouTPysmBsBuy6MA7+2UDK0Y9Fxd4jjlriVmU=
+github.com/linkingthing/clxone-utils v0.0.0-20220106103838-c90b1daf4e33 h1:9jLncVLTQ1ihHct5ZqHKl5AndEHezaFbyw/dInVxAoI=
+github.com/linkingthing/clxone-utils v0.0.0-20220106103838-c90b1daf4e33/go.mod h1:fGoZlsRouTPysmBsBuy6MA7+2UDK0Y9Fxd4jjlriVmU=
+github.com/linkingthing/clxone-utils v1.0.0 h1:NptQeZc6bzJKo6w9jttQmmachk/N458Yr4VeD8XndZg=
+github.com/linkingthing/clxone-utils v1.0.0/go.mod h1:fGoZlsRouTPysmBsBuy6MA7+2UDK0Y9Fxd4jjlriVmU=
 github.com/linkingthing/gorest v1.0.0 h1:zgzjD6dOoByt8tDTauAow3zVCAqODT+GW05sY95p5Rw=
 github.com/linkingthing/gorest v1.0.0/go.mod h1:+V0+9VnoIDjAPexyVQypkyYF/rfI/jL8b5H6/I4bzTA=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
