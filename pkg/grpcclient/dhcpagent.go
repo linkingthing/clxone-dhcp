@@ -17,8 +17,13 @@ type DHCPAgentGrpcClient struct {
 var gDHCPAgentGrpcClient *DHCPAgentGrpcClient
 var dhcpagentOnce sync.Once
 
+const (
+	DHCPTagServer4 = "server4"
+	DHCPTagServer6 = "server6"
+)
+
 func newDHCPAgentGrpcClient() error {
-	conn, err := pb.NewConn(config.GetConfig().CallServices.DhcpAgent)
+	conn, err := pb.NewConn(config.GetConfig().CallServices.DhcpAgent, DHCPTagServer4, DHCPTagServer6)
 	if err != nil {
 		return err
 	}
