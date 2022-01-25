@@ -1,6 +1,6 @@
 FROM golang:1.14.5-alpine3.12 AS build
 
-ENV GOPROXY=https://goproxy.io
+ENV GOPROXY=http://mirrors.aliyun.com/goproxy
 
 RUN mkdir -p /go/src/github.com/linkingthing/clxone-dhcp
 COPY . /go/src/github.com/linkingthing/clxone-dhcp
