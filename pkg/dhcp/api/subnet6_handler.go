@@ -508,7 +508,8 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 		return err
 	}
 
-	if _, err := sendDHCPCmdWithNodes(false, nodesForDelete, dhcpservice.DeleteSubnet6,
+	if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+		nodesForDelete, dhcpservice.DeleteSubnet6,
 		&pbdhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
 		return err
 	}

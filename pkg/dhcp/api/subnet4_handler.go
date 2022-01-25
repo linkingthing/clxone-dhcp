@@ -1226,7 +1226,8 @@ func getChangedNodes(oldNodes, newNodes []string, isv4 bool) ([]string, []string
 		createSlices = append(createSlices, node)
 	}
 
-	if len(deleteSlices) != 0 && len(createSlices) == 0 {
+	if len(deleteSlices) != 0 && len(deleteSlices) == len(oldNodes) &&
+		len(createSlices) == 0 {
 		if nodes, err := getDHCPNodes(deleteSlices, isv4); err != nil {
 			return nil, nil, err
 		} else {
@@ -1234,7 +1235,7 @@ func getChangedNodes(oldNodes, newNodes []string, isv4 bool) ([]string, []string
 		}
 	}
 
-	if len(deleteSlices) == 0 && len(createSlices) != 0 {
+	if len(oldNodes) == 0 && len(createSlices) != 0 {
 		if nodes, err := getDHCPNodes(createSlices, isv4); err != nil {
 			return nil, nil, err
 		} else {
@@ -1261,7 +1262,8 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 		return err
 	}
 
-	if _, err := sendDHCPCmdWithNodes(true, nodesForDelete, dhcpservice.DeleteSubnet4,
+	if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
+		nodesForDelete, dhcpservice.DeleteSubnet4,
 		&pbdhcpagent.DeleteSubnet4Request{Id: subnet4.SubnetId}); err != nil {
 		return err
 	}
