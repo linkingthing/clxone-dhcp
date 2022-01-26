@@ -164,6 +164,7 @@ func pbdhcpSubnet6FromSubnet6(subnet *resource.Subnet6, leasesCount uint64) *pbd
 		Capacity:      subnet.Capacity,
 		UsedCount:     leasesCount,
 		DomainServers: subnet.DomainServers,
+		UseEui64:      subnet.UseEui64,
 	}
 }
 
