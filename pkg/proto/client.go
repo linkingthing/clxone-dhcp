@@ -20,12 +20,12 @@ import (
 
 var connManager sync.Map
 
-func NewConn(serviceName string) (*grpc.ClientConn, error) {
+func NewConn(serviceName string, tags ...string) (*grpc.ClientConn, error) {
 	if value, ok := connManager.Load(serviceName); ok {
 		return value.(*grpc.ClientConn), nil
 	}
 
-	endpointor, err := getDefaultEndpointer(serviceName)
+	endpointor, err := getDefaultEndpointer(serviceName, tags...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func NewConn(serviceName string) (*grpc.ClientConn, error) {
 	return conn, nil
 }
 
-func getDefaultEndpointer(serviceName string) (*sd.DefaultEndpointer, error) {
+func getDefaultEndpointer(serviceName string, tags ...string) (*sd.DefaultEndpointer, error) {
 	conf := consulapi.DefaultConfig()
 	conf.Address = config.GetConfig().Consul.Address
 	apiClient, err := consulapi.NewClient(conf)
@@ -63,7 +63,7 @@ func getDefaultEndpointer(serviceName string) (*sd.DefaultEndpointer, error) {
 
 	client := consul.NewClient(apiClient)
 	logger := kitlog.With(kitlog.NewLogfmtLogger(os.Stderr), "timestamp", kitlog.DefaultTimestampUTC)
-	instance := consul.NewInstancer(client, logger, serviceName, []string{}, true)
+	instance := consul.NewInstancer(client, logger, serviceName, tags, true)
 	defer instance.Stop()
 
 	return sd.NewEndpointer(instance, getFactory, logger), nil

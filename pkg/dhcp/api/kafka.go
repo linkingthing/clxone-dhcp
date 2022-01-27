@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/linkingthing/cement/slice"
 
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
@@ -49,7 +50,8 @@ func getDHCPNodes(sentryNodes []string, isv4 bool) ([]string, error) {
 
 			if IsAgentService(node.GetServiceTags(), serverRole) {
 				hasServer = true
-				if IsAgentService(node.GetServiceTags(), sentryRole) == false {
+				if IsAgentService(node.GetServiceTags(), sentryRole) == false ||
+					slice.SliceIndex(sentryNodes, node.GetIpv4()) == -1 {
 					serverNodes = append(serverNodes, node.GetIpv4())
 				}
 			}

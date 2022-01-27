@@ -69,8 +69,8 @@ func getDHCPNodeList() (nodes []*pbdhcpagent.GetDHCPNodesResponse, err error) {
 		if err != nil {
 			return nil, err
 		}
-		nodes = append(nodes, resp)
 
+		nodes = append(nodes, resp)
 	}
 
 	return

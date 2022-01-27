@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/linkingthing/cement/set"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -58,31 +59,55 @@ func genGetSubnetsSqlWithSubnetIds(subnetIds []uint64) string {
 }
 
 func (s *SharedNetwork4) setSharedNetworkSubnets(subnet4s []*Subnet4) error {
-	subnetIdAndSubnet := make(map[uint64]string)
+	if len(s.SubnetIds) != len(subnet4s) {
+		return fmt.Errorf("get subnet4s %v diff from shared subnet ids %v",
+			getSubnetIds(subnet4s), s.SubnetIds)
+	}
+
+	nodeSet := getIntersectionNodes(subnet4s[0].Nodes, subnet4s[1].Nodes)
+	if nodeSet == nil {
+		return fmt.Errorf("subnet %s nodes %v has no intersection with subnet %s nodes %v",
+			subnet4s[0].Subnet, subnet4s[0].Nodes, subnet4s[1].Subnet, subnet4s[1].Nodes)
+	}
+
+	var subnets []string
 	for _, subnet4 := range subnet4s {
 		if len(subnet4.Nodes) == 0 {
 			return fmt.Errorf("subnet %s no nodes info, can`t used by shared network", subnet4.Subnet)
-		}
-
-		subnetIdAndSubnet[subnet4.SubnetId] = subnet4.Subnet
-	}
-
-	var nonexistIds []uint64
-	var subnets []string
-	for _, subnetId := range s.SubnetIds {
-		if subnet, ok := subnetIdAndSubnet[subnetId]; ok {
-			subnets = append(subnets, subnet)
+		} else if isFullyContains(subnet4.Nodes, nodeSet) == false {
+			return fmt.Errorf("subnet %s nodes %v should contains nodes %v",
+				subnet4.Subnet, subnet4.Nodes, nodeSet.ToSlice())
 		} else {
-			nonexistIds = append(nonexistIds, subnetId)
+			subnets = append(subnets, subnet4.Subnet)
 		}
-	}
-
-	if len(nonexistIds) != 0 {
-		return fmt.Errorf("shared network4 %s has non-exists subnet ids %v", s.Name, nonexistIds)
 	}
 
 	s.Subnets = subnets
 	return nil
+}
+
+func getSubnetIds(subnets []*Subnet4) []string {
+	var ids []string
+	for _, subnet := range subnets {
+		ids = append(ids, subnet.GetID())
+	}
+
+	return ids
+}
+
+func getIntersectionNodes(node1s, node2s []string) set.StringSet {
+	return set.StringSetFromSlice(node1s).Union(set.StringSetFromSlice(node2s))
+}
+
+func isFullyContains(nodes []string, nodeSet set.StringSet) bool {
+	var intersectionNodes []string
+	for _, node := range nodes {
+		if nodeSet.Member(node) {
+			intersectionNodes = append(intersectionNodes, node)
+		}
+	}
+
+	return len(intersectionNodes) == len(nodeSet)
 }
 
 func (s *SharedNetwork4) checkConflictWithOthers(sharedNetworks []*SharedNetwork4) error {
