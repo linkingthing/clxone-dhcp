@@ -89,3 +89,123 @@ func (g *GRPCService) GetSubnets6AndLeases6WithIps(ctx context.Context, req *pbd
 		}, nil
 	}
 }
+
+func (g *GRPCService) GetListSubnet4(ctx context.Context, req *pbdhcp.GetSubnet4Request) (*pbdhcp.GetSubnet4Response, error) {
+	if len(req.GetPrefixes()) == 0 {
+		if subnetList, err := service.GetDHCPService().GetListWithAllSubnet4s(); err != nil {
+			return nil, err
+		} else {
+			return &pbdhcp.GetSubnet4Response{Subnet4S: subnetList}, nil
+		}
+	}
+	if subnetList, err := service.GetDHCPService().GetListWithSubnet4sByPrefixes(req.GetPrefixes()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetSubnet4Response{Subnet4S: subnetList}, nil
+	}
+}
+
+func (g *GRPCService) GetListPool4BySubnet4Id(ctx context.Context,
+	req *pbdhcp.GetPool4BySubnet4IdRequest) (*pbdhcp.GetPool4BySubnet4IdResponse, error) {
+	if subnetList, err := service.GetDHCPService().GetListPool4BySubnet4Id(req.GetSubnet4Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetPool4BySubnet4IdResponse{Pool4S: subnetList}, nil
+	}
+}
+
+func (g *GRPCService) GetListReservedPool4BySubnet4Id(ctx context.Context,
+	req *pbdhcp.GetReservedPool4BySubnet4IdRequest) (*pbdhcp.GetReservedPool4BySubnet4IdResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListReservedPool4BySubnet4Id(req.GetSubnet4Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetReservedPool4BySubnet4IdResponse{ReservedPool4S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListReservation4BySubnet4Id(ctx context.Context,
+	req *pbdhcp.GetReservation4BySubnet4IdRequest) (*pbdhcp.GetReservation4BySubnet4IdResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListReservation4BySubnet4Id(req.GetSubnet4Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetReservation4BySubnet4IdResponse{Reservation4S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListLease4BySubnet4Id(ctx context.Context,
+	req *pbdhcp.GetLease4BySubnet4IdRequest) (*pbdhcp.GetLease4BySubnet4IdResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListLease4BySubnet4Id(req.GetSubnet4Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetLease4BySubnet4IdResponse{SubnetLease4S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListLease4ByIp(ctx context.Context,
+	req *pbdhcp.GetLease4ByIpRequest) (*pbdhcp.GetLease4ByIpResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListLease4ByIp(req.GetSubnet4Id(), req.GetIp()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetLease4ByIpResponse{SubnetLease4S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListSubnet6(ctx context.Context, req *pbdhcp.GetSubnet6Request) (*pbdhcp.GetSubnet6Response, error) {
+	if len(req.Prefixes) == 0 {
+		if tmpList, err := service.GetDHCPService().GetListSubnet6All(); err != nil {
+			return nil, err
+		} else {
+			return &pbdhcp.GetSubnet6Response{Subnet6S: tmpList}, nil
+		}
+	}
+	if tmpList, err := service.GetDHCPService().GetListSubnet6ByPrefixes(req.GetPrefixes()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetSubnet6Response{Subnet6S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListPool6BySubnet6Id(ctx context.Context,
+	req *pbdhcp.GetPool6BySubnet6IdRequest) (*pbdhcp.GetPool6BySubnet6IdResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListPool6BySubnet6Id(req.GetSubnet6Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetPool6BySubnet6IdResponse{Pool6S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListReservedPool6BySubnet6Id(ctx context.Context,
+	req *pbdhcp.GetReservedPool6BySubnet6IdRequest) (*pbdhcp.GetReservedPool6BySubnet6IdResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListReservedPool6BySubnet6Id(req.GetSubnet6Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetReservedPool6BySubnet6IdResponse{ReservedPool6S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListReservation6BySubnet6Id(ctx context.Context,
+	req *pbdhcp.GetReservation6BySubnet6IdRequest) (*pbdhcp.GetReservation6BySubnet6IdResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListReservation6BySubnet6Id(req.GetSubnet6Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetReservation6BySubnet6IdResponse{Reservation6S: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListLease6BySubnet6Id(ctx context.Context,
+	req *pbdhcp.GetLease6BySubnet6IdRequest) (*pbdhcp.GetLease6BySubnet6IdResponse, error) {
+	if tmpList, err := service.GetDHCPService().GetListLease6BySubnet6Id(req.GetSubnet6Id()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetLease6BySubnet6IdResponse{SubnetLease6: tmpList}, nil
+	}
+}
+
+func (g *GRPCService) GetListLease6ByIp(ctx context.Context,
+	req *pbdhcp.GetLease6ByIpRequest) (*pbdhcp.GetLease6ByIpResponse, error) {
+	if tmpValue, err := service.GetDHCPService().GetListLease6ByIp(req.GetSubnet6Id(), req.GetIp()); err != nil {
+		return nil, err
+	} else {
+		return &pbdhcp.GetLease6ByIpResponse{SubnetLease6: tmpValue}, nil
+	}
+}

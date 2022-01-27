@@ -5,3 +5,4 @@ clxone_controller
 clxone_dhcp
 generate.go
 *.sh
+.idea
