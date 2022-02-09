@@ -92,6 +92,9 @@ func (g *GRPCService) GetSubnets6AndLeases6WithIps(ctx context.Context, req *pbd
 }
 
 func (g *GRPCService) GetListAllSubnet4(ctx context.Context, req *pbdhcp.GetSubnet4Request) (*pbdhcp.GetSubnet4Response, error) {
+	if len(req.Prefixes) != 0 {
+		return nil, fmt.Errorf("getlistallsubnet4 prefixes is not nil ")
+	}
 	if subnetList, err := service.GetDHCPService().GetAllSubnet4s(); err != nil {
 		return nil, err
 	} else {
@@ -156,14 +159,10 @@ func (g *GRPCService) GetListLease4ByIp(ctx context.Context,
 }
 
 func (g *GRPCService) GetListAllSubnet6(ctx context.Context, req *pbdhcp.GetSubnet6Request) (*pbdhcp.GetSubnet6Response, error) {
-	if len(req.Prefixes) == 0 {
-		if tmpList, err := service.GetDHCPService().GetAllSubnet6(); err != nil {
-			return nil, err
-		} else {
-			return &pbdhcp.GetSubnet6Response{Subnet6S: tmpList}, nil
-		}
+	if len(req.Prefixes) != 0 {
+		return nil, fmt.Errorf("getlistallsubnet6 prefixes is not nil ")
 	}
-	if tmpList, err := service.GetDHCPService().GetWithSubnet6ByPrefixes(req.GetPrefixes()); err != nil {
+	if tmpList, err := service.GetDHCPService().GetAllSubnet6(); err != nil {
 		return nil, err
 	} else {
 		return &pbdhcp.GetSubnet6Response{Subnet6S: tmpList}, nil
