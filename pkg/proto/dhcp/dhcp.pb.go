@@ -5253,7 +5253,7 @@ var file_dhcp_proto_rawDesc = []byte{
 	0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02,
 	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x32,
-	0xed, 0x0d, 0x0a, 0x0b, 0x44, 0x68, 0x63, 0x70, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
+	0xfd, 0x0e, 0x0a, 0x0b, 0x44, 0x68, 0x63, 0x70, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
 	0x47, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x57, 0x69, 0x74,
 	0x68, 0x49, 0x70, 0x12, 0x18, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34,
 	0x57, 0x69, 0x74, 0x68, 0x49, 0x70, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x19, 0x2e,
@@ -5299,40 +5299,49 @@ var file_dhcp_proto_rawDesc = []byte{
 	0x49, 0x70, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e, 0x47, 0x65, 0x74,
 	0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x73, 0x36, 0x41, 0x6e, 0x64, 0x4c, 0x65, 0x61, 0x73, 0x65,
 	0x73, 0x36, 0x57, 0x69, 0x74, 0x68, 0x49, 0x70, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x39, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x75, 0x62, 0x6e,
-	0x65, 0x74, 0x34, 0x12, 0x12, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62,
-	0x6e, 0x65, 0x74, 0x34, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x54, 0x0a, 0x17,
-	0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53, 0x75,
-	0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x12, 0x1b, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x6f,
-	0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x71,
-	0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42,
-	0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x12, 0x6c, 0x0a, 0x1f, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73,
-	0x65, 0x72, 0x76, 0x65, 0x64, 0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e,
-	0x65, 0x74, 0x34, 0x49, 0x64, 0x12, 0x23, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72,
-	0x76, 0x65, 0x64, 0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74,
-	0x34, 0x49, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x24, 0x2e, 0x47, 0x65, 0x74,
-	0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x64, 0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53,
-	0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x69, 0x0a, 0x1e, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72,
-	0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34,
-	0x49, 0x64, 0x12, 0x22, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x61, 0x74,
-	0x69, 0x6f, 0x6e, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x65,
-	0x72, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74,
-	0x34, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x57, 0x0a, 0x18, 0x47,
-	0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x53, 0x75,
-	0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x12, 0x1c, 0x2e, 0x47, 0x65, 0x74, 0x4c, 0x65, 0x61,
-	0x73, 0x65, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x47, 0x65, 0x74, 0x4c, 0x65, 0x61, 0x73, 0x65,
-	0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x4c,
-	0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x49, 0x70, 0x12, 0x15, 0x2e, 0x47, 0x65, 0x74, 0x4c,
-	0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x49, 0x70, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x1a, 0x16, 0x2e, 0x47, 0x65, 0x74, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x49, 0x70,
-	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x39, 0x0a, 0x0e, 0x47, 0x65, 0x74, 0x4c,
-	0x69, 0x73, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x36, 0x12, 0x12, 0x2e, 0x47, 0x65, 0x74,
+	0x65, 0x12, 0x3c, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x41, 0x6c, 0x6c, 0x53,
+	0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x12, 0x12, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e,
+	0x65, 0x74, 0x34, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x47, 0x65, 0x74,
+	0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12,
+	0x43, 0x0a, 0x18, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74,
+	0x34, 0x42, 0x79, 0x50, 0x72, 0x65, 0x66, 0x69, 0x78, 0x65, 0x73, 0x12, 0x12, 0x2e, 0x47, 0x65,
+	0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x13, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x54, 0x0a, 0x17, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x50,
+	0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x12,
+	0x1b, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e,
+	0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x47,
+	0x65, 0x74, 0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34,
+	0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x6c, 0x0a, 0x1f, 0x47, 0x65,
+	0x74, 0x4c, 0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x64, 0x50, 0x6f, 0x6f,
+	0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x12, 0x23, 0x2e,
+	0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x64, 0x50, 0x6f, 0x6f, 0x6c, 0x34,
+	0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x24, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x64,
+	0x50, 0x6f, 0x6f, 0x6c, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x69, 0x0a, 0x1e, 0x47, 0x65, 0x74, 0x4c,
+	0x69, 0x73, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x34, 0x42,
+	0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x12, 0x22, 0x2e, 0x47, 0x65, 0x74,
+	0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x34, 0x42, 0x79, 0x53, 0x75,
+	0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x23,
+	0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x65, 0x72, 0x76, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x34,
+	0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x12, 0x57, 0x0a, 0x18, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x4c, 0x65,
+	0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x12,
+	0x1c, 0x2e, 0x47, 0x65, 0x74, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62,
+	0x6e, 0x65, 0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e,
+	0x47, 0x65, 0x74, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x53, 0x75, 0x62, 0x6e, 0x65,
+	0x74, 0x34, 0x49, 0x64, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x42, 0x0a, 0x11,
+	0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x49,
+	0x70, 0x12, 0x15, 0x2e, 0x47, 0x65, 0x74, 0x4c, 0x65, 0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x49,
+	0x70, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x47, 0x65, 0x74, 0x4c, 0x65,
+	0x61, 0x73, 0x65, 0x34, 0x42, 0x79, 0x49, 0x70, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x12, 0x3c, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x41, 0x6c, 0x6c, 0x53, 0x75,
+	0x62, 0x6e, 0x65, 0x74, 0x36, 0x12, 0x12, 0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65,
+	0x74, 0x36, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x47, 0x65, 0x74, 0x53,
+	0x75, 0x62, 0x6e, 0x65, 0x74, 0x36, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x43,
+	0x0a, 0x18, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x36,
+	0x42, 0x79, 0x50, 0x72, 0x65, 0x66, 0x69, 0x78, 0x65, 0x73, 0x12, 0x12, 0x2e, 0x47, 0x65, 0x74,
 	0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x36, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x13,
 	0x2e, 0x47, 0x65, 0x74, 0x53, 0x75, 0x62, 0x6e, 0x65, 0x74, 0x36, 0x52, 0x65, 0x73, 0x70, 0x6f,
 	0x6e, 0x73, 0x65, 0x12, 0x54, 0x0a, 0x17, 0x47, 0x65, 0x74, 0x4c, 0x69, 0x73, 0x74, 0x50, 0x6f,
@@ -5508,40 +5517,44 @@ var file_dhcp_proto_depIdxs = []int32{
 	14, // 47: DhcpService.GetSubnet6AndLease6WithIp:input_type -> GetSubnet6AndLease6WithIpRequest
 	18, // 48: DhcpService.GetSubnets4AndLeases4WithIps:input_type -> GetSubnets4AndLeases4WithIpsRequest
 	20, // 49: DhcpService.GetSubnets6AndLeases6WithIps:input_type -> GetSubnets6AndLeases6WithIpsRequest
-	22, // 50: DhcpService.GetListSubnet4:input_type -> GetSubnet4Request
-	25, // 51: DhcpService.GetListPool4BySubnet4Id:input_type -> GetPool4BySubnet4IdRequest
-	28, // 52: DhcpService.GetListReservedPool4BySubnet4Id:input_type -> GetReservedPool4BySubnet4IdRequest
-	31, // 53: DhcpService.GetListReservation4BySubnet4Id:input_type -> GetReservation4BySubnet4IdRequest
-	34, // 54: DhcpService.GetListLease4BySubnet4Id:input_type -> GetLease4BySubnet4IdRequest
-	37, // 55: DhcpService.GetListLease4ByIp:input_type -> GetLease4ByIpRequest
-	39, // 56: DhcpService.GetListSubnet6:input_type -> GetSubnet6Request
-	42, // 57: DhcpService.GetListPool6BySubnet6Id:input_type -> GetPool6BySubnet6IdRequest
-	45, // 58: DhcpService.GetListReservedPool6BySubnet6Id:input_type -> GetReservedPool6BySubnet6IdRequest
-	48, // 59: DhcpService.GetListReservation6BySubnet6Id:input_type -> GetReservation6BySubnet6IdRequest
-	51, // 60: DhcpService.GetListLease6BySubnet6Id:input_type -> GetLease6BySubnet6IdRequest
-	53, // 61: DhcpService.GetListLease6ByIp:input_type -> GetLease6ByIpRequest
-	2,  // 62: DhcpService.GetSubnet4WithIp:output_type -> GetSubnet4WithIpResponse
-	5,  // 63: DhcpService.GetSubnet6WithIp:output_type -> GetSubnet6WithIpResponse
-	7,  // 64: DhcpService.GetSubnets4WithIps:output_type -> GetSubnets4WithIpsResponse
-	9,  // 65: DhcpService.GetSubnets6WithIps:output_type -> GetSubnets6WithIpsResponse
-	13, // 66: DhcpService.GetSubnet4AndLease4WithIp:output_type -> GetSubnet4AndLease4WithIpResponse
-	17, // 67: DhcpService.GetSubnet6AndLease6WithIp:output_type -> GetSubnet6AndLease6WithIpResponse
-	19, // 68: DhcpService.GetSubnets4AndLeases4WithIps:output_type -> GetSubnets4AndLeases4WithIpsResponse
-	21, // 69: DhcpService.GetSubnets6AndLeases6WithIps:output_type -> GetSubnets6AndLeases6WithIpsResponse
-	23, // 70: DhcpService.GetListSubnet4:output_type -> GetSubnet4Response
-	26, // 71: DhcpService.GetListPool4BySubnet4Id:output_type -> GetPool4BySubnet4IdResponse
-	29, // 72: DhcpService.GetListReservedPool4BySubnet4Id:output_type -> GetReservedPool4BySubnet4IdResponse
-	32, // 73: DhcpService.GetListReservation4BySubnet4Id:output_type -> GetReservation4BySubnet4IdResponse
-	35, // 74: DhcpService.GetListLease4BySubnet4Id:output_type -> GetLease4BySubnet4IdResponse
-	38, // 75: DhcpService.GetListLease4ByIp:output_type -> GetLease4ByIpResponse
-	40, // 76: DhcpService.GetListSubnet6:output_type -> GetSubnet6Response
-	43, // 77: DhcpService.GetListPool6BySubnet6Id:output_type -> GetPool6BySubnet6IdResponse
-	46, // 78: DhcpService.GetListReservedPool6BySubnet6Id:output_type -> GetReservedPool6BySubnet6IdResponse
-	49, // 79: DhcpService.GetListReservation6BySubnet6Id:output_type -> GetReservation6BySubnet6IdResponse
-	52, // 80: DhcpService.GetListLease6BySubnet6Id:output_type -> GetLease6BySubnet6IdResponse
-	54, // 81: DhcpService.GetListLease6ByIp:output_type -> GetLease6ByIpResponse
-	62, // [62:82] is the sub-list for method output_type
-	42, // [42:62] is the sub-list for method input_type
+	22, // 50: DhcpService.GetListAllSubnet4:input_type -> GetSubnet4Request
+	22, // 51: DhcpService.GetListSubnet4ByPrefixes:input_type -> GetSubnet4Request
+	25, // 52: DhcpService.GetListPool4BySubnet4Id:input_type -> GetPool4BySubnet4IdRequest
+	28, // 53: DhcpService.GetListReservedPool4BySubnet4Id:input_type -> GetReservedPool4BySubnet4IdRequest
+	31, // 54: DhcpService.GetListReservation4BySubnet4Id:input_type -> GetReservation4BySubnet4IdRequest
+	34, // 55: DhcpService.GetListLease4BySubnet4Id:input_type -> GetLease4BySubnet4IdRequest
+	37, // 56: DhcpService.GetListLease4ByIp:input_type -> GetLease4ByIpRequest
+	39, // 57: DhcpService.GetListAllSubnet6:input_type -> GetSubnet6Request
+	39, // 58: DhcpService.GetListSubnet6ByPrefixes:input_type -> GetSubnet6Request
+	42, // 59: DhcpService.GetListPool6BySubnet6Id:input_type -> GetPool6BySubnet6IdRequest
+	45, // 60: DhcpService.GetListReservedPool6BySubnet6Id:input_type -> GetReservedPool6BySubnet6IdRequest
+	48, // 61: DhcpService.GetListReservation6BySubnet6Id:input_type -> GetReservation6BySubnet6IdRequest
+	51, // 62: DhcpService.GetListLease6BySubnet6Id:input_type -> GetLease6BySubnet6IdRequest
+	53, // 63: DhcpService.GetListLease6ByIp:input_type -> GetLease6ByIpRequest
+	2,  // 64: DhcpService.GetSubnet4WithIp:output_type -> GetSubnet4WithIpResponse
+	5,  // 65: DhcpService.GetSubnet6WithIp:output_type -> GetSubnet6WithIpResponse
+	7,  // 66: DhcpService.GetSubnets4WithIps:output_type -> GetSubnets4WithIpsResponse
+	9,  // 67: DhcpService.GetSubnets6WithIps:output_type -> GetSubnets6WithIpsResponse
+	13, // 68: DhcpService.GetSubnet4AndLease4WithIp:output_type -> GetSubnet4AndLease4WithIpResponse
+	17, // 69: DhcpService.GetSubnet6AndLease6WithIp:output_type -> GetSubnet6AndLease6WithIpResponse
+	19, // 70: DhcpService.GetSubnets4AndLeases4WithIps:output_type -> GetSubnets4AndLeases4WithIpsResponse
+	21, // 71: DhcpService.GetSubnets6AndLeases6WithIps:output_type -> GetSubnets6AndLeases6WithIpsResponse
+	23, // 72: DhcpService.GetListAllSubnet4:output_type -> GetSubnet4Response
+	23, // 73: DhcpService.GetListSubnet4ByPrefixes:output_type -> GetSubnet4Response
+	26, // 74: DhcpService.GetListPool4BySubnet4Id:output_type -> GetPool4BySubnet4IdResponse
+	29, // 75: DhcpService.GetListReservedPool4BySubnet4Id:output_type -> GetReservedPool4BySubnet4IdResponse
+	32, // 76: DhcpService.GetListReservation4BySubnet4Id:output_type -> GetReservation4BySubnet4IdResponse
+	35, // 77: DhcpService.GetListLease4BySubnet4Id:output_type -> GetLease4BySubnet4IdResponse
+	38, // 78: DhcpService.GetListLease4ByIp:output_type -> GetLease4ByIpResponse
+	40, // 79: DhcpService.GetListAllSubnet6:output_type -> GetSubnet6Response
+	40, // 80: DhcpService.GetListSubnet6ByPrefixes:output_type -> GetSubnet6Response
+	43, // 81: DhcpService.GetListPool6BySubnet6Id:output_type -> GetPool6BySubnet6IdResponse
+	46, // 82: DhcpService.GetListReservedPool6BySubnet6Id:output_type -> GetReservedPool6BySubnet6IdResponse
+	49, // 83: DhcpService.GetListReservation6BySubnet6Id:output_type -> GetReservation6BySubnet6IdResponse
+	52, // 84: DhcpService.GetListLease6BySubnet6Id:output_type -> GetLease6BySubnet6IdResponse
+	54, // 85: DhcpService.GetListLease6ByIp:output_type -> GetLease6ByIpResponse
+	64, // [64:86] is the sub-list for method output_type
+	42, // [42:64] is the sub-list for method input_type
 	42, // [42:42] is the sub-list for extension type_name
 	42, // [42:42] is the sub-list for extension extendee
 	0,  // [0:42] is the sub-list for field type_name
@@ -6266,13 +6279,15 @@ type DhcpServiceClient interface {
 	GetSubnet6AndLease6WithIp(ctx context.Context, in *GetSubnet6AndLease6WithIpRequest, opts ...grpc.CallOption) (*GetSubnet6AndLease6WithIpResponse, error)
 	GetSubnets4AndLeases4WithIps(ctx context.Context, in *GetSubnets4AndLeases4WithIpsRequest, opts ...grpc.CallOption) (*GetSubnets4AndLeases4WithIpsResponse, error)
 	GetSubnets6AndLeases6WithIps(ctx context.Context, in *GetSubnets6AndLeases6WithIpsRequest, opts ...grpc.CallOption) (*GetSubnets6AndLeases6WithIpsResponse, error)
-	GetListSubnet4(ctx context.Context, in *GetSubnet4Request, opts ...grpc.CallOption) (*GetSubnet4Response, error)
+	GetListAllSubnet4(ctx context.Context, in *GetSubnet4Request, opts ...grpc.CallOption) (*GetSubnet4Response, error)
+	GetListSubnet4ByPrefixes(ctx context.Context, in *GetSubnet4Request, opts ...grpc.CallOption) (*GetSubnet4Response, error)
 	GetListPool4BySubnet4Id(ctx context.Context, in *GetPool4BySubnet4IdRequest, opts ...grpc.CallOption) (*GetPool4BySubnet4IdResponse, error)
 	GetListReservedPool4BySubnet4Id(ctx context.Context, in *GetReservedPool4BySubnet4IdRequest, opts ...grpc.CallOption) (*GetReservedPool4BySubnet4IdResponse, error)
 	GetListReservation4BySubnet4Id(ctx context.Context, in *GetReservation4BySubnet4IdRequest, opts ...grpc.CallOption) (*GetReservation4BySubnet4IdResponse, error)
 	GetListLease4BySubnet4Id(ctx context.Context, in *GetLease4BySubnet4IdRequest, opts ...grpc.CallOption) (*GetLease4BySubnet4IdResponse, error)
 	GetListLease4ByIp(ctx context.Context, in *GetLease4ByIpRequest, opts ...grpc.CallOption) (*GetLease4ByIpResponse, error)
-	GetListSubnet6(ctx context.Context, in *GetSubnet6Request, opts ...grpc.CallOption) (*GetSubnet6Response, error)
+	GetListAllSubnet6(ctx context.Context, in *GetSubnet6Request, opts ...grpc.CallOption) (*GetSubnet6Response, error)
+	GetListSubnet6ByPrefixes(ctx context.Context, in *GetSubnet6Request, opts ...grpc.CallOption) (*GetSubnet6Response, error)
 	GetListPool6BySubnet6Id(ctx context.Context, in *GetPool6BySubnet6IdRequest, opts ...grpc.CallOption) (*GetPool6BySubnet6IdResponse, error)
 	GetListReservedPool6BySubnet6Id(ctx context.Context, in *GetReservedPool6BySubnet6IdRequest, opts ...grpc.CallOption) (*GetReservedPool6BySubnet6IdResponse, error)
 	GetListReservation6BySubnet6Id(ctx context.Context, in *GetReservation6BySubnet6IdRequest, opts ...grpc.CallOption) (*GetReservation6BySubnet6IdResponse, error)
@@ -6360,9 +6375,18 @@ func (c *dhcpServiceClient) GetSubnets6AndLeases6WithIps(ctx context.Context, in
 	return out, nil
 }
 
-func (c *dhcpServiceClient) GetListSubnet4(ctx context.Context, in *GetSubnet4Request, opts ...grpc.CallOption) (*GetSubnet4Response, error) {
+func (c *dhcpServiceClient) GetListAllSubnet4(ctx context.Context, in *GetSubnet4Request, opts ...grpc.CallOption) (*GetSubnet4Response, error) {
 	out := new(GetSubnet4Response)
-	err := c.cc.Invoke(ctx, "/DhcpService/GetListSubnet4", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/DhcpService/GetListAllSubnet4", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dhcpServiceClient) GetListSubnet4ByPrefixes(ctx context.Context, in *GetSubnet4Request, opts ...grpc.CallOption) (*GetSubnet4Response, error) {
+	out := new(GetSubnet4Response)
+	err := c.cc.Invoke(ctx, "/DhcpService/GetListSubnet4ByPrefixes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -6414,9 +6438,18 @@ func (c *dhcpServiceClient) GetListLease4ByIp(ctx context.Context, in *GetLease4
 	return out, nil
 }
 
-func (c *dhcpServiceClient) GetListSubnet6(ctx context.Context, in *GetSubnet6Request, opts ...grpc.CallOption) (*GetSubnet6Response, error) {
+func (c *dhcpServiceClient) GetListAllSubnet6(ctx context.Context, in *GetSubnet6Request, opts ...grpc.CallOption) (*GetSubnet6Response, error) {
 	out := new(GetSubnet6Response)
-	err := c.cc.Invoke(ctx, "/DhcpService/GetListSubnet6", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/DhcpService/GetListAllSubnet6", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dhcpServiceClient) GetListSubnet6ByPrefixes(ctx context.Context, in *GetSubnet6Request, opts ...grpc.CallOption) (*GetSubnet6Response, error) {
+	out := new(GetSubnet6Response)
+	err := c.cc.Invoke(ctx, "/DhcpService/GetListSubnet6ByPrefixes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -6478,13 +6511,15 @@ type DhcpServiceServer interface {
 	GetSubnet6AndLease6WithIp(context.Context, *GetSubnet6AndLease6WithIpRequest) (*GetSubnet6AndLease6WithIpResponse, error)
 	GetSubnets4AndLeases4WithIps(context.Context, *GetSubnets4AndLeases4WithIpsRequest) (*GetSubnets4AndLeases4WithIpsResponse, error)
 	GetSubnets6AndLeases6WithIps(context.Context, *GetSubnets6AndLeases6WithIpsRequest) (*GetSubnets6AndLeases6WithIpsResponse, error)
-	GetListSubnet4(context.Context, *GetSubnet4Request) (*GetSubnet4Response, error)
+	GetListAllSubnet4(context.Context, *GetSubnet4Request) (*GetSubnet4Response, error)
+	GetListSubnet4ByPrefixes(context.Context, *GetSubnet4Request) (*GetSubnet4Response, error)
 	GetListPool4BySubnet4Id(context.Context, *GetPool4BySubnet4IdRequest) (*GetPool4BySubnet4IdResponse, error)
 	GetListReservedPool4BySubnet4Id(context.Context, *GetReservedPool4BySubnet4IdRequest) (*GetReservedPool4BySubnet4IdResponse, error)
 	GetListReservation4BySubnet4Id(context.Context, *GetReservation4BySubnet4IdRequest) (*GetReservation4BySubnet4IdResponse, error)
 	GetListLease4BySubnet4Id(context.Context, *GetLease4BySubnet4IdRequest) (*GetLease4BySubnet4IdResponse, error)
 	GetListLease4ByIp(context.Context, *GetLease4ByIpRequest) (*GetLease4ByIpResponse, error)
-	GetListSubnet6(context.Context, *GetSubnet6Request) (*GetSubnet6Response, error)
+	GetListAllSubnet6(context.Context, *GetSubnet6Request) (*GetSubnet6Response, error)
+	GetListSubnet6ByPrefixes(context.Context, *GetSubnet6Request) (*GetSubnet6Response, error)
 	GetListPool6BySubnet6Id(context.Context, *GetPool6BySubnet6IdRequest) (*GetPool6BySubnet6IdResponse, error)
 	GetListReservedPool6BySubnet6Id(context.Context, *GetReservedPool6BySubnet6IdRequest) (*GetReservedPool6BySubnet6IdResponse, error)
 	GetListReservation6BySubnet6Id(context.Context, *GetReservation6BySubnet6IdRequest) (*GetReservation6BySubnet6IdResponse, error)
@@ -6520,8 +6555,11 @@ func (*UnimplementedDhcpServiceServer) GetSubnets4AndLeases4WithIps(context.Cont
 func (*UnimplementedDhcpServiceServer) GetSubnets6AndLeases6WithIps(context.Context, *GetSubnets6AndLeases6WithIpsRequest) (*GetSubnets6AndLeases6WithIpsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSubnets6AndLeases6WithIps not implemented")
 }
-func (*UnimplementedDhcpServiceServer) GetListSubnet4(context.Context, *GetSubnet4Request) (*GetSubnet4Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetListSubnet4 not implemented")
+func (*UnimplementedDhcpServiceServer) GetListAllSubnet4(context.Context, *GetSubnet4Request) (*GetSubnet4Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetListAllSubnet4 not implemented")
+}
+func (*UnimplementedDhcpServiceServer) GetListSubnet4ByPrefixes(context.Context, *GetSubnet4Request) (*GetSubnet4Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetListSubnet4ByPrefixes not implemented")
 }
 func (*UnimplementedDhcpServiceServer) GetListPool4BySubnet4Id(context.Context, *GetPool4BySubnet4IdRequest) (*GetPool4BySubnet4IdResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetListPool4BySubnet4Id not implemented")
@@ -6538,8 +6576,11 @@ func (*UnimplementedDhcpServiceServer) GetListLease4BySubnet4Id(context.Context,
 func (*UnimplementedDhcpServiceServer) GetListLease4ByIp(context.Context, *GetLease4ByIpRequest) (*GetLease4ByIpResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetListLease4ByIp not implemented")
 }
-func (*UnimplementedDhcpServiceServer) GetListSubnet6(context.Context, *GetSubnet6Request) (*GetSubnet6Response, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetListSubnet6 not implemented")
+func (*UnimplementedDhcpServiceServer) GetListAllSubnet6(context.Context, *GetSubnet6Request) (*GetSubnet6Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetListAllSubnet6 not implemented")
+}
+func (*UnimplementedDhcpServiceServer) GetListSubnet6ByPrefixes(context.Context, *GetSubnet6Request) (*GetSubnet6Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetListSubnet6ByPrefixes not implemented")
 }
 func (*UnimplementedDhcpServiceServer) GetListPool6BySubnet6Id(context.Context, *GetPool6BySubnet6IdRequest) (*GetPool6BySubnet6IdResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetListPool6BySubnet6Id not implemented")
@@ -6705,20 +6746,38 @@ func _DhcpService_GetSubnets6AndLeases6WithIps_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DhcpService_GetListSubnet4_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _DhcpService_GetListAllSubnet4_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSubnet4Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DhcpServiceServer).GetListSubnet4(ctx, in)
+		return srv.(DhcpServiceServer).GetListAllSubnet4(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/DhcpService/GetListSubnet4",
+		FullMethod: "/DhcpService/GetListAllSubnet4",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DhcpServiceServer).GetListSubnet4(ctx, req.(*GetSubnet4Request))
+		return srv.(DhcpServiceServer).GetListAllSubnet4(ctx, req.(*GetSubnet4Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DhcpService_GetListSubnet4ByPrefixes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubnet4Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DhcpServiceServer).GetListSubnet4ByPrefixes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/DhcpService/GetListSubnet4ByPrefixes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DhcpServiceServer).GetListSubnet4ByPrefixes(ctx, req.(*GetSubnet4Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -6813,20 +6872,38 @@ func _DhcpService_GetListLease4ByIp_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DhcpService_GetListSubnet6_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _DhcpService_GetListAllSubnet6_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetSubnet6Request)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(DhcpServiceServer).GetListSubnet6(ctx, in)
+		return srv.(DhcpServiceServer).GetListAllSubnet6(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/DhcpService/GetListSubnet6",
+		FullMethod: "/DhcpService/GetListAllSubnet6",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DhcpServiceServer).GetListSubnet6(ctx, req.(*GetSubnet6Request))
+		return srv.(DhcpServiceServer).GetListAllSubnet6(ctx, req.(*GetSubnet6Request))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DhcpService_GetListSubnet6ByPrefixes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSubnet6Request)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DhcpServiceServer).GetListSubnet6ByPrefixes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/DhcpService/GetListSubnet6ByPrefixes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DhcpServiceServer).GetListSubnet6ByPrefixes(ctx, req.(*GetSubnet6Request))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -6958,8 +7035,12 @@ var _DhcpService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _DhcpService_GetSubnets6AndLeases6WithIps_Handler,
 		},
 		{
-			MethodName: "GetListSubnet4",
-			Handler:    _DhcpService_GetListSubnet4_Handler,
+			MethodName: "GetListAllSubnet4",
+			Handler:    _DhcpService_GetListAllSubnet4_Handler,
+		},
+		{
+			MethodName: "GetListSubnet4ByPrefixes",
+			Handler:    _DhcpService_GetListSubnet4ByPrefixes_Handler,
 		},
 		{
 			MethodName: "GetListPool4BySubnet4Id",
@@ -6982,8 +7063,12 @@ var _DhcpService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _DhcpService_GetListLease4ByIp_Handler,
 		},
 		{
-			MethodName: "GetListSubnet6",
-			Handler:    _DhcpService_GetListSubnet6_Handler,
+			MethodName: "GetListAllSubnet6",
+			Handler:    _DhcpService_GetListAllSubnet6_Handler,
+		},
+		{
+			MethodName: "GetListSubnet6ByPrefixes",
+			Handler:    _DhcpService_GetListSubnet6ByPrefixes_Handler,
 		},
 		{
 			MethodName: "GetListPool6BySubnet6Id",
