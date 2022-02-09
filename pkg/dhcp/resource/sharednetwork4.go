@@ -24,6 +24,10 @@ type SharedNetwork4 struct {
 }
 
 func (s *SharedNetwork4) Validate() error {
+	if len(s.Name) == 0 {
+		return fmt.Errorf("shared network4 name is required")
+	}
+
 	if len(s.SubnetIds) <= 1 {
 		return fmt.Errorf("shared network4 %s subnet ids length should excceed 1", s.Name)
 	}

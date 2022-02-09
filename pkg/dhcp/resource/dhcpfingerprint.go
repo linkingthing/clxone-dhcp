@@ -33,11 +33,15 @@ type DhcpFingerprint struct {
 	VendorId                  string       `json:"vendorId" db:"uk"`
 	OperatingSystem           string       `json:"operatingSystem" db:"uk"`
 	ClientType                string       `json:"clientType" db:"uk"`
-	MatchPattern              MatchPattern `json:"matchPattern" rest:"required=true"`
+	MatchPattern              MatchPattern `json:"matchPattern"`
 	IsReadOnly                bool         `json:"isReadOnly"`
 }
 
 func (f *DhcpFingerprint) Validate() error {
+	if len(f.Fingerprint) == 0 {
+		return fmt.Errorf("fingerprint is required")
+	}
+
 	for _, v := range strings.Split(f.Fingerprint, ",") {
 		if i, err := strconv.Atoi(v); err != nil {
 			return fmt.Errorf("fingerprint must consist of numbers and commas, but get %s", f.Fingerprint)

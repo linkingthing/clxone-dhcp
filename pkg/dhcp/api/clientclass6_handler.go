@@ -28,6 +28,11 @@ func NewClientClass6Handler() *ClientClass6Handler {
 func (c *ClientClass6Handler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	clientclass := ctx.Resource.(*resource.ClientClass6)
 	clientclass.SetID(clientclass.Name)
+	if err := clientclass.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("create clientclass6 %s failed: %s", clientclass.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(clientclass); err != nil {
 			return err
@@ -85,6 +90,11 @@ func (c *ClientClass6Handler) Get(ctx *restresource.Context) (restresource.Resou
 
 func (c *ClientClass6Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	clientclass := ctx.Resource.(*resource.ClientClass6)
+	if err := clientclass.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("update clientclass6 %s failed: %s", clientclass.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Update(resource.TableClientClass6, map[string]interface{}{
 			"regexp": clientclass.Regexp,

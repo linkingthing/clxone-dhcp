@@ -69,8 +69,8 @@ func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, uint64,
 		return nil, 0, fmt.Errorf("pdpool prefix %s is invalid: %s", prefix, err.Error())
 	}
 
-	if prefixLen >= 64 {
-		return nil, 0, fmt.Errorf("pdpool prefix len %d should not bigger than 64)", prefixLen)
+	if prefixLen <= 0 || prefixLen >= 64 {
+		return nil, 0, fmt.Errorf("pdpool prefix len %d not in (0, 64)", prefixLen)
 	}
 
 	if delegatedLen < prefixLen || delegatedLen > 64 {

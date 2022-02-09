@@ -23,6 +23,11 @@ func NewRateLimitDuidHandler() *RateLimitDuidHandler {
 func (d *RateLimitDuidHandler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	ratelimitDuid := ctx.Resource.(*resource.RateLimitDuid)
 	ratelimitDuid.SetID(ratelimitDuid.Duid)
+	if err := ratelimitDuid.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("create ratelimit duid %s failed: %s", ratelimitDuid.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(ratelimitDuid); err != nil {
 			return err
@@ -96,6 +101,11 @@ func sendDeleteRateLimitDuidCmdToDHCPAgent(ratelimitDuidId string) error {
 
 func (d *RateLimitDuidHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	ratelimitDuid := ctx.Resource.(*resource.RateLimitDuid)
+	if err := ratelimitDuid.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("update ratelimit duid %s failed: %s", ratelimitDuid.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var ratelimits []*resource.RateLimitDuid
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: ratelimitDuid.GetID()},

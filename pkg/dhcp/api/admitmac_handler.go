@@ -104,6 +104,11 @@ func sendDeleteAdmitMacCmdToDHCPAgent(admitMacId string) error {
 
 func (d *AdmitMacHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitMac := ctx.Resource.(*resource.AdmitMac)
+	if err := admitMac.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("update admit mac %s failed: %s", admitMac.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableAdmitMac, map[string]interface{}{
 			"comment": admitMac.Comment,

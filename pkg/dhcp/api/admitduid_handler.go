@@ -27,6 +27,11 @@ func NewAdmitDuidHandler() *AdmitDuidHandler {
 func (d *AdmitDuidHandler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitDuid := ctx.Resource.(*resource.AdmitDuid)
 	admitDuid.SetID(admitDuid.Duid)
+	if err := admitDuid.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("create admit duid %s failed: %s", admitDuid.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitDuid); err != nil {
 			return err
@@ -99,6 +104,11 @@ func sendDeleteAdmitDuidCmdToDHCPAgent(admitDuidId string) error {
 
 func (d *AdmitDuidHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitDuid := ctx.Resource.(*resource.AdmitDuid)
+	if err := admitDuid.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("update admit duid %s failed: %s", admitDuid.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableAdmitDuid, map[string]interface{}{
 			"comment": admitDuid.Comment,

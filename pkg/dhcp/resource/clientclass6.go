@@ -12,3 +12,11 @@ type ClientClass6 struct {
 	Name                      string `json:"name" rest:"required=true,description=immutable" db:"uk"`
 	Regexp                    string `json:"regexp" rest:"required=true"`
 }
+
+func (c *ClientClass6) Validate() error {
+	if len(c.Name) == 0 || len(c.Regexp) == 0 {
+		return ErrNameOrRegexpMissing
+	} else {
+		return nil
+	}
+}

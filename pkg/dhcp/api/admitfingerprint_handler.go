@@ -22,6 +22,11 @@ func NewAdmitFingerprintHandler() *AdmitFingerprintHandler {
 func (d *AdmitFingerprintHandler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitFingerprint := ctx.Resource.(*resource.AdmitFingerprint)
 	admitFingerprint.SetID(admitFingerprint.ClientType)
+	if err := admitFingerprint.Validate(); err != nil {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			fmt.Sprintf("create admit fingerprint %s failed: %s", admitFingerprint.GetID(), err.Error()))
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitFingerprint); err != nil {
 			return err

@@ -16,3 +16,11 @@ type AdmitDuid struct {
 func (a AdmitDuid) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Admit{}}
 }
+
+func (a *AdmitDuid) Validate() error {
+	if len(a.Duid) == 0 {
+		return ErrDuidMissing
+	} else {
+		return nil
+	}
+}
