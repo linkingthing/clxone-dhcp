@@ -23,6 +23,10 @@ func NewReservedPool6Service() *ReservedPool6Service {
 }
 
 func (p *ReservedPool6Service) Create(subnet *resource.Subnet6, pool *resource.ReservedPool6) (restresource.Resource, error) {
+	return CreateReservedPool6(subnet, pool)
+}
+
+func CreateReservedPool6(subnet *resource.Subnet6, pool *resource.ReservedPool6) (restresource.Resource, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkReservedPool6CouldBeCreated(tx, subnet, pool); err != nil {
 			return err
@@ -194,6 +198,10 @@ func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.R
 }
 
 func (p *ReservedPool6Service) List(subnet *resource.Subnet6) (interface{}, error) {
+	return GetReservedPool6List(subnet)
+}
+
+func GetReservedPool6List(subnet *resource.Subnet6) ([]*resource.ReservedPool6, error) {
 	var pools []*resource.ReservedPool6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet6FromDB(tx, subnet); err != nil {

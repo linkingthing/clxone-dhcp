@@ -180,6 +180,15 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 
 func (s *Subnet4Service) List(ctx *restresource.Context) (interface{}, error) {
 	listCtx := genGetSubnetsContext(ctx, resource.TableSubnet4)
+	subnets, subnetsCount, err := GetSubnet4List(listCtx)
+	if err != nil {
+		return nil, err
+	}
+	setPagination(ctx, listCtx.hasPagination, subnetsCount)
+	return subnets, nil
+}
+
+func GetSubnet4List(listCtx listSubnetContext) ([]*resource.Subnet4, int, error) {
 	var subnets []*resource.Subnet4
 	var subnetsCount int
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -194,7 +203,7 @@ func (s *Subnet4Service) List(ctx *restresource.Context) (interface{}, error) {
 
 		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
 	}); err != nil {
-		return nil, fmt.Errorf("db failed: %s", err.Error())
+		return nil, -1, fmt.Errorf("db failed: %s", err.Error())
 	}
 
 	if err := setSubnet4sLeasesUsedInfo(subnets, listCtx); err != nil {
@@ -206,9 +215,7 @@ func (s *Subnet4Service) List(ctx *restresource.Context) (interface{}, error) {
 	} else {
 		setSubnet4sNodeNames(subnets, nodeNames)
 	}
-
-	setPagination(ctx, listCtx.hasPagination, subnetsCount)
-	return subnets, nil
+	return subnets, subnetsCount, nil
 }
 
 type listSubnetContext struct {
@@ -303,6 +310,16 @@ func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) 
 		}
 	}
 
+	listCtx.sql = strings.Join(sqls, " ")
+	return listCtx
+}
+
+func GenGrpcGetSubnetsContext(table restdb.ResourceType) listSubnetContext {
+	var listCtx listSubnetContext
+	sqls := []string{"select * from gr_" + string(table)}
+	if listCtx.hasFilterSubnet == false {
+		sqls = append(sqls, "order by subnet_id")
+	}
 	listCtx.sql = strings.Join(sqls, " ")
 	return listCtx
 }
@@ -1290,16 +1307,18 @@ func (s *Subnet4Service) CouldBeCreated(couldBeCreatedSubnet *resource.CouldBeCr
 func (s *Subnet4Service) ListWithSubnets(subnetListInput *resource.SubnetListInput) (interface{}, error) {
 	for _, subnet := range subnetListInput.Subnets {
 		if _, err := gohelperip.ParseCIDRv4(subnet); err != nil {
-
 			return nil, fmt.Errorf("action check subnet could be created input invalid: %s", err.Error())
 		}
 	}
+	return GetListWithSubnet4s(subnetListInput.Subnets)
+}
 
+func GetListWithSubnet4s(Subnets []string) (*resource.Subnet4ListOutput, error) {
 	var subnets []*resource.Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets,
 			fmt.Sprintf("select * from gr_subnet4 where subnet in ('%s')",
-				strings.Join(subnetListInput.Subnets, "','")))
+				strings.Join(Subnets, "','")))
 	}); err != nil {
 		return nil, fmt.Errorf("action list subnet failed: %s", err.Error())
 	}
@@ -1308,6 +1327,5 @@ func (s *Subnet4Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 		listSubnetContext{hasFilterSubnet: true}); err != nil {
 		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
 	}
-
 	return &resource.Subnet4ListOutput{Subnet4s: subnets}, nil
 }

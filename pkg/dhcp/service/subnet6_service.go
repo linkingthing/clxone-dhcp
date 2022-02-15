@@ -137,6 +137,15 @@ func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetO
 
 func (s *Subnet6Service) List(ctx *restresource.Context) (interface{}, error) {
 	listCtx := genGetSubnetsContext(ctx, resource.TableSubnet6)
+	subnets, subnetsCount, err := GetSubnet6List(listCtx)
+	if err != nil {
+		return nil, err
+	}
+	setPagination(ctx, listCtx.hasPagination, subnetsCount)
+	return subnets, nil
+}
+
+func GetSubnet6List(listCtx listSubnetContext) ([]*resource.Subnet6, int, error) {
 	var subnets []*resource.Subnet6
 	var subnetsCount int
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -151,7 +160,7 @@ func (s *Subnet6Service) List(ctx *restresource.Context) (interface{}, error) {
 
 		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
 	}); err != nil {
-		return nil, err
+		return nil, -1, err
 	}
 
 	if err := setSubnet6sLeasesUsedInfo(subnets, listCtx.isUseIds()); err != nil {
@@ -163,9 +172,7 @@ func (s *Subnet6Service) List(ctx *restresource.Context) (interface{}, error) {
 	} else {
 		setSubnet6sNodeNames(subnets, nodeNames)
 	}
-
-	setPagination(ctx, listCtx.hasPagination, subnetsCount)
-	return subnets, nil
+	return subnets, subnetsCount, nil
 }
 
 func setSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
@@ -585,11 +592,15 @@ func (s *Subnet6Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 		}
 	}
 
+	return GetListWithSubnet6s(subnetListInput.Subnets)
+}
+
+func GetListWithSubnet6s(prefixes []string) (*resource.Subnet6ListOutput, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets,
 			fmt.Sprintf("select * from gr_subnet6 where subnet in ('%s')",
-				strings.Join(subnetListInput.Subnets, "','")))
+				strings.Join(prefixes, "','")))
 	}); err != nil {
 		return nil, err
 	}

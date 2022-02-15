@@ -25,6 +25,10 @@ func NewReservation4Service() *Reservation4Service {
 }
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) (restresource.Resource, error) {
+	return CreateReservation4s(subnet, reservation)
+}
+
+func CreateReservation4s(subnet *resource.Subnet4, reservation *resource.Reservation4) (restresource.Resource, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkReservation4InUsed(tx, subnet.GetID(), reservation); err != nil {
 			return err
@@ -137,9 +141,14 @@ func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resou
 }
 
 func (r *Reservation4Service) List(subnetID string) (interface{}, error) {
+	return GetReservation4List(subnetID)
+}
+
+func GetReservation4List(subnetID string) ([]*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	if err := db.GetResources(map[string]interface{}{
-		resource.SqlColumnSubnet4: subnetID, util.SqlOrderBy: resource.SqlColumnsIp}, &reservations); err != nil {
+		resource.SqlColumnSubnet4: subnetID,
+		util.SqlOrderBy:           resource.SqlColumnsIp}, &reservations); err != nil {
 		return nil, err
 	}
 

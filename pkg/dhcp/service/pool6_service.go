@@ -166,6 +166,10 @@ func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 }
 
 func (p *Pool6Service) List(subnet *resource.Subnet6) (interface{}, error) {
+	return GetPool6List(subnet)
+}
+
+func GetPool6List(subnet *resource.Subnet6) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

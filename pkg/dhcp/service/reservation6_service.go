@@ -25,6 +25,10 @@ func NewReservation6Service() *Reservation6Service {
 }
 
 func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *resource.Reservation6) (restresource.Resource, error) {
+	return CreateReservation6s(subnet, reservation)
+}
+
+func CreateReservation6s(subnet *resource.Subnet6, reservation *resource.Reservation6) (restresource.Resource, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet6FromDB(tx, subnet); err != nil {
 			return err
@@ -251,6 +255,10 @@ func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resou
 }
 
 func (r *Reservation6Service) List(subnetID string) (interface{}, error) {
+	return GetReservation6List(subnetID)
+}
+
+func GetReservation6List(subnetID string) ([]*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
 	if err := db.GetResources(map[string]interface{}{
 		resource.SqlColumnSubnet6: subnetID,

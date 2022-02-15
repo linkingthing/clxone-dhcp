@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/grpc/service"
+
 	"net"
 	"net/http"
 	"os"
@@ -18,6 +18,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
+	"github.com/linkingthing/clxone-dhcp/pkg/grpc/service"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 )

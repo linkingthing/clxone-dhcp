@@ -4,9 +4,10 @@ import (
 	"net"
 	"time"
 
+	restresource "github.com/linkingthing/gorest/resource"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
-	restresource "github.com/linkingthing/gorest/resource"
 )
 
 func EncodeLinks(old map[restresource.ResourceLinkType]restresource.ResourceLink) map[string]string {
@@ -259,5 +260,74 @@ func EncodeDhcpSubnetLease6(old *resource.SubnetLease6) *pbdhcp.DhcpSubnetLease6
 		OperatingSystem:       old.OperatingSystem,
 		ClientType:            old.ClientType,
 		LeaseState:            old.LeaseState,
+	}
+}
+
+func EncodeDhcpSubnet4FromSubnet4(subnet *resource.Subnet4, leasesCount uint64) *pbdhcp.Subnet4 {
+	return &pbdhcp.Subnet4{
+		Id:            subnet.GetID(),
+		Subnet:        subnet.Subnet,
+		SubnetId:      subnet.SubnetId,
+		Capacity:      subnet.Capacity,
+		UsedCount:     leasesCount,
+		DomainServers: subnet.DomainServers,
+		Routers:       subnet.Routers,
+	}
+}
+
+func EncodeDhcpSubnet6FromSubnet6(subnet *resource.Subnet6, leasesCount uint64) *pbdhcp.Subnet6 {
+	return &pbdhcp.Subnet6{
+		Id:            subnet.GetID(),
+		Subnet:        subnet.Subnet,
+		SubnetId:      subnet.SubnetId,
+		Capacity:      subnet.Capacity,
+		UsedCount:     leasesCount,
+		DomainServers: subnet.DomainServers,
+		UseEui64:      subnet.UseEui64,
+	}
+}
+
+func EncodeDhcpLease4FromSubnetLease4(lease4 *resource.SubnetLease4) *pbdhcp.Lease4 {
+	if lease4 == nil {
+		return nil
+	}
+	return &pbdhcp.Lease4{
+		Address:               lease4.Address,
+		HwAddress:             lease4.HwAddress,
+		HwAddressOrganization: lease4.HwAddressOrganization,
+		ClientId:              lease4.ClientId,
+		ValidLifetime:         lease4.ValidLifetime,
+		Expire:                lease4.Expire,
+		Hostname:              lease4.Hostname,
+		VendorId:              lease4.VendorId,
+		OperatingSystem:       lease4.OperatingSystem,
+		ClientType:            lease4.ClientType,
+		LeaseState:            lease4.LeaseState,
+	}
+}
+
+func EncodeDhcpLease6FromSubnetLease6(lease6 *resource.SubnetLease6) *pbdhcp.Lease6 {
+	if lease6 == nil {
+		return nil
+	}
+
+	return &pbdhcp.Lease6{
+		Address:               lease6.Address,
+		PrefixLen:             lease6.PrefixLen,
+		Duid:                  lease6.Duid,
+		Iaid:                  lease6.Iaid,
+		HwAddress:             lease6.HwAddress,
+		HwAddressType:         lease6.HwAddressType,
+		HwAddressSource:       lease6.HwAddressSource,
+		HwAddressOrganization: lease6.HwAddressOrganization,
+		ValidLifetime:         lease6.ValidLifetime,
+		PreferredLifetime:     lease6.PreferredLifetime,
+		Expire:                lease6.Expire,
+		LeaseType:             lease6.LeaseType,
+		Hostname:              lease6.Hostname,
+		VendorId:              lease6.VendorId,
+		OperatingSystem:       lease6.OperatingSystem,
+		ClientType:            lease6.ClientType,
+		LeaseState:            lease6.LeaseState,
 	}
 }
