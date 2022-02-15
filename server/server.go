@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/linkingthing/clxone-dhcp/pkg/grpc/service"
 	"net"
 	"net/http"
 	"os"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/grpcservice"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 )
@@ -131,7 +131,7 @@ func (s *Server) Run(conf *config.DHCPConfig) error {
 
 		grpcServer := grpc.NewServer()
 		hv1.RegisterHealthServer(grpcServer, health.NewServer())
-		pbdhcp.RegisterDhcpServiceServer(grpcServer, grpcservice.NewGRPCService())
+		pbdhcp.RegisterDhcpServiceServer(grpcServer, service.NewGRPCService())
 		errch <- grpcServer.Serve(grpcListener)
 	}()
 

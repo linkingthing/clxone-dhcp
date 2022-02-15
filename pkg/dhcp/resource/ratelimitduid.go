@@ -16,6 +16,10 @@ type RateLimitDuid struct {
 	Comment                   string `json:"comment"`
 }
 
+const (
+	SqlColumnRateLimit = "rate_limit"
+)
+
 func (a RateLimitDuid) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{RateLimit{}}
 }

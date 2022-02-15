@@ -35,6 +35,13 @@ type Subnet6 struct {
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 }
 
+const (
+	SqlColumnPreferredLifetime     = "preferred_lifetime"
+	SqlColumnRelayAgentInterfaceId = "relay_agent_interface_id"
+	SqlColumnRapidCommit           = "rapid_commit"
+	SqlColumnUseEui64              = "use_eui64"
+)
+
 func (s Subnet6) GetActions() []restresource.Action {
 	return []restresource.Action{
 		restresource.Action{

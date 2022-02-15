@@ -15,6 +15,10 @@ type AdmitMac struct {
 	Comment                   string `json:"comment"`
 }
 
+const (
+	SqlColumnHwAddress = "hw_address"
+)
+
 func (a AdmitMac) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Admit{}}
 }

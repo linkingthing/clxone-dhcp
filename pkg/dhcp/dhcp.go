@@ -2,11 +2,10 @@ package dhcp
 
 import (
 	"github.com/gin-gonic/gin"
-
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/gorest"
 	restresource "github.com/linkingthing/gorest/resource"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
 
@@ -17,63 +16,65 @@ var (
 	}
 )
 
-func RegisterHandler(apiServer *gorest.Server, router gin.IRoutes) error {
-	api.InitConsulHandler()
-	apiServer.Schemas.MustImport(&Version, resource.SharedNetwork4{}, api.NewSharedNetwork4Handler())
-	apiServer.Schemas.MustImport(&Version, resource.Subnet4{}, api.NewSubnet4Handler())
-	apiServer.Schemas.MustImport(&Version, resource.Pool4{}, api.NewPool4Handler())
-	apiServer.Schemas.MustImport(&Version, resource.ReservedPool4{}, api.NewReservedPool4Handler())
-	apiServer.Schemas.MustImport(&Version, resource.Reservation4{}, api.NewReservation4Handler())
-	apiServer.Schemas.MustImport(&Version, resource.ClientClass4{}, api.NewClientClass4Handler())
-	apiServer.Schemas.MustImport(&Version, resource.Pool4Template{}, api.NewPool4TemplateHandler())
-	apiServer.Schemas.MustImport(&Version, resource.SubnetLease4{}, api.NewSubnetLease4Handler())
+func RegisterApi(apiServer *gorest.Server, router gin.IRoutes) error {
+	//server.InitConsulHandler()
+	apiServer.Schemas.MustImport(&Version, resource.SharedNetwork4{}, api.NewSharedNetwork4Api())
+	apiServer.Schemas.MustImport(&Version, resource.Subnet4{}, api.NewSubnet4Api())
+	apiServer.Schemas.MustImport(&Version, resource.Pool4{}, api.NewPool4Api())
+	apiServer.Schemas.MustImport(&Version, resource.ReservedPool4{}, api.NewReservedPool4Api())
+	apiServer.Schemas.MustImport(&Version, resource.Reservation4{}, api.NewReservation4Api())
+	apiServer.Schemas.MustImport(&Version, resource.ClientClass4{}, api.NewClientClass4Api())
+	apiServer.Schemas.MustImport(&Version, resource.Pool4Template{}, api.NewPool4TemplateApi())
+	apiServer.Schemas.MustImport(&Version, resource.SubnetLease4{}, api.NewSubnetLease4Api())
+	apiServer.Schemas.MustImport(&Version, resource.Subnet6{}, api.NewSubnet6Api())
+	apiServer.Schemas.MustImport(&Version, resource.PdPool{}, api.NewPdPoolApi())
+	apiServer.Schemas.MustImport(&Version, resource.ReservedPdPool{}, api.NewReservedPdPoolApi())
+	apiServer.Schemas.MustImport(&Version, resource.Pool6{}, api.NewPool6Api())
+	apiServer.Schemas.MustImport(&Version, resource.ReservedPool6{}, api.NewReservedPool6Api())
+	apiServer.Schemas.MustImport(&Version, resource.Reservation6{}, api.NewReservation6Api())
+	apiServer.Schemas.MustImport(&Version, resource.ClientClass6{}, api.NewClientClass6Api())
+	apiServer.Schemas.MustImport(&Version, resource.Pool6Template{}, api.NewPool6TemplateApi())
+	apiServer.Schemas.MustImport(&Version, resource.SubnetLease6{}, api.NewSubnetLease6Api())
 
-	apiServer.Schemas.MustImport(&Version, resource.Subnet6{}, api.NewSubnet6Handler())
-	apiServer.Schemas.MustImport(&Version, resource.PdPool{}, api.NewPdPoolHandler())
-	apiServer.Schemas.MustImport(&Version, resource.ReservedPdPool{}, api.NewReservedPdPoolHandler())
-	apiServer.Schemas.MustImport(&Version, resource.Pool6{}, api.NewPool6Handler())
-	apiServer.Schemas.MustImport(&Version, resource.ReservedPool6{}, api.NewReservedPool6Handler())
-	apiServer.Schemas.MustImport(&Version, resource.Reservation6{}, api.NewReservation6Handler())
-	apiServer.Schemas.MustImport(&Version, resource.ClientClass6{}, api.NewClientClass6Handler())
-	apiServer.Schemas.MustImport(&Version, resource.Pool6Template{}, api.NewPool6TemplateHandler())
-	apiServer.Schemas.MustImport(&Version, resource.SubnetLease6{}, api.NewSubnetLease6Handler())
+	apiServer.Schemas.MustImport(&Version, resource.Agent4{}, api.NewAgent4Api())
+	apiServer.Schemas.MustImport(&Version, resource.Agent6{}, api.NewAgent6Api())
 
-	apiServer.Schemas.MustImport(&Version, resource.Agent4{}, api.NewAgent4Handler())
-	apiServer.Schemas.MustImport(&Version, resource.Agent6{}, api.NewAgent6Handler())
+	apiServer.Schemas.MustImport(&Version, resource.DhcpFingerprint{}, api.NewDhcpFingerprintApi())
 
-	apiServer.Schemas.MustImport(&Version, resource.DhcpFingerprint{}, api.NewDhcpFingerprintHandler())
-	if dhcpConfigHandler, err := api.NewDhcpConfigHandler(); err != nil {
+	dhcpConfigApi := api.NewDhcpConfigApi()
+	if err := dhcpConfigApi.Service.CreateDefaultDhcpConfig(); err != nil {
 		return err
 	} else {
-		apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, dhcpConfigHandler)
+		apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, dhcpConfigApi)
 	}
-
-	if pingerHandler, err := api.NewPingerHandler(); err != nil {
+	pingerApi := api.NewPingerApi()
+	if err := pingerApi.Service.CreateDefaultPinger(); err != nil {
 		return err
 	} else {
-		apiServer.Schemas.MustImport(&Version, resource.Pinger{}, pingerHandler)
+		apiServer.Schemas.MustImport(&Version, resource.Pinger{}, pingerApi)
 	}
-
-	if admitHandler, err := api.NewAdmitHandler(); err != nil {
+	admitApi := api.NewAdmitApi()
+	if err := admitApi.Service.CreateDefaultAdmit(); err != nil {
 		return err
 	} else {
-		apiServer.Schemas.MustImport(&Version, resource.Admit{}, admitHandler)
+		apiServer.Schemas.MustImport(&Version, resource.Admit{}, admitApi)
 	}
 
-	apiServer.Schemas.MustImport(&Version, resource.AdmitMac{}, api.NewAdmitMacHandler())
-	apiServer.Schemas.MustImport(&Version, resource.AdmitDuid{}, api.NewAdmitDuidHandler())
-	apiServer.Schemas.MustImport(&Version, resource.AdmitFingerprint{}, api.NewAdmitFingerprintHandler())
+	apiServer.Schemas.MustImport(&Version, resource.AdmitMac{}, api.NewAdmitMacApi())
+	apiServer.Schemas.MustImport(&Version, resource.AdmitDuid{}, api.NewAdmitDuIdApi())
+	apiServer.Schemas.MustImport(&Version, resource.AdmitFingerprint{}, api.NewAdmitFingerprintApi())
 
-	if ratelimitHandler, err := api.NewRateLimitHandler(); err != nil {
+	rateLimitApi := api.NewRateLimitApi()
+	if err := rateLimitApi.Service.CreateDefaultRateLimit(); err != nil {
 		return err
 	} else {
-		apiServer.Schemas.MustImport(&Version, resource.RateLimit{}, ratelimitHandler)
+		apiServer.Schemas.MustImport(&Version, resource.RateLimit{}, rateLimitApi)
 	}
 
-	apiServer.Schemas.MustImport(&Version, resource.RateLimitMac{}, api.NewRateLimitMacHandler())
-	apiServer.Schemas.MustImport(&Version, resource.RateLimitDuid{}, api.NewRateLimitDuidHandler())
+	apiServer.Schemas.MustImport(&Version, resource.RateLimitMac{}, api.NewRateLimitMacApi())
+	apiServer.Schemas.MustImport(&Version, resource.RateLimitDuid{}, api.NewRateLimitDuidApi())
 
-	apiServer.Schemas.MustImport(&Version, resource.DhcpOui{}, api.NewDhcpOuiHandler())
+	apiServer.Schemas.MustImport(&Version, resource.DhcpOui{}, api.NewDhcpOuiApi())
 	return nil
 }
 

@@ -25,6 +25,11 @@ type SubnetLease4 struct {
 	LeaseState                string      `json:"leaseState"`
 }
 
+const (
+	SqlColumnAddress   = "address"
+	SqlColumnIpAddress = "ip_address"
+)
+
 func (l SubnetLease4) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet4{}}
 }

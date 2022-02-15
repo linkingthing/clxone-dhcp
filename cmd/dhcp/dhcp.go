@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"github.com/linkingthing/clxone-dhcp/pkg/transport"
 
 	"github.com/linkingthing/cement/log"
 
@@ -40,10 +41,15 @@ func main() {
 		log.Fatalf("new server failed: %s", err.Error())
 	}
 
-	if err := server.RegisterHandler(restserver.HandlerRegister(dhcp.RegisterHandler)); err != nil {
+	if err := server.RegisterHandler(restserver.HandlerRegister(dhcp.RegisterApi)); err != nil {
 		log.Fatalf("register dhcp handler failed: %s", err.Error())
 	}
-	if err := server.RegisterHandler(restserver.HandlerRegister(metric.RegisterHandler)); err != nil {
+
+	if err := transport.RegisterTransport(conf); err != nil {
+		log.Fatalf("register transport failed: %s", err.Error())
+	}
+
+	if err := server.RegisterHandler(restserver.HandlerRegister(metric.RegisterApi)); err != nil {
 		log.Fatalf("register metric handler failed: %s", err.Error())
 	}
 

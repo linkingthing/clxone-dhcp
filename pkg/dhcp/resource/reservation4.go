@@ -23,6 +23,10 @@ type Reservation4 struct {
 	Comment                   string `json:"comment"`
 }
 
+const (
+	SqlColumnsIp = "ip"
+)
+
 func (r Reservation4) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet4{}}
 }

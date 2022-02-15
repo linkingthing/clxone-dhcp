@@ -23,6 +23,11 @@ type SharedNetwork4 struct {
 	Comment                   string   `json:"comment"`
 }
 
+const (
+	SqlColumnsSubnetIds = "subnet_ids"
+	SqlColumnsSubnets   = "subnets"
+)
+
 func (s *SharedNetwork4) Validate() error {
 	if len(s.Name) == 0 {
 		return fmt.Errorf("shared network4 name is required")
