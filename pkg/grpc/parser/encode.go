@@ -10,7 +10,7 @@ import (
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 )
 
-func EncodeLinks(old map[restresource.ResourceLinkType]restresource.ResourceLink) map[string]string {
+func encodeLinks(old map[restresource.ResourceLinkType]restresource.ResourceLink) map[string]string {
 	links := make(map[string]string)
 	for keyStr, valStr := range old {
 		links[string(keyStr)] = string(valStr)
@@ -18,7 +18,7 @@ func EncodeLinks(old map[restresource.ResourceLinkType]restresource.ResourceLink
 	return links
 }
 
-func EncodeIsoTime(old time.Time) string {
+func encodeIsoTime(old time.Time) string {
 	return old.Format(time.RFC3339)
 }
 
@@ -26,9 +26,9 @@ func EncodeDhcpSubnet4(subnet *resource.Subnet4) *pbdhcp.DhcpSubnet4 {
 	return &pbdhcp.DhcpSubnet4{
 		Id:                  subnet.ID,
 		Type:                subnet.Type,
-		CreationTimestamp:   EncodeIsoTime(subnet.GetCreationTimestamp()),
-		DeletionTimestamp:   EncodeIsoTime(subnet.GetDeletionTimestamp()),
-		Links:               EncodeLinks(subnet.GetLinks()),
+		CreationTimestamp:   encodeIsoTime(subnet.GetCreationTimestamp()),
+		DeletionTimestamp:   encodeIsoTime(subnet.GetDeletionTimestamp()),
+		Links:               encodeLinks(subnet.GetLinks()),
 		Subnet:              subnet.Subnet,
 		IpNet:               subnet.Ipnet.String(),
 		SubnetId:            subnet.SubnetId,
@@ -57,9 +57,9 @@ func EncodeDhcpPool4(pool *resource.Pool4) *pbdhcp.DhcpPool4 {
 	return &pbdhcp.DhcpPool4{
 		Id:                pool.ID,
 		Type:              pool.Type,
-		CreationTimestamp: EncodeIsoTime(pool.GetCreationTimestamp()),
-		DeletionTimestamp: EncodeIsoTime(pool.GetDeletionTimestamp()),
-		Links:             EncodeLinks(pool.GetLinks()),
+		CreationTimestamp: encodeIsoTime(pool.GetCreationTimestamp()),
+		DeletionTimestamp: encodeIsoTime(pool.GetDeletionTimestamp()),
+		Links:             encodeLinks(pool.GetLinks()),
 		Subnet4:           pool.Subnet4,
 		BeginAddress:      pool.BeginAddress,
 		BeginIp:           pool.BeginIp.String(),
@@ -77,9 +77,9 @@ func EncodeDhcpReservedPool4(pool *resource.ReservedPool4) *pbdhcp.DhcpReservedP
 	return &pbdhcp.DhcpReservedPool4{
 		Id:                pool.ID,
 		Type:              pool.Type,
-		CreationTimestamp: EncodeIsoTime(pool.GetCreationTimestamp()),
-		DeletionTimestamp: EncodeIsoTime(pool.GetDeletionTimestamp()),
-		Links:             EncodeLinks(pool.GetLinks()),
+		CreationTimestamp: encodeIsoTime(pool.GetCreationTimestamp()),
+		DeletionTimestamp: encodeIsoTime(pool.GetDeletionTimestamp()),
+		Links:             encodeLinks(pool.GetLinks()),
 		Subnet4:           pool.Subnet4,
 		BeginAddress:      pool.BeginAddress,
 		BeginIp:           pool.BeginIp.String(),
@@ -97,9 +97,9 @@ func EncodeDhcpReservation4(old *resource.Reservation4) *pbdhcp.DhcpReservation4
 	return &pbdhcp.DhcpReservation4{
 		Id:                old.ID,
 		Type:              old.Type,
-		CreationTimestamp: EncodeIsoTime(old.GetCreationTimestamp()),
-		DeletionTimestamp: EncodeIsoTime(old.GetDeletionTimestamp()),
-		Links:             EncodeLinks(old.GetLinks()),
+		CreationTimestamp: encodeIsoTime(old.GetCreationTimestamp()),
+		DeletionTimestamp: encodeIsoTime(old.GetDeletionTimestamp()),
+		Links:             encodeLinks(old.GetLinks()),
 		Subnet4:           old.Subnet4,
 		HwAddress:         old.HwAddress,
 		IpAddress:         old.IpAddress,
@@ -115,9 +115,9 @@ func EncodeDhcpSubnetLeases4(old *resource.SubnetLease4) *pbdhcp.DhcpSubnetLease
 	return &pbdhcp.DhcpSubnetLease4{
 		Id:                    old.ID,
 		Type:                  old.Type,
-		CreationTimestamp:     EncodeIsoTime(old.GetCreationTimestamp()),
-		DeletionTimestamp:     EncodeIsoTime(old.GetDeletionTimestamp()),
-		Links:                 EncodeLinks(old.GetLinks()),
+		CreationTimestamp:     encodeIsoTime(old.GetCreationTimestamp()),
+		DeletionTimestamp:     encodeIsoTime(old.GetDeletionTimestamp()),
+		Links:                 encodeLinks(old.GetLinks()),
 		Subnet4:               old.Subnet4,
 		Address:               old.Address,
 		AddressType:           old.AddressType.String(),
@@ -139,9 +139,9 @@ func EncodeDhcpSubnet6(old *resource.Subnet6) *pbdhcp.DhcpSubnet6 {
 	return &pbdhcp.DhcpSubnet6{
 		Id:                    old.ID,
 		Type:                  old.Type,
-		CreationTimestamp:     EncodeIsoTime(old.GetCreationTimestamp()),
-		DeletionTimestamp:     EncodeIsoTime(old.GetDeletionTimestamp()),
-		Links:                 EncodeLinks(old.GetLinks()),
+		CreationTimestamp:     encodeIsoTime(old.GetCreationTimestamp()),
+		DeletionTimestamp:     encodeIsoTime(old.GetDeletionTimestamp()),
+		Links:                 encodeLinks(old.GetLinks()),
 		Subnet:                old.Subnet,
 		IpNet:                 old.Ipnet.String(),
 		SubnetId:              old.SubnetId,
@@ -169,9 +169,9 @@ func EncodeDhcpPool6(old *resource.Pool6) *pbdhcp.DhcpPool6 {
 	return &pbdhcp.DhcpPool6{
 		Id:                old.ID,
 		Type:              old.Type,
-		CreationTimestamp: EncodeIsoTime(old.GetCreationTimestamp()),
-		DeletionTimestamp: EncodeIsoTime(old.GetDeletionTimestamp()),
-		Links:             EncodeLinks(old.GetLinks()),
+		CreationTimestamp: encodeIsoTime(old.GetCreationTimestamp()),
+		DeletionTimestamp: encodeIsoTime(old.GetDeletionTimestamp()),
+		Links:             encodeLinks(old.GetLinks()),
 		Subnet6:           old.Subnet6,
 		BeginAddress:      old.BeginAddress,
 		BeginIp:           old.BeginIp.String(),
@@ -189,9 +189,9 @@ func EncodeDhcpReservedPool6(old *resource.ReservedPool6) *pbdhcp.DhcpReservedPo
 	return &pbdhcp.DhcpReservedPool6{
 		Id:                old.ID,
 		Type:              old.Type,
-		CreationTimestamp: EncodeIsoTime(old.GetCreationTimestamp()),
-		DeletionTimestamp: EncodeIsoTime(old.GetDeletionTimestamp()),
-		Links:             EncodeLinks(old.GetLinks()),
+		CreationTimestamp: encodeIsoTime(old.GetCreationTimestamp()),
+		DeletionTimestamp: encodeIsoTime(old.GetDeletionTimestamp()),
+		Links:             encodeLinks(old.GetLinks()),
 		Subnet6:           old.Subnet6,
 		BeginAddress:      old.BeginAddress,
 		BeginIp:           old.BeginIp.String(),
@@ -209,9 +209,9 @@ func EncodeDhcpReservation6(old *resource.Reservation6) *pbdhcp.DhcpReservation6
 	return &pbdhcp.DhcpReservation6{
 		Id:                old.ID,
 		Type:              old.Type,
-		CreationTimestamp: EncodeIsoTime(old.GetCreationTimestamp()),
-		DeletionTimestamp: EncodeIsoTime(old.GetDeletionTimestamp()),
-		Links:             EncodeLinks(old.GetLinks()),
+		CreationTimestamp: encodeIsoTime(old.GetCreationTimestamp()),
+		DeletionTimestamp: encodeIsoTime(old.GetDeletionTimestamp()),
+		Links:             encodeLinks(old.GetLinks()),
 		Subnet6:           old.Subnet6,
 		DUid:              old.Duid,
 		HwAddress:         old.HwAddress,
@@ -237,9 +237,9 @@ func EncodeDhcpSubnetLease6(old *resource.SubnetLease6) *pbdhcp.DhcpSubnetLease6
 	return &pbdhcp.DhcpSubnetLease6{
 		Id:                    old.ID,
 		Type:                  old.Type,
-		CreationTimestamp:     EncodeIsoTime(old.GetCreationTimestamp()),
-		DeletionTimestamp:     EncodeIsoTime(old.GetDeletionTimestamp()),
-		Links:                 EncodeLinks(old.GetLinks()),
+		CreationTimestamp:     encodeIsoTime(old.GetCreationTimestamp()),
+		DeletionTimestamp:     encodeIsoTime(old.GetDeletionTimestamp()),
+		Links:                 encodeLinks(old.GetLinks()),
 		Subnet6:               old.Subnet6,
 		Address:               old.Address,
 		AddressType:           old.AddressType.String(),

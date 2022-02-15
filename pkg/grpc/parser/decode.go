@@ -11,16 +11,16 @@ import (
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 )
 
-func DecodeTimeUnix(t int64) string {
+func decodeTimeUnix(t int64) string {
 	return time.Unix(t, 0).Format(time.RFC3339)
 }
 
-func DecodeTimeStr(timeStr string) time.Time {
+func decodeTimeStr(timeStr string) time.Time {
 	t, _ := time.Parse(time.RFC3339, timeStr)
 	return t
 }
 
-func DecodeLinks(old map[string]string) map[restresource.ResourceLinkType]restresource.ResourceLink {
+func decodeLinks(old map[string]string) map[restresource.ResourceLinkType]restresource.ResourceLink {
 	links := make(map[restresource.ResourceLinkType]restresource.ResourceLink)
 	for keyStr, valStr := range old {
 		links[restresource.ResourceLinkType(keyStr)] = restresource.ResourceLink(valStr)
@@ -28,19 +28,19 @@ func DecodeLinks(old map[string]string) map[restresource.ResourceLinkType]restre
 	return links
 }
 
-func DecodeIps(ips []string) []net.IP {
+func decodeIps(ips []string) []net.IP {
 	rets := make([]net.IP, len(ips))
 	for _, v := range ips {
-		rets = append(rets, DecodeIp(v))
+		rets = append(rets, decodeIp(v))
 	}
 	return rets
 }
 
-func DecodeIp(ip string) net.IP {
+func decodeIp(ip string) net.IP {
 	return net.ParseIP(ip)
 }
 
-func DecodeIpNet(ipNet string) net.IPNet {
+func decodeIpNet(ipNet string) net.IPNet {
 	_, retNet, err := net.ParseCIDR(ipNet)
 	if err != nil {
 		return net.IPNet{}
@@ -51,7 +51,7 @@ func DecodeIpNet(ipNet string) net.IPNet {
 func DecodePbSubnet4(old *pbdhcp.DhcpSubnet4) *resource.Subnet4 {
 	ret := &resource.Subnet4{
 		Subnet:              old.GetSubnet(),
-		Ipnet:               DecodeIpNet(old.GetIpNet()),
+		Ipnet:               decodeIpNet(old.GetIpNet()),
 		SubnetId:            old.GetSubnetId(),
 		ValidLifetime:       old.GetValidLifetime(),
 		MaxValidLifetime:    old.GetMaxValidLifetime(),
@@ -73,9 +73,9 @@ func DecodePbSubnet4(old *pbdhcp.DhcpSubnet4) *resource.Subnet4 {
 		UsedCount:           old.GetUseCount(),
 	}
 	ret.SetID(old.GetId())
-	ret.SetLinks(DecodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(DecodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(DecodeTimeStr(old.GetDeletionTimestamp()))
+	ret.SetLinks(decodeLinks(old.GetLinks()))
+	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
+	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
@@ -91,9 +91,9 @@ func DecodePbReservation4(old *pbdhcp.DhcpReservation4) *resource.Reservation4 {
 		Comment:   "",
 	}
 	ret.SetID(old.GetId())
-	ret.SetLinks(DecodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(DecodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(DecodeTimeStr(old.GetDeletionTimestamp()))
+	ret.SetLinks(decodeLinks(old.GetLinks()))
+	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
+	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
@@ -101,9 +101,9 @@ func DecodePbReservedPool4(old *pbdhcp.DhcpReservedPool4) *resource.ReservedPool
 	ret := &resource.ReservedPool4{
 		Subnet4:      old.GetSubnet4(),
 		BeginAddress: old.GetBeginAddress(),
-		BeginIp:      DecodeIp(old.GetBeginIp()),
+		BeginIp:      decodeIp(old.GetBeginIp()),
 		EndAddress:   old.GetEndAddress(),
-		EndIp:        DecodeIp(old.GetEndIp()),
+		EndIp:        decodeIp(old.GetEndIp()),
 		Capacity:     old.GetCapacity(),
 		UsedRatio:    old.GetUsedRatio(),
 		UsedCount:    old.GetUsedCount(),
@@ -111,16 +111,16 @@ func DecodePbReservedPool4(old *pbdhcp.DhcpReservedPool4) *resource.ReservedPool
 		Comment:      old.GetComment(),
 	}
 	ret.SetID(old.GetId())
-	ret.SetLinks(DecodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(DecodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(DecodeTimeStr(old.GetDeletionTimestamp()))
+	ret.SetLinks(decodeLinks(old.GetLinks()))
+	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
+	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
 func DecodePbSubnet6(old *pbdhcp.DhcpSubnet6) *resource.Subnet6 {
 	ret := &resource.Subnet6{
 		Subnet:                old.GetSubnet(),
-		Ipnet:                 DecodeIpNet(old.GetIpNet()),
+		Ipnet:                 decodeIpNet(old.GetIpNet()),
 		SubnetId:              old.GetSubnetId(),
 		ValidLifetime:         old.GetValidLifetime(),
 		MaxValidLifetime:      old.GetMaxValidLifetime(),
@@ -141,9 +141,9 @@ func DecodePbSubnet6(old *pbdhcp.DhcpSubnet6) *resource.Subnet6 {
 		UsedCount:             old.GetUsedCount(),
 	}
 	ret.SetID(old.GetId())
-	ret.SetLinks(DecodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(DecodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(DecodeTimeStr(old.GetDeletionTimestamp()))
+	ret.SetLinks(decodeLinks(old.GetLinks()))
+	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
+	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
@@ -153,7 +153,7 @@ func DecodePbReservation6(old *pbdhcp.DhcpReservation6) *resource.Reservation6 {
 		Duid:        old.GetDUid(),
 		HwAddress:   old.GetHwAddress(),
 		IpAddresses: old.GetIpAddresses(),
-		Ips:         DecodeIps(old.GetIps()),
+		Ips:         decodeIps(old.GetIps()),
 		Prefixes:    old.GetPrefixes(),
 		Capacity:    old.GetCapacity(),
 		UsedRatio:   old.GetUsedRatio(),
@@ -161,9 +161,9 @@ func DecodePbReservation6(old *pbdhcp.DhcpReservation6) *resource.Reservation6 {
 		Comment:     old.GetComment(),
 	}
 	ret.SetID(old.GetId())
-	ret.SetLinks(DecodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(DecodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(DecodeTimeStr(old.GetDeletionTimestamp()))
+	ret.SetLinks(decodeLinks(old.GetLinks()))
+	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
+	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
@@ -171,9 +171,9 @@ func DecodePbReservedPool6(old *pbdhcp.DhcpReservedPool6) *resource.ReservedPool
 	ret := &resource.ReservedPool6{
 		Subnet6:      old.GetSubnet6(),
 		BeginAddress: old.GetBeginAddress(),
-		BeginIp:      DecodeIp(old.GetBeginIp()),
+		BeginIp:      decodeIp(old.GetBeginIp()),
 		EndAddress:   old.GetEndAddress(),
-		EndIp:        DecodeIp(old.GetEndIp()),
+		EndIp:        decodeIp(old.GetEndIp()),
 		Capacity:     old.GetCapacity(),
 		UsedRatio:    old.GetUsedRatio(),
 		UsedCount:    old.GetUsedCount(),
@@ -181,9 +181,9 @@ func DecodePbReservedPool6(old *pbdhcp.DhcpReservedPool6) *resource.ReservedPool
 		Comment:      old.GetComment(),
 	}
 	ret.SetID(old.GetId())
-	ret.SetLinks(DecodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(DecodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(DecodeTimeStr(old.GetDeletionTimestamp()))
+	ret.SetLinks(decodeLinks(old.GetLinks()))
+	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
+	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
@@ -195,7 +195,7 @@ func DecodeSubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.Sub
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ClientId:              lease.GetClientId(),
 		ValidLifetime:         lease.GetValidLifetime(),
-		Expire:                DecodeTimeUnix(lease.GetExpire()),
+		Expire:                decodeTimeUnix(lease.GetExpire()),
 		Hostname:              lease.GetHostname(),
 		Fingerprint:           lease.GetFingerprint(),
 		VendorId:              lease.GetVendorId(),
@@ -221,7 +221,7 @@ func DecodeSubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.Sub
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ValidLifetime:         lease.GetValidLifetime(),
 		PreferredLifetime:     lease.GetPreferredLifetime(),
-		Expire:                DecodeTimeUnix(lease.GetExpire()),
+		Expire:                decodeTimeUnix(lease.GetExpire()),
 		LeaseType:             lease.GetLeaseType(),
 		Hostname:              lease.GetHostname(),
 		Fingerprint:           lease.GetFingerprint(),
