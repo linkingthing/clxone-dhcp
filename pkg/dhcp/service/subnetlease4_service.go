@@ -97,8 +97,8 @@ func getReservation4sAndSubnetLease4sWithIp(tx restdb.Transaction, subnet4 *reso
 	var reservations []*resource.Reservation4
 	var subnetLeases []*resource.SubnetLease4
 	if err := tx.Fill(map[string]interface{}{
-		resource.SqlColumnAddress: ip,
-		resource.SqlColumnSubnet4: subnet4.GetID()},
+		resource.SqlColumnIpAddress: ip,
+		resource.SqlColumnSubnet4:   subnet4.GetID()},
 		&reservations); err != nil {
 		return nil, nil, fmt.Errorf("get reservation4 %s failed: %s", ip, err.Error())
 	}

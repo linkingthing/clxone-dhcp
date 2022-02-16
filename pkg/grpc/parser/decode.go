@@ -81,14 +81,14 @@ func DecodePbSubnet4(old *pbdhcp.DhcpSubnet4) *resource.Subnet4 {
 
 func DecodePbReservation4(old *pbdhcp.DhcpReservation4) *resource.Reservation4 {
 	ret := &resource.Reservation4{
-		Subnet4:   "",
-		HwAddress: "",
-		IpAddress: "",
-		Ip:        nil,
-		UsedRatio: "",
-		UsedCount: 0,
-		Capacity:  0,
-		Comment:   "",
+		Subnet4:   old.GetSubnet4(),
+		HwAddress: old.GetHwAddress(),
+		IpAddress: old.GetIpAddress(),
+		Ip:        decodeIp(old.GetIp()),
+		UsedRatio: old.GetUsedRatio(),
+		UsedCount: old.GetUsedCount(),
+		Capacity:  old.GetCapacity(),
+		Comment:   old.GetComment(),
 	}
 	ret.SetID(old.GetId())
 	ret.SetLinks(decodeLinks(old.GetLinks()))

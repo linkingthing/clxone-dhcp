@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	restdb "github.com/linkingthing/gorest/db"
-	"strings"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -769,15 +770,17 @@ func pbDhcpSubnetLeasesFromSubnetLeases(subnetLeases []*resource.SubnetLease4) (
 	return tmpList, nil
 }
 
-func (d *DHCPService) GetSubnetLease4ListWithIp(subnetId, ip string) (*pbdhcp.DhcpSubnetLease4, error) {
+func (d *DHCPService) GetSubnetLease4ByIp(subnetId, ip string) (*pbdhcp.DhcpSubnetLease4, error) {
 	subnetLeasesList, err := service.GetSubnetLease4ListWithIp(subnetId, ip)
 	if err != nil {
 		return nil, err
 	}
+	if len(subnetLeasesList) == 0 {
+		return nil, nil
+	}
 	return parser.EncodeDhcpSubnetLeases4(subnetLeasesList[0]), nil
 }
 
-////
 func (d *DHCPService) GetAllSubnet6() ([]*pbdhcp.DhcpSubnet6, error) {
 	listCtx := service.GenGrpcGetSubnetsContext(resource.TableSubnet6)
 	subnets, _, err := service.GetSubnet6List(listCtx)
@@ -881,15 +884,20 @@ func dpDhcpSubnetLease6FromSubnetLease6(subnetLeases []*resource.SubnetLease6) (
 	return tmpList, nil
 }
 
-func (d *DHCPService) GetSubnetLease6ListByIp(subnetId, ip string) (*pbdhcp.DhcpSubnetLease6, error) {
+func (d *DHCPService) GetSubnetLease6ByIp(subnetId, ip string) (*pbdhcp.DhcpSubnetLease6, error) {
 	subnetLeasesList, err := service.GetSubnetLease6ListByIp(subnetId, ip)
 	if err != nil {
 		return nil, err
 	}
+	if len(subnetLeasesList) == 0 {
+		return nil, nil
+	}
 	return parser.EncodeDhcpSubnetLease6(subnetLeasesList[0]), nil
 }
 
-func (d *DHCPService) CreateReservation4s(subnet *resource.Subnet4, reservation *resource.Reservation4) (bool, error) {
+func (d *DHCPService) CreateReservation4s(subnetId string, reservation *resource.Reservation4) (bool, error) {
+	subnet := &resource.Subnet4{}
+	subnet.SetID(subnetId)
 	_, err := service.CreateReservation4s(subnet, reservation)
 	if err != nil {
 		return false, err
@@ -905,7 +913,9 @@ func (d *DHCPService) CreateReservedPool4(subnet *resource.Subnet4, pool *resour
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservation6s(subnet *resource.Subnet6, reservation *resource.Reservation6) (bool, error) {
+func (d *DHCPService) CreateReservation6s(subnetId string, reservation *resource.Reservation6) (bool, error) {
+	subnet := &resource.Subnet6{}
+	subnet.SetID(subnetId)
 	_, err := service.CreateReservation6s(subnet, reservation)
 	if err != nil {
 		return false, err

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/grpc/parser"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 )
@@ -152,7 +153,7 @@ func (g *GRPCService) GetListLease4BySubnet4Id(ctx context.Context,
 
 func (g *GRPCService) GetListLease4ByIp(ctx context.Context,
 	req *pbdhcp.GetLease4ByIpRequest) (*pbdhcp.GetLease4ByIpResponse, error) {
-	if tmpList, err := GetDHCPService().GetSubnetLease4ListWithIp(req.GetSubnet4Id(), req.GetIp()); err != nil {
+	if tmpList, err := GetDHCPService().GetSubnetLease4ByIp(req.GetSubnet4Id(), req.GetIp()); err != nil {
 		return nil, fmt.Errorf("getlistlease4byip failed: %s", err.Error())
 	} else {
 		return &pbdhcp.GetLease4ByIpResponse{SubnetLease4S: tmpList}, nil
@@ -221,21 +222,22 @@ func (g *GRPCService) GetListLease6BySubnet6Id(ctx context.Context,
 
 func (g *GRPCService) GetListLease6ByIp(ctx context.Context,
 	req *pbdhcp.GetLease6ByIpRequest) (*pbdhcp.GetLease6ByIpResponse, error) {
-	if tmpValue, err := GetDHCPService().GetSubnetLease6ListByIp(req.GetSubnet6Id(), req.GetIp()); err != nil {
+	if tmpValue, err := GetDHCPService().GetSubnetLease6ByIp(req.GetSubnet6Id(), req.GetIp()); err != nil {
 		return nil, fmt.Errorf("getlistlease6byip failed :%s", err.Error())
 	} else {
 		return &pbdhcp.GetLease6ByIpResponse{SubnetLease6: tmpValue}, nil
 	}
 }
 
+////
 func (g *GRPCService) CreateReservation4S(ctx context.Context,
 	req *pbdhcp.CreateReservation4SRequest) (*pbdhcp.CreateReservation4SResponse, error) {
-	subnet := parser.DecodePbSubnet4(req.GetParentSubnet())
+
 	reservation := parser.DecodePbReservation4(req.GetReservation())
 	if err := reservation.Validate(); err != nil {
 		return nil, fmt.Errorf("create reservation4 params invalid: %s", err.Error())
 	}
-	if tmpValue, err := GetDHCPService().CreateReservation4s(subnet, reservation); err != nil {
+	if tmpValue, err := GetDHCPService().CreateReservation4s(req.GetParentId(), reservation); err != nil {
 		return nil, fmt.Errorf("create reservation4 failed: %s", err.Error())
 	} else {
 		return &pbdhcp.CreateReservation4SResponse{Succeed: tmpValue}, nil
@@ -258,12 +260,11 @@ func (g *GRPCService) CreateReservedPool4(ctx context.Context,
 
 func (g *GRPCService) CreateReservation6S(ctx context.Context,
 	req *pbdhcp.CreateReservation6SRequest) (*pbdhcp.CreateReservation6SResponse, error) {
-	subnet := parser.DecodePbSubnet6(req.GetParentSubnet())
 	reservation := parser.DecodePbReservation6(req.GetReservation())
 	if err := reservation.Validate(); err != nil {
 		return nil, fmt.Errorf("create reservation6 params invalid: %s", err.Error())
 	}
-	if tmpValue, err := GetDHCPService().CreateReservation6s(subnet, reservation); err != nil {
+	if tmpValue, err := GetDHCPService().CreateReservation6s(req.GetParentId(), reservation); err != nil {
 		return nil, fmt.Errorf("create reservation6 failed: %s", err.Error())
 	} else {
 		return &pbdhcp.CreateReservation6SResponse{Succeed: tmpValue}, nil
