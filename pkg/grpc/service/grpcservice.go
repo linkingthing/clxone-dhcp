@@ -246,12 +246,11 @@ func (g *GRPCService) CreateReservation4S(ctx context.Context,
 
 func (g *GRPCService) CreateReservedPool4(ctx context.Context,
 	req *pbdhcp.CreateReservedPool4Request) (*pbdhcp.CreateReservedPool4Response, error) {
-	subnet := parser.DecodePbSubnet4(req.GetParentSubnet())
 	pool := parser.DecodePbReservedPool4(req.GetReservedPool())
 	if err := pool.Validate(); err != nil {
 		return nil, fmt.Errorf("create reserved4 pool params invalid: %s", err.Error())
 	}
-	if tmpValue, err := GetDHCPService().CreateReservedPool4(subnet, pool); err != nil {
+	if tmpValue, err := GetDHCPService().CreateReservedPool4(req.GetParentId(), pool); err != nil {
 		return nil, fmt.Errorf("create reserved4 pool failed: %s", err.Error())
 	} else {
 		return &pbdhcp.CreateReservedPool4Response{Succeed: tmpValue}, nil
@@ -273,12 +272,11 @@ func (g *GRPCService) CreateReservation6S(ctx context.Context,
 
 func (g *GRPCService) CreateReservedPool6(ctx context.Context,
 	req *pbdhcp.CreateReservedPool6Request) (*pbdhcp.CreateReservedPool6Response, error) {
-	subnet := parser.DecodePbSubnet6(req.GetParentSubnet())
 	pool := parser.DecodePbReservedPool6(req.GetReservedPool())
 	if err := pool.Validate(); err != nil {
 		return nil, fmt.Errorf("create reserved6 pool params invalid: %s", err.Error())
 	}
-	if tmpValue, err := GetDHCPService().CreateReservedPool6(subnet, pool); err != nil {
+	if tmpValue, err := GetDHCPService().CreateReservedPool6(req.GetParentId(), pool); err != nil {
 		return nil, fmt.Errorf("create reserved6 pool failed: %s", err.Error())
 	} else {
 		return &pbdhcp.CreateReservedPool6Response{Succeed: tmpValue}, nil

@@ -905,7 +905,9 @@ func (d *DHCPService) CreateReservation4s(subnetId string, reservation *resource
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservedPool4(subnet *resource.Subnet4, pool *resource.ReservedPool4) (bool, error) {
+func (d *DHCPService) CreateReservedPool4(subnetId string, pool *resource.ReservedPool4) (bool, error) {
+	subnet := &resource.Subnet4{}
+	subnet.SetID(subnetId)
 	_, err := service.CreateReservedPool4(subnet, pool)
 	if err != nil {
 		return false, err
@@ -923,7 +925,9 @@ func (d *DHCPService) CreateReservation6s(subnetId string, reservation *resource
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservedPool6(subnet *resource.Subnet6, pool *resource.ReservedPool6) (bool, error) {
+func (d *DHCPService) CreateReservedPool6(subnetId string, pool *resource.ReservedPool6) (bool, error) {
+	subnet := &resource.Subnet6{}
+	subnet.SetID(subnetId)
 	_, err := service.CreateReservedPool6(subnet, pool)
 	if err != nil {
 		return false, err
