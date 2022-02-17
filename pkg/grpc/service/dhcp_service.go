@@ -675,7 +675,6 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 	return nil
 }
 
-////
 func (d *DHCPService) GetAllSubnet4s() ([]*pbdhcp.DhcpSubnet4, error) {
 	listCtx := service.GenGrpcGetSubnetsContext(resource.TableSubnet4)
 	subnets, _, err := service.GetSubnet4List(listCtx)
@@ -895,40 +894,40 @@ func (d *DHCPService) GetSubnetLease6ByIp(subnetId, ip string) (*pbdhcp.DhcpSubn
 	return parser.EncodeDhcpSubnetLease6(subnetLeasesList[0]), nil
 }
 
-func (d *DHCPService) CreateReservation4s(subnetId string, reservation *resource.Reservation4) (bool, error) {
+func (d *DHCPService) CreateReservation4s(subnetId string, reservations []*resource.Reservation4) (bool, error) {
 	subnet := &resource.Subnet4{}
 	subnet.SetID(subnetId)
-	_, err := service.CreateReservation4s(subnet, reservation)
+	_, err := service.BatchCreateReservation4s(subnet, reservations)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservedPool4(subnetId string, pool *resource.ReservedPool4) (bool, error) {
+func (d *DHCPService) CreateReservedPool4(subnetId string, pool []*resource.ReservedPool4) (bool, error) {
 	subnet := &resource.Subnet4{}
 	subnet.SetID(subnetId)
-	_, err := service.CreateReservedPool4(subnet, pool)
+	_, err := service.BatchCreateReservedPool4(subnet, pool)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservation6s(subnetId string, reservation *resource.Reservation6) (bool, error) {
+func (d *DHCPService) CreateReservation6s(subnetId string, reservations []*resource.Reservation6) (bool, error) {
 	subnet := &resource.Subnet6{}
 	subnet.SetID(subnetId)
-	_, err := service.CreateReservation6s(subnet, reservation)
+	_, err := service.BatchCreateReservation6s(subnet, reservations)
 	if err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservedPool6(subnetId string, pool *resource.ReservedPool6) (bool, error) {
+func (d *DHCPService) CreateReservedPool6(subnetId string, pools []*resource.ReservedPool6) (bool, error) {
 	subnet := &resource.Subnet6{}
 	subnet.SetID(subnetId)
-	_, err := service.CreateReservedPool6(subnet, pool)
+	_, err := service.BatchCreateReservedPool6(subnet, pools)
 	if err != nil {
 		return false, err
 	}

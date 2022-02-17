@@ -23,48 +23,63 @@ func NewReservedPool4Service() *ReservedPool4Service {
 }
 
 func (p *ReservedPool4Service) Create(subnet *resource.Subnet4, pool *resource.ReservedPool4) (restresource.Resource, error) {
-	return CreateReservedPool4(subnet, pool)
+	if rets, err := BatchCreateReservedPool4(subnet, []*resource.ReservedPool4{pool}); err != nil || len(rets) == 0 {
+		return nil, err
+	} else {
+		return rets[0], nil
+	}
 }
 
-func CreateReservedPool4(subnet *resource.Subnet4, pool *resource.ReservedPool4) (restresource.Resource, error) {
+func BatchCreateReservedPool4(subnet *resource.Subnet4, pools []*resource.ReservedPool4) ([]restresource.Resource, error) {
+	rets := make([]restresource.Resource, 0)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservedPool4CouldBeCreated(tx, subnet, pool); err != nil {
-			return err
-		}
-
-		affectPools, affectPoolsCapacity, err := recalculatePool4sCapacityWithReservedPool4(
-			tx, subnet.GetID(), pool, true)
-		if err != nil {
-			return fmt.Errorf("recalculate pools capacity failed: %s", err.Error())
-		}
-
-		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			resource.SqlColumnCapacity: subnet.Capacity - affectPoolsCapacity,
-		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s",
-				subnet.GetID(), err.Error())
-		}
-
-		for affectPoolID, capacity := range affectPools {
-			if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-				resource.SqlColumnCapacity: capacity,
-			}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
-				return fmt.Errorf("update subnet %s pool %s capacity to db failed: %s",
-					subnet.GetID(), affectPoolID, err.Error())
+		for _, pool := range pools {
+			if err := execCreateReservedPool4(tx, subnet, pool); err != nil {
+				return err
 			}
+			rets = append(rets, pool)
 		}
-
-		pool.Subnet4 = subnet.GetID()
-		if _, err := tx.Insert(pool); err != nil {
-			return err
-		}
-
-		return sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
+		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	return pool, nil
+	return rets, nil
+}
+
+func execCreateReservedPool4(tx restdb.Transaction, subnet *resource.Subnet4, pool *resource.ReservedPool4) error {
+	if err := checkReservedPool4CouldBeCreated(tx, subnet, pool); err != nil {
+		return err
+	}
+
+	affectPools, affectPoolsCapacity, err := recalculatePool4sCapacityWithReservedPool4(
+		tx, subnet.GetID(), pool, true)
+	if err != nil {
+		return fmt.Errorf("recalculate pools capacity failed: %s", err.Error())
+	}
+
+	if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
+		resource.SqlColumnCapacity: subnet.Capacity - affectPoolsCapacity,
+	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+		return fmt.Errorf("update subnet %s capacity to db failed: %s",
+			subnet.GetID(), err.Error())
+	}
+
+	for affectPoolID, capacity := range affectPools {
+		if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
+			resource.SqlColumnCapacity: capacity,
+		}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
+			return fmt.Errorf("update subnet %s pool %s capacity to db failed: %s",
+				subnet.GetID(), affectPoolID, err.Error())
+		}
+	}
+
+	pool.Subnet4 = subnet.GetID()
+	if _, err := tx.Insert(pool); err != nil {
+		return err
+	}
+
+	return sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 }
 
 func checkReservedPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, pool *resource.ReservedPool4) error {

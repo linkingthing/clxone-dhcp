@@ -79,41 +79,19 @@ func DecodePbSubnet4(old *pbdhcp.DhcpSubnet4) *resource.Subnet4 {
 	return ret
 }
 
-func DecodePbReservation4(old *pbdhcp.DhcpReservation4) *resource.Reservation4 {
+func DecodePbCReservation4(old *pbdhcp.CreateReservation) *resource.Reservation4 {
 	ret := &resource.Reservation4{
-		Subnet4:   old.GetSubnet4(),
 		HwAddress: old.GetHwAddress(),
 		IpAddress: old.GetIpAddress(),
-		Ip:        decodeIp(old.GetIp()),
-		UsedRatio: old.GetUsedRatio(),
-		UsedCount: old.GetUsedCount(),
-		Capacity:  old.GetCapacity(),
-		Comment:   old.GetComment(),
 	}
-	ret.SetID(old.GetId())
-	ret.SetLinks(decodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
-func DecodePbReservedPool4(old *pbdhcp.DhcpReservedPool4) *resource.ReservedPool4 {
+func DecodePbCReservedPool4(old *pbdhcp.CreateReserved) *resource.ReservedPool4 {
 	ret := &resource.ReservedPool4{
-		Subnet4:      old.GetSubnet4(),
 		BeginAddress: old.GetBeginAddress(),
-		BeginIp:      decodeIp(old.GetBeginIp()),
 		EndAddress:   old.GetEndAddress(),
-		EndIp:        decodeIp(old.GetEndIp()),
-		Capacity:     old.GetCapacity(),
-		UsedRatio:    old.GetUsedRatio(),
-		UsedCount:    old.GetUsedCount(),
-		Template:     old.GetTemplate(),
-		Comment:      old.GetComment(),
 	}
-	ret.SetID(old.GetId())
-	ret.SetLinks(decodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
@@ -147,46 +125,21 @@ func DecodePbSubnet6(old *pbdhcp.DhcpSubnet6) *resource.Subnet6 {
 	return ret
 }
 
-func DecodePbReservation6(old *pbdhcp.DhcpReservation6) *resource.Reservation6 {
+func DecodePbCReservation6(old *pbdhcp.CreateReservation) *resource.Reservation6 {
 	ret := &resource.Reservation6{
-		Subnet6:     old.GetSubnet6(),
-		Duid:        old.GetDUid(),
 		HwAddress:   old.GetHwAddress(),
-		IpAddresses: old.GetIpAddresses(),
-		Ips:         decodeIps(old.GetIps()),
-		Prefixes:    old.GetPrefixes(),
-		Capacity:    old.GetCapacity(),
-		UsedRatio:   old.GetUsedRatio(),
-		UsedCount:   old.GetUsedCount(),
-		Comment:     old.GetComment(),
+		IpAddresses: []string{old.GetIpAddress()},
 	}
-	ret.SetID(old.GetId())
-	ret.SetLinks(decodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
 
-func DecodePbReservedPool6(old *pbdhcp.DhcpReservedPool6) *resource.ReservedPool6 {
+func DecodePbCReservedPool6(old *pbdhcp.CreateReserved) *resource.ReservedPool6 {
 	ret := &resource.ReservedPool6{
-		Subnet6:      old.GetSubnet6(),
 		BeginAddress: old.GetBeginAddress(),
-		BeginIp:      decodeIp(old.GetBeginIp()),
 		EndAddress:   old.GetEndAddress(),
-		EndIp:        decodeIp(old.GetEndIp()),
-		Capacity:     old.GetCapacity(),
-		UsedRatio:    old.GetUsedRatio(),
-		UsedCount:    old.GetUsedCount(),
-		Template:     old.GetTemplate(),
-		Comment:      old.GetComment(),
 	}
-	ret.SetID(old.GetId())
-	ret.SetLinks(decodeLinks(old.GetLinks()))
-	ret.SetCreationTimestamp(decodeTimeStr(old.GetCreationTimestamp()))
-	ret.SetDeletionTimestamp(decodeTimeStr(old.GetDeletionTimestamp()))
 	return ret
 }
-
 func DecodeSubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLease4 {
 	lease4 := &resource.SubnetLease4{
 		Address:               lease.GetAddress(),

@@ -25,71 +25,85 @@ func NewReservation6Service() *Reservation6Service {
 }
 
 func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *resource.Reservation6) (restresource.Resource, error) {
-	return CreateReservation6s(subnet, reservation)
+	if rets, err := BatchCreateReservation6s(subnet, []*resource.Reservation6{reservation}); err != nil || len(rets) == 0 {
+		return nil, err
+	} else {
+		return rets[0], nil
+	}
 }
 
-func CreateReservation6s(subnet *resource.Subnet6, reservation *resource.Reservation6) (restresource.Resource, error) {
+func BatchCreateReservation6s(subnet *resource.Subnet6, reservations []*resource.Reservation6) ([]restresource.Resource, error) {
+	rets := make([]restresource.Resource, 0)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := setSubnet6FromDB(tx, subnet); err != nil {
-			return err
-		} else if subnet.UseEui64 {
-			return fmt.Errorf("subnet use EUI64, can not create reservation6")
-		}
-
-		if err := checkReservation6InUsed(tx, subnet.GetID(), reservation); err != nil {
-			return err
-		}
-
-		if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation); err != nil {
-			return err
-		}
-
-		if err := checkReservation6ConflictWithReservedPools(tx, subnet.GetID(),
-			reservation); err != nil {
-			return err
-		}
-
-		conflictPdPool, conflictPool, err := checkReservation6ConflictWithSubnet6Pools(
-			tx, subnet.GetID(), reservation)
-		if err != nil {
-			return err
-		}
-
-		if conflictPool != nil {
-			if _, err := tx.Update(resource.TablePool6, map[string]interface{}{
-				resource.SqlColumnCapacity: conflictPool.Capacity - reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: conflictPool.GetID()}); err != nil {
-				return fmt.Errorf("update pool %s capacity to db failed: %s",
-					conflictPool.String(), err.Error())
+		for _, v := range reservations {
+			if err := execCreateReservation6s(tx, subnet, v); err != nil {
+				return err
 			}
-		} else if conflictPdPool != nil {
-			if _, err := tx.Update(resource.TablePdPool, map[string]interface{}{
-				resource.SqlColumnCapacity: conflictPdPool.Capacity - reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: conflictPdPool.GetID()}); err != nil {
-				return fmt.Errorf("update pdpool %s capacity to db failed: %s",
-					conflictPdPool.String(), err.Error())
-			}
-		} else {
-			if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-				resource.SqlColumnCapacity: subnet.Capacity + reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-				return fmt.Errorf("update subnet %s capacity to db failed: %s",
-					subnet.GetID(), err.Error())
-			}
+			rets = append(rets, v)
 		}
-
-		reservation.Subnet6 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return err
-		}
-
-		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return nil
 	}); err != nil {
 		return nil, err
 	}
+	return rets, nil
+}
 
-	return reservation, nil
+func execCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
+	if err := setSubnet6FromDB(tx, subnet); err != nil {
+		return err
+	} else if subnet.UseEui64 {
+		return fmt.Errorf("subnet use EUI64, can not create reservation6")
+	}
+
+	if err := checkReservation6InUsed(tx, subnet.GetID(), reservation); err != nil {
+		return err
+	}
+
+	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation); err != nil {
+		return err
+	}
+
+	if err := checkReservation6ConflictWithReservedPools(tx, subnet.GetID(),
+		reservation); err != nil {
+		return err
+	}
+
+	conflictPdPool, conflictPool, err := checkReservation6ConflictWithSubnet6Pools(
+		tx, subnet.GetID(), reservation)
+	if err != nil {
+		return err
+	}
+
+	if conflictPool != nil {
+		if _, err := tx.Update(resource.TablePool6, map[string]interface{}{
+			resource.SqlColumnCapacity: conflictPool.Capacity - reservation.Capacity,
+		}, map[string]interface{}{restdb.IDField: conflictPool.GetID()}); err != nil {
+			return fmt.Errorf("update pool %s capacity to db failed: %s",
+				conflictPool.String(), err.Error())
+		}
+	} else if conflictPdPool != nil {
+		if _, err := tx.Update(resource.TablePdPool, map[string]interface{}{
+			resource.SqlColumnCapacity: conflictPdPool.Capacity - reservation.Capacity,
+		}, map[string]interface{}{restdb.IDField: conflictPdPool.GetID()}); err != nil {
+			return fmt.Errorf("update pdpool %s capacity to db failed: %s",
+				conflictPdPool.String(), err.Error())
+		}
+	} else {
+		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
+			resource.SqlColumnCapacity: subnet.Capacity + reservation.Capacity,
+		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
+		}
+	}
+
+	reservation.Subnet6 = subnet.GetID()
+	if _, err := tx.Insert(reservation); err != nil {
+		return err
+	}
+
+	return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
+		reservation)
 }
 
 func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation6) error {

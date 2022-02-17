@@ -25,63 +25,72 @@ func NewReservation4Service() *Reservation4Service {
 }
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) (restresource.Resource, error) {
-	return CreateReservation4s(subnet, reservation)
+	if ret, err := BatchCreateReservation4s(subnet, []*resource.Reservation4{reservation}); err != nil || len(ret) == 0 {
+		return nil, err
+	} else {
+		return ret[0], nil
+	}
 }
 
-func CreateReservation4s(subnet *resource.Subnet4, reservation *resource.Reservation4) (restresource.Resource, error) {
+func BatchCreateReservation4s(subnet *resource.Subnet4, reservations []*resource.Reservation4) ([]restresource.Resource, error) {
+	ret := make([]restresource.Resource, 0)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation4InUsed(tx, subnet.GetID(), reservation); err != nil {
-			return err
-		}
-
-		if err := setSubnet4FromDB(tx, subnet); err != nil {
-			return err
-		}
-
-		if subnet.Ipnet.Contains(reservation.Ip) == false {
-			return fmt.Errorf("reservation ipaddress %s not belongs to subnet %s",
-				reservation.IpAddress, subnet.Subnet)
-		}
-
-		if err := checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(),
-			reservation); err != nil {
-			return err
-		}
-
-		conflictPool, err := getConflictPool4InSubnet4(tx, subnet.GetID(),
-			&resource.Pool4{BeginIp: reservation.Ip, EndIp: reservation.Ip})
-		if err != nil {
-			return err
-		}
-
-		if conflictPool == nil {
-			if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-				resource.SqlColumnCapacity: subnet.Capacity + reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-				return fmt.Errorf("update subnet %s capacity to db failed: %s",
-					subnet.GetID(), err.Error())
+		for _, reservation := range reservations {
+			err := execCreateReservation4(tx, subnet, reservation)
+			if err != nil {
+				return err
 			}
-		} else {
-			if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-				resource.SqlColumnCapacity: conflictPool.Capacity - reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: conflictPool.GetID()}); err != nil {
-				return fmt.Errorf("update pool %s capacity to db failed: %s",
-					conflictPool.String(), err.Error())
-			}
+			ret = append(ret, reservation)
 		}
-
-		reservation.Subnet4 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return err
-		}
-
-		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return nil
 	}); err != nil {
 		return nil, err
 	}
+	return ret, nil
+}
 
-	return reservation, nil
+func execCreateReservation4(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := checkReservation4InUsed(tx, subnet.GetID(), reservation); err != nil {
+		return err
+	}
+	if err := setSubnet4FromDB(tx, subnet); err != nil {
+		return err
+	}
+	if subnet.Ipnet.Contains(reservation.Ip) == false {
+		return fmt.Errorf("reservation ipaddress %s not belongs to subnet %s",
+			reservation.IpAddress, subnet.Subnet)
+	}
+	if err := checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(),
+		reservation); err != nil {
+		return err
+	}
+	conflictPool, err := getConflictPool4InSubnet4(tx, subnet.GetID(),
+		&resource.Pool4{BeginIp: reservation.Ip, EndIp: reservation.Ip})
+	if err != nil {
+		return err
+	}
+	if conflictPool == nil {
+		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
+			resource.SqlColumnCapacity: subnet.Capacity + reservation.Capacity,
+		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
+		}
+	} else {
+		if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
+			resource.SqlColumnCapacity: conflictPool.Capacity - reservation.Capacity,
+		}, map[string]interface{}{restdb.IDField: conflictPool.GetID()}); err != nil {
+			return fmt.Errorf("update pool %s capacity to db failed: %s",
+				conflictPool.String(), err.Error())
+		}
+	}
+
+	reservation.Subnet4 = subnet.GetID()
+	if _, err := tx.Insert(reservation); err != nil {
+		return err
+	}
+	return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
+		reservation)
 }
 
 func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
