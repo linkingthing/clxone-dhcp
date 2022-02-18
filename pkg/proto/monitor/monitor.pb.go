@@ -78,6 +78,185 @@ func (HaCommand) EnumDescriptor() ([]byte, []int) {
 	return file_monitor_proto_rawDescGZIP(), []int{0}
 }
 
+type IsNodeMasterRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Ip string `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+}
+
+func (x *IsNodeMasterRequest) Reset() {
+	*x = IsNodeMasterRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_monitor_proto_msgTypes[0]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *IsNodeMasterRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsNodeMasterRequest) ProtoMessage() {}
+
+func (x *IsNodeMasterRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitor_proto_msgTypes[0]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsNodeMasterRequest.ProtoReflect.Descriptor instead.
+func (*IsNodeMasterRequest) Descriptor() ([]byte, []int) {
+	return file_monitor_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *IsNodeMasterRequest) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+type IsNodeMasterResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	IsMaster bool `protobuf:"varint,1,opt,name=is_master,json=isMaster,proto3" json:"is_master,omitempty"`
+}
+
+func (x *IsNodeMasterResponse) Reset() {
+	*x = IsNodeMasterResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_monitor_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *IsNodeMasterResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IsNodeMasterResponse) ProtoMessage() {}
+
+func (x *IsNodeMasterResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitor_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IsNodeMasterResponse.ProtoReflect.Descriptor instead.
+func (*IsNodeMasterResponse) Descriptor() ([]byte, []int) {
+	return file_monitor_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *IsNodeMasterResponse) GetIsMaster() bool {
+	if x != nil {
+		return x.IsMaster
+	}
+	return false
+}
+
+type GetDNSNodesRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *GetDNSNodesRequest) Reset() {
+	*x = GetDNSNodesRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_monitor_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetDNSNodesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDNSNodesRequest) ProtoMessage() {}
+
+func (x *GetDNSNodesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_monitor_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDNSNodesRequest.ProtoReflect.Descriptor instead.
+func (*GetDNSNodesRequest) Descriptor() ([]byte, []int) {
+	return file_monitor_proto_rawDescGZIP(), []int{2}
+}
+
+type GetDNSNodesResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Nodes []*Node `protobuf:"bytes,1,rep,name=nodes,proto3" json:"nodes,omitempty"`
+}
+
+func (x *GetDNSNodesResponse) Reset() {
+	*x = GetDNSNodesResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_monitor_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetDNSNodesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDNSNodesResponse) ProtoMessage() {}
+
+func (x *GetDNSNodesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_monitor_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDNSNodesResponse.ProtoReflect.Descriptor instead.
+func (*GetDNSNodesResponse) Descriptor() ([]byte, []int) {
+	return file_monitor_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetDNSNodesResponse) GetNodes() []*Node {
+	if x != nil {
+		return x.Nodes
+	}
+	return nil
+}
+
 type GetDHCPNodesRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -87,7 +266,7 @@ type GetDHCPNodesRequest struct {
 func (x *GetDHCPNodesRequest) Reset() {
 	*x = GetDHCPNodesRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_monitor_proto_msgTypes[0]
+		mi := &file_monitor_proto_msgTypes[4]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -100,7 +279,7 @@ func (x *GetDHCPNodesRequest) String() string {
 func (*GetDHCPNodesRequest) ProtoMessage() {}
 
 func (x *GetDHCPNodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_monitor_proto_msgTypes[0]
+	mi := &file_monitor_proto_msgTypes[4]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,7 +292,7 @@ func (x *GetDHCPNodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDHCPNodesRequest.ProtoReflect.Descriptor instead.
 func (*GetDHCPNodesRequest) Descriptor() ([]byte, []int) {
-	return file_monitor_proto_rawDescGZIP(), []int{0}
+	return file_monitor_proto_rawDescGZIP(), []int{4}
 }
 
 type GetDHCPNodesResponse struct {
@@ -127,7 +306,7 @@ type GetDHCPNodesResponse struct {
 func (x *GetDHCPNodesResponse) Reset() {
 	*x = GetDHCPNodesResponse{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_monitor_proto_msgTypes[1]
+		mi := &file_monitor_proto_msgTypes[5]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -140,7 +319,7 @@ func (x *GetDHCPNodesResponse) String() string {
 func (*GetDHCPNodesResponse) ProtoMessage() {}
 
 func (x *GetDHCPNodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_monitor_proto_msgTypes[1]
+	mi := &file_monitor_proto_msgTypes[5]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -153,7 +332,7 @@ func (x *GetDHCPNodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetDHCPNodesResponse.ProtoReflect.Descriptor instead.
 func (*GetDHCPNodesResponse) Descriptor() ([]byte, []int) {
-	return file_monitor_proto_rawDescGZIP(), []int{1}
+	return file_monitor_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetDHCPNodesResponse) GetNodes() []*Node {
@@ -179,7 +358,7 @@ type Node struct {
 func (x *Node) Reset() {
 	*x = Node{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_monitor_proto_msgTypes[2]
+		mi := &file_monitor_proto_msgTypes[6]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -192,7 +371,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_monitor_proto_msgTypes[2]
+	mi := &file_monitor_proto_msgTypes[6]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -205,7 +384,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_monitor_proto_rawDescGZIP(), []int{2}
+	return file_monitor_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Node) GetName() string {
@@ -258,12 +437,13 @@ type HaTrigger struct {
 	Command  HaCommand `protobuf:"varint,1,opt,name=command,proto3,enum=HaCommand" json:"command,omitempty"`
 	MasterIp string    `protobuf:"bytes,2,opt,name=master_ip,json=masterIp,proto3" json:"master_ip,omitempty"`
 	SlaveIp  string    `protobuf:"bytes,3,opt,name=slave_ip,json=slaveIp,proto3" json:"slave_ip,omitempty"`
+	Role     string    `protobuf:"bytes,4,opt,name=role,proto3" json:"role,omitempty"`
 }
 
 func (x *HaTrigger) Reset() {
 	*x = HaTrigger{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_monitor_proto_msgTypes[3]
+		mi := &file_monitor_proto_msgTypes[7]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -276,7 +456,7 @@ func (x *HaTrigger) String() string {
 func (*HaTrigger) ProtoMessage() {}
 
 func (x *HaTrigger) ProtoReflect() protoreflect.Message {
-	mi := &file_monitor_proto_msgTypes[3]
+	mi := &file_monitor_proto_msgTypes[7]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -289,7 +469,7 @@ func (x *HaTrigger) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HaTrigger.ProtoReflect.Descriptor instead.
 func (*HaTrigger) Descriptor() ([]byte, []int) {
-	return file_monitor_proto_rawDescGZIP(), []int{3}
+	return file_monitor_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *HaTrigger) GetCommand() HaCommand {
@@ -313,42 +493,69 @@ func (x *HaTrigger) GetSlaveIp() string {
 	return ""
 }
 
+func (x *HaTrigger) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
 var File_monitor_proto protoreflect.FileDescriptor
 
 var file_monitor_proto_rawDesc = []byte{
 	0x0a, 0x0d, 0x6d, 0x6f, 0x6e, 0x69, 0x74, 0x6f, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22,
-	0x15, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43, 0x50, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x33, 0x0a, 0x14, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43,
-	0x50, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1b,
-	0x0a, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x05, 0x2e,
-	0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x22, 0xa9, 0x01, 0x0a, 0x04,
-	0x4e, 0x6f, 0x64, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x69, 0x70, 0x76, 0x34,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x69, 0x70, 0x76, 0x34, 0x12, 0x12, 0x0a, 0x04,
-	0x69, 0x70, 0x76, 0x36, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x69, 0x70, 0x76, 0x36,
-	0x12, 0x1d, 0x0a, 0x0a, 0x76, 0x69, 0x72, 0x74, 0x75, 0x61, 0x6c, 0x5f, 0x69, 0x70, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x76, 0x69, 0x72, 0x74, 0x75, 0x61, 0x6c, 0x49, 0x70, 0x12,
-	0x23, 0x0a, 0x0d, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x61, 0x6c, 0x69, 0x76, 0x65,
-	0x18, 0x05, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0c, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x41,
-	0x6c, 0x69, 0x76, 0x65, 0x12, 0x21, 0x0a, 0x0c, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x5f,
-	0x74, 0x61, 0x67, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x09, 0x52, 0x0b, 0x73, 0x65, 0x72, 0x76,
-	0x69, 0x63, 0x65, 0x54, 0x61, 0x67, 0x73, 0x22, 0x69, 0x0a, 0x09, 0x48, 0x61, 0x54, 0x72, 0x69,
-	0x67, 0x67, 0x65, 0x72, 0x12, 0x24, 0x0a, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0a, 0x2e, 0x48, 0x61, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e,
-	0x64, 0x52, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x6d, 0x61,
-	0x73, 0x74, 0x65, 0x72, 0x5f, 0x69, 0x70, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6d,
-	0x61, 0x73, 0x74, 0x65, 0x72, 0x49, 0x70, 0x12, 0x19, 0x0a, 0x08, 0x73, 0x6c, 0x61, 0x76, 0x65,
-	0x5f, 0x69, 0x70, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x6c, 0x61, 0x76, 0x65,
-	0x49, 0x70, 0x2a, 0x39, 0x0a, 0x09, 0x48, 0x61, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12,
-	0x0c, 0x0a, 0x08, 0x73, 0x74, 0x61, 0x72, 0x74, 0x5f, 0x68, 0x61, 0x10, 0x00, 0x12, 0x0d, 0x0a,
-	0x09, 0x6d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x5f, 0x75, 0x70, 0x10, 0x01, 0x12, 0x0f, 0x0a, 0x0b,
-	0x6d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x5f, 0x64, 0x6f, 0x77, 0x6e, 0x10, 0x02, 0x32, 0x4f, 0x0a,
-	0x0e, 0x4d, 0x6f, 0x6e, 0x69, 0x74, 0x6f, 0x72, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
-	0x3d, 0x0a, 0x0c, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43, 0x50, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12,
-	0x14, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43, 0x50, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x15, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43, 0x50, 0x4e,
-	0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x03,
-	0x5a, 0x01, 0x2e, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x25, 0x0a, 0x13, 0x49, 0x73, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x70, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x02, 0x69, 0x70, 0x22, 0x33, 0x0a, 0x14, 0x49, 0x73, 0x4e, 0x6f, 0x64, 0x65,
+	0x4d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1b,
+	0x0a, 0x09, 0x69, 0x73, 0x5f, 0x6d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x08, 0x52, 0x08, 0x69, 0x73, 0x4d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x22, 0x14, 0x0a, 0x12, 0x47,
+	0x65, 0x74, 0x44, 0x4e, 0x53, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x22, 0x32, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x44, 0x4e, 0x53, 0x4e, 0x6f, 0x64, 0x65, 0x73,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1b, 0x0a, 0x05, 0x6e, 0x6f, 0x64, 0x65,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x05, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05,
+	0x6e, 0x6f, 0x64, 0x65, 0x73, 0x22, 0x15, 0x0a, 0x13, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43, 0x50,
+	0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x33, 0x0a, 0x14,
+	0x47, 0x65, 0x74, 0x44, 0x48, 0x43, 0x50, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1b, 0x0a, 0x05, 0x6e, 0x6f, 0x64, 0x65, 0x73, 0x18, 0x01, 0x20,
+	0x03, 0x28, 0x0b, 0x32, 0x05, 0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x05, 0x6e, 0x6f, 0x64, 0x65,
+	0x73, 0x22, 0xa9, 0x01, 0x0a, 0x04, 0x4e, 0x6f, 0x64, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61,
+	0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x12,
+	0x0a, 0x04, 0x69, 0x70, 0x76, 0x34, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x69, 0x70,
+	0x76, 0x34, 0x12, 0x12, 0x0a, 0x04, 0x69, 0x70, 0x76, 0x36, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x04, 0x69, 0x70, 0x76, 0x36, 0x12, 0x1d, 0x0a, 0x0a, 0x76, 0x69, 0x72, 0x74, 0x75, 0x61,
+	0x6c, 0x5f, 0x69, 0x70, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x76, 0x69, 0x72, 0x74,
+	0x75, 0x61, 0x6c, 0x49, 0x70, 0x12, 0x23, 0x0a, 0x0d, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65,
+	0x5f, 0x61, 0x6c, 0x69, 0x76, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x08, 0x52, 0x0c, 0x73, 0x65,
+	0x72, 0x76, 0x69, 0x63, 0x65, 0x41, 0x6c, 0x69, 0x76, 0x65, 0x12, 0x21, 0x0a, 0x0c, 0x73, 0x65,
+	0x72, 0x76, 0x69, 0x63, 0x65, 0x5f, 0x74, 0x61, 0x67, 0x73, 0x18, 0x06, 0x20, 0x03, 0x28, 0x09,
+	0x52, 0x0b, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x54, 0x61, 0x67, 0x73, 0x22, 0x7d, 0x0a,
+	0x09, 0x48, 0x61, 0x54, 0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x12, 0x24, 0x0a, 0x07, 0x63, 0x6f,
+	0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x0a, 0x2e, 0x48, 0x61,
+	0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x52, 0x07, 0x63, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64,
+	0x12, 0x1b, 0x0a, 0x09, 0x6d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x5f, 0x69, 0x70, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x08, 0x6d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x49, 0x70, 0x12, 0x19, 0x0a,
+	0x08, 0x73, 0x6c, 0x61, 0x76, 0x65, 0x5f, 0x69, 0x70, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x07, 0x73, 0x6c, 0x61, 0x76, 0x65, 0x49, 0x70, 0x12, 0x12, 0x0a, 0x04, 0x72, 0x6f, 0x6c, 0x65,
+	0x18, 0x04, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x72, 0x6f, 0x6c, 0x65, 0x2a, 0x39, 0x0a, 0x09,
+	0x48, 0x61, 0x43, 0x6f, 0x6d, 0x6d, 0x61, 0x6e, 0x64, 0x12, 0x0c, 0x0a, 0x08, 0x73, 0x74, 0x61,
+	0x72, 0x74, 0x5f, 0x68, 0x61, 0x10, 0x00, 0x12, 0x0d, 0x0a, 0x09, 0x6d, 0x61, 0x73, 0x74, 0x65,
+	0x72, 0x5f, 0x75, 0x70, 0x10, 0x01, 0x12, 0x0f, 0x0a, 0x0b, 0x6d, 0x61, 0x73, 0x74, 0x65, 0x72,
+	0x5f, 0x64, 0x6f, 0x77, 0x6e, 0x10, 0x02, 0x32, 0xca, 0x01, 0x0a, 0x0e, 0x4d, 0x6f, 0x6e, 0x69,
+	0x74, 0x6f, 0x72, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x3a, 0x0a, 0x0b, 0x47, 0x65,
+	0x74, 0x44, 0x4e, 0x53, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x13, 0x2e, 0x47, 0x65, 0x74, 0x44,
+	0x4e, 0x53, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x14,
+	0x2e, 0x47, 0x65, 0x74, 0x44, 0x4e, 0x53, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x3d, 0x0a, 0x0c, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43,
+	0x50, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x14, 0x2e, 0x47, 0x65, 0x74, 0x44, 0x48, 0x43, 0x50,
+	0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x15, 0x2e, 0x47,
+	0x65, 0x74, 0x44, 0x48, 0x43, 0x50, 0x4e, 0x6f, 0x64, 0x65, 0x73, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x3d, 0x0a, 0x0c, 0x49, 0x73, 0x4e, 0x6f, 0x64, 0x65, 0x4d,
+	0x61, 0x73, 0x74, 0x65, 0x72, 0x12, 0x14, 0x2e, 0x49, 0x73, 0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x61,
+	0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x15, 0x2e, 0x49, 0x73,
+	0x4e, 0x6f, 0x64, 0x65, 0x4d, 0x61, 0x73, 0x74, 0x65, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x00, 0x42, 0x09, 0x5a, 0x07, 0x2e, 0x3b, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -364,24 +571,33 @@ func file_monitor_proto_rawDescGZIP() []byte {
 }
 
 var file_monitor_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_monitor_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_monitor_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_monitor_proto_goTypes = []interface{}{
 	(HaCommand)(0),               // 0: HaCommand
-	(*GetDHCPNodesRequest)(nil),  // 1: GetDHCPNodesRequest
-	(*GetDHCPNodesResponse)(nil), // 2: GetDHCPNodesResponse
-	(*Node)(nil),                 // 3: Node
-	(*HaTrigger)(nil),            // 4: HaTrigger
+	(*IsNodeMasterRequest)(nil),  // 1: IsNodeMasterRequest
+	(*IsNodeMasterResponse)(nil), // 2: IsNodeMasterResponse
+	(*GetDNSNodesRequest)(nil),   // 3: GetDNSNodesRequest
+	(*GetDNSNodesResponse)(nil),  // 4: GetDNSNodesResponse
+	(*GetDHCPNodesRequest)(nil),  // 5: GetDHCPNodesRequest
+	(*GetDHCPNodesResponse)(nil), // 6: GetDHCPNodesResponse
+	(*Node)(nil),                 // 7: Node
+	(*HaTrigger)(nil),            // 8: HaTrigger
 }
 var file_monitor_proto_depIdxs = []int32{
-	3, // 0: GetDHCPNodesResponse.nodes:type_name -> Node
-	0, // 1: HaTrigger.command:type_name -> HaCommand
-	1, // 2: MonitorService.GetDHCPNodes:input_type -> GetDHCPNodesRequest
-	2, // 3: MonitorService.GetDHCPNodes:output_type -> GetDHCPNodesResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	7, // 0: GetDNSNodesResponse.nodes:type_name -> Node
+	7, // 1: GetDHCPNodesResponse.nodes:type_name -> Node
+	0, // 2: HaTrigger.command:type_name -> HaCommand
+	3, // 3: MonitorService.GetDNSNodes:input_type -> GetDNSNodesRequest
+	5, // 4: MonitorService.GetDHCPNodes:input_type -> GetDHCPNodesRequest
+	1, // 5: MonitorService.IsNodeMaster:input_type -> IsNodeMasterRequest
+	4, // 6: MonitorService.GetDNSNodes:output_type -> GetDNSNodesResponse
+	6, // 7: MonitorService.GetDHCPNodes:output_type -> GetDHCPNodesResponse
+	2, // 8: MonitorService.IsNodeMaster:output_type -> IsNodeMasterResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_monitor_proto_init() }
@@ -391,7 +607,7 @@ func file_monitor_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_monitor_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetDHCPNodesRequest); i {
+			switch v := v.(*IsNodeMasterRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -403,7 +619,7 @@ func file_monitor_proto_init() {
 			}
 		}
 		file_monitor_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetDHCPNodesResponse); i {
+			switch v := v.(*IsNodeMasterResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -415,7 +631,7 @@ func file_monitor_proto_init() {
 			}
 		}
 		file_monitor_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Node); i {
+			switch v := v.(*GetDNSNodesRequest); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -427,6 +643,54 @@ func file_monitor_proto_init() {
 			}
 		}
 		file_monitor_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetDNSNodesResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_monitor_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetDHCPNodesRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_monitor_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetDHCPNodesResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_monitor_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Node); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_monitor_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*HaTrigger); i {
 			case 0:
 				return &v.state
@@ -445,7 +709,7 @@ func file_monitor_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_monitor_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
@@ -472,7 +736,9 @@ const _ = grpc.SupportPackageIsVersion6
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MonitorServiceClient interface {
+	GetDNSNodes(ctx context.Context, in *GetDNSNodesRequest, opts ...grpc.CallOption) (*GetDNSNodesResponse, error)
 	GetDHCPNodes(ctx context.Context, in *GetDHCPNodesRequest, opts ...grpc.CallOption) (*GetDHCPNodesResponse, error)
+	IsNodeMaster(ctx context.Context, in *IsNodeMasterRequest, opts ...grpc.CallOption) (*IsNodeMasterResponse, error)
 }
 
 type monitorServiceClient struct {
@@ -481,6 +747,15 @@ type monitorServiceClient struct {
 
 func NewMonitorServiceClient(cc grpc.ClientConnInterface) MonitorServiceClient {
 	return &monitorServiceClient{cc}
+}
+
+func (c *monitorServiceClient) GetDNSNodes(ctx context.Context, in *GetDNSNodesRequest, opts ...grpc.CallOption) (*GetDNSNodesResponse, error) {
+	out := new(GetDNSNodesResponse)
+	err := c.cc.Invoke(ctx, "/MonitorService/GetDNSNodes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *monitorServiceClient) GetDHCPNodes(ctx context.Context, in *GetDHCPNodesRequest, opts ...grpc.CallOption) (*GetDHCPNodesResponse, error) {
@@ -492,21 +767,56 @@ func (c *monitorServiceClient) GetDHCPNodes(ctx context.Context, in *GetDHCPNode
 	return out, nil
 }
 
+func (c *monitorServiceClient) IsNodeMaster(ctx context.Context, in *IsNodeMasterRequest, opts ...grpc.CallOption) (*IsNodeMasterResponse, error) {
+	out := new(IsNodeMasterResponse)
+	err := c.cc.Invoke(ctx, "/MonitorService/IsNodeMaster", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MonitorServiceServer is the server API for MonitorService service.
 type MonitorServiceServer interface {
+	GetDNSNodes(context.Context, *GetDNSNodesRequest) (*GetDNSNodesResponse, error)
 	GetDHCPNodes(context.Context, *GetDHCPNodesRequest) (*GetDHCPNodesResponse, error)
+	IsNodeMaster(context.Context, *IsNodeMasterRequest) (*IsNodeMasterResponse, error)
 }
 
 // UnimplementedMonitorServiceServer can be embedded to have forward compatible implementations.
 type UnimplementedMonitorServiceServer struct {
 }
 
+func (*UnimplementedMonitorServiceServer) GetDNSNodes(context.Context, *GetDNSNodesRequest) (*GetDNSNodesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDNSNodes not implemented")
+}
 func (*UnimplementedMonitorServiceServer) GetDHCPNodes(context.Context, *GetDHCPNodesRequest) (*GetDHCPNodesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDHCPNodes not implemented")
+}
+func (*UnimplementedMonitorServiceServer) IsNodeMaster(context.Context, *IsNodeMasterRequest) (*IsNodeMasterResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsNodeMaster not implemented")
 }
 
 func RegisterMonitorServiceServer(s *grpc.Server, srv MonitorServiceServer) {
 	s.RegisterService(&_MonitorService_serviceDesc, srv)
+}
+
+func _MonitorService_GetDNSNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDNSNodesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServiceServer).GetDNSNodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MonitorService/GetDNSNodes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServiceServer).GetDNSNodes(ctx, req.(*GetDNSNodesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _MonitorService_GetDHCPNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -527,13 +837,39 @@ func _MonitorService_GetDHCPNodes_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MonitorService_IsNodeMaster_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsNodeMasterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MonitorServiceServer).IsNodeMaster(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/MonitorService/IsNodeMaster",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MonitorServiceServer).IsNodeMaster(ctx, req.(*IsNodeMasterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _MonitorService_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "MonitorService",
 	HandlerType: (*MonitorServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetDNSNodes",
+			Handler:    _MonitorService_GetDNSNodes_Handler,
+		},
+		{
 			MethodName: "GetDHCPNodes",
 			Handler:    _MonitorService_GetDHCPNodes_Handler,
+		},
+		{
+			MethodName: "IsNodeMaster",
+			Handler:    _MonitorService_IsNodeMaster_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

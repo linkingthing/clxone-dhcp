@@ -11,6 +11,8 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
+	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
+	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 )
 
 const (
@@ -19,6 +21,7 @@ const (
 
 type ScannedDHCPHandler struct {
 	dhcpClient *dhcpclient.DHCPClient
+	localIp    string
 }
 
 func InitScannedDHCPHandler(conf *config.DHCPConfig) error {
@@ -31,7 +34,7 @@ func InitScannedDHCPHandler(conf *config.DHCPConfig) error {
 	if err != nil {
 		return err
 	}
-	h := &ScannedDHCPHandler{dhcpClient: dhcpClient}
+	h := &ScannedDHCPHandler{dhcpClient: dhcpClient, localIp: conf.Server.IP}
 	go h.scanIllegalDHCPServer(searchInterval)
 
 	return nil
@@ -44,6 +47,11 @@ func (h *ScannedDHCPHandler) scanIllegalDHCPServer(searchInterval uint32) {
 	for {
 		select {
 		case <-ticker.C:
+			if response, err := grpcclient.GetMonitorGrpcClient().IsNodeMaster(context.TODO(),
+				&pbmonitor.IsNodeMasterRequest{Ip: h.localIp}); err == nil && response.GetIsMaster() == false {
+				continue
+			}
+
 			threshold := GetAlarmService().GetThreshold(pbutil.ThresholdName_illegalDhcp)
 			if threshold == nil {
 				continue
