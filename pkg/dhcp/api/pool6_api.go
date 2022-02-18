@@ -86,14 +86,14 @@ func (p *Pool6Api) Update(ctx *restresource.Context) (restresource.Resource, *re
 func (p *Pool6Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameValidTemplate:
-		return p.ActionCalidTemplate(ctx)
+		return p.actionCalidTemplate(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
 	}
 }
 
-func (p *Pool6Api) ActionCalidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *Pool6Api) actionCalidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	templatePool, err := p.Service.ActionValidTemplate(ctx)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,

@@ -80,18 +80,18 @@ func (s *Subnet6Api) Delete(ctx *restresource.Context) *resterror.APIError {
 func (s *Subnet6Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameUpdateNodes:
-		return s.ActionUpdateNodes(ctx)
+		return s.actionUpdateNodes(ctx)
 	case resource.ActionNameCouldBeCreated:
-		return s.ActionCouldBeCreated(ctx)
+		return s.actionCouldBeCreated(ctx)
 	case resource.ActionNameListWithSubnets:
-		return s.ActionListWithSubnets(ctx)
+		return s.actionListWithSubnets(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
 	}
 }
 
-func (s *Subnet6Api) ActionUpdateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet6Api) actionUpdateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetID()
 	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
 	if ok == false {
@@ -107,7 +107,7 @@ func (s *Subnet6Api) ActionUpdateNodes(ctx *restresource.Context) (interface{}, 
 	return nil, nil
 }
 
-func (s *Subnet6Api) ActionCouldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet6Api) actionCouldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
@@ -122,7 +122,7 @@ func (s *Subnet6Api) ActionCouldBeCreated(ctx *restresource.Context) (interface{
 	return nil, nil
 }
 
-func (s *Subnet6Api) ActionListWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet6Api) actionListWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,

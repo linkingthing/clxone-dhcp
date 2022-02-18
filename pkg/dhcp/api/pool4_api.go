@@ -85,14 +85,14 @@ func (p *Pool4Api) Update(ctx *restresource.Context) (restresource.Resource, *re
 func (p *Pool4Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameValidTemplate:
-		return p.ActionValidTemplate(ctx)
+		return p.actionValidTemplate(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
 	}
 }
 
-func (p *Pool4Api) ActionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *Pool4Api) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	if templatePool, err := p.Service.ActionValidTemplate(ctx); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action validTemplate failed :%s", err))

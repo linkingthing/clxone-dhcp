@@ -74,14 +74,14 @@ func (p *ReservedPool4Api) Delete(ctx *restresource.Context) *resterror.APIError
 func (p *ReservedPool4Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameValidTemplate:
-		return p.ActionValidTemplate(ctx)
+		return p.actionValidTemplate(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
 	}
 }
 
-func (p *ReservedPool4Api) ActionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *ReservedPool4Api) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	pool := ctx.Resource.(*resource.ReservedPool4)
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
