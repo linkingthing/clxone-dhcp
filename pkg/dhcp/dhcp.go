@@ -2,10 +2,10 @@ package dhcp
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/gorest"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
 

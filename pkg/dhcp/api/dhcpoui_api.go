@@ -3,11 +3,11 @@ package api
 import (
 	"fmt"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 )
 
 type DhcpOuiHandler struct {

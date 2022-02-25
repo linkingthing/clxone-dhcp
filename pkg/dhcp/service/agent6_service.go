@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
+	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 )
 

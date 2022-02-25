@@ -2,13 +2,13 @@ package api
 
 import (
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 
 	"github.com/linkingthing/cement/log"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 )
 
 type Pool6Api struct {

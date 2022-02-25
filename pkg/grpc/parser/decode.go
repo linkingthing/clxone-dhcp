@@ -1,7 +1,6 @@
 package parser
 
 import (
-	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"net"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 func decodeTimeUnix(t int64) string {
