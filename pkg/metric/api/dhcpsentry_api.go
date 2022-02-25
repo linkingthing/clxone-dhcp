@@ -2,9 +2,11 @@ package api
 
 import (
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/metric/service"
+
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/metric/service"
 )
 
 type DhcpSentryApi struct {

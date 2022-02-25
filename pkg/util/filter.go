@@ -1,8 +1,9 @@
 package util
 
 import (
-	restresource "github.com/linkingthing/gorest/resource"
 	"strings"
+
+	restresource "github.com/linkingthing/gorest/resource"
 )
 
 const (

@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 	"time"
 
 	"github.com/Ullaakut/nmap/v2"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
+	"github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 const (

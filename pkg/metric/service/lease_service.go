@@ -2,12 +2,12 @@ package service
 
 import (
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 
 	"github.com/linkingthing/cement/log"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 

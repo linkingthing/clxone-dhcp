@@ -2,8 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	service2 "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 	"strconv"
 	"time"
 
@@ -13,7 +11,9 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
+	service2 "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 type LPSService struct {

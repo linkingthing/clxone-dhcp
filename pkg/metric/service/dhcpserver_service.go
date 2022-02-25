@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
