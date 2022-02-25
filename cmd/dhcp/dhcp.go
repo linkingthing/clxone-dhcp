@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"github.com/linkingthing/clxone-dhcp/pkg/transport"
 
 	"github.com/linkingthing/cement/log"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric"
 	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
+	"github.com/linkingthing/clxone-dhcp/pkg/transport"
 	restserver "github.com/linkingthing/clxone-dhcp/server"
 )
 
