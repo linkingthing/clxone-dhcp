@@ -69,7 +69,7 @@ func fingerprintToCreateFingerprintRequest(fingerprint *resource.DhcpFingerprint
 }
 
 func getVendorIdByMatchPattern(vendorId string, matchPattern resource.MatchPattern) string {
-	if len(vendorId) == 0 {
+	if len(vendorId) == 0 || matchPattern == resource.MatchPatternEqual {
 		return vendorId
 	}
 
@@ -168,7 +168,7 @@ func (h *DhcpFingerprintHandler) Delete(ctx *restresource.Context) *resterror.AP
 		} else if len(fingerprints) == 0 {
 			return fmt.Errorf("no found fingerprint %s", fingerprintId)
 		} else if fingerprints[0].IsReadOnly {
-			return fmt.Errorf("update readonly fingerprint %s", fingerprintId)
+			return fmt.Errorf("delete readonly fingerprint %s", fingerprintId)
 		}
 
 		if _, err := tx.Delete(resource.TableDhcpFingerprint, map[string]interface{}{

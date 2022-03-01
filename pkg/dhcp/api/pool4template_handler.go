@@ -76,16 +76,21 @@ func (p *Pool4TemplateHandler) Update(ctx *restresource.Context) (restresource.R
 	if err := template.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("update pool template %s params invalid: %s",
-				template.Name, err.Error()))
+				template.GetID(), err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		_, err := tx.Update(resource.TablePool4Template, map[string]interface{}{
+		if rows, err := tx.Update(resource.TablePool4Template, map[string]interface{}{
 			"begin_offset": template.BeginOffset,
 			"capacity":     template.Capacity,
 			"comment":      template.Comment,
-		}, map[string]interface{}{restdb.IDField: template.GetID()})
-		return err
+		}, map[string]interface{}{restdb.IDField: template.GetID()}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found pool4 template %s", template.GetID())
+		} else {
+			return nil
+		}
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update pool template %s failed: %s",
@@ -98,9 +103,14 @@ func (p *Pool4TemplateHandler) Update(ctx *restresource.Context) (restresource.R
 func (p *Pool4TemplateHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 	templateID := ctx.Resource.GetID()
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		_, err := tx.Delete(resource.TablePool4Template, map[string]interface{}{
-			restdb.IDField: templateID})
-		return err
+		if rows, err := tx.Delete(resource.TablePool4Template, map[string]interface{}{
+			restdb.IDField: templateID}); err != nil {
+			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found pool4 template %s", templateID)
+		} else {
+			return nil
+		}
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("delete pool template %s failed: %s",

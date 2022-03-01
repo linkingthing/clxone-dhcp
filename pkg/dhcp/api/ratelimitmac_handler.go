@@ -62,7 +62,7 @@ func (d *RateLimitMacHandler) List(ctx *restresource.Context) (interface{}, *res
 }
 
 func (d *RateLimitMacHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	ratelimitMacID := ctx.Resource.(*resource.RateLimitMac).GetID()
+	ratelimitMacID := ctx.Resource.GetID()
 	var ratelimitMacs []*resource.RateLimitMac
 	ratelimitMac, err := restdb.GetResourceWithID(db.GetDB(), ratelimitMacID, &ratelimitMacs)
 	if err != nil {

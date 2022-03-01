@@ -18,7 +18,9 @@ type Pool6Template struct {
 }
 
 func (p *Pool6Template) Validate() error {
-	if p.BeginOffset <= 0 || p.BeginOffset >= 2147483647 || p.Capacity <= 0 || p.Capacity >= 2147483647 {
+	if len(p.Name) == 0 {
+		return ErrPoolTemplateNameMissing
+	} else if p.BeginOffset <= 0 || p.BeginOffset >= 2147483647 || p.Capacity <= 0 || p.Capacity >= 2147483647 {
 		return fmt.Errorf("offset %v or capacity %v should in (0, 2147483647)", p.BeginOffset, p.Capacity)
 	} else {
 		return nil

@@ -65,7 +65,7 @@ func (d *AdmitDuidHandler) List(ctx *restresource.Context) (interface{}, *rester
 }
 
 func (d *AdmitDuidHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admitDuidID := ctx.Resource.(*resource.AdmitDuid).GetID()
+	admitDuidID := ctx.Resource.GetID()
 	var admitDuids []*resource.AdmitDuid
 	admitDuid, err := restdb.GetResourceWithID(db.GetDB(), admitDuidID, &admitDuids)
 	if err != nil {

@@ -65,7 +65,7 @@ func (d *AdmitMacHandler) List(ctx *restresource.Context) (interface{}, *resterr
 }
 
 func (d *AdmitMacHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admitMacID := ctx.Resource.(*resource.AdmitMac).GetID()
+	admitMacID := ctx.Resource.GetID()
 	var admitMacs []*resource.AdmitMac
 	admitMac, err := restdb.GetResourceWithID(db.GetDB(), admitMacID, &admitMacs)
 	if err != nil {
@@ -121,7 +121,7 @@ func (d *AdmitMacHandler) Update(ctx *restresource.Context) (restresource.Resour
 		return nil
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create admit mac %s failed: %s", admitMac.GetID(), err.Error()))
+			fmt.Sprintf("update admit mac %s failed: %s", admitMac.GetID(), err.Error()))
 	}
 
 	return admitMac, nil

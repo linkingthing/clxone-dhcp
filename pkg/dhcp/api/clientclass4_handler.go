@@ -76,7 +76,7 @@ func (c *ClientClass4Handler) List(ctx *restresource.Context) (interface{}, *res
 }
 
 func (c *ClientClass4Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	clientclassID := ctx.Resource.(*resource.ClientClass4).GetID()
+	clientclassID := ctx.Resource.GetID()
 	var clientclasses []*resource.ClientClass4
 	clientclass, err := restdb.GetResourceWithID(db.GetDB(), clientclassID, &clientclasses)
 	if err != nil {
@@ -95,10 +95,12 @@ func (c *ClientClass4Handler) Update(ctx *restresource.Context) (restresource.Re
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableClientClass4, map[string]interface{}{
+		if rows, err := tx.Update(resource.TableClientClass4, map[string]interface{}{
 			"regexp": clientclass.Regexp,
 		}, map[string]interface{}{restdb.IDField: clientclass.GetID()}); err != nil {
 			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found clientclass4 %s", clientclass.GetID())
 		}
 
 		return sendUpdateClientClass4CmdToDHCPAgent(clientclass)
@@ -129,9 +131,11 @@ func (c *ClientClass4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			return fmt.Errorf("client class %s used by subnet4", clientclassID)
 		}
 
-		if _, err := tx.Delete(resource.TableClientClass4,
+		if rows, err := tx.Delete(resource.TableClientClass4,
 			map[string]interface{}{restdb.IDField: clientclassID}); err != nil {
 			return err
+		} else if rows == 0 {
+			return fmt.Errorf("no found clientclass4 %s", clientclassID)
 		}
 
 		return sendDeleteClientClass4CmdToDHCPAgent(clientclassID)

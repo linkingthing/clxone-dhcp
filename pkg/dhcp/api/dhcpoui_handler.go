@@ -114,7 +114,7 @@ func genGetOUIContext(ctx *restresource.Context) listOUIContext {
 }
 
 func (d *DhcpOuiHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	dhcpouiID := ctx.Resource.(*resource.DhcpOui).GetID()
+	dhcpouiID := ctx.Resource.GetID()
 	var dhcpouis []*resource.DhcpOui
 	dhcpoui, err := restdb.GetResourceWithID(db.GetDB(), dhcpouiID, &dhcpouis)
 	if err != nil {
@@ -133,12 +133,20 @@ func (d *DhcpOuiHandler) Update(ctx *restresource.Context) (restresource.Resourc
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Update(resource.TableDhcpOui, map[string]interface{}{
+		var dhcpouis []*resource.DhcpOui
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: dhcpoui.GetID()},
+			&dhcpouis); err != nil {
+			return err
+		} else if len(dhcpouis) == 0 {
+			return fmt.Errorf("no found dhcp oui %s", dhcpoui.GetID())
+		} else if dhcpouis[0].IsReadOnly {
+			return fmt.Errorf("update readonly dhcp oui %s", dhcpoui.GetID())
+		}
+
+		if _, err := tx.Update(resource.TableDhcpOui, map[string]interface{}{
 			"organization": dhcpoui.Organization,
 		}, map[string]interface{}{restdb.IDField: dhcpoui.GetID()}); err != nil {
 			return err
-		} else if rows == 0 {
-			return fmt.Errorf("no found oui %s", dhcpoui.GetID())
 		}
 
 		return sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui)
@@ -161,11 +169,19 @@ func sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
 func (d *DhcpOuiHandler) Delete(ctx *restresource.Context) *resterror.APIError {
 	dhcpouiId := ctx.Resource.GetID()
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Delete(resource.TableDhcpOui, map[string]interface{}{
+		var dhcpouis []*resource.DhcpOui
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: dhcpouiId},
+			&dhcpouis); err != nil {
+			return err
+		} else if len(dhcpouis) == 0 {
+			return fmt.Errorf("no found dhcp oui %s", dhcpouiId)
+		} else if dhcpouis[0].IsReadOnly {
+			return fmt.Errorf("delete readonly dhcp oui %s", dhcpouiId)
+		}
+
+		if _, err := tx.Delete(resource.TableDhcpOui, map[string]interface{}{
 			restdb.IDField: dhcpouiId}); err != nil {
 			return err
-		} else if rows == 0 {
-			return fmt.Errorf("no found oui %s", dhcpouiId)
 		}
 
 		return sendDeleteDhcpOuiCmdToDHCPAgent(dhcpouiId)

@@ -47,7 +47,7 @@ func (d *PingerHandler) List(ctx *restresource.Context) (interface{}, *resterror
 }
 
 func (d *PingerHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pingerID := ctx.Resource.(*resource.Pinger).GetID()
+	pingerID := ctx.Resource.GetID()
 	var pingers []*resource.Pinger
 	pinger, err := restdb.GetResourceWithID(db.GetDB(), pingerID, &pingers)
 	if err != nil {

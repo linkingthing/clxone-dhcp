@@ -61,7 +61,7 @@ func (d *AdmitFingerprintHandler) List(ctx *restresource.Context) (interface{}, 
 }
 
 func (d *AdmitFingerprintHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admitFingerprintID := ctx.Resource.(*resource.AdmitFingerprint).GetID()
+	admitFingerprintID := ctx.Resource.GetID()
 	var admitFingerprints []*resource.AdmitFingerprint
 	admitFingerprint, err := restdb.GetResourceWithID(db.GetDB(), admitFingerprintID, &admitFingerprints)
 	if err != nil {

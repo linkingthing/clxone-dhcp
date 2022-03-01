@@ -45,7 +45,7 @@ func (d *DhcpConfigHandler) List(ctx *restresource.Context) (interface{}, *reste
 }
 
 func (d *DhcpConfigHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	configID := ctx.Resource.(*resource.DhcpConfig).GetID()
+	configID := ctx.Resource.GetID()
 	var configs []*resource.DhcpConfig
 	config, err := restdb.GetResourceWithID(db.GetDB(), configID, &configs)
 	if err != nil {

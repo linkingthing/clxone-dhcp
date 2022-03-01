@@ -47,7 +47,7 @@ func (d *RateLimitHandler) List(ctx *restresource.Context) (interface{}, *rester
 }
 
 func (d *RateLimitHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	ratelimitID := ctx.Resource.(*resource.RateLimit).GetID()
+	ratelimitID := ctx.Resource.GetID()
 	var ratelimits []*resource.RateLimit
 	ratelimit, err := restdb.GetResourceWithID(db.GetDB(), ratelimitID, &ratelimits)
 	if err != nil {
