@@ -129,13 +129,13 @@ func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Rese
 		}
 	}
 
-	for _, ipnet_ := range reservation.Ipnets {
-		if ipnet.Contains(ipnet_.IP) == false {
+	for _, prefix := range reservation.Prefixes {
+		if ip, ipnet_, _ := net.ParseCIDR(prefix); ipnet.Contains(ip) == false {
 			return fmt.Errorf("reservation %s prefix %s not belong to subnet %s",
-				reservation.String(), ipnet_.String(), ipnet.String())
+				reservation.String(), prefix, ipnet.String())
 		} else if ones, _ := ipnet_.Mask.Size(); ones <= subnetMaskLen {
 			return fmt.Errorf("reservation %s prefix %s len %d less than subnet %d",
-				reservation.String(), ipnet_.String(), ones, subnetMaskLen)
+				reservation.String(), prefix, ones, subnetMaskLen)
 		}
 
 	}

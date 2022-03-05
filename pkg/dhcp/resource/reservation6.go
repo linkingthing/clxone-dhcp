@@ -1,9 +1,12 @@
 package resource
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net"
 	"strings"
+
+	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
@@ -14,17 +17,16 @@ var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
-	Subnet6                   string      `json:"-" db:"ownby"`
-	Duid                      string      `json:"duid"`
-	HwAddress                 string      `json:"hwAddress"`
-	IpAddresses               []string    `json:"ipAddresses"`
-	Ips                       []net.IP    `json:"-"`
-	Prefixes                  []string    `json:"prefixes"`
-	Ipnets                    []net.IPNet `json:"-"`
-	Capacity                  uint64      `json:"capacity" rest:"description=readonly"`
-	UsedRatio                 string      `json:"usedRatio" rest:"description=readonly" db:"-"`
-	UsedCount                 uint64      `json:"usedCount" rest:"description=readonly" db:"-"`
-	Comment                   string      `json:"comment"`
+	Subnet6                   string   `json:"-" db:"ownby"`
+	Duid                      string   `json:"duid"`
+	HwAddress                 string   `json:"hwAddress"`
+	IpAddresses               []string `json:"ipAddresses"`
+	Ips                       []net.IP `json:"-"`
+	Prefixes                  []string `json:"prefixes"`
+	Capacity                  uint64   `json:"capacity" rest:"description=readonly"`
+	UsedRatio                 string   `json:"usedRatio" rest:"description=readonly" db:"-"`
+	UsedCount                 uint64   `json:"usedCount" rest:"description=readonly" db:"-"`
+	Comment                   string   `json:"comment"`
 }
 
 func (r Reservation6) GetParents() []restresource.ResourceKind {
@@ -92,6 +94,10 @@ func (r *Reservation6) Validate() error {
 		if _, err := net.ParseMAC(r.HwAddress); err != nil {
 			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
 		}
+	} else {
+		if err := parseDUID(r.Duid); err != nil {
+			return fmt.Errorf("duid %s is invalid", r.Duid)
+		}
 	}
 
 	for _, ip := range r.IpAddresses {
@@ -107,11 +113,24 @@ func (r *Reservation6) Validate() error {
 			return err
 		} else if ones, _ := ipnet.Mask.Size(); ones >= 64 {
 			return fmt.Errorf("prefix %s mask size %d should less than 64", prefix, ones)
-		} else {
-			r.Ipnets = append(r.Ipnets, *ipnet)
 		}
 	}
 
 	r.Capacity = uint64(len(r.IpAddresses) + len(r.Prefixes))
 	return nil
+}
+
+func parseDUID(duid string) error {
+	if len(duid) == 0 {
+		return fmt.Errorf("duid is required")
+	}
+
+	duidhexstr := strings.Replace(duid, ":", "", -1)
+	duidbytes, err := hex.DecodeString(duidhexstr)
+	if err != nil {
+		return fmt.Errorf("decode duid with hex failed: %s", err.Error())
+	}
+
+	_, err = dhcp6.DuidFromBytes(duidbytes)
+	return err
 }
