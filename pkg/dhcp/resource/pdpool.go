@@ -28,7 +28,7 @@ func (p PdPool) GetParents() []restresource.ResourceKind {
 }
 
 func (p *PdPool) String() string {
-	return p.PrefixIpnet.String() + "-" + strconv.Itoa(int(p.DelegatedLen))
+	return p.Prefix + "-" + strconv.Itoa(int(p.PrefixLen)) + "-" + strconv.Itoa(int(p.DelegatedLen))
 }
 
 func (pdpool *PdPool) Validate() error {

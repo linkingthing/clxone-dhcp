@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
@@ -13,16 +14,17 @@ var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
-	Subnet6                   string   `json:"-" db:"ownby"`
-	Duid                      string   `json:"duid"`
-	HwAddress                 string   `json:"hwAddress"`
-	IpAddresses               []string `json:"ipAddresses"`
-	Ips                       []net.IP `json:"-"`
-	Prefixes                  []string `json:"prefixes"`
-	Capacity                  uint64   `json:"capacity" rest:"description=readonly"`
-	UsedRatio                 string   `json:"usedRatio" rest:"description=readonly" db:"-"`
-	UsedCount                 uint64   `json:"usedCount" rest:"description=readonly" db:"-"`
-	Comment                   string   `json:"comment"`
+	Subnet6                   string      `json:"-" db:"ownby"`
+	Duid                      string      `json:"duid"`
+	HwAddress                 string      `json:"hwAddress"`
+	IpAddresses               []string    `json:"ipAddresses"`
+	Ips                       []net.IP    `json:"-"`
+	Prefixes                  []string    `json:"prefixes"`
+	Ipnets                    []net.IPNet `json:"-"`
+	Capacity                  uint64      `json:"capacity" rest:"description=readonly"`
+	UsedRatio                 string      `json:"usedRatio" rest:"description=readonly" db:"-"`
+	UsedCount                 uint64      `json:"usedCount" rest:"description=readonly" db:"-"`
+	Comment                   string      `json:"comment"`
 }
 
 func (r Reservation6) GetParents() []restresource.ResourceKind {
@@ -34,6 +36,14 @@ func (r *Reservation6) String() string {
 		return "duid-" + r.Duid
 	} else {
 		return "mac-" + r.HwAddress
+	}
+}
+
+func (r *Reservation6) AddrString() string {
+	if len(r.IpAddresses) != 0 {
+		return "ips-" + strings.Join(r.IpAddresses, "_")
+	} else {
+		return "prefixes-" + strings.Join(r.IpAddresses, "_")
 	}
 }
 
@@ -97,6 +107,8 @@ func (r *Reservation6) Validate() error {
 			return err
 		} else if ones, _ := ipnet.Mask.Size(); ones >= 64 {
 			return fmt.Errorf("prefix %s mask size %d should less than 64", prefix, ones)
+		} else {
+			r.Ipnets = append(r.Ipnets, *ipnet)
 		}
 	}
 

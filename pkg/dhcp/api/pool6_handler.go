@@ -129,13 +129,7 @@ func recalculatePool6Capacity(tx restdb.Transaction, subnetID string, pool *reso
 		return err
 	}
 
-	for _, reservation := range reservations {
-		for _, ipAddress := range reservation.IpAddresses {
-			if pool.Contains(ipAddress) {
-				pool.Capacity -= reservation.Capacity
-			}
-		}
-	}
+	recalculatePool6CapacityWithReservations(pool, reservations)
 
 	var reservedpools []*resource.ReservedPool6
 	if err := tx.FillEx(&reservedpools,
@@ -144,11 +138,24 @@ func recalculatePool6Capacity(tx restdb.Transaction, subnetID string, pool *reso
 		return err
 	}
 
+	recalculatePool6CapacityWithReservedPools(pool, reservedpools)
+	return nil
+}
+
+func recalculatePool6CapacityWithReservations(pool *resource.Pool6, reservations []*resource.Reservation6) {
+	for _, reservation := range reservations {
+		for _, ipAddress := range reservation.IpAddresses {
+			if pool.Contains(ipAddress) {
+				pool.Capacity -= 1
+			}
+		}
+	}
+}
+
+func recalculatePool6CapacityWithReservedPools(pool *resource.Pool6, reservedpools []*resource.ReservedPool6) {
 	for _, reservedpool := range reservedpools {
 		pool.Capacity -= getPool6ReservedCountWithReservedPool6(pool, reservedpool)
 	}
-
-	return nil
 }
 
 func sendCreatePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool6) error {

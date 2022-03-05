@@ -116,21 +116,26 @@ func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation
 }
 
 func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Reservation6) error {
+	subnetMaskLen, _ := ipnet.Mask.Size()
+	if subnetMaskLen < 64 && len(reservation.Ips) != 0 {
+		return fmt.Errorf("subnet %s mask len less than 64, can`t create reservation with ips %v",
+			ipnet.String(), reservation.Ips)
+	}
+
 	for _, ip := range reservation.Ips {
-		if checkIPsBelongsToIpnet(ipnet, ip) == false {
+		if ipnet.Contains(ip) == false {
 			return fmt.Errorf("reservation %s ip %s not belong to subnet %s",
 				reservation.String(), ip.String(), ipnet.String())
 		}
 	}
 
-	subnetMaskLen, _ := ipnet.Mask.Size()
-	for _, prefix := range reservation.Prefixes {
-		if ip, ipnet_, _ := net.ParseCIDR(prefix); ipnet.Contains(ip) == false {
+	for _, ipnet_ := range reservation.Ipnets {
+		if ipnet.Contains(ipnet_.IP) == false {
 			return fmt.Errorf("reservation %s prefix %s not belong to subnet %s",
-				reservation.String(), prefix, ipnet.String())
+				reservation.String(), ipnet_.String(), ipnet.String())
 		} else if ones, _ := ipnet_.Mask.Size(); ones <= subnetMaskLen {
 			return fmt.Errorf("reservation %s prefix %s len %d less than subnet %d",
-				reservation.String(), prefix, ones, subnetMaskLen)
+				reservation.String(), ipnet_.String(), ones, subnetMaskLen)
 		}
 
 	}
@@ -168,7 +173,7 @@ func checkReservation6ConflictWithReservedPools(tx restdb.Transaction, subnetId 
 
 	for _, prefix := range reservation.Prefixes {
 		for _, reservedpdpool := range reservedpdpools {
-			if reservedpdpool.Contains(prefix) {
+			if reservedpdpool.Intersect(prefix) {
 				return fmt.Errorf("reservation %s prefix %s conflict with reserved pdpool %s",
 					reservation.String(), prefix, reservedpdpool.String())
 			}

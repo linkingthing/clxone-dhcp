@@ -70,7 +70,7 @@ func checkPrefixBelongsToIpnet(ipnet, prefixIpnet net.IPNet, prefixLen uint32) e
 			prefixIpnet.String(), prefixLen, ones)
 	}
 
-	if checkIPsBelongsToIpnet(ipnet, prefixIpnet.IP) == false {
+	if ipnet.Contains(prefixIpnet.IP) == false {
 		return fmt.Errorf("pdpool %s not belongs to subnet %s",
 			prefixIpnet.String(), ipnet.String())
 	}

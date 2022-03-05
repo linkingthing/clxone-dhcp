@@ -127,6 +127,10 @@ func checkReservedPool6ConflictWithSubnet6Reservation6s(tx restdb.Transaction, s
 		return err
 	}
 
+	return checkReservedPool6ConflictWithReservation6s(pool, reservations)
+}
+
+func checkReservedPool6ConflictWithReservation6s(pool *resource.ReservedPool6, reservations []*resource.Reservation6) error {
 	for _, reservation := range reservations {
 		for _, ipAddress := range reservation.IpAddresses {
 			if pool.Contains(ipAddress) {
