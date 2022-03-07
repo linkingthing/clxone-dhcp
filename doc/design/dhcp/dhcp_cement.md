@@ -649,8 +649,19 @@
 
 * Action
   * importcsv
+    * input
+      * name 导入文件名字
+      
+ | 子网地址* | 子网名称 | 租约时长 | 最大租约时长 | 最小租约时长 | 子网掩码 | 默认网关 | DNS | 网卡名字 | option60 | option82 | option66 | option67 | 节点列表 | 动态地址池 | 保留地址池 | 固定地址池 | 
+ | ---- | 
+ |10.0.0.0/24| IPAM | 14400 | 28800 | 7200 | 255.255.255.0 | 10.0.0.2 | 114.114.114.114 | ens33 | op60 | 10.0.0.253 | http://linkingthing.com/tftp | tftp.bin | 10.0.0.98 | 10.0.0.6-10.0.0.200-bangong | 10.0.0.201-10.0.0.255-baoliu | 98:01:a7:9f:4f:d1-10.0.0.6-joe |
+			
   * exportcsv
+    * output
+      * path 导出文件路径
   * exportcsvtemplate
+    * output
+      * path 到处文件路径
   * update_nodes 更新子网节点配置
     * input 
       * nodes 节点列表
@@ -1151,6 +1162,22 @@
 		GET /apis/linkingthing.com/dhcp/v1/subnet6s/1
 
 * Action
+  * importcsv
+    * input
+      * name 导入文件名字
+      
+ | 子网地址* | 子网名称 | EUI64 | 租约时长 | 最大租约时长 | 最小租约时长 | 首选租约时长 | DNS | 网卡名字 | 中继路由地址 | option16 | option18 | 节点列表 | 动态地址池 | 保留地址池 | 固定地址池 | 前缀委派地址池 | 
+ | ---- |
+ | 2001::/64 | IPAM | 关闭 | 14400 | 28800 | 7200 | 14400 | 2400:3200::1 | ens33 | 2001::1 | op16 | gi0/0/1 | 10.0.0.98 | 2001::1-2001::10-yanfa | 2001::11-2001::21-yuliu | duid-121212-ips-2001::31_2001::32-ceshi | 
+ | 240e::/64 | IPAM | 开启 | 14400 | 28800 | 7200 | 14400 | 2400:3200::1 | ens33 | 2001::1 | op16 | gi0/0/1 | 10.0.0.98 |
+ | 3200::/48 | IPAM | 关闭 | 14400 | 28800 | 7200 | 14400 | | ens33 | 3200::1 | op16 | gi0/0/2 | 10.0.0.98 | | | | 3200::-48-56-zigongsi|
+ 
+  * exportcsv
+    * output
+      * path 导出文件路径
+  * exportcsvtemplate
+    * output
+      * path 到处文件路径
   * update_nodes 更新子网节点配置
     * input 
       * nodes 节点列表
