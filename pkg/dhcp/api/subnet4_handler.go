@@ -809,7 +809,7 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 func parsePool4sFromString(field string) ([]*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 3 {
+		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet4 pool %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -827,7 +827,7 @@ func parsePool4sFromString(field string) ([]*resource.Pool4, error) {
 func parseReservedPool4sFromString(field string) ([]*resource.ReservedPool4, error) {
 	var pools []*resource.ReservedPool4
 	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 3 {
+		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet4 reserved pool %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -845,8 +845,8 @@ func parseReservedPool4sFromString(field string) ([]*resource.ReservedPool4, err
 func parseReservation4sFromString(field string) ([]*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	for _, reservationStr := range strings.Split(field, ",") {
-		if reservationSlices := strings.Split(reservationStr,
-			"-"); len(reservationSlices) != 3 {
+		if reservationSlices := strings.SplitN(reservationStr,
+			"-", 3); len(reservationSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet4 reservation %s failed with wrong regexp",
 				reservationStr)
 		} else {

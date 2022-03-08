@@ -101,8 +101,8 @@ func setSubnet6ID(tx restdb.Transaction, subnet *resource.Subnet6) error {
 }
 
 func sendCreateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
-	nodesForSucceed, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
-		subnet.Nodes, dhcpservice.CreateSubnet6, subnet6ToCreateSubnet6Request(subnet))
+	nodesForSucceed, err := sendDHCPCmdWithNodes(false, subnet.Nodes, dhcpservice.CreateSubnet6,
+		subnet6ToCreateSubnet6Request(subnet))
 	if err != nil {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			nodesForSucceed, dhcpservice.DeleteSubnet6,
@@ -715,7 +715,7 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
 	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 3 {
+		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet6 pool %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -733,7 +733,7 @@ func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, error) {
 	var pools []*resource.ReservedPool6
 	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.Split(poolStr, "-"); len(poolSlices) != 3 {
+		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet6 reserved pool %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -751,8 +751,8 @@ func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, err
 func parseReservation6sFromString(field string) ([]*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
 	for _, reservationStr := range strings.Split(field, ",") {
-		if reservationSlices := strings.Split(reservationStr,
-			"-"); len(reservationSlices) != 5 {
+		if reservationSlices := strings.SplitN(reservationStr,
+			"-", 5); len(reservationSlices) != 5 {
 			return nil, fmt.Errorf("parse subnet6 reservation %s failed with wrong regexp",
 				reservationStr)
 		} else {
@@ -781,7 +781,7 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 func parsePdPoolsFromString(field string) ([]*resource.PdPool, error) {
 	var pdpools []*resource.PdPool
 	for _, pdpoolStr := range strings.Split(field, ",") {
-		if pdpoolSlices := strings.Split(pdpoolStr, "-"); len(pdpoolSlices) != 4 {
+		if pdpoolSlices := strings.SplitN(pdpoolStr, "-", 4); len(pdpoolSlices) != 4 {
 			return nil, fmt.Errorf("parse subnet6 pdpool %s failed with wrong regexp",
 				pdpoolStr)
 		} else {

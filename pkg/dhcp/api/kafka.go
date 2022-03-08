@@ -44,14 +44,14 @@ func getDHCPNodes(sentryNodes []string, isv4 bool) ([]string, error) {
 	hasServer := false
 	for _, node := range dhcpNodes.GetNodes() {
 		if node.GetServiceAlive() {
-			if IsAgentService(node.GetServiceTags(), sentryRole) {
+			hasSentry := IsAgentService(node.GetServiceTags(), sentryRole)
+			if hasSentry {
 				sentryNodeMap[node.GetIpv4()] = struct{}{}
 			}
 
 			if IsAgentService(node.GetServiceTags(), serverRole) {
 				hasServer = true
-				if IsAgentService(node.GetServiceTags(), sentryRole) == false ||
-					slice.SliceIndex(sentryNodes, node.GetIpv4()) == -1 {
+				if hasSentry == false || slice.SliceIndex(sentryNodes, node.GetIpv4()) == -1 {
 					serverNodes = append(serverNodes, node.GetIpv4())
 				}
 			}
