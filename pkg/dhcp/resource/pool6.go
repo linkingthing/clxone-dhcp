@@ -73,6 +73,10 @@ func (p *Pool6) String() string {
 }
 
 func (p *Pool6) Validate() error {
+	if err := checkCommentValid(p.Comment); err != nil {
+		return err
+	}
+
 	if p.Template != "" {
 		return nil
 	}

@@ -116,6 +116,10 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
+	if err := checkCommentValid(r.Comment); err != nil {
+		return err
+	}
+
 	r.Capacity = uint64(len(r.IpAddresses) + len(r.Prefixes))
 	return nil
 }

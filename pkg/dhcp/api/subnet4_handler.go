@@ -711,9 +711,8 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 	reqsForSentryDelete := make(map[string]*pbdhcpagent.DeleteSubnets4Request)
 	reqForServerDelete := &pbdhcpagent.DeleteSubnets4Request{}
 	subnetAndNodes := make(map[uint64][]string)
-	sqls = append(sqls,
-		subnet4sToInsertSqlAndRequest(subnets, reqsForSentryCreate, reqForServerCreate,
-			reqsForSentryDelete, reqForServerDelete, subnetAndNodes))
+	sqls = append(sqls, subnet4sToInsertSqlAndRequest(subnets, reqsForSentryCreate,
+		reqForServerCreate, reqsForSentryDelete, reqForServerDelete, subnetAndNodes))
 	if len(subnetPools) != 0 {
 		sqls = append(sqls, pool4sToInsertSqlAndRequest(subnetPools,
 			reqForServerCreate, reqsForSentryCreate, subnetAndNodes))
@@ -1394,7 +1393,6 @@ func (h *Subnet4Handler) listWithSubnets(ctx *restresource.Context) (interface{}
 
 	for _, subnet := range subnetListInput.Subnets {
 		if _, err := gohelperip.ParseCIDRv4(subnet); err != nil {
-
 			return nil, resterror.NewAPIError(resterror.InvalidFormat,
 				fmt.Sprintf("action check subnet could be created input invalid: %s",
 					err.Error()))

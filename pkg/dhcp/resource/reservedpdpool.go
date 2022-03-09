@@ -36,6 +36,10 @@ func (pdpool *ReservedPdPool) Validate() error {
 		return err
 	}
 
+	if err := checkCommentValid(pdpool.Comment); err != nil {
+		return err
+	}
+
 	pdpool.Prefix = prefix.String()
 	pdpool.PrefixIpnet = ipToIPNet(prefix, pdpool.PrefixLen)
 	pdpool.Capacity = capacity

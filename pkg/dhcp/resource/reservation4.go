@@ -42,6 +42,10 @@ func (r *Reservation4) Validate() error {
 		r.Ip = ipv4
 	}
 
+	if err := checkCommentValid(r.Comment); err != nil {
+		return err
+	}
+
 	r.Capacity = 1
 	return nil
 }
