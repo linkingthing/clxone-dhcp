@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	resterror "github.com/linkingthing/gorest/error"
 	"net"
 	"strings"
 
@@ -26,63 +27,52 @@ func NewSubnetLease6Service() *SubnetLease6Service {
 }
 
 func (l *SubnetLease6Service) List(ctx *restresource.Context) (interface{}, error) {
-	ip, hasAddressFilter := util.GetFilterValueWithEqModifierFromFilters(
+	ip, _ := util.GetFilterValueWithEqModifierFromFilters(
 		util.FilterNameIp, ctx.GetFilters())
-	if hasAddressFilter {
+
+	return ListSubnetLease6(ctx.Resource.GetParent().GetID(), ip)
+}
+
+func ListSubnetLease6(subnetId, ip string) ([]*resource.SubnetLease6, error) {
+	hasAddressFilter := false
+	if ip != "" {
 		if _, err := gohelperip.ParseIPv6(ip); err != nil {
 			return nil, nil
 		}
+		hasAddressFilter = true
 	}
-	subnetId := ctx.Resource.GetParent().GetID()
+
+	var subnet6SubnetId uint64
+	var reservations []*resource.Reservation6
+	var subnetLeases []*resource.SubnetLease6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet6, err := getSubnet6FromDB(tx, subnetId)
+		if err != nil {
+			return err
+		}
+
+		subnet6SubnetId = subnet6.SubnetId
+		if hasAddressFilter {
+			reservations, subnetLeases, err = getReservation6sAndSubnetLease6sWithIp(
+				tx, subnet6, ip)
+		} else {
+			reservations, subnetLeases, err = getReservation6sAndSubnetLease6s(tx, subnetId)
+		}
+		return err
+	}); err != nil {
+		if err == ErrorIpNotBelongToSubnet {
+			return nil, nil
+		} else {
+			return nil, resterror.NewAPIError(resterror.ServerError,
+				fmt.Sprintf("get subnet6 %s from db failed: %s", subnetId, err.Error()))
+		}
+	}
+
 	if hasAddressFilter {
-		return GetSubnetLease6ListByIp(subnetId, ip)
+		return getSubnetLease6sWithIp(subnet6SubnetId, ip, reservations, subnetLeases)
+	} else {
+		return getSubnetLease6s(subnet6SubnetId, reservations, subnetLeases)
 	}
-	return GetSubnetLease6List(subnetId)
-}
-
-func GetSubnetLease6List(subnetId string) ([]*resource.SubnetLease6, error) {
-	var subnet6SubnetId uint64
-	var reservations []*resource.Reservation6
-	var subnetLeases []*resource.SubnetLease6
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		subnet6, err := getSubnet6FromDB(tx, subnetId)
-		if err != nil {
-			return err
-		}
-		subnet6SubnetId = subnet6.SubnetId
-		reservations, subnetLeases, err = getReservation6sAndSubnetLease6s(tx, subnetId)
-		return err
-	}); err != nil {
-		if err == ErrorIpNotBelongToSubnet {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-	return getSubnetLease6s(subnet6SubnetId, reservations, subnetLeases)
-}
-
-func GetSubnetLease6ListByIp(subnetId, ip string) ([]*resource.SubnetLease6, error) {
-	var subnet6SubnetId uint64
-	var reservations []*resource.Reservation6
-	var subnetLeases []*resource.SubnetLease6
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		subnet6, err := getSubnet6FromDB(tx, subnetId)
-		if err != nil {
-			return err
-		}
-
-		subnet6SubnetId = subnet6.SubnetId
-		reservations, subnetLeases, err = getReservation6sAndSubnetLease6sWithIp(tx, subnet6, ip)
-		return err
-	}); err != nil {
-		if err == ErrorIpNotBelongToSubnet {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-	return getSubnetLease6sWithIp(subnet6SubnetId, ip, reservations, subnetLeases)
 }
 
 func getReservation6sAndSubnetLease6sWithIp(tx restdb.Transaction, subnet6 *resource.Subnet6, ip string) ([]*resource.Reservation6, []*resource.SubnetLease6, error) {

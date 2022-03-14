@@ -7,14 +7,14 @@ import (
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpc/parser"
-	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
+	dhcppb "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
@@ -31,11 +31,11 @@ func GetDHCPService() *DHCPService {
 	return globalDHCPService
 }
 
-func (d *DHCPService) GetSubnet4WithIp(ip string) (map[string]*pbdhcp.Subnet4, error) {
+func (d *DHCPService) GetSubnet4WithIp(ip string) (map[string]*dhcppb.Subnet4, error) {
 	return getSubnet4WithIp(ip)
 }
 
-func getSubnet4WithIp(ip string) (map[string]*pbdhcp.Subnet4, error) {
+func getSubnet4WithIp(ip string) (map[string]*dhcppb.Subnet4, error) {
 	if _, err := gohelperip.ParseIPv4(ip); err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func getSubnet4WithIp(ip string) (map[string]*pbdhcp.Subnet4, error) {
 	return getPbDHCPSubnet4sFromSubnet4s(map[string]*resource.Subnet4{ip: subnets[0]})
 }
 
-func getPbDHCPSubnet4sFromSubnet4s(subnets map[string]*resource.Subnet4) (map[string]*pbdhcp.Subnet4, error) {
+func getPbDHCPSubnet4sFromSubnet4s(subnets map[string]*resource.Subnet4) (map[string]*dhcppb.Subnet4, error) {
 	if leasesCount, err := GetSubnet4sLeasesCount(subnets); err != nil {
 		return nil, fmt.Errorf("get subnet4s leases count failed: %s", err.Error())
 	} else {
@@ -79,19 +79,19 @@ func GetSubnet4sLeasesCount(subnets map[string]*resource.Subnet4) (map[uint64]ui
 	}
 }
 
-func pbdhcpSubnet4sFromSubnet4s(subnets map[string]*resource.Subnet4, leasesCount map[uint64]uint64) map[string]*pbdhcp.Subnet4 {
-	pbsubnets := make(map[string]*pbdhcp.Subnet4)
+func pbdhcpSubnet4sFromSubnet4s(subnets map[string]*resource.Subnet4, leasesCount map[uint64]uint64) map[string]*dhcppb.Subnet4 {
+	pbsubnets := make(map[string]*dhcppb.Subnet4)
 	for ip, subnet := range subnets {
 		pbsubnets[ip] = parser.EncodeDhcpSubnet4FromSubnet4(subnet, leasesCount[subnet.SubnetId])
 	}
 	return pbsubnets
 }
 
-func (d *DHCPService) GetSubnet6WithIp(ip string) (map[string]*pbdhcp.Subnet6, error) {
+func (d *DHCPService) GetSubnet6WithIp(ip string) (map[string]*dhcppb.Subnet6, error) {
 	return getSubnet6WithIp(ip)
 }
 
-func getSubnet6WithIp(ip string) (map[string]*pbdhcp.Subnet6, error) {
+func getSubnet6WithIp(ip string) (map[string]*dhcppb.Subnet6, error) {
 	if _, err := gohelperip.ParseIPv6(ip); err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func getSubnet6WithIp(ip string) (map[string]*pbdhcp.Subnet6, error) {
 	return getPbDHCPSubnet6sFromSubnet6s(map[string]*resource.Subnet6{ip: subnets[0]})
 }
 
-func getPbDHCPSubnet6sFromSubnet6s(subnets map[string]*resource.Subnet6) (map[string]*pbdhcp.Subnet6, error) {
+func getPbDHCPSubnet6sFromSubnet6s(subnets map[string]*resource.Subnet6) (map[string]*dhcppb.Subnet6, error) {
 	if leasesCount, err := GetSubnet6sLeasesCount(subnets); err != nil {
 		return nil, fmt.Errorf("get subnet6 leases count failed: %s", err.Error())
 	} else {
@@ -135,8 +135,8 @@ func GetSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]ui
 	}
 }
 
-func pbdhcpSubnet6sFromSubnet6s(subnets map[string]*resource.Subnet6, leasesCount map[uint64]uint64) map[string]*pbdhcp.Subnet6 {
-	pbsubnets := make(map[string]*pbdhcp.Subnet6)
+func pbdhcpSubnet6sFromSubnet6s(subnets map[string]*resource.Subnet6, leasesCount map[uint64]uint64) map[string]*dhcppb.Subnet6 {
+	pbsubnets := make(map[string]*dhcppb.Subnet6)
 	for ip, subnet := range subnets {
 		pbsubnets[ip] = parser.EncodeDhcpSubnet6FromSubnet6(subnet, leasesCount[subnet.SubnetId])
 	}
@@ -144,11 +144,11 @@ func pbdhcpSubnet6sFromSubnet6s(subnets map[string]*resource.Subnet6, leasesCoun
 	return pbsubnets
 }
 
-func (d *DHCPService) GetSubnets4WithIps(ips []string) (map[string]*pbdhcp.Subnet4, error) {
+func (d *DHCPService) GetSubnets4WithIps(ips []string) (map[string]*dhcppb.Subnet4, error) {
 	return getSubnets4WithIps(ips)
 }
 
-func getSubnets4WithIps(ips []string) (map[string]*pbdhcp.Subnet4, error) {
+func getSubnets4WithIps(ips []string) (map[string]*dhcppb.Subnet4, error) {
 	if err := gohelperip.CheckIPv4sValid(ips...); err != nil {
 		return nil, err
 	}
@@ -177,11 +177,11 @@ func getSubnets4WithIps(ips []string) (map[string]*pbdhcp.Subnet4, error) {
 	return getPbDHCPSubnet4sFromSubnet4s(closestSubnets)
 }
 
-func (d *DHCPService) GetSubnets6WithIps(ips []string) (map[string]*pbdhcp.Subnet6, error) {
+func (d *DHCPService) GetSubnets6WithIps(ips []string) (map[string]*dhcppb.Subnet6, error) {
 	return getSubnets6WithIps(ips)
 }
 
-func getSubnets6WithIps(ips []string) (map[string]*pbdhcp.Subnet6, error) {
+func getSubnets6WithIps(ips []string) (map[string]*dhcppb.Subnet6, error) {
 	if err := gohelperip.CheckIPv6sValid(ips...); err != nil {
 		return nil, nil
 	}
@@ -210,15 +210,15 @@ func getSubnets6WithIps(ips []string) (map[string]*pbdhcp.Subnet6, error) {
 	return getPbDHCPSubnet6sFromSubnet6s(closestSubnets)
 }
 
-func (d *DHCPService) GetSubnet4AndLease4WithIp(ip string) (map[string]*pbdhcp.Ipv4Information, error) {
+func (d *DHCPService) GetSubnet4AndLease4WithIp(ip string) (map[string]*dhcppb.Ipv4Information, error) {
 	subnets, err := getSubnet4WithIp(ip)
 	if err != nil {
 		return nil, err
 	}
 
 	subnet := subnets[ip]
-	ipv4Info := map[string]*pbdhcp.Ipv4Information{
-		ip: &pbdhcp.Ipv4Information{
+	ipv4Info := map[string]*dhcppb.Ipv4Information{
+		ip: &dhcppb.Ipv4Information{
 			Address: ip,
 			Subnet:  subnet,
 		}}
@@ -284,15 +284,15 @@ func GetIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	return addressType, nil
 }
 
-func (d *DHCPService) GetSubnet6AndLease6WithIp(ip string) (map[string]*pbdhcp.Ipv6Information, error) {
+func (d *DHCPService) GetSubnet6AndLease6WithIp(ip string) (map[string]*dhcppb.Ipv6Information, error) {
 	subnets, err := getSubnet6WithIp(ip)
 	if err != nil {
 		return nil, err
 	}
 
 	subnet := subnets[ip]
-	ipv6Info := map[string]*pbdhcp.Ipv6Information{
-		ip: &pbdhcp.Ipv6Information{
+	ipv6Info := map[string]*dhcppb.Ipv6Information{
+		ip: &dhcppb.Ipv6Information{
 			Address: ip,
 			Subnet:  subnet,
 		}}
@@ -365,15 +365,15 @@ func GetIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	return addressType, nil
 }
 
-func (d *DHCPService) GetSubnets4AndLeases4WithIps(ips []string) (map[string]*pbdhcp.Ipv4Information, error) {
+func (d *DHCPService) GetSubnets4AndLeases4WithIps(ips []string) (map[string]*dhcppb.Ipv4Information, error) {
 	subnets, err := getSubnets4WithIps(ips)
 	if err != nil {
 		return nil, err
 	}
 
-	ipv4Infos := make(map[string]*pbdhcp.Ipv4Information)
+	ipv4Infos := make(map[string]*dhcppb.Ipv4Information)
 	for ip, subnet := range subnets {
-		ipv4Infos[ip] = &pbdhcp.Ipv4Information{
+		ipv4Infos[ip] = &dhcppb.Ipv4Information{
 			Address:     ip,
 			AddressType: resource.AddressTypeExclusion.String(),
 			Subnet:      subnet,
@@ -396,7 +396,7 @@ func (d *DHCPService) GetSubnets4AndLeases4WithIps(ips []string) (map[string]*pb
 	return ipv4Infos, nil
 }
 
-func setIpv4InfosAddressTypeAndGetSubnetLeases(tx restdb.Transaction, ips []string, ipv4Infos map[string]*pbdhcp.Ipv4Information) (map[string]*resource.SubnetLease4, error) {
+func setIpv4InfosAddressTypeAndGetSubnetLeases(tx restdb.Transaction, ips []string, ipv4Infos map[string]*dhcppb.Ipv4Information) (map[string]*resource.SubnetLease4, error) {
 	var subnetIds []string
 	unfoundIps := make(map[string]struct{})
 	for ip, ipv4Info := range ipv4Infos {
@@ -413,7 +413,7 @@ func setIpv4InfosAddressTypeAndGetSubnetLeases(tx restdb.Transaction, ips []stri
 	return getClaimedSubnetLease4s(tx, subnetIdsArgs, ipsArgs)
 }
 
-func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs string, unfoundIps map[string]struct{}, ipv4Infos map[string]*pbdhcp.Ipv4Information) error {
+func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs string, unfoundIps map[string]struct{}, ipv4Infos map[string]*dhcppb.Ipv4Information) error {
 	var reservations []*resource.Reservation4
 	if err := tx.FillEx(reservations,
 		"select * from gr_reservation4 where ip_address in "+
@@ -489,7 +489,7 @@ func getClaimedSubnetLease4s(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 	return subnetLeasesMap, nil
 }
 
-func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Information, subnetLeases map[string]*resource.SubnetLease4) error {
+func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*dhcppb.Ipv4Information, subnetLeases map[string]*resource.SubnetLease4) error {
 	var reqs []*pbdhcpagent.GetSubnet4LeaseRequest
 	for ip, info := range ipv4Infos {
 		reqs = append(reqs, &pbdhcpagent.GetSubnet4LeaseRequest{
@@ -516,15 +516,15 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 	return nil
 }
 
-func (d *DHCPService) GetSubnets6AndLeases6WithIps(ips []string) (map[string]*pbdhcp.Ipv6Information, error) {
+func (d *DHCPService) GetSubnets6AndLeases6WithIps(ips []string) (map[string]*dhcppb.Ipv6Information, error) {
 	subnets, err := getSubnets6WithIps(ips)
 	if err != nil {
 		return nil, err
 	}
 
-	ipv6Infos := make(map[string]*pbdhcp.Ipv6Information)
+	ipv6Infos := make(map[string]*dhcppb.Ipv6Information)
 	for ip, subnet := range subnets {
-		ipv6Infos[ip] = &pbdhcp.Ipv6Information{
+		ipv6Infos[ip] = &dhcppb.Ipv6Information{
 			Address:     ip,
 			AddressType: resource.AddressTypeExclusion.String(),
 			Subnet:      subnet,
@@ -547,7 +547,7 @@ func (d *DHCPService) GetSubnets6AndLeases6WithIps(ips []string) (map[string]*pb
 	return ipv6Infos, nil
 }
 
-func setIpv6InfosAddressTypeAndGetSubnetLeases(tx restdb.Transaction, ips []string, ipv6Infos map[string]*pbdhcp.Ipv6Information) (map[string]*resource.SubnetLease6, error) {
+func setIpv6InfosAddressTypeAndGetSubnetLeases(tx restdb.Transaction, ips []string, ipv6Infos map[string]*dhcppb.Ipv6Information) (map[string]*resource.SubnetLease6, error) {
 	var subnetIds []string
 	unfoundIps := make(map[string]struct{})
 	for ip, ipv6Info := range ipv6Infos {
@@ -563,7 +563,7 @@ func setIpv6InfosAddressTypeAndGetSubnetLeases(tx restdb.Transaction, ips []stri
 	return getClaimedSubnetLease6s(tx, subnetIdsArgs, strings.Join(ips, "','"))
 }
 
-func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoundIps map[string]struct{}, ipv6Infos map[string]*pbdhcp.Ipv6Information) error {
+func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoundIps map[string]struct{}, ipv6Infos map[string]*dhcppb.Ipv6Information) error {
 	var reservations []*resource.Reservation6
 	if err := tx.FillEx(reservations,
 		"select * from gr_reservation6 where subnet6 in ('"+
@@ -648,7 +648,7 @@ func getClaimedSubnetLease6s(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 	return subnetLeasesMap, nil
 }
 
-func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Information, subnetLeases map[string]*resource.SubnetLease6) error {
+func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*dhcppb.Ipv6Information, subnetLeases map[string]*resource.SubnetLease6) error {
 	var reqs []*pbdhcpagent.GetSubnet6LeaseRequest
 	for ip, info := range ipv6Infos {
 		reqs = append(reqs, &pbdhcpagent.GetSubnet6LeaseRequest{
@@ -675,223 +675,165 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 	return nil
 }
 
-func (d *DHCPService) GetAllSubnet4s() ([]*pbdhcp.DhcpSubnet4, error) {
-	listCtx := service.GenGrpcGetSubnetsContext(resource.TableSubnet4)
-	subnets, _, err := service.GetSubnet4List(listCtx)
+func (d *DHCPService) GetAllSubnet4s() ([]*dhcppb.Subnet4, error) {
+	var subnets []*resource.Subnet4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(nil, &subnets)
+	}); err != nil {
+		return nil, fmt.Errorf("list subnet4 failed:%s", err.Error())
+	}
+
+	if err := service.SetSubnet4UsedInfo(subnets, true); err != nil {
+		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
+	}
+
+	return parser.EncodeSubnet4sToPb(subnets), nil
+}
+
+func (d *DHCPService) GetSubnet4sByPrefixes(prefixes []string) ([]*dhcppb.Subnet4, error) {
+	subnets, err := service.ListSubnet4sByPrefixes(prefixes)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpSubnet4sFromSubnet4List(subnets)
+
+	return parser.EncodeSubnet4sToPb(subnets), nil
 }
 
-func (d *DHCPService) GetWithSubnet4sByPrefixes(prefixes []string) ([]*pbdhcp.DhcpSubnet4, error) {
-	for _, subnet := range prefixes {
-		if _, err := gohelperip.ParseCIDRv4(subnet); err != nil {
-			return nil, fmt.Errorf("action check subnet could be created input invalid: %s", err.Error())
-		}
-	}
-	subnets, err := service.GetListWithSubnet4s(prefixes)
+func (d *DHCPService) GetPool4sBySubnet(prefix string) ([]*dhcppb.Pool4, error) {
+	pools, err := service.GetPool4sByPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpSubnet4sFromSubnet4List(subnets.Subnet4s)
+
+	return parser.EncodePool4sToPb(pools), nil
 }
 
-func pbDhcpSubnet4sFromSubnet4List(subnetList []*resource.Subnet4) ([]*pbdhcp.DhcpSubnet4, error) {
-	tmpList := make([]*pbdhcp.DhcpSubnet4, 0)
-	for _, v := range subnetList {
-		tmpList = append(tmpList, parser.EncodeDhcpSubnet4(v))
-	}
-	return tmpList, nil
-}
-
-func (d *DHCPService) GetPool4List(subnet *resource.Subnet4) ([]*pbdhcp.DhcpPool4, error) {
-	pools, err := service.GetPool4List(subnet)
+func (d *DHCPService) GetReservedPool4sBySubnet(prefix string) ([]*dhcppb.ReservedPool4, error) {
+	pools, err := service.GetReservedPool4sByPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
-	return pdDhcpPool4FromPool4List(pools)
+	return parser.EncodeReservedPool4sToPb(pools), nil
 }
 
-func pdDhcpPool4FromPool4List(pools []*resource.Pool4) ([]*pbdhcp.DhcpPool4, error) {
-	ret := make([]*pbdhcp.DhcpPool4, 0)
-	for _, v := range pools {
-		ret = append(ret, parser.EncodeDhcpPool4(v))
-	}
-	return ret, nil
-}
-
-func (d *DHCPService) GetReservedPool4List(subnet4Id string) ([]*pbdhcp.DhcpReservedPool4, error) {
-	pools, err := service.GetReservedPool4List(subnet4Id)
+func (d *DHCPService) GetReservation4sBySubnet(prefix string) ([]*dhcppb.Reservation4, error) {
+	pools, err := service.GetReservationPool4sByPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpReservedPool4FromReservedPool4(pools)
+	return parser.EncodeReservation4sToPb(pools), nil
 }
 
-func pbDhcpReservedPool4FromReservedPool4(pools []*resource.ReservedPool4) ([]*pbdhcp.DhcpReservedPool4, error) {
-	tmpPools := make([]*pbdhcp.DhcpReservedPool4, 0)
-	for _, v := range pools {
-		tmpPools = append(tmpPools, parser.EncodeDhcpReservedPool4(v))
-	}
-	return tmpPools, nil
-}
-
-func (d *DHCPService) GetReservation4List(subnetId string) ([]*pbdhcp.DhcpReservation4, error) {
-	reservations, err := service.GetReservation4List(subnetId)
+func (d DHCPService) GetLease4ByIp(ip string) (*dhcppb.Lease4, error) {
+	subnet, err := service.GetSubnet4ByIP(ip)
 	if err != nil {
 		return nil, err
 	}
-	return pbDchpReservation4FormReservation4(reservations)
-}
 
-func pbDchpReservation4FormReservation4(reservations []*resource.Reservation4) ([]*pbdhcp.DhcpReservation4, error) {
-	tmpList := make([]*pbdhcp.DhcpReservation4, 0)
-	for _, v := range reservations {
-		tmpList = append(tmpList, parser.EncodeDhcpReservation4(v))
-	}
-	return tmpList, nil
-}
-
-func (d DHCPService) GetSubnetLease4List(subnetId string) ([]*pbdhcp.DhcpSubnetLease4, error) {
-	subnetLeasesList, err := service.GetSubnetLease4List(subnetId)
+	lease4s, err := service.ListSubnetLease4(subnet.GetID(), ip)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpSubnetLeasesFromSubnetLeases(subnetLeasesList)
-}
 
-func pbDhcpSubnetLeasesFromSubnetLeases(subnetLeases []*resource.SubnetLease4) ([]*pbdhcp.DhcpSubnetLease4, error) {
-	tmpList := make([]*pbdhcp.DhcpSubnetLease4, 0)
-	for _, v := range subnetLeases {
-		tmpList = append(tmpList, parser.EncodeDhcpSubnetLeases4(v))
+	if len(lease4s) == 0 {
+		return nil, fmt.Errorf("not found lease4 of %s", ip)
+	} else {
+		return parser.EncodeOneSubnetLeases4ToPb(lease4s[0]), nil
 	}
-	return tmpList, nil
 }
 
-func (d *DHCPService) GetSubnetLease4ByIp(subnetId, ip string) (*pbdhcp.DhcpSubnetLease4, error) {
-	subnetLeasesList, err := service.GetSubnetLease4ListWithIp(subnetId, ip)
+func (d DHCPService) GetLease4ByPrefix(prefix string) ([]*dhcppb.Lease4, error) {
+	subnet, err := service.GetSubnet4ByPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
-	if len(subnetLeasesList) == 0 {
-		return nil, nil
-	}
-	return parser.EncodeDhcpSubnetLeases4(subnetLeasesList[0]), nil
-}
 
-func (d *DHCPService) GetAllSubnet6() ([]*pbdhcp.DhcpSubnet6, error) {
-	listCtx := service.GenGrpcGetSubnetsContext(resource.TableSubnet6)
-	subnets, _, err := service.GetSubnet6List(listCtx)
+	lease4s, err := service.ListSubnetLease4(subnet.GetID(), "")
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpSubnet6FromSubnet6(subnets)
+	return parser.EncodeSubnetLeases4sToPb(lease4s), nil
 }
 
-func pbDhcpSubnet6FromSubnet6(subnets []*resource.Subnet6) ([]*pbdhcp.DhcpSubnet6, error) {
-	tmpList := make([]*pbdhcp.DhcpSubnet6, 0)
-	for _, v := range subnets {
-		tmpList = append(tmpList, parser.EncodeDhcpSubnet6(v))
+func (d *DHCPService) GetAllSubnet6s() ([]*dhcppb.Subnet6, error) {
+	var subnet6s []*resource.Subnet6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(nil, &subnet6s)
+	}); err != nil {
+		return nil, fmt.Errorf("list subnet6 failed:%s", err.Error())
 	}
-	return tmpList, nil
+
+	if err := service.SetSubnet6sLeasesUsedInfo(subnet6s, true); err != nil {
+		log.Warnf("set subnet6s leases used info failed: %s", err.Error())
+	}
+
+	return parser.EncodeSubnet6sToPb(subnet6s), nil
 }
 
-func (d *DHCPService) GetWithSubnet6ByPrefixes(prefixes []string) ([]*pbdhcp.DhcpSubnet6, error) {
-	for _, subnet := range prefixes {
-		if _, err := gohelperip.ParseCIDRv6(subnet); err != nil {
-			return nil, fmt.Errorf("action check subnet could be created input subnet %s invalid: %s", subnet, err.Error())
-		}
-	}
-	ret, err := service.GetListWithSubnet6s(prefixes)
+func (d *DHCPService) GetSubnet6sByPrefixes(prefixes []string) ([]*dhcppb.Subnet6, error) {
+	subnet6s, err := service.ListSubnet6sByPrefixes(prefixes)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpFromSubnet6s(ret.Subnet6s)
+	return parser.EncodeSubnet6sToPb(subnet6s), nil
 }
 
-func pbDhcpFromSubnet6s(subnets []*resource.Subnet6) ([]*pbdhcp.DhcpSubnet6, error) {
-	tmpList := make([]*pbdhcp.DhcpSubnet6, 0)
-	for _, v := range subnets {
-		tmpList = append(tmpList, parser.EncodeDhcpSubnet6(v))
-	}
-	return tmpList, nil
-}
-
-func (d *DHCPService) GetPool6List(subnet *resource.Subnet6) ([]*pbdhcp.DhcpPool6, error) {
-	pools, err := service.GetPool6List(subnet)
+func (d *DHCPService) GetPool6sBySubnet(prefix string) ([]*dhcppb.Pool6, error) {
+	pools, err := service.GetPool6sByPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpPoolsFromPools(pools)
+
+	return parser.EncodePool6sToPb(pools), nil
 }
 
-func pbDhcpPoolsFromPools(pools []*resource.Pool6) ([]*pbdhcp.DhcpPool6, error) {
-	tmpList := make([]*pbdhcp.DhcpPool6, 0)
-	for _, v := range pools {
-		tmpList = append(tmpList, parser.EncodeDhcpPool6(v))
-	}
-	return tmpList, nil
-}
-
-func (d *DHCPService) GetReservedPool6List(subnet *resource.Subnet6) ([]*pbdhcp.DhcpReservedPool6, error) {
-	pools, err := service.GetReservedPool6List(subnet)
+func (d *DHCPService) GetReservedPool6sBySubnet(prefix string) ([]*dhcppb.ReservedPool6, error) {
+	pools, err := service.GetReservedPool6sByPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpReservedPool6FromReservedPool6(pools)
+
+	return parser.EncodeReservedPool6sToPb(pools), nil
 }
 
-func pbDhcpReservedPool6FromReservedPool6(pools []*resource.ReservedPool6) ([]*pbdhcp.DhcpReservedPool6, error) {
-	tmpList := make([]*pbdhcp.DhcpReservedPool6, 0)
-	for _, v := range pools {
-		tmpList = append(tmpList, parser.EncodeDhcpReservedPool6(v))
-	}
-	return tmpList, nil
-}
-
-func (d *DHCPService) GetReservation6List(subnetId string) ([]*pbdhcp.DhcpReservation6, error) {
-	reservations, err := service.GetReservation6List(subnetId)
+func (d *DHCPService) GetReservation6sBySubnet(prefix string) ([]*dhcppb.Reservation6, error) {
+	pools, err := service.GetReservationPool6sByPrefix(prefix)
 	if err != nil {
 		return nil, err
 	}
-	return pbDhcpReservation6FromReservation6(reservations)
+
+	return parser.EncodeReservation6sToPb(pools), nil
 }
 
-func pbDhcpReservation6FromReservation6(reservations []*resource.Reservation6) ([]*pbdhcp.DhcpReservation6, error) {
-	tmpList := make([]*pbdhcp.DhcpReservation6, 0)
-	for _, v := range reservations {
-		tmpList = append(tmpList, parser.EncodeDhcpReservation6(v))
-	}
-	return tmpList, nil
-}
-
-func (d *DHCPService) GetSLease6ListBySubnetId(subnetId string) ([]*pbdhcp.DhcpSubnetLease6, error) {
-	subnetLeasesList, err := service.GetSubnetLease6List(subnetId)
+func (d *DHCPService) GetLease6ByIp(ip string) (*dhcppb.Lease6, error) {
+	subnet, err := service.GetSubnet6ByIP(ip)
 	if err != nil {
 		return nil, err
 	}
-	return dpDhcpSubnetLease6FromSubnetLease6(subnetLeasesList)
 
-}
-
-func dpDhcpSubnetLease6FromSubnetLease6(subnetLeases []*resource.SubnetLease6) ([]*pbdhcp.DhcpSubnetLease6, error) {
-	tmpList := make([]*pbdhcp.DhcpSubnetLease6, 0)
-	for _, v := range subnetLeases {
-		tmpList = append(tmpList, parser.EncodeDhcpSubnetLease6(v))
-	}
-	return tmpList, nil
-}
-
-func (d *DHCPService) GetSubnetLease6ByIp(subnetId, ip string) (*pbdhcp.DhcpSubnetLease6, error) {
-	subnetLeasesList, err := service.GetSubnetLease6ListByIp(subnetId, ip)
+	lease6s, err := service.ListSubnetLease6(subnet.GetID(), ip)
 	if err != nil {
 		return nil, err
 	}
-	if len(subnetLeasesList) == 0 {
-		return nil, nil
+
+	if len(lease6s) == 0 {
+		return nil, fmt.Errorf("not found lease4 of %s", ip)
+	} else {
+		return parser.EncodeOneSubnetLease6ToPb(lease6s[0]), nil
 	}
-	return parser.EncodeDhcpSubnetLease6(subnetLeasesList[0]), nil
+}
+
+func (d *DHCPService) GetLease6sBySubnet(prefix string) ([]*dhcppb.Lease6, error) {
+	subnet, err := service.GetSubnet6ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	lease6s, err := service.ListSubnetLease6(subnet.GetID(), "")
+	if err != nil {
+		return nil, err
+	}
+	return parser.EncodeSubnetLease6sToPb(lease6s), nil
 }
 
 func (d *DHCPService) CreateReservation4s(subnetId string, reservations []*resource.Reservation4) (bool, error) {

@@ -2,310 +2,243 @@ package service
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/grpc/parser"
-	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
+	dhcppb "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 )
 
-type GRPCService struct {
+type GrpcService struct{}
+
+func NewGrpcService() *GrpcService {
+	return &GrpcService{}
 }
 
-func NewGRPCService() *GRPCService {
-	return &GRPCService{}
-}
-
-func (g *GRPCService) GetSubnet4WithIp(ctx context.Context, req *pbdhcp.GetSubnet4WithIpRequest) (*pbdhcp.GetSubnet4WithIpResponse, error) {
+func (g *GrpcService) GetSubnet4WithIp(ctx context.Context, req *dhcppb.GetSubnet4WithIpRequest) (*dhcppb.GetSubnet4WithIpResponse, error) {
 	if subnets, err := GetDHCPService().GetSubnet4WithIp(req.GetIp()); err != nil {
-		return &pbdhcp.GetSubnet4WithIpResponse{Succeed: false}, err
+		return &dhcppb.GetSubnet4WithIpResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnet4WithIpResponse{Succeed: true, Subnets: subnets}, nil
+		return &dhcppb.GetSubnet4WithIpResponse{Succeed: true, Subnets: subnets}, nil
 	}
 }
 
-func (g *GRPCService) GetSubnet6WithIp(ctx context.Context, req *pbdhcp.GetSubnet6WithIpRequest) (*pbdhcp.GetSubnet6WithIpResponse, error) {
+func (g *GrpcService) GetSubnet6WithIp(ctx context.Context, req *dhcppb.GetSubnet6WithIpRequest) (*dhcppb.GetSubnet6WithIpResponse, error) {
 	if subnets, err := GetDHCPService().GetSubnet6WithIp(req.GetIp()); err != nil {
-		return &pbdhcp.GetSubnet6WithIpResponse{Succeed: false}, err
+		return &dhcppb.GetSubnet6WithIpResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnet6WithIpResponse{Succeed: true, Subnets: subnets}, nil
+		return &dhcppb.GetSubnet6WithIpResponse{Succeed: true, Subnets: subnets}, nil
 	}
 }
 
-func (g *GRPCService) GetSubnets4WithIps(ctx context.Context, req *pbdhcp.GetSubnets4WithIpsRequest) (*pbdhcp.GetSubnets4WithIpsResponse, error) {
+func (g *GrpcService) GetSubnets4WithIps(ctx context.Context, req *dhcppb.GetSubnets4WithIpsRequest) (*dhcppb.GetSubnets4WithIpsResponse, error) {
 	if subnets, err := GetDHCPService().GetSubnets4WithIps(req.GetIps()); err != nil {
-		return &pbdhcp.GetSubnets4WithIpsResponse{Succeed: false}, err
+		return &dhcppb.GetSubnets4WithIpsResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnets4WithIpsResponse{Succeed: true, Subnets: subnets}, nil
+		return &dhcppb.GetSubnets4WithIpsResponse{Succeed: true, Subnets: subnets}, nil
 	}
 }
 
-func (g *GRPCService) GetSubnets6WithIps(ctx context.Context, req *pbdhcp.GetSubnets6WithIpsRequest) (*pbdhcp.GetSubnets6WithIpsResponse, error) {
+func (g *GrpcService) GetSubnets6WithIps(ctx context.Context, req *dhcppb.GetSubnets6WithIpsRequest) (*dhcppb.GetSubnets6WithIpsResponse, error) {
 	if subnets, err := GetDHCPService().GetSubnets6WithIps(req.GetIps()); err != nil {
-		return &pbdhcp.GetSubnets6WithIpsResponse{Succeed: false}, err
+		return &dhcppb.GetSubnets6WithIpsResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnets6WithIpsResponse{Succeed: true, Subnets: subnets}, nil
+		return &dhcppb.GetSubnets6WithIpsResponse{Succeed: true, Subnets: subnets}, nil
 	}
 }
 
-func (g *GRPCService) GetSubnet4AndLease4WithIp(ctx context.Context, req *pbdhcp.GetSubnet4AndLease4WithIpRequest) (*pbdhcp.GetSubnet4AndLease4WithIpResponse, error) {
+func (g *GrpcService) GetSubnet4AndLease4WithIp(ctx context.Context, req *dhcppb.GetSubnet4AndLease4WithIpRequest) (*dhcppb.GetSubnet4AndLease4WithIpResponse, error) {
 	if ipv4Infos, err := GetDHCPService().GetSubnet4AndLease4WithIp(req.GetIp()); err != nil {
-		return &pbdhcp.GetSubnet4AndLease4WithIpResponse{Succeed: false}, err
+		return &dhcppb.GetSubnet4AndLease4WithIpResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnet4AndLease4WithIpResponse{
+		return &dhcppb.GetSubnet4AndLease4WithIpResponse{
 			Succeed:          true,
 			Ipv4Informations: ipv4Infos,
 		}, nil
 	}
 }
 
-func (g *GRPCService) GetSubnet6AndLease6WithIp(ctx context.Context, req *pbdhcp.GetSubnet6AndLease6WithIpRequest) (*pbdhcp.GetSubnet6AndLease6WithIpResponse, error) {
+func (g *GrpcService) GetSubnet6AndLease6WithIp(ctx context.Context, req *dhcppb.GetSubnet6AndLease6WithIpRequest) (*dhcppb.GetSubnet6AndLease6WithIpResponse, error) {
 	if ipv6Infos, err := GetDHCPService().GetSubnet6AndLease6WithIp(req.GetIp()); err != nil {
-		return &pbdhcp.GetSubnet6AndLease6WithIpResponse{Succeed: false}, err
+		return &dhcppb.GetSubnet6AndLease6WithIpResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnet6AndLease6WithIpResponse{
+		return &dhcppb.GetSubnet6AndLease6WithIpResponse{
 			Succeed:          true,
 			Ipv6Informations: ipv6Infos,
 		}, nil
 	}
 }
 
-func (g *GRPCService) GetSubnets4AndLeases4WithIps(ctx context.Context, req *pbdhcp.GetSubnets4AndLeases4WithIpsRequest) (*pbdhcp.GetSubnets4AndLeases4WithIpsResponse, error) {
+func (g *GrpcService) GetSubnets4AndLeases4WithIps(ctx context.Context, req *dhcppb.GetSubnets4AndLeases4WithIpsRequest) (*dhcppb.GetSubnets4AndLeases4WithIpsResponse, error) {
 	if ipv4Infos, err := GetDHCPService().GetSubnets4AndLeases4WithIps(req.GetIps()); err != nil {
-		return &pbdhcp.GetSubnets4AndLeases4WithIpsResponse{Succeed: false}, err
+		return &dhcppb.GetSubnets4AndLeases4WithIpsResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnets4AndLeases4WithIpsResponse{
+		return &dhcppb.GetSubnets4AndLeases4WithIpsResponse{
 			Succeed:          true,
 			Ipv4Informations: ipv4Infos,
 		}, nil
 	}
 }
 
-func (g *GRPCService) GetSubnets6AndLeases6WithIps(ctx context.Context, req *pbdhcp.GetSubnets6AndLeases6WithIpsRequest) (*pbdhcp.GetSubnets6AndLeases6WithIpsResponse, error) {
+func (g *GrpcService) GetSubnets6AndLeases6WithIps(ctx context.Context, req *dhcppb.GetSubnets6AndLeases6WithIpsRequest) (*dhcppb.GetSubnets6AndLeases6WithIpsResponse, error) {
 	if ipv6Infos, err := GetDHCPService().GetSubnets6AndLeases6WithIps(req.GetIps()); err != nil {
-		return &pbdhcp.GetSubnets6AndLeases6WithIpsResponse{Succeed: false}, err
+		return &dhcppb.GetSubnets6AndLeases6WithIpsResponse{Succeed: false}, err
 	} else {
-		return &pbdhcp.GetSubnets6AndLeases6WithIpsResponse{
+		return &dhcppb.GetSubnets6AndLeases6WithIpsResponse{
 			Succeed:          true,
 			Ipv6Informations: ipv6Infos,
 		}, nil
 	}
 }
 
-func (g *GRPCService) GetListAllSubnet4(ctx context.Context, req *pbdhcp.GetSubnet4Request) (*pbdhcp.GetSubnet4Response, error) {
-	if len(req.Prefixes) != 0 {
-		return nil, fmt.Errorf("getlistallsubnet4 prefixes is not nil ")
-	}
-	if subnetList, err := GetDHCPService().GetAllSubnet4s(); err != nil {
-		return nil, fmt.Errorf("get subnet4 all failed : %s", err.Error())
-	} else {
-		return &pbdhcp.GetSubnet4Response{Subnet4S: subnetList}, nil
-	}
-}
-
-func (g *GRPCService) GetListSubnet4ByPrefixes(ctx context.Context, req *pbdhcp.GetSubnet4Request) (*pbdhcp.GetSubnet4Response, error) {
-	if len(req.GetPrefixes()) == 0 {
-		return nil, fmt.Errorf("getlistsubnet4byprefixes prefixes is nil ")
-	}
-	if subnetList, err := GetDHCPService().GetWithSubnet4sByPrefixes(req.GetPrefixes()); err != nil {
+func (g *GrpcService) GetAllSubnet4S(ctx context.Context, request *dhcppb.GetSubnetsRequest) (*dhcppb.GetSubnet4SResponse, error) {
+	if subnets, err := GetDHCPService().GetAllSubnet4s(); err != nil {
 		return nil, err
 	} else {
-		return &pbdhcp.GetSubnet4Response{Subnet4S: subnetList}, nil
+		return &dhcppb.GetSubnet4SResponse{
+			Subnet4S: subnets,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListPool4BySubnet4(ctx context.Context,
-	req *pbdhcp.GetPool4BySubnet4Request) (*pbdhcp.GetPool4BySubnet4Response, error) {
-	subnet := parser.DecodePbSubnet4(req.GetSubnet())
-	if subnetList, err := GetDHCPService().GetPool4List(subnet); err != nil {
-		return nil, fmt.Errorf("get list pool4 by subnet4 failed :%s", err.Error())
+func (g *GrpcService) GetAllSubnet6S(ctx context.Context, request *dhcppb.GetSubnetsRequest) (*dhcppb.GetSubnet6SResponse, error) {
+	if subnets, err := GetDHCPService().GetAllSubnet6s(); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetPool4BySubnet4Response{Pool4S: subnetList}, nil
+		return &dhcppb.GetSubnet6SResponse{
+			Subnet6S: subnets,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListReservedPool4BySubnet4Id(ctx context.Context,
-	req *pbdhcp.GetReservedPool4BySubnet4IdRequest) (*pbdhcp.GetReservedPool4BySubnet4IdResponse, error) {
-	if tmpList, err := GetDHCPService().GetReservedPool4List(req.GetSubnet4Id()); err != nil {
-		return nil, fmt.Errorf("getreservedpool4list failed :%s", err.Error())
+func (g *GrpcService) GetSubnet4SByPrefixes(ctx context.Context, request *dhcppb.GetSubnetsRequest) (*dhcppb.GetSubnet4SResponse, error) {
+	if subnets, err := GetDHCPService().GetSubnet4sByPrefixes(request.GetPrefixes()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetReservedPool4BySubnet4IdResponse{ReservedPool4S: tmpList}, nil
+		return &dhcppb.GetSubnet4SResponse{
+			Subnet4S: subnets,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListReservation4BySubnet4Id(ctx context.Context,
-	req *pbdhcp.GetReservation4BySubnet4IdRequest) (*pbdhcp.GetReservation4BySubnet4IdResponse, error) {
-	if tmpList, err := GetDHCPService().GetReservation4List(req.GetSubnet4Id()); err != nil {
-		return nil, fmt.Errorf("GetReservation4List failed :%s", err.Error())
+func (g *GrpcService) GetSubnet6SByPrefixes(ctx context.Context, request *dhcppb.GetSubnetsRequest) (*dhcppb.GetSubnet6SResponse, error) {
+	if subnets, err := GetDHCPService().GetSubnet6sByPrefixes(request.GetPrefixes()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetReservation4BySubnet4IdResponse{Reservation4S: tmpList}, nil
+		return &dhcppb.GetSubnet6SResponse{
+			Subnet6S: subnets,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListLease4BySubnet4Id(ctx context.Context,
-	req *pbdhcp.GetLease4BySubnet4IdRequest) (*pbdhcp.GetLease4BySubnet4IdResponse, error) {
-	if tmpList, err := GetDHCPService().GetSubnetLease4List(req.GetSubnet4Id()); err != nil {
-		return nil, fmt.Errorf("getlistlease4bysubnet4id failed: %s", err.Error())
+func (g *GrpcService) GetPool4SBySubnet(ctx context.Context, request *dhcppb.GetSubnetPoolsRequest) (*dhcppb.GetPool4SResponse, error) {
+	if pools, err := GetDHCPService().GetPool4sBySubnet(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetLease4BySubnet4IdResponse{SubnetLease4S: tmpList}, nil
+		return &dhcppb.GetPool4SResponse{
+			Pools: pools,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListLease4ByIp(ctx context.Context,
-	req *pbdhcp.GetLease4ByIpRequest) (*pbdhcp.GetLease4ByIpResponse, error) {
-	if tmpList, err := GetDHCPService().GetSubnetLease4ByIp(req.GetSubnet4Id(), req.GetIp()); err != nil {
-		return nil, fmt.Errorf("getlistlease4byip failed: %s", err.Error())
+func (g *GrpcService) GetPool6SBySubnet(ctx context.Context, request *dhcppb.GetSubnetPoolsRequest) (*dhcppb.GetPool6SResponse, error) {
+	if pools, err := GetDHCPService().GetPool6sBySubnet(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetLease4ByIpResponse{SubnetLease4S: tmpList}, nil
+		return &dhcppb.GetPool6SResponse{
+			Pools: pools,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListAllSubnet6(ctx context.Context, req *pbdhcp.GetSubnet6Request) (*pbdhcp.GetSubnet6Response, error) {
-	if len(req.Prefixes) != 0 {
-		return nil, fmt.Errorf("getlistallsubnet6 prefixes is not nil ")
-	}
-	if tmpList, err := GetDHCPService().GetAllSubnet6(); err != nil {
-		return nil, fmt.Errorf("getlistallsubnet6 failed :%s", err.Error())
+func (g *GrpcService) GetReservedPool4SBySubnet(ctx context.Context, request *dhcppb.GetSubnetPoolsRequest) (*dhcppb.GetReservedPool4SResponse, error) {
+	if pools, err := GetDHCPService().GetReservedPool4sBySubnet(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetSubnet6Response{Subnet6S: tmpList}, nil
+		return &dhcppb.GetReservedPool4SResponse{
+			Pools: pools,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListSubnet6ByPrefixes(ctx context.Context, req *pbdhcp.GetSubnet6Request) (*pbdhcp.GetSubnet6Response, error) {
-	if len(req.Prefixes) == 0 {
-		return nil, fmt.Errorf("getlistsubnet6byprefixes prefixes is nil ")
-	}
-	if tmpList, err := GetDHCPService().GetWithSubnet6ByPrefixes(req.GetPrefixes()); err != nil {
-		return nil, fmt.Errorf("getlistsubnet6byprefixes failed :%s", err.Error())
+func (g *GrpcService) GetReservedPool6SBySubnet(ctx context.Context, request *dhcppb.GetSubnetPoolsRequest) (*dhcppb.GetReservedPool6SResponse, error) {
+	if pools, err := GetDHCPService().GetReservedPool6sBySubnet(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetSubnet6Response{Subnet6S: tmpList}, nil
+		return &dhcppb.GetReservedPool6SResponse{
+			Pools: pools,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListPool6BySubnet6Id(ctx context.Context,
-	req *pbdhcp.GetPool6BySubnet6IdRequest) (*pbdhcp.GetPool6BySubnet6IdResponse, error) {
-	subnet := parser.DecodePbSubnet6(req.GetSubnet())
-	if tmpList, err := GetDHCPService().GetPool6List(subnet); err != nil {
-		return nil, fmt.Errorf("getlistpool6bysubnet6id failed :%s", err.Error())
+func (g *GrpcService) GetReservation4SBySubnet(ctx context.Context, request *dhcppb.GetSubnetPoolsRequest) (*dhcppb.GetReservationPool4SResponse, error) {
+	if pools, err := GetDHCPService().GetReservation4sBySubnet(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetPool6BySubnet6IdResponse{Pool6S: tmpList}, nil
+		return &dhcppb.GetReservationPool4SResponse{
+			Pools: pools,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListReservedPool6BySubnet6Id(ctx context.Context,
-	req *pbdhcp.GetReservedPool6BySubnet6IdRequest) (*pbdhcp.GetReservedPool6BySubnet6IdResponse, error) {
-	subnet := parser.DecodePbSubnet6(req.GetSubnet())
-	if tmpList, err := GetDHCPService().GetReservedPool6List(subnet); err != nil {
-		return nil, fmt.Errorf("getlistreservedpool6bysubnet6id failed :%s", err.Error())
+func (g *GrpcService) GetReservation6SBySubnet(ctx context.Context, request *dhcppb.GetSubnetPoolsRequest) (*dhcppb.GetReservationPool6SResponse, error) {
+	if pools, err := GetDHCPService().GetReservation6sBySubnet(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetReservedPool6BySubnet6IdResponse{ReservedPool6S: tmpList}, nil
+		return &dhcppb.GetReservationPool6SResponse{
+			Pools: pools,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListReservation6BySubnet6Id(ctx context.Context,
-	req *pbdhcp.GetReservation6BySubnet6IdRequest) (*pbdhcp.GetReservation6BySubnet6IdResponse, error) {
-	if tmpList, err := GetDHCPService().GetReservation6List(req.GetSubnet6Id()); err != nil {
-		return nil, fmt.Errorf("getlistreservation6bysubnet6id failed :%s", err.Error())
+func (g *GrpcService) GetLease4ByIp(ctx context.Context, request *dhcppb.GetLeaseByIpRequest) (*dhcppb.GetLease4ByIpResponse, error) {
+	if lease4, err := GetDHCPService().GetLease4ByIp(request.GetIp()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetReservation6BySubnet6IdResponse{Reservation6S: tmpList}, nil
+		return &dhcppb.GetLease4ByIpResponse{
+			Lease4: lease4,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListLease6BySubnet6Id(ctx context.Context,
-	req *pbdhcp.GetLease6BySubnet6IdRequest) (*pbdhcp.GetLease6BySubnet6IdResponse, error) {
-	if tmpList, err := GetDHCPService().GetSLease6ListBySubnetId(req.GetSubnet6Id()); err != nil {
-		return nil, fmt.Errorf("getlistlease6bysubnet6id failed :%s", err.Error())
+func (g *GrpcService) GetLease6ByIp(ctx context.Context, request *dhcppb.GetLeaseByIpRequest) (*dhcppb.GetLease6ByIpResponse, error) {
+	if lease6, err := GetDHCPService().GetLease6ByIp(request.GetIp()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetLease6BySubnet6IdResponse{SubnetLease6: tmpList}, nil
+		return &dhcppb.GetLease6ByIpResponse{
+			Lease6: lease6,
+		}, nil
 	}
 }
 
-func (g *GRPCService) GetListLease6ByIp(ctx context.Context,
-	req *pbdhcp.GetLease6ByIpRequest) (*pbdhcp.GetLease6ByIpResponse, error) {
-	if tmpValue, err := GetDHCPService().GetSubnetLease6ByIp(req.GetSubnet6Id(), req.GetIp()); err != nil {
-		return nil, fmt.Errorf("getlistlease6byip failed :%s", err.Error())
+func (g *GrpcService) GetLease4SBySubnet(ctx context.Context, request *dhcppb.GetLeasesBySubnetRequest) (*dhcppb.GetLease4SBySubnetResponse, error) {
+	if lease4s, err := GetDHCPService().GetLease4ByPrefix(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.GetLease6ByIpResponse{SubnetLease6: tmpValue}, nil
+		return &dhcppb.GetLease4SBySubnetResponse{
+			Lease4S: lease4s,
+		}, nil
 	}
 }
 
-func (g *GRPCService) CreateReservation4S(ctx context.Context,
-	req *pbdhcp.CreateReservation4SRequest) (*pbdhcp.CreateReservation4SResponse, error) {
-	if len(req.GetReservations()) == 0 {
-		return nil, nil
-	}
-	reservations := make([]*resource.Reservation4, 0)
-	for _, v := range req.GetReservations() {
-		reservation := parser.DecodePbCReservation4(v)
-		if err := reservation.Validate(); err != nil {
-			return nil, fmt.Errorf("create reservation4 params invalid: %s", err.Error())
-		}
-		reservations = append(reservations, reservation)
-	}
-	if _, err := GetDHCPService().CreateReservation4s(req.GetParentId(), reservations); err != nil {
-		return nil, fmt.Errorf("create reservation4 failed: %s", err.Error())
-	}
-	return &pbdhcp.CreateReservation4SResponse{Succeed: true}, nil
-}
-
-func (g *GRPCService) CreateReservedPool4(ctx context.Context,
-	req *pbdhcp.CreateReservedPool4Request) (*pbdhcp.CreateReservedPool4Response, error) {
-	if len(req.GetReserveds()) == 0 {
-		return nil, nil
-	}
-	pools := make([]*resource.ReservedPool4, 0)
-	for _, v := range req.GetReserveds() {
-		pool := parser.DecodePbCReservedPool4(v)
-		if err := pool.Validate(); err != nil {
-			return nil, fmt.Errorf("create reserved4 pool params invalid: %s", err.Error())
-		}
-		pools = append(pools, pool)
-	}
-	if len(pools) == 0 {
-		return nil, nil
-	}
-	if tmpValue, err := GetDHCPService().CreateReservedPool4(req.GetParentId(), pools); err != nil {
-		return nil, fmt.Errorf("create reserved4 pool failed: %s", err.Error())
+func (g *GrpcService) GetLease6SBySubnet(ctx context.Context, request *dhcppb.GetLeasesBySubnetRequest) (*dhcppb.GetLease6SBySubnetResponse, error) {
+	if lease6s, err := GetDHCPService().GetLease6sBySubnet(request.GetSubnet()); err != nil {
+		return nil, err
 	} else {
-		return &pbdhcp.CreateReservedPool4Response{Succeed: tmpValue}, nil
+		return &dhcppb.GetLease6SBySubnetResponse{
+			Lease6S: lease6s,
+		}, nil
 	}
 }
 
-func (g *GRPCService) CreateReservation6S(ctx context.Context,
-	req *pbdhcp.CreateReservation6SRequest) (*pbdhcp.CreateReservation6SResponse, error) {
-	if len(req.GetReservations()) == 0 {
-		return nil, nil
-	}
-	reservations := make([]*resource.Reservation6, 0)
-	for _, v := range req.GetReservations() {
-		reservation := parser.DecodePbCReservation6(v)
-		if err := reservation.Validate(); err != nil {
-			return nil, fmt.Errorf("create reservation6 params invalid: %s", err.Error())
-		}
-	}
-	if tmpValue, err := GetDHCPService().CreateReservation6s(req.GetParentId(), reservations); err != nil {
-		return nil, fmt.Errorf("create reservation6 failed: %s", err.Error())
-	} else {
-		return &pbdhcp.CreateReservation6SResponse{Succeed: tmpValue}, nil
-	}
+func (g *GrpcService) CreateReservation4S(ctx context.Context, request *dhcppb.CreateReservation4SRequest) (*dhcppb.CreateReservation4SResponse, error) {
+	panic("implement me")
 }
 
-func (g *GRPCService) CreateReservedPool6(ctx context.Context,
-	req *pbdhcp.CreateReservedPool6Request) (*pbdhcp.CreateReservedPool6Response, error) {
-	if len(req.GetReserveds()) == 0 {
-		return nil, nil
-	}
-	reservedPools := make([]*resource.ReservedPool6, 0)
-	for _, v := range req.GetReserveds() {
-		pool := parser.DecodePbCReservedPool6(v)
-		if err := pool.Validate(); err != nil {
-			return nil, fmt.Errorf("create reserved6 pool params invalid: %s", err.Error())
-		}
-		reservedPools = append(reservedPools, pool)
-	}
-	if tmpValue, err := GetDHCPService().CreateReservedPool6(req.GetParentId(), reservedPools); err != nil {
-		return nil, fmt.Errorf("create reserved6 pool failed: %s", err.Error())
-	} else {
-		return &pbdhcp.CreateReservedPool6Response{Succeed: tmpValue}, nil
-	}
+func (g *GrpcService) CreateReservedPool4S(ctx context.Context, request *dhcppb.CreateReservedPool4SRequest) (*dhcppb.CreateReservedPool4SResponse, error) {
+	panic("implement me")
+}
+
+func (g *GrpcService) CreateReservation6S(ctx context.Context, request *dhcppb.CreateReservation6SRequest) (*dhcppb.CreateReservation6SResponse, error) {
+	panic("implement me")
+}
+
+func (g *GrpcService) CreateReservedPool6S(ctx context.Context, request *dhcppb.CreateReservedPool6SRequest) (*dhcppb.CreateReservedPool6SResponse, error) {
+	panic("implement me")
 }

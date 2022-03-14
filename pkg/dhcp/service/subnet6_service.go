@@ -137,15 +137,6 @@ func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetO
 
 func (s *Subnet6Service) List(ctx *restresource.Context) (interface{}, error) {
 	listCtx := genGetSubnetsContext(ctx, resource.TableSubnet6)
-	subnets, subnetsCount, err := GetSubnet6List(listCtx)
-	if err != nil {
-		return nil, err
-	}
-	setPagination(ctx, listCtx.hasPagination, subnetsCount)
-	return subnets, nil
-}
-
-func GetSubnet6List(listCtx listSubnetContext) ([]*resource.Subnet6, int, error) {
 	var subnets []*resource.Subnet6
 	var subnetsCount int
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -160,10 +151,10 @@ func GetSubnet6List(listCtx listSubnetContext) ([]*resource.Subnet6, int, error)
 
 		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
 	}); err != nil {
-		return nil, -1, err
+		return nil, err
 	}
 
-	if err := setSubnet6sLeasesUsedInfo(subnets, listCtx.isUseIds()); err != nil {
+	if err := SetSubnet6sLeasesUsedInfo(subnets, listCtx.isUseIds()); err != nil {
 		log.Warnf("set subnet6s leases used info failed: %s", err.Error())
 	}
 
@@ -172,10 +163,12 @@ func GetSubnet6List(listCtx listSubnetContext) ([]*resource.Subnet6, int, error)
 	} else {
 		setSubnet6sNodeNames(subnets, nodeNames)
 	}
-	return subnets, subnetsCount, nil
+
+	setPagination(ctx, listCtx.hasPagination, subnetsCount)
+	return subnets, nil
 }
 
-func setSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
+func SetSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
 	if len(subnets) == 0 {
 		return nil
 	}
@@ -591,23 +584,93 @@ func (s *Subnet6Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 				subnet, err.Error())
 		}
 	}
-
-	return GetListWithSubnet6s(subnetListInput.Subnets)
+	subnets, err := ListSubnet6sByPrefixes(subnetListInput.Subnets)
+	if err != nil {
+		return nil, err
+	}
+	return &resource.Subnet6ListOutput{Subnet6s: subnets}, nil
 }
 
-func GetListWithSubnet6s(prefixes []string) (*resource.Subnet6ListOutput, error) {
+func ListSubnet6sByPrefixes(prefixes []string) ([]*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets,
-			fmt.Sprintf("select * from gr_subnet6 where subnet in ('%s')",
-				strings.Join(prefixes, "','")))
+		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = any ($1)", prefixes)
 	}); err != nil {
 		return nil, err
 	}
 
-	if err := setSubnet6sLeasesUsedInfo(subnets, true); err != nil {
+	if err := SetSubnet6sLeasesUsedInfo(subnets, true); err != nil {
 		log.Warnf("set subnet6s leases used info failed: %s", err.Error())
 	}
 
-	return &resource.Subnet6ListOutput{Subnet6s: subnets}, nil
+	return subnets, nil
+}
+
+func GetPool6sByPrefix(prefix string) ([]*resource.Pool6, error) {
+	subnet6, err := GetSubnet6ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if pools, err := ListPool6s(subnet6); err != nil {
+		return nil, err
+	} else {
+		return pools, nil
+	}
+}
+
+func GetReservedPool6sByPrefix(prefix string) ([]*resource.ReservedPool6, error) {
+	subnet6, err := GetSubnet6ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if pools, err := ListReservedPool6s(subnet6); err != nil {
+		return nil, err
+	} else {
+		return pools, nil
+	}
+}
+
+func GetReservationPool6sByPrefix(prefix string) ([]*resource.Reservation6, error) {
+	subnet6, err := GetSubnet6ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if pools, err := ListReservation6s(subnet6.GetID()); err != nil {
+		return nil, err
+	} else {
+		return pools, nil
+	}
+}
+
+func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
+	var subnets []*resource.Subnet6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, "select * from gr_subnet6 where ipnet >>= $1", ip)
+	}); err != nil {
+		return nil, err
+	}
+
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("not found subnet of ip %s", ip)
+	} else {
+		return subnets[0], nil
+	}
+}
+
+func GetSubnet6ByPrefix(prefix string) (*resource.Subnet6, error) {
+	var subnets []*resource.Subnet6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = $1", prefix)
+	}); err != nil {
+		return nil, err
+	}
+
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("not found subnet of prefix %s", prefix)
+	} else {
+		return subnets[0], nil
+	}
 }

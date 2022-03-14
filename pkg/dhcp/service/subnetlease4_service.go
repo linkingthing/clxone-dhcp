@@ -27,66 +27,54 @@ func NewSubnetLease4Service() *SubnetLease4Service {
 	return &SubnetLease4Service{}
 }
 
-func (l *SubnetLease4Service) List(ctx *restresource.Context) (interface{}, error) {
-	ip, hasAddressFilter := util.GetFilterValueWithEqModifierFromFilters(
+func (l *SubnetLease4Service) List(ctx *restresource.Context) ([]*resource.SubnetLease4, error) {
+	ip, _ := util.GetFilterValueWithEqModifierFromFilters(
 		util.FilterNameIp, ctx.GetFilters())
-	if hasAddressFilter {
+
+	return ListSubnetLease4(ctx.Resource.GetParent().GetID(), ip)
+}
+
+func ListSubnetLease4(subnetId, ip string) ([]*resource.SubnetLease4, error) {
+	hasAddressFilter := false
+	if ip != "" {
 		if _, err := gohelperip.ParseIPv4(ip); err != nil {
 			return nil, nil
 		}
+		hasAddressFilter = true
 	}
-	subnetId := ctx.Resource.GetParent().GetID()
+
+	var subnet4SubnetId uint64
+	var reservations []*resource.Reservation4
+	var subnetLeases []*resource.SubnetLease4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet4, err := getSubnet4FromDB(tx, subnetId)
+		if err != nil {
+			return err
+		}
+
+		subnet4SubnetId = subnet4.SubnetId
+		if hasAddressFilter {
+			reservations, subnetLeases, err = getReservation4sAndSubnetLease4sWithIp(
+				tx, subnet4, ip)
+		} else {
+			reservations, subnetLeases, err = getReservation4sAndSubnetLease4s(
+				tx, subnetId)
+		}
+		return err
+	}); err != nil {
+		if err == ErrorIpNotBelongToSubnet {
+			return nil, nil
+		} else {
+			return nil,
+				fmt.Errorf("get subnet4 %s from db failed: %s", subnetId, err.Error())
+		}
+	}
+
 	if hasAddressFilter {
-		return GetSubnetLease4ListWithIp(subnetId, ip)
+		return getSubnetLease4sWithIp(subnet4SubnetId, ip, reservations, subnetLeases)
+	} else {
+		return getSubnetLease4s(subnet4SubnetId, reservations, subnetLeases)
 	}
-	return GetSubnetLease4List(subnetId)
-}
-
-func GetSubnetLease4List(subnetId string) ([]*resource.SubnetLease4, error) {
-	var subnet4SubnetId uint64
-	var reservations []*resource.Reservation4
-	var subnetLeases []*resource.SubnetLease4
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		subnet4, err := getSubnet4FromDB(tx, subnetId)
-		if err != nil {
-			return err
-		}
-		subnet4SubnetId = subnet4.SubnetId
-		reservations, subnetLeases, err = getReservation4sAndSubnetLease4s(
-			tx, subnetId)
-		return err
-	}); err != nil {
-		if err == ErrorIpNotBelongToSubnet {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-	return getSubnetLease4s(subnet4SubnetId, reservations, subnetLeases)
-}
-
-func GetSubnetLease4ListWithIp(subnetId, ip string) ([]*resource.SubnetLease4, error) {
-	var subnet4SubnetId uint64
-	var reservations []*resource.Reservation4
-	var subnetLeases []*resource.SubnetLease4
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		subnet4, err := getSubnet4FromDB(tx, subnetId)
-		if err != nil {
-			return err
-		}
-
-		subnet4SubnetId = subnet4.SubnetId
-		reservations, subnetLeases, err = getReservation4sAndSubnetLease4sWithIp(
-			tx, subnet4, ip)
-		return err
-	}); err != nil {
-		if err == ErrorIpNotBelongToSubnet {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-	return getSubnetLease4sWithIp(subnet4SubnetId, ip, reservations, subnetLeases)
 }
 
 func getReservation4sAndSubnetLease4sWithIp(tx restdb.Transaction, subnet4 *resource.Subnet4, ip string) ([]*resource.Reservation4, []*resource.SubnetLease4, error) {

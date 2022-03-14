@@ -37,7 +37,7 @@ func (p *ReservedPool6Handler) Create(ctx *restresource.Context) (restresource.R
 
 func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
-	pools, err := p.Service.List(subnet)
+	pools, err := service.ListReservedPool6s(subnet)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list pools with subnet %s from db failed: %s",

@@ -205,11 +205,7 @@ func reservedPool4ToCreateReservedPool4Request(subnetID uint64, pool *resource.R
 	}
 }
 
-func (p *ReservedPool4Service) List(subnetID string) (interface{}, error) {
-	return GetReservedPool4List(subnetID)
-}
-
-func GetReservedPool4List(subnetID string) ([]*resource.ReservedPool4, error) {
+func ListReservedPool4s(subnetID string) ([]*resource.ReservedPool4, error) {
 	var pools []*resource.ReservedPool4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{

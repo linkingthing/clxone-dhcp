@@ -154,11 +154,7 @@ func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 	}
 }
 
-func (p *Pool4Service) List(subnet *resource.Subnet4) (interface{}, error) {
-	return GetPool4List(subnet)
-}
-
-func GetPool4List(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
+func ListPool4s(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

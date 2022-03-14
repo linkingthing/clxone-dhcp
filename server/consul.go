@@ -27,7 +27,7 @@ type ConsulService struct {
 	ServiceName    string              `json:"ServiceName"`
 	ServiceAddress string              `json:"ServiceAddress"`
 	ServiceTags    []string            `json:"ServiceTags"`
-	Status         ConsulServiceStatus `json:"Status"`
+	Status         ConsulServiceStatus `json:"AddressStatus"`
 }
 
 func (cs *ConsulService) Validate() bool {

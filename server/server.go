@@ -132,7 +132,7 @@ func (s *Server) Run(conf *config.DHCPConfig) error {
 
 		grpcServer := grpc.NewServer()
 		hv1.RegisterHealthServer(grpcServer, health.NewServer())
-		pbdhcp.RegisterDhcpServiceServer(grpcServer, service.NewGRPCService())
+		pbdhcp.RegisterDhcpServiceServer(grpcServer, service.NewGrpcService())
 		errch <- grpcServer.Serve(grpcListener)
 	}()
 

@@ -37,7 +37,7 @@ func (p *ReservedPool4Api) Create(ctx *restresource.Context) (restresource.Resou
 
 func (p *ReservedPool4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetParent().GetID()
-	pools, err := p.Service.List(subnetID)
+	pools, err := service.ListReservedPool4s(subnetID)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list reserved pools with subnet %s failed: %s",

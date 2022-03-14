@@ -206,8 +206,10 @@ func GetSubnet4List(listCtx listSubnetContext) ([]*resource.Subnet4, int, error)
 		return nil, -1, fmt.Errorf("db failed: %s", err.Error())
 	}
 
-	if err := setSubnet4sLeasesUsedInfo(subnets, listCtx); err != nil {
-		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
+	if len(subnets) > 0 && listCtx.needSetSubnetsLeasesUsedInfo() {
+		if err := SetSubnet4UsedInfo(subnets, listCtx.isUseIds()); err != nil {
+			log.Warnf("set subnet4s leases used info failed: %s", err.Error())
+		}
 	}
 
 	if nodeNames, err := GetNodeNames(true); err != nil {
@@ -314,24 +316,9 @@ func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) 
 	return listCtx
 }
 
-func GenGrpcGetSubnetsContext(table restdb.ResourceType) listSubnetContext {
-	var listCtx listSubnetContext
-	sqls := []string{"select * from gr_" + string(table)}
-	if listCtx.hasFilterSubnet == false {
-		sqls = append(sqls, "order by subnet_id")
-	}
-	listCtx.sql = strings.Join(sqls, " ")
-	return listCtx
-}
-
-func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listSubnetContext) error {
-	if ctx.needSetSubnetsLeasesUsedInfo() == false || len(subnets) == 0 {
-		return nil
-	}
-
+func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 	var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
-	var err error
-	if ctx.isUseIds() {
+	if useIds {
 		var ids []uint64
 		for _, subnet := range subnets {
 			if subnet.Capacity != 0 {
@@ -363,7 +350,7 @@ func setSubnet4sLeasesUsedInfo(subnets []*resource.Subnet4, ctx listSubnetContex
 		}
 	}
 
-	return nil
+	return
 }
 
 func setPagination(ctx *restresource.Context, hasPagination bool, pageTotal int) {
@@ -1310,22 +1297,93 @@ func (s *Subnet4Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 			return nil, fmt.Errorf("action check subnet could be created input invalid: %s", err.Error())
 		}
 	}
-	return GetListWithSubnet4s(subnetListInput.Subnets)
-}
-
-func GetListWithSubnet4s(Subnets []string) (*resource.Subnet4ListOutput, error) {
-	var subnets []*resource.Subnet4
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets,
-			fmt.Sprintf("select * from gr_subnet4 where subnet in ('%s')",
-				strings.Join(Subnets, "','")))
-	}); err != nil {
+	subnets, err := ListSubnet4sByPrefixes(subnetListInput.Subnets)
+	if err != nil {
 		return nil, fmt.Errorf("action list subnet failed: %s", err.Error())
 	}
 
-	if err := setSubnet4sLeasesUsedInfo(subnets,
-		listSubnetContext{hasFilterSubnet: true}); err != nil {
+	return &resource.Subnet4ListOutput{Subnet4s: subnets}, nil
+}
+
+func ListSubnet4sByPrefixes(prefixes []string) ([]*resource.Subnet4, error) {
+	var subnet4s []*resource.Subnet4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnet4s, "select * from gr_subnet4 where subnet = any ($1)", prefixes)
+	}); err != nil {
+		return nil, fmt.Errorf("list subnet4 failed: %s", err.Error())
+	}
+
+	if err := SetSubnet4UsedInfo(subnet4s, true); err != nil {
 		log.Warnf("set subnet4s leases used info failed: %s", err.Error())
 	}
-	return &resource.Subnet4ListOutput{Subnet4s: subnets}, nil
+	return subnet4s, nil
+}
+
+func GetPool4sByPrefix(prefix string) ([]*resource.Pool4, error) {
+	subnet4, err := GetSubnet4ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if pools, err := ListPool4s(subnet4); err != nil {
+		return nil, err
+	} else {
+		return pools, nil
+	}
+}
+
+func GetReservedPool4sByPrefix(prefix string) ([]*resource.ReservedPool4, error) {
+	subnet4, err := GetSubnet4ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if pools, err := ListReservedPool4s(subnet4.GetID()); err != nil {
+		return nil, err
+	} else {
+		return pools, nil
+	}
+}
+
+func GetReservationPool4sByPrefix(prefix string) ([]*resource.Reservation4, error) {
+	subnet4, err := GetSubnet4ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if pools, err := ListReservation4s(subnet4.GetID()); err != nil {
+		return nil, err
+	} else {
+		return pools, nil
+	}
+}
+
+func GetSubnet4ByIP(ip string) (*resource.Subnet4, error) {
+	var subnets []*resource.Subnet4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, "select * from gr_subnet4 where ipnet >>= $1", ip)
+	}); err != nil {
+		return nil, err
+	}
+
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("not found subnet of ip %s", ip)
+	} else {
+		return subnets[0], nil
+	}
+}
+
+func GetSubnet4ByPrefix(prefix string) (*resource.Subnet4, error) {
+	var subnets []*resource.Subnet4
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&subnets, "select * from gr_subnet4 where subnet = $1", prefix)
+	}); err != nil {
+		return nil, err
+	}
+
+	if len(subnets) == 0 {
+		return nil, fmt.Errorf("not found subnet of prefix %s", prefix)
+	} else {
+		return subnets[0], nil
+	}
 }

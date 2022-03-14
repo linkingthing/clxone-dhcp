@@ -268,11 +268,7 @@ func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resou
 	}
 }
 
-func (r *Reservation6Service) List(subnetID string) (interface{}, error) {
-	return GetReservation6List(subnetID)
-}
-
-func GetReservation6List(subnetID string) ([]*resource.Reservation6, error) {
+func ListReservation6s(subnetID string) ([]*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
 	if err := db.GetResources(map[string]interface{}{
 		resource.SqlColumnSubnet6: subnetID,
