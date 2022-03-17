@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/linkingthing/cement/log"
@@ -12,7 +11,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	dhcpservice "github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	"github.com/linkingthing/clxone-dhcp/pkg/grpcclient"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
@@ -32,19 +30,12 @@ func (p *ReservedPdPoolHandler) Create(ctx *restresource.Context) (restresource.
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := setSubnet6FromDB(tx, subnet); err != nil {
-			return err
-		} else if subnet.UseEui64 {
-			return fmt.Errorf("subnet use EUI64, can not create reserved pdpool")
-		}
-
-		if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpool.PrefixIpnet,
-			pdpool.PrefixLen); err != nil {
+		if err := checkReservedPdPoolCouldBeCreated(tx, subnet, pdpool); err != nil {
 			return err
 		}
 
-		if err := checkReservedPdPoolConflictWithSubnet6Pools(tx, subnet.GetID(),
-			pdpool); err != nil {
+		if err := updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx, subnet,
+			pdpool, true); err != nil {
 			return err
 		}
 
@@ -63,6 +54,21 @@ func (p *ReservedPdPoolHandler) Create(ctx *restresource.Context) (restresource.
 	return pdpool, nil
 }
 
+func checkReservedPdPoolCouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, pdpool *resource.ReservedPdPool) error {
+	if err := setSubnet6FromDB(tx, subnet); err != nil {
+		return err
+	} else if subnet.UseEui64 {
+		return fmt.Errorf("subnet use EUI64, can not create reserved pdpool")
+	}
+
+	if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpool.PrefixIpnet,
+		pdpool.PrefixLen); err != nil {
+		return err
+	}
+
+	return checkReservedPdPoolConflictWithSubnet6Pools(tx, subnet.GetID(), pdpool)
+}
+
 func checkReservedPdPoolConflictWithSubnet6Pools(tx restdb.Transaction, subnetID string, pdpool *resource.ReservedPdPool) error {
 	if err := checkReservedPdPoolConflictWithSubnet6ReservedPdPools(tx,
 		subnetID, pdpool); err != nil {
@@ -73,28 +79,20 @@ func checkReservedPdPoolConflictWithSubnet6Pools(tx restdb.Transaction, subnetID
 }
 
 func checkReservedPdPoolConflictWithSubnet6ReservedPdPools(tx restdb.Transaction, subnetID string, pdpool *resource.ReservedPdPool) error {
-	var pdpools []*resource.ReservedPdPool
-	if err := tx.FillEx(&pdpools,
-		"select * from gr_reserved_pd_pool where subnet6 = $1 and prefix_ipnet && $2",
-		subnetID, pdpool.PrefixIpnet); err != nil {
-		return fmt.Errorf("get reserved pdpools with subnet %s from db failed: %s",
-			subnetID, err.Error())
-	}
-
-	if len(pdpools) != 0 {
+	if pdpools, err := getReservedPdPoolsWithPrefix(tx, subnetID, pdpool.PrefixIpnet); err != nil {
+		return err
+	} else if len(pdpools) != 0 {
 		return fmt.Errorf("reserved pdpool %s conflict with reserved pdpool %s",
 			pdpool.String(), pdpools[0].String())
+	} else {
+		return nil
 	}
-
-	return nil
 }
 
 func checkReservedPdPoolConflictWithSubnet6Reservation6s(tx restdb.Transaction, subnetID string, pdpool *resource.ReservedPdPool) error {
-	var reservations []*resource.Reservation6
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnetID},
-		&reservations); err != nil {
-		return fmt.Errorf("get reservation6s with subnet %s from db failed: %s",
-			subnetID, err.Error())
+	reservations, err := getReservation6sWithPrefixesExists(tx, subnetID)
+	if err != nil {
+		return err
 	}
 
 	for _, reservation := range reservations {
@@ -107,6 +105,57 @@ func checkReservedPdPoolConflictWithSubnet6Reservation6s(tx restdb.Transaction, 
 	}
 
 	return nil
+}
+
+func updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, subnet *resource.Subnet6, reservedPdPool *resource.ReservedPdPool, isCreate bool) error {
+	affectPdPools, err := recalculatePdPoolsCapacityWithReservedPdPool(tx, subnet,
+		reservedPdPool, isCreate)
+	if err != nil {
+		return err
+	}
+
+	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
+		"capacity": subnet.Capacity,
+	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+		return fmt.Errorf("update subnet %s capacity to db failed: %s",
+			subnet.GetID(), err.Error())
+	}
+
+	for affectPdPoolID, capacity := range affectPdPools {
+		if _, err := tx.Update(resource.TablePdPool, map[string]interface{}{
+			"capacity": capacity,
+		}, map[string]interface{}{restdb.IDField: affectPdPoolID}); err != nil {
+			return fmt.Errorf("update subnet %s pool %s capacity to db failed: %s",
+				subnet.GetID(), affectPdPoolID, err.Error())
+		}
+	}
+
+	return nil
+}
+
+func recalculatePdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, subnet *resource.Subnet6, reservedPdPool *resource.ReservedPdPool, isCreate bool) (map[string]uint64, error) {
+	pdpools, err := getPdPoolsWithPrefix(tx, subnet.GetID(), reservedPdPool.PrefixIpnet)
+	if err != nil {
+		return nil, err
+	}
+
+	affectedPdPools := make(map[string]uint64)
+	for _, pdpool := range pdpools {
+		if pdpool.IntersectIpnet(reservedPdPool.PrefixIpnet) {
+			reservedCount := getPdPoolReservedCount(pdpool, reservedPdPool.PrefixLen)
+			if isCreate {
+				affectedPdPools[pdpool.GetID()] = pdpool.Capacity - reservedCount
+				subnet.Capacity -= reservedCount
+			} else {
+				affectedPdPools[pdpool.GetID()] = pdpool.Capacity + reservedCount
+				subnet.Capacity += reservedCount
+			}
+
+			break
+		}
+	}
+
+	return affectedPdPools, nil
 }
 
 func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
@@ -172,13 +221,9 @@ func (p *ReservedPdPoolHandler) Delete(ctx *restresource.Context) *resterror.API
 			return err
 		}
 
-		pdpool.Subnet6 = subnet.GetID()
-		if leasesCount, err := getReservedPdPoolLeasesCount(pdpool); err != nil {
-			return fmt.Errorf("get pdpool %s leases count failed: %s",
-				pdpool.String(), err.Error())
-		} else if leasesCount != 0 {
-			return fmt.Errorf("can not delete pdpool with %d ips had been allocated",
-				leasesCount)
+		if err := updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx, subnet,
+			pdpool, false); err != nil {
+			return err
 		}
 
 		if _, err := tx.Delete(resource.TableReservedPdPool,
@@ -201,9 +246,7 @@ func setReservedPdPoolFromDB(tx restdb.Transaction, pdpool *resource.ReservedPdP
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pdpool.GetID()},
 		&pdpools); err != nil {
 		return fmt.Errorf("get pdpool from db failed: %s", err.Error())
-	}
-
-	if len(pdpools) == 0 {
+	} else if len(pdpools) == 0 {
 		return fmt.Errorf("no found pool %s", pdpool.GetID())
 	}
 
@@ -214,21 +257,6 @@ func setReservedPdPoolFromDB(tx restdb.Transaction, pdpool *resource.ReservedPdP
 	pdpool.DelegatedLen = pdpools[0].DelegatedLen
 	pdpool.Capacity = pdpools[0].Capacity
 	return nil
-}
-
-func getReservedPdPoolLeasesCount(pdpool *resource.ReservedPdPool) (uint64, error) {
-	if pdpool.Capacity == 0 {
-		return 0, nil
-	}
-
-	beginAddr, endAddr := pdpool.GetRange()
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6LeasesCount(context.TODO(),
-		&pbdhcpagent.GetPool6LeasesCountRequest{
-			SubnetId:     subnetIDStrToUint64(pdpool.Subnet6),
-			BeginAddress: beginAddr,
-			EndAddress:   endAddr,
-		})
-	return resp.GetLeasesCount(), err
 }
 
 func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {

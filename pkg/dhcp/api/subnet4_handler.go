@@ -488,9 +488,7 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 		&subnets); err != nil {
 		return nil, fmt.Errorf("get subnet %s from db failed: %s",
 			subnetId, err.Error())
-	}
-
-	if len(subnets) == 0 {
+	} else if len(subnets) == 0 {
 		return nil, fmt.Errorf("no found subnet %s", subnetId)
 	}
 
@@ -685,7 +683,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 			log.Warnf("subnet %s pool4s is invalid: %s", subnet.Subnet, err.Error())
 		} else {
 			subnet.SubnetId = uint64(oldSubnetsLen + len(subnets) + 1)
-			subnet.SetID(strconv.Itoa(int(subnet.SubnetId)))
+			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
 			subnets = append(subnets, subnet)
 			if len(pools) != 0 {
 				subnetPools[subnet.SubnetId] = pools
@@ -1349,10 +1347,12 @@ func genCreateSubnets4AndPoolsRequestWithSubnet4(tx restdb.Transaction, subnet4 
 	for _, pool := range pools {
 		req.Pools = append(req.Pools, pool4ToCreatePool4Request(subnet4.SubnetId, pool))
 	}
+
 	for _, pool := range reservedPools {
 		req.ReservedPools = append(req.ReservedPools,
 			reservedPool4ToCreateReservedPool4Request(subnet4.SubnetId, pool))
 	}
+
 	for _, reservation := range reservations {
 		req.Reservations = append(req.Reservations,
 			reservation4ToCreateReservation4Request(subnet4.SubnetId, reservation))

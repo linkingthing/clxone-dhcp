@@ -116,9 +116,17 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 		return nil, nil
 	}
 
+	leasePrefix := prefixFromAddressAndPrefixLen(lease6.Address, lease6.PrefixLen)
 	for _, reservation := range reservations {
 		for _, ipaddress := range reservation.IpAddresses {
 			if ipaddress == lease6.Address {
+				lease6.AddressType = resource.AddressTypeReservation
+				break
+			}
+		}
+
+		for _, prefix := range reservation.Prefixes {
+			if prefix == leasePrefix {
 				lease6.AddressType = resource.AddressTypeReservation
 				break
 			}
@@ -171,7 +179,8 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 
 func subnetLease6FromPbLease6AndReservations(lease *pbdhcpagent.DHCPLease6, reservationMap map[string]struct{}) *resource.SubnetLease6 {
 	subnetLease6 := service.SubnetLease6FromPbLease6(lease)
-	if _, ok := reservationMap[subnetLease6.Address]; ok {
+	if _, ok := reservationMap[prefixFromAddressAndPrefixLen(subnetLease6.Address,
+		subnetLease6.PrefixLen)]; ok {
 		subnetLease6.AddressType = resource.AddressTypeReservation
 	}
 	return subnetLease6

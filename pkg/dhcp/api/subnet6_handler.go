@@ -343,9 +343,7 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetId},
 		&subnets); err != nil {
 		return nil, fmt.Errorf("get subnet %s from db failed: %s", subnetId, err.Error())
-	}
-
-	if len(subnets) == 0 {
+	} else if len(subnets) == 0 {
 		return nil, fmt.Errorf("no found subnet %s", subnetId)
 	}
 
@@ -578,11 +576,11 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6) ([]s
 		} else if err := checkPool6sValid(subnet, pools, reservedPools,
 			reservations); err != nil {
 			log.Warnf("subnet %s pool6s is invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkPdPoolsValid(subnet, pdpools); err != nil {
+		} else if err := checkPdPoolsValid(subnet, pdpools, reservations); err != nil {
 			log.Warnf("subnet %s pdpools is invalid: %s", subnet.Subnet, err.Error())
 		} else {
 			subnet.SubnetId = uint64(oldSubnetsLen + len(subnets) + 1)
-			subnet.SetID(strconv.Itoa(int(subnet.SubnetId)))
+			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
 			subnets = append(subnets, subnet)
 			if len(pools) != 0 {
 				subnetPools[subnet.SubnetId] = pools
@@ -950,7 +948,7 @@ func checkPool6sValid(subnet *resource.Subnet6, pools []*resource.Pool6, reserve
 	return nil
 }
 
-func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool) error {
+func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, reservations []*resource.Reservation6) error {
 	pdpoolsLen := len(pdpools)
 	if pdpoolsLen == 0 {
 		return nil
@@ -977,6 +975,7 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool) err
 			}
 		}
 
+		recalculatePdPoolCapacityWithReservations(pdpools[i], reservations)
 		subnet.Capacity += pdpools[i].Capacity
 	}
 

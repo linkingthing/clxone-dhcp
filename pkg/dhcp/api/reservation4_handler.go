@@ -33,44 +33,13 @@ func (r *Reservation4Handler) Create(ctx *restresource.Context) (restresource.Re
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation4InUsed(tx, subnet.GetID(), reservation); err != nil {
+		if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
 			return err
 		}
 
-		if err := setSubnet4FromDB(tx, subnet); err != nil {
+		if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
+			reservation, true); err != nil {
 			return err
-		}
-
-		if subnet.Ipnet.Contains(reservation.Ip) == false {
-			return fmt.Errorf("reservation ipaddress %s not belongs to subnet %s",
-				reservation.IpAddress, subnet.Subnet)
-		}
-
-		if err := checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(),
-			reservation); err != nil {
-			return err
-		}
-
-		conflictPool, err := getConflictPool4InSubnet4(tx, subnet.GetID(),
-			&resource.Pool4{BeginIp: reservation.Ip, EndIp: reservation.Ip})
-		if err != nil {
-			return err
-		}
-
-		if conflictPool == nil {
-			if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-				"capacity": subnet.Capacity + reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-				return fmt.Errorf("update subnet %s capacity to db failed: %s",
-					subnet.GetID(), err.Error())
-			}
-		} else {
-			if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-				"capacity": conflictPool.Capacity - reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: conflictPool.GetID()}); err != nil {
-				return fmt.Errorf("update pool %s capacity to db failed: %s",
-					conflictPool.String(), err.Error())
-			}
 		}
 
 		reservation.Subnet4 = subnet.GetID()
@@ -89,37 +58,85 @@ func (r *Reservation4Handler) Create(ctx *restresource.Context) (restresource.Re
 	return reservation, nil
 }
 
-func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
-	count, err := tx.CountEx(resource.TableReservation4,
-		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 or ip_address = $3)",
-		subnetId, reservation.HwAddress, reservation.IpAddress)
+func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := setSubnet4FromDB(tx, subnet); err != nil {
+		return err
+	}
 
-	if err != nil {
+	if subnet.Ipnet.Contains(reservation.Ip) == false {
+		return fmt.Errorf("reservation ipaddress %s not belongs to subnet %s",
+			reservation.IpAddress, subnet.Subnet)
+	}
+
+	if err := checkReservation4InUsed(tx, subnet.GetID(), reservation); err != nil {
+		return err
+	}
+
+	return checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(), reservation)
+}
+
+func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
+	if count, err := tx.CountEx(resource.TableReservation4,
+		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 or ip_address = $3)",
+		subnetId, reservation.HwAddress, reservation.IpAddress); err != nil {
 		return fmt.Errorf("check reservation %s with subnet %s exists in db failed: %s",
 			reservation.String(), subnetId, err.Error())
 	} else if count != 0 {
 		return fmt.Errorf("reservation exists with subnet %s and mac %s or ip %s",
 			subnetId, reservation.HwAddress, reservation.IpAddress)
+	} else {
+		return nil
 	}
-
-	return nil
 }
 
 func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
-	var reservedpools []*resource.ReservedPool4
-	if err := tx.FillEx(&reservedpools,
-		"select * from gr_reserved_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
-		subnetId, reservation.Ip, reservation.Ip); err != nil {
-		return fmt.Errorf("get pools with subnet %s from db failed: %s",
-			subnetId, err.Error())
-	}
-
-	if len(reservedpools) != 0 {
+	if reservedpools, err := getReservedPool4sWithBeginAndEndIp(tx, subnetId,
+		reservation.Ip, reservation.Ip); err != nil {
+		return err
+	} else if len(reservedpools) != 0 {
 		return fmt.Errorf("reservation %s conflict with reserved pool %s",
 			reservation.String(), reservedpools[0].String())
 	} else {
 		return nil
 	}
+}
+
+func updateSubnet4OrPool4CapacityWithReservation4(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4, isCreate bool) error {
+	conflictPools, err := getPool4sWithBeginAndEndIp(tx, subnet.GetID(),
+		reservation.Ip, reservation.Ip)
+	if err != nil {
+		return err
+	}
+
+	if len(conflictPools) == 0 {
+		if isCreate {
+			subnet.Capacity += reservation.Capacity
+		} else {
+			subnet.Capacity -= reservation.Capacity
+		}
+
+		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
+			"capacity": subnet.Capacity,
+		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+				subnet.GetID(), err.Error())
+		}
+	} else {
+		if isCreate {
+			conflictPools[0].Capacity -= reservation.Capacity
+		} else {
+			conflictPools[0].Capacity += reservation.Capacity
+		}
+
+		if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
+			"capacity": conflictPools[0].Capacity,
+		}, map[string]interface{}{restdb.IDField: conflictPools[0].GetID()}); err != nil {
+			return fmt.Errorf("update pool %s capacity to db failed: %s",
+				conflictPools[0].String(), err.Error())
+		}
+	}
+
+	return nil
 }
 
 func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {
@@ -241,40 +258,13 @@ func (r *Reservation4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	reservation := ctx.Resource.(*resource.Reservation4)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := setSubnet4FromDB(tx, subnet); err != nil {
+		if err := checkReservation4CouldBeDeleted(tx, subnet, reservation); err != nil {
 			return err
 		}
 
-		if err := setReservation4FromDB(tx, reservation); err != nil {
+		if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
+			reservation, false); err != nil {
 			return err
-		}
-
-		if leasesCount, err := getReservation4LeaseCount(reservation); err != nil {
-			return fmt.Errorf("get reservation %s leases count failed: %s",
-				reservation.String(), err.Error())
-		} else if leasesCount != 0 {
-			return fmt.Errorf("can not delete reservation with %d ips had been allocated",
-				leasesCount)
-		}
-
-		conflictPool, err := getConflictPool4InSubnet4(tx, subnet.GetID(),
-			&resource.Pool4{BeginIp: reservation.Ip, EndIp: reservation.Ip})
-		if err != nil {
-			return err
-		} else if conflictPool != nil {
-			if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-				"capacity": conflictPool.Capacity + reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: conflictPool.GetID()}); err != nil {
-				return fmt.Errorf("update pool %s capacity to db failed: %s",
-					conflictPool.GetID(), err.Error())
-			}
-		} else {
-			if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-				"capacity": subnet.Capacity - reservation.Capacity,
-			}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-				return fmt.Errorf("update subnet %s capacity to db failed: %s",
-					subnet.GetID(), err.Error())
-			}
 		}
 
 		if _, err := tx.Delete(resource.TableReservation4,
@@ -293,14 +283,32 @@ func (r *Reservation4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 	return nil
 }
 
+func checkReservation4CouldBeDeleted(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := setSubnet4FromDB(tx, subnet); err != nil {
+		return err
+	}
+
+	if err := setReservation4FromDB(tx, reservation); err != nil {
+		return err
+	}
+
+	if leasesCount, err := getReservation4LeaseCount(reservation); err != nil {
+		return fmt.Errorf("get reservation %s leases count failed: %s",
+			reservation.String(), err.Error())
+	} else if leasesCount != 0 {
+		return fmt.Errorf("can not delete reservation with %d ips had been allocated",
+			leasesCount)
+	}
+
+	return nil
+}
+
 func setReservation4FromDB(tx restdb.Transaction, reservation *resource.Reservation4) error {
 	var reservations []*resource.Reservation4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: reservation.GetID()},
 		&reservations); err != nil {
 		return err
-	}
-
-	if len(reservations) == 0 {
+	} else if len(reservations) == 0 {
 		return fmt.Errorf("no found reservation %s", reservation.GetID())
 	}
 

@@ -45,7 +45,7 @@ func (r *Reservation6) AddrString() string {
 	if len(r.IpAddresses) != 0 {
 		return "ips-" + strings.Join(r.IpAddresses, "_")
 	} else {
-		return "prefixes-" + strings.Join(r.IpAddresses, "_")
+		return "prefixes-" + strings.Join(r.Prefixes, "_")
 	}
 }
 
@@ -64,13 +64,27 @@ func (r *Reservation6) CheckConflictWithAnother(another *Reservation6) bool {
 
 	for _, prefix := range r.Prefixes {
 		for _, prefix_ := range another.Prefixes {
-			if prefix_ == prefix {
+			if isPrefixesIntersect(prefix, prefix_) {
 				return true
 			}
 		}
 	}
 
 	return false
+}
+
+func isPrefixesIntersect(onePrefix, anotherPrefix string) bool {
+	one, err := gohelperip.ParseCIDRv6(onePrefix)
+	if err != nil {
+		return false
+	}
+
+	another, err := gohelperip.ParseCIDRv6(anotherPrefix)
+	if err != nil {
+		return false
+	}
+
+	return one.Contains(another.IP) || another.Contains(one.IP)
 }
 
 func (r *Reservation6) Validate() error {
@@ -111,8 +125,8 @@ func (r *Reservation6) Validate() error {
 	for _, prefix := range r.Prefixes {
 		if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 			return err
-		} else if ones, _ := ipnet.Mask.Size(); ones >= 64 {
-			return fmt.Errorf("prefix %s mask size %d should less than 64", prefix, ones)
+		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
+			return fmt.Errorf("prefix %s mask size %d must not bigger than 64", prefix, ones)
 		}
 	}
 

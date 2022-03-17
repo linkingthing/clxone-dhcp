@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
@@ -35,26 +36,9 @@ func (p *ReservedPool4Handler) Create(ctx *restresource.Context) (restresource.R
 			return err
 		}
 
-		affectPools, affectPoolsCapacity, err := recalculatePool4sCapacityWithReservedPool4(
-			tx, subnet.GetID(), pool, true)
-		if err != nil {
-			return fmt.Errorf("recalculate pools capacity failed: %s", err.Error())
-		}
-
-		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			"capacity": subnet.Capacity - affectPoolsCapacity,
-		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s",
-				subnet.GetID(), err.Error())
-		}
-
-		for affectPoolID, capacity := range affectPools {
-			if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-				"capacity": capacity,
-			}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
-				return fmt.Errorf("update subnet %s pool %s capacity to db failed: %s",
-					subnet.GetID(), affectPoolID, err.Error())
-			}
+		if err := updateSubnet4AndPoolsCapacityWithReservedPool4(tx, subnet,
+			pool, true); err != nil {
+			return err
 		}
 
 		pool.Subnet4 = subnet.GetID()
@@ -101,30 +85,34 @@ func checkReservedPool4ConflictWithSubnet4Pools(tx restdb.Transaction, subnetID 
 }
 
 func checkReservedPool4ConflictWithSubnet4ReservedPool4s(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool4) error {
-	var pools []*resource.ReservedPool4
-	if err := tx.FillEx(&pools,
-		"select * from gr_reserved_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
-		subnetID, pool.EndIp, pool.BeginIp); err != nil {
-		return fmt.Errorf("get pools with subnet %s from db failed: %s",
-			subnetID, err.Error())
-	}
-
-	if len(pools) != 0 {
+	if reservedpools, err := getReservedPool4sWithBeginAndEndIp(tx, subnetID,
+		pool.BeginIp, pool.EndIp); err != nil {
+		return err
+	} else if len(reservedpools) != 0 {
 		return fmt.Errorf("reserved pool %s conflict with exists reserved pool %s",
-			pool.String(), pools[0].String())
+			pool.String(), reservedpools[0].String())
 	} else {
 		return nil
 	}
 }
 
-func checkReservedPool4ConflictWithSubnet4Reservation4s(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool4) error {
-	var reservations []*resource.Reservation4
-	if err := tx.FillEx(&reservations,
-		"select * from gr_reservation4 where subnet4 = $1 and ip >= $2 and ip <= $3",
-		subnetID, pool.BeginIp, pool.EndIp); err != nil {
+func getReservedPool4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, begin, end net.IP) ([]*resource.ReservedPool4, error) {
+	var reservedpools []*resource.ReservedPool4
+	if err := tx.FillEx(&reservedpools,
+		"select * from gr_reserved_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
+		subnetID, end, begin); err != nil {
+		return nil, fmt.Errorf("get reserved pools with subnet %s from db failed: %s",
+			subnetID, err.Error())
+	} else {
+		return reservedpools, nil
 	}
+}
 
-	if len(reservations) != 0 {
+func checkReservedPool4ConflictWithSubnet4Reservation4s(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool4) error {
+	if reservations, err := getReservation4sWithBeginAndEndIp(tx, subnetID,
+		pool.BeginIp, pool.EndIp); err != nil {
+		return err
+	} else if len(reservations) != 0 {
 		return fmt.Errorf("reserved pool %s conflict with exists reservation %s",
 			pool.String(), reservations[0].String())
 	} else {
@@ -132,28 +120,52 @@ func checkReservedPool4ConflictWithSubnet4Reservation4s(tx restdb.Transaction, s
 	}
 }
 
-func recalculatePool4sCapacityWithReservedPool4(tx restdb.Transaction, subnetID string, reservedPool *resource.ReservedPool4, isCreate bool) (map[string]uint64, uint64, error) {
-	var pools []*resource.Pool4
-	if err := tx.FillEx(&pools,
-		"select * from gr_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
-		subnetID, reservedPool.EndIp, reservedPool.BeginIp); err != nil {
-		return nil, 0, fmt.Errorf("get pools with subnet %s from db failed: %s",
-			subnetID, err.Error())
+func updateSubnet4AndPoolsCapacityWithReservedPool4(tx restdb.Transaction, subnet *resource.Subnet4, reservedPool *resource.ReservedPool4, isCreate bool) error {
+	affectPools, err := recalculatePool4sCapacityWithReservedPool4(tx, subnet,
+		reservedPool, isCreate)
+	if err != nil {
+		return fmt.Errorf("recalculate pools capacity failed: %s", err.Error())
 	}
 
-	var affectedCount uint64
-	affectedPool4s := make(map[string]uint64)
-	for _, pool := range pools {
-		reservedCount := getPool4ReservedCountWithReservedPool4(pool, reservedPool)
-		affectedCount += reservedCount
-		if isCreate {
-			affectedPool4s[pool.GetID()] = pool.Capacity - reservedCount
-		} else {
-			affectedPool4s[pool.GetID()] = pool.Capacity + reservedCount
+	if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
+		"capacity": subnet.Capacity,
+	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+		return fmt.Errorf("update subnet %s capacity to db failed: %s",
+			subnet.GetID(), err.Error())
+	}
+
+	for affectPoolID, capacity := range affectPools {
+		if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
+			"capacity": capacity,
+		}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
+			return fmt.Errorf("update subnet %s pool %s capacity to db failed: %s",
+				subnet.GetID(), affectPoolID, err.Error())
 		}
 	}
 
-	return affectedPool4s, affectedCount, nil
+	return nil
+}
+
+func recalculatePool4sCapacityWithReservedPool4(tx restdb.Transaction, subnet *resource.Subnet4, reservedPool *resource.ReservedPool4, isCreate bool) (map[string]uint64, error) {
+	pools, err := getPool4sWithBeginAndEndIp(tx, subnet.GetID(),
+		reservedPool.BeginIp, reservedPool.EndIp)
+	if err != nil {
+		return nil, err
+	}
+
+	affectedPool4s := make(map[string]uint64)
+	for _, pool := range pools {
+		reservedCount := getPool4ReservedCountWithReservedPool4(pool, reservedPool)
+		if isCreate {
+			affectedPool4s[pool.GetID()] = pool.Capacity - reservedCount
+			subnet.Capacity -= reservedCount
+		} else {
+			affectedPool4s[pool.GetID()] = pool.Capacity + reservedCount
+			subnet.Capacity += reservedCount
+		}
+	}
+
+	return affectedPool4s, nil
 }
 
 func getPool4ReservedCountWithReservedPool4(pool *resource.Pool4, reservedPool *resource.ReservedPool4) uint64 {
@@ -242,26 +254,9 @@ func (p *ReservedPool4Handler) Delete(ctx *restresource.Context) *resterror.APIE
 			return err
 		}
 
-		affectPools, affectPoolsCapacity, err := recalculatePool4sCapacityWithReservedPool4(
-			tx, subnet.GetID(), pool, false)
-		if err != nil {
-			return fmt.Errorf("recalculate pools capacity failed: %s", err.Error())
-		}
-
-		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			"capacity": subnet.Capacity + affectPoolsCapacity,
-		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s",
-				subnet.GetID(), err.Error())
-		}
-
-		for affectPoolID, capacity := range affectPools {
-			if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-				"capacity": capacity,
-			}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
-				return fmt.Errorf("update subnet %s pool %s capacity to db failed: %s",
-					subnet.GetID(), affectPoolID, err.Error())
-			}
+		if err := updateSubnet4AndPoolsCapacityWithReservedPool4(tx, subnet,
+			pool, false); err != nil {
+			return err
 		}
 
 		if _, err := tx.Delete(resource.TableReservedPool4, map[string]interface{}{
@@ -284,9 +279,7 @@ func setReservedPool4FromDB(tx restdb.Transaction, pool *resource.ReservedPool4)
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
 		&pools); err != nil {
 		return fmt.Errorf("get pool from db failed: %s", err.Error())
-	}
-
-	if len(pools) == 0 {
+	} else if len(pools) == 0 {
 		return fmt.Errorf("no found pool %s", pool.GetID())
 	}
 

@@ -20,6 +20,8 @@ type PdPool struct {
 	PrefixIpnet               net.IPNet `json:"-"`
 	DelegatedLen              uint32    `json:"delegatedLen" rest:"required=true"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
+	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
+	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 	Comment                   string    `json:"comment"`
 }
 
@@ -63,8 +65,24 @@ func (pdpool *PdPool) Contains(prefix string) bool {
 	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 		return false
 	} else {
-		return pdpool.PrefixIpnet.Contains(ipnet.IP)
+		prefixLen, _ := ipnet.Mask.Size()
+		return pdpool.DelegatedLen == uint32(prefixLen) &&
+			pdpool.PrefixIpnet.Contains(ipnet.IP)
 	}
+}
+
+func (pdpool *PdPool) IntersectPrefix(prefix string) bool {
+	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
+		return false
+	} else {
+		return pdpool.PrefixIpnet.Contains(ipnet.IP) ||
+			ipnet.Contains(pdpool.PrefixIpnet.IP)
+	}
+}
+
+func (pdpool *PdPool) IntersectIpnet(ipnet net.IPNet) bool {
+	return pdpool.PrefixIpnet.Contains(ipnet.IP) ||
+		ipnet.Contains(pdpool.PrefixIpnet.IP)
 }
 
 func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, uint64, error) {
@@ -73,8 +91,8 @@ func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, uint64,
 		return nil, 0, fmt.Errorf("pdpool prefix %s is invalid: %s", prefix, err.Error())
 	}
 
-	if prefixLen <= 0 || prefixLen >= 64 {
-		return nil, 0, fmt.Errorf("pdpool prefix len %d not in (0, 64)", prefixLen)
+	if prefixLen <= 0 || prefixLen > 64 {
+		return nil, 0, fmt.Errorf("pdpool prefix len %d not in (0, 64]", prefixLen)
 	}
 
 	if delegatedLen < prefixLen || delegatedLen > 64 {
@@ -82,7 +100,7 @@ func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, uint64,
 			delegatedLen, prefixLen)
 	}
 
-	return prefixIp, (1 << (delegatedLen - prefixLen)) - 1, nil
+	return prefixIp, 1 << (delegatedLen - prefixLen), nil
 }
 
 func (pdpool *PdPool) GetRange() (string, string) {
