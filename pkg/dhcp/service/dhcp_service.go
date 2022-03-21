@@ -487,6 +487,7 @@ func SubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.SubnetLea
 		OperatingSystem:       lease.GetOperatingSystem(),
 		ClientType:            lease.GetClientType(),
 		LeaseState:            lease.GetLeaseState().String(),
+		RequestSourceAddr:     lease.GetRequestSourceAddr(),
 	}
 
 	lease6.SetID(lease.GetAddress())
