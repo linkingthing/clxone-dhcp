@@ -29,7 +29,7 @@ func (p *Pool6Handler) Create(ctx *restresource.Context) (restresource.Resource,
 	pool := ctx.Resource.(*resource.Pool6)
 	if err := pool.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create pool params invalid: %s", err.Error()))
+			fmt.Sprintf("create pool6 params invalid: %s", err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -38,7 +38,7 @@ func (p *Pool6Handler) Create(ctx *restresource.Context) (restresource.Resource,
 		}
 
 		if err := recalculatePool6Capacity(tx, subnet.GetID(), pool); err != nil {
-			return fmt.Errorf("recalculate pool capacity failed: %s", err.Error())
+			return fmt.Errorf("recalculate pool6 capacity failed: %s", err.Error())
 		}
 
 		if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
@@ -54,7 +54,7 @@ func (p *Pool6Handler) Create(ctx *restresource.Context) (restresource.Resource,
 		return sendCreatePool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create pool %s with subnet %s failed: %s",
+			fmt.Sprintf("create pool6 %s with subnet6 %s failed: %s",
 				pool.String(), subnet.GetID(), err.Error()))
 	}
 
@@ -77,7 +77,7 @@ func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, p
 	}
 
 	if checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) == false {
-		return fmt.Errorf("pool %s not belongs to subnet %s",
+		return fmt.Errorf("pool6 %s not belongs to subnet6 %s",
 			pool.String(), subnet.Subnet)
 	}
 
@@ -85,7 +85,7 @@ func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, p
 		pool.BeginIp, pool.EndIp); err != nil {
 		return err
 	} else if len(conflictPools) != 0 {
-		return fmt.Errorf("pool %s conflict with pool %s",
+		return fmt.Errorf("pool6 %s conflict with pool6 %s",
 			pool.String(), conflictPools[0].String())
 	}
 
@@ -94,12 +94,12 @@ func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, p
 
 func checkSubnet6IfCanCreateDynamicPool(subnet *resource.Subnet6) error {
 	if subnet.UseEui64 {
-		return fmt.Errorf("subnet use EUI64, can not create dynamic pool")
+		return fmt.Errorf("subnet6 use EUI64, can not create dynamic pool")
 	}
 
 	if ones, _ := subnet.Ipnet.Mask.Size(); ones < 64 {
 		return fmt.Errorf(
-			"only can create dynamic pool when subnet mask >= 64, current is %d", ones)
+			"only can create dynamic pool6 when subnet mask >= 64, current is %d", ones)
 	}
 
 	return nil
@@ -110,7 +110,7 @@ func getPool6sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, begin, e
 	if err := tx.FillEx(&pools,
 		"select * from gr_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetID, end, begin); err != nil {
-		return nil, fmt.Errorf("get pools with subnet %s from db failed: %s",
+		return nil, fmt.Errorf("get pool6s with subnet6 %s from db failed: %s",
 			subnetID, err.Error())
 	} else {
 		return pools, nil
@@ -162,7 +162,7 @@ func updateSubnet6CapacityWithPool6(tx restdb.Transaction, subnetID string, capa
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 		"capacity": capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
-		return fmt.Errorf("update subnet %s capacity to db failed: %s",
+		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
 			subnetID, err.Error())
 	} else {
 		return nil
@@ -176,7 +176,7 @@ func sendCreatePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resour
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			nodesForSucceed, dhcpservice.DeletePool6,
 			pool6ToDeletePool6Request(subnetID, pool)); err != nil {
-			log.Errorf("create subnet %d pool6 %s failed, and rollback it failed: %s",
+			log.Errorf("create subnet6 %d pool6 %s failed, and rollback it failed: %s",
 				subnetID, pool.String(), err.Error())
 		}
 	}
@@ -207,7 +207,7 @@ func (p *Pool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list pools with subnet %s from db failed: %s",
+			fmt.Sprintf("list pool6s with subnet6 %s from db failed: %s",
 				subnetID, err.Error()))
 	}
 
@@ -222,7 +222,7 @@ func (p *Pool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.
 func loadPool6sLeases(subnetID string, pools []*resource.Pool6, reservations []*resource.Reservation6) map[string]uint64 {
 	resp, err := getSubnet6Leases(subnetIDStrToUint64(subnetID))
 	if err != nil {
-		log.Warnf("get subnet %s leases failed: %s", subnetID, err.Error())
+		log.Warnf("get subnet6 %s leases failed: %s", subnetID, err.Error())
 		return nil
 	}
 
@@ -270,20 +270,20 @@ func (p *Pool6Handler) Get(ctx *restresource.Context) (restresource.Resource, *r
 		if err != nil {
 			return err
 		} else if len(pools) != 1 {
-			return fmt.Errorf("no found pool %s with subnet %s", poolID, subnetID)
+			return fmt.Errorf("no found pool6 %s with subnet6 %s", poolID, subnetID)
 		}
 
 		reservations, err = getReservation6sWithIpsExists(tx, subnetID)
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool %s with subnet %s from db failed: %s",
+			fmt.Sprintf("get pool6 %s with subnet6 %s from db failed: %s",
 				poolID, subnetID, err.Error()))
 	}
 
 	leasesCount, err := getPool6LeasesCount(pools[0], reservations)
 	if err != nil {
-		log.Warnf("get pool %s with subnet %s from db failed: %s",
+		log.Warnf("get pool6 %s with subnet6 %s from db failed: %s",
 			poolID, subnetID, err.Error())
 	}
 
@@ -346,7 +346,7 @@ func (p *Pool6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 		return sendDeletePool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
+			fmt.Sprintf("delete pool6 %s with subnet6 %s failed: %s",
 				pool.String(), subnet.GetID(), err.Error()))
 	}
 
@@ -368,10 +368,10 @@ func checkPool6CouldBeDeleted(tx restdb.Transaction, subnet *resource.Subnet6, p
 	}
 
 	if leasesCount, err := getPool6LeasesCount(pool, reservations); err != nil {
-		return fmt.Errorf("get pool %s leases count failed: %s",
+		return fmt.Errorf("get pool6 %s leases count failed: %s",
 			pool.String(), err.Error())
 	} else if leasesCount != 0 {
-		return fmt.Errorf("can not delete pool with %d ips had been allocated",
+		return fmt.Errorf("can not delete pool6 with %d ips had been allocated",
 			leasesCount)
 	}
 
@@ -382,7 +382,7 @@ func setPool6FromDB(tx restdb.Transaction, pool *resource.Pool6) error {
 	var pools []*resource.Pool6
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
 		&pools); err != nil {
-		return fmt.Errorf("get pool from db failed: %s", err.Error())
+		return fmt.Errorf("get pool6 from db failed: %s", err.Error())
 	} else if len(pools) == 0 {
 		return fmt.Errorf("no found pool %s", pool.GetID())
 	}
@@ -424,7 +424,7 @@ func (p *Pool6Handler) Update(ctx *restresource.Context) (restresource.Resource,
 		return nil
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update pool6 %s with subnet %s failed: %s",
+			fmt.Sprintf("update pool6 %s with subnet6 %s failed: %s",
 				pool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
 	}
 
@@ -455,7 +455,7 @@ func (h *Pool6Handler) validTemplate(ctx *restresource.Context) (interface{}, *r
 		return checkPool6CouldBeCreated(tx, subnet, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("template %s invalid: %s", pool.Template, err.Error()))
+			fmt.Sprintf("template6 %s invalid: %s", pool.Template, err.Error()))
 	}
 
 	return &resource.TemplatePool{

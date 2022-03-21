@@ -39,7 +39,7 @@ func (s *Subnet6Handler) Create(ctx *restresource.Context) (restresource.Resourc
 	subnet := ctx.Resource.(*resource.Subnet6)
 	if err := subnet.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create subnet params invalid: %s", err.Error()))
+			fmt.Sprintf("create subnet6 params invalid: %s", err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -58,7 +58,7 @@ func (s *Subnet6Handler) Create(ctx *restresource.Context) (restresource.Resourc
 		return sendCreateSubnet6CmdToDHCPAgent(subnet)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create subnet %s failed: %s", subnet.Subnet, err.Error()))
+			fmt.Sprintf("create subnet6 %s failed: %s", subnet.Subnet, err.Error()))
 	}
 
 	return subnet, nil
@@ -238,12 +238,12 @@ func (s *Subnet6Handler) Get(ctx *restresource.Context) (restresource.Resource, 
 	subnetInterface, err := restdb.GetResourceWithID(db.GetDB(), subnetID, &subnets)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get subnet %s from db failed: %s", subnetID, err.Error()))
+			fmt.Sprintf("get subnet6 %s from db failed: %s", subnetID, err.Error()))
 	}
 
 	subnet := subnetInterface.(*resource.Subnet6)
 	if err := setSubnet6LeasesUsedRatio(subnet); err != nil {
-		log.Warnf("get subnet %s leases used ratio failed: %s", subnetID, err.Error())
+		log.Warnf("get subnet6 %s leases used ratio failed: %s", subnetID, err.Error())
 	}
 
 	if nodeNames, err := GetNodeNames(false); err != nil {
@@ -283,7 +283,7 @@ func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resourc
 	subnet := ctx.Resource.(*resource.Subnet6)
 	if err := subnet.ValidateParams(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("update subnet params invalid: %s", err.Error()))
+			fmt.Sprintf("update subnet6 params invalid: %s", err.Error()))
 	}
 
 	newUseEUI64 := subnet.UseEui64
@@ -317,7 +317,7 @@ func (s *Subnet6Handler) Update(ctx *restresource.Context) (restresource.Resourc
 		return sendUpdateSubnet6CmdToDHCPAgent(subnet)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update subnet %s failed: %s", subnet.GetID(), err.Error()))
+			fmt.Sprintf("update subnet6 %s failed: %s", subnet.GetID(), err.Error()))
 	}
 
 	return subnet, nil
@@ -342,9 +342,9 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 	var subnets []*resource.Subnet6
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetId},
 		&subnets); err != nil {
-		return nil, fmt.Errorf("get subnet %s from db failed: %s", subnetId, err.Error())
+		return nil, fmt.Errorf("get subnet6 %s from db failed: %s", subnetId, err.Error())
 	} else if len(subnets) == 0 {
-		return nil, fmt.Errorf("no found subnet %s", subnetId)
+		return nil, fmt.Errorf("no found subnet6 %s", subnetId)
 	}
 
 	return subnets[0], nil
@@ -353,7 +353,7 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 bool) error {
 	if newUseEUI64 {
 		if ones, _ := subnet.Ipnet.Mask.Size(); ones != 64 {
-			return fmt.Errorf("subnet use EUI64, mask size %d is not 64", ones)
+			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", ones)
 		}
 
 		if subnet.UseEui64 == false {
@@ -430,7 +430,7 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 		return sendDeleteSubnet6CmdToDHCPAgent(subnet, subnet.Nodes)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete subnet %s failed: %s", subnet.GetID(), err.Error()))
+			fmt.Sprintf("delete subnet6 %s failed: %s", subnet.GetID(), err.Error()))
 	}
 
 	return nil
@@ -438,10 +438,10 @@ func (s *Subnet6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 
 func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
 	if leasesCount, err := getSubnet6LeasesCount(subnet6); err != nil {
-		return fmt.Errorf("get subnet %s leases count failed: %s",
+		return fmt.Errorf("get subnet6 %s leases count failed: %s",
 			subnet6.Subnet, err.Error())
 	} else if leasesCount != 0 {
-		return fmt.Errorf("can not delete subnet with %d ips had been allocated",
+		return fmt.Errorf("can not delete subnet6 with %d ips had been allocated",
 			leasesCount)
 	} else {
 		return nil
@@ -563,21 +563,21 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6) ([]s
 		if err != nil {
 			log.Warnf("parse subnet6 %s fields failed: %s", subnet.Subnet, err.Error())
 		} else if err := subnet.Validate(); err != nil {
-			log.Warnf("subnet %s is invalid: %s", subnet.Subnet, err.Error())
+			log.Warnf("subnet6 %s is invalid: %s", subnet.Subnet, err.Error())
 		} else if err := checkSubnet6ConflictWithSubnet6s(subnet,
 			append(oldSubnets, subnets...)); err != nil {
 			log.Warnf(err.Error())
 		} else if err := checkReservation6sValid(subnet, reservations); err != nil {
-			log.Warnf("subnet %s reservation6s is invalid: %s", subnet.Subnet, err.Error())
+			log.Warnf("subnet6 %s reservation6s is invalid: %s", subnet.Subnet, err.Error())
 		} else if err := checkReservedPool6sValid(subnet, reservedPools,
 			reservations); err != nil {
-			log.Warnf("subnet %s reserved pool6s is invalid: %s",
+			log.Warnf("subnet6 %s reserved pool6s is invalid: %s",
 				subnet.Subnet, err.Error())
 		} else if err := checkPool6sValid(subnet, pools, reservedPools,
 			reservations); err != nil {
-			log.Warnf("subnet %s pool6s is invalid: %s", subnet.Subnet, err.Error())
+			log.Warnf("subnet6 %s pool6s is invalid: %s", subnet.Subnet, err.Error())
 		} else if err := checkPdPoolsValid(subnet, pdpools, reservations); err != nil {
-			log.Warnf("subnet %s pdpools is invalid: %s", subnet.Subnet, err.Error())
+			log.Warnf("subnet6 %s pdpools is invalid: %s", subnet.Subnet, err.Error())
 		} else {
 			subnet.SubnetId = uint64(oldSubnetsLen + len(subnets) + 1)
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
@@ -714,7 +714,7 @@ func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
 	for _, poolStr := range strings.Split(field, ",") {
 		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
-			return nil, fmt.Errorf("parse subnet6 pool %s failed with wrong regexp",
+			return nil, fmt.Errorf("parse subnet6 pool6 %s failed with wrong regexp",
 				poolStr)
 		} else {
 			pools = append(pools, &resource.Pool6{
@@ -732,7 +732,7 @@ func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, err
 	var pools []*resource.ReservedPool6
 	for _, poolStr := range strings.Split(field, ",") {
 		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
-			return nil, fmt.Errorf("parse subnet6 reserved pool %s failed with wrong regexp",
+			return nil, fmt.Errorf("parse subnet6 reserved pool6 %s failed with wrong regexp",
 				poolStr)
 		} else {
 			pools = append(pools, &resource.ReservedPool6{
@@ -751,7 +751,7 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 	for _, reservationStr := range strings.Split(field, ",") {
 		if reservationSlices := strings.SplitN(reservationStr,
 			"-", 5); len(reservationSlices) != 5 {
-			return nil, fmt.Errorf("parse subnet6 reservation %s failed with wrong regexp",
+			return nil, fmt.Errorf("parse subnet6 reservation6 %s failed with wrong regexp",
 				reservationStr)
 		} else {
 			reservation := &resource.Reservation6{
@@ -824,7 +824,7 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 	}
 
 	if subnet.UseEui64 {
-		return fmt.Errorf("subnet use EUI64, can not create reservation6")
+		return fmt.Errorf("subnet6 use EUI64, can not create reservation6")
 	}
 
 	reservationFieldMap := make(map[string]struct{})
@@ -892,13 +892,13 @@ func checkReservedPool6sValid(subnet *resource.Subnet6, reservedPools []*resourc
 
 		if checkIPsBelongsToIpnet(subnet.Ipnet, reservedPools[i].BeginIp,
 			reservedPools[i].EndIp) == false {
-			return fmt.Errorf("pool %s not belongs to subnet %s",
+			return fmt.Errorf("reserved pool6 %s not belongs to subnet6 %s",
 				reservedPools[i].String(), subnet.Subnet)
 		}
 
 		for j := i + 1; j < reservedPoolsLen; j++ {
 			if reservedPools[i].CheckConflictWithAnother(reservedPools[j]) {
-				return fmt.Errorf("reserved pool %s conflict with another %s",
+				return fmt.Errorf("reserved pool6 %s conflict with another %s",
 					reservedPools[i].String(), reservedPools[j].String())
 			}
 		}
@@ -929,13 +929,13 @@ func checkPool6sValid(subnet *resource.Subnet6, pools []*resource.Pool6, reserve
 
 		if checkIPsBelongsToIpnet(subnet.Ipnet,
 			pools[i].BeginIp, pools[i].EndIp) == false {
-			return fmt.Errorf("pool %s not belongs to subnet %s",
+			return fmt.Errorf("pool6 %s not belongs to subnet6 %s",
 				pools[i].String(), subnet.Subnet)
 		}
 
 		for j := i + 1; j < poolsLen; j++ {
 			if pools[i].CheckConflictWithAnother(pools[j]) {
-				return fmt.Errorf("pool %s conflict with another %s",
+				return fmt.Errorf("pool6 %s conflict with another %s",
 					pools[i].String(), pools[j].String())
 			}
 		}
@@ -955,7 +955,7 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 	}
 
 	if subnet.UseEui64 {
-		return fmt.Errorf("subnet use EUI64, can not create pdpool")
+		return fmt.Errorf("subnet6 use EUI64, can not create pdpool")
 	}
 
 	for i := 0; i < pdpoolsLen; i++ {
@@ -1134,7 +1134,7 @@ func deleteSentrySubnet6s(reqs map[string]*pbdhcpagent.DeleteSubnets6Request, no
 		if req, ok := reqs[node]; ok {
 			if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				[]string{node}, dhcpservice.DeleteSubnet6s, req); err != nil {
-				log.Errorf("delete sentry subnets with node %s when rollback failed: %s",
+				log.Errorf("delete sentry subnet6s with node %s when rollback failed: %s",
 					node, err.Error())
 			}
 		}
@@ -1145,7 +1145,7 @@ func deleteServerSubnet6s(req *pbdhcpagent.DeleteSubnets6Request, nodes []string
 	for _, node := range nodes {
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			[]string{node}, dhcpservice.DeleteSubnet6s, req); err != nil {
-			log.Errorf("delete server subnets with node %s when rollback failed: %s",
+			log.Errorf("delete server subnet6s with node %s when rollback failed: %s",
 				node, err.Error())
 		}
 	}
@@ -1318,7 +1318,7 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			succeedNodes, dhcpservice.DeleteSubnet6,
 			&pbdhcpagent.DeleteSubnet6Request{Id: subnet6.SubnetId}); err != nil {
-			log.Errorf("delete subnet %s with node %v when rollback failed: %s",
+			log.Errorf("delete subnet6 %s with node %v when rollback failed: %s",
 				subnet6.Subnet, succeedNodes, err.Error())
 		}
 		return err
@@ -1397,12 +1397,12 @@ func (h *Subnet6Handler) couldBeCreated(ctx *restresource.Context) (interface{},
 	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action check subnet could be created input invalid"))
+			fmt.Sprintf("action check subnet6 could be created input invalid"))
 	}
 
 	if _, err := gohelperip.ParseCIDRv6(couldBeCreatedSubnet.Subnet); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action check subnet could be created input subnet %s invalid: %s",
+			fmt.Sprintf("action check subnet6 could be created input subnet %s invalid: %s",
 				couldBeCreatedSubnet.Subnet, err.Error()))
 	}
 
@@ -1410,7 +1410,7 @@ func (h *Subnet6Handler) couldBeCreated(ctx *restresource.Context) (interface{},
 		return checkSubnet6CouldBeCreated(tx, couldBeCreatedSubnet.Subnet)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("action check subnet could be created: %s", err.Error()))
+			fmt.Sprintf("action check subnet6 could be created: %s", err.Error()))
 	}
 
 	return nil, nil
@@ -1420,13 +1420,13 @@ func (h *Subnet6Handler) listWithSubnets(ctx *restresource.Context) (interface{}
 	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action list subnet input invalid"))
+			fmt.Sprintf("action list subnet6s input invalid"))
 	}
 
 	for _, subnet := range subnetListInput.Subnets {
 		if _, err := gohelperip.ParseCIDRv6(subnet); err != nil {
 			return nil, resterror.NewAPIError(resterror.InvalidFormat,
-				fmt.Sprintf("action check subnet could be created input subnet %s invalid: %s",
+				fmt.Sprintf("action list subnet6 input subnet %s invalid: %s",
 					subnet, err.Error()))
 		}
 	}
@@ -1438,7 +1438,7 @@ func (h *Subnet6Handler) listWithSubnets(ctx *restresource.Context) (interface{}
 				strings.Join(subnetListInput.Subnets, "','")))
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("action list subnet failed: %s", err.Error()))
+			fmt.Sprintf("action list subnet6s failed: %s", err.Error()))
 	}
 
 	if err := setSubnet6sLeasesUsedInfo(subnets, true); err != nil {

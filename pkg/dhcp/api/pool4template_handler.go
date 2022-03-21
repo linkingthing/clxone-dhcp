@@ -23,7 +23,7 @@ func (p *Pool4TemplateHandler) Create(ctx *restresource.Context) (restresource.R
 	template := ctx.Resource.(*resource.Pool4Template)
 	if err := template.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create pool template %s params invalid: %s",
+			fmt.Sprintf("create pool4 template %s params invalid: %s",
 				template.Name, err.Error()))
 	}
 
@@ -33,7 +33,7 @@ func (p *Pool4TemplateHandler) Create(ctx *restresource.Context) (restresource.R
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create pool template %s failed: %s",
+			fmt.Sprintf("create pool4 template %s failed: %s",
 				template.Name, err.Error()))
 	}
 
@@ -52,7 +52,7 @@ func (p *Pool4TemplateHandler) List(ctx *restresource.Context) (interface{}, *re
 	var templates []*resource.Pool4Template
 	if err := db.GetResources(conditions, &templates); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list pool templates from db failed: %s", err.Error()))
+			fmt.Sprintf("list pool4 templates from db failed: %s", err.Error()))
 	}
 
 	return templates, nil
@@ -64,7 +64,7 @@ func (p *Pool4TemplateHandler) Get(ctx *restresource.Context) (restresource.Reso
 	template, err := restdb.GetResourceWithID(db.GetDB(), templateID, &templates)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool template %s from db failed: %s",
+			fmt.Sprintf("get pool4 template %s from db failed: %s",
 				templateID, err.Error()))
 	}
 
@@ -75,7 +75,7 @@ func (p *Pool4TemplateHandler) Update(ctx *restresource.Context) (restresource.R
 	template := ctx.Resource.(*resource.Pool4Template)
 	if err := template.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("update pool template %s params invalid: %s",
+			fmt.Sprintf("update pool4 template %s params invalid: %s",
 				template.GetID(), err.Error()))
 	}
 
@@ -93,7 +93,7 @@ func (p *Pool4TemplateHandler) Update(ctx *restresource.Context) (restresource.R
 		}
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update pool template %s failed: %s",
+			fmt.Sprintf("update pool4 template %s failed: %s",
 				template.Name, err.Error()))
 	}
 
@@ -113,7 +113,7 @@ func (p *Pool4TemplateHandler) Delete(ctx *restresource.Context) *resterror.APIE
 		}
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete pool template %s failed: %s",
+			fmt.Sprintf("delete pool4 template %s failed: %s",
 				templateID, err.Error()))
 	}
 

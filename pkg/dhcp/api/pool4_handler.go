@@ -30,7 +30,7 @@ func (p *Pool4Handler) Create(ctx *restresource.Context) (restresource.Resource,
 	pool := ctx.Resource.(*resource.Pool4)
 	if err := pool.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create pool params invalid: %s", err.Error()))
+			fmt.Sprintf("create pool4 params invalid: %s", err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -39,7 +39,7 @@ func (p *Pool4Handler) Create(ctx *restresource.Context) (restresource.Resource,
 		}
 
 		if err := recalculatePool4Capacity(tx, subnet.GetID(), pool); err != nil {
-			return fmt.Errorf("recalculate pool capacity failed: %s", err.Error())
+			return fmt.Errorf("recalculate pool4 capacity failed: %s", err.Error())
 		}
 
 		if err := updateSubnet4CapacityWithPool4(tx, subnet.GetID(),
@@ -55,7 +55,7 @@ func (p *Pool4Handler) Create(ctx *restresource.Context) (restresource.Resource,
 		return sendCreatePool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create pool %s with subnet %s failed: %s",
+			fmt.Sprintf("create pool4 %s with subnet4 %s failed: %s",
 				pool.String(), subnet.GetID(), err.Error()))
 	}
 
@@ -74,7 +74,7 @@ func checkPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, p
 	}
 
 	if checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) == false {
-		return fmt.Errorf("pool %s not belongs to subnet %s",
+		return fmt.Errorf("pool4 %s not belongs to subnet4 %s",
 			pool.String(), subnet.Subnet)
 	}
 
@@ -82,7 +82,7 @@ func checkPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, p
 		pool.BeginIp, pool.EndIp); err != nil {
 		return err
 	} else if len(conflictPools) != 0 {
-		return fmt.Errorf("pool %s conflict with pool %s",
+		return fmt.Errorf("pool4 %s conflict with pool4 %s",
 			pool.String(), conflictPools[0].String())
 	}
 
@@ -104,7 +104,7 @@ func getPool4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, begin, e
 	if err := tx.FillEx(&pools,
 		"select * from gr_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetID, end, begin); err != nil {
-		return nil, fmt.Errorf("get pools with subnet %s from db failed: %s",
+		return nil, fmt.Errorf("get pool4s with subnet4 %s from db failed: %s",
 			subnetID, err.Error())
 	} else {
 		return pools, nil
@@ -137,7 +137,7 @@ func updateSubnet4CapacityWithPool4(tx restdb.Transaction, subnetID string, capa
 	if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
 		"capacity": capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
-		return fmt.Errorf("update subnet %s capacity to db failed: %s",
+		return fmt.Errorf("update subnet4 %s capacity to db failed: %s",
 			subnetID, err.Error())
 	} else {
 		return nil
@@ -151,7 +151,7 @@ func sendCreatePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resour
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			nodesForSucceed, dhcpservice.DeletePool4,
 			pool4ToDeletePool4Request(subnetID, pool)); err != nil {
-			log.Errorf("create subnet %d pool4 %s failed, and rollback it failed: %s",
+			log.Errorf("create subnet4 %d pool4 %s failed, and rollback it failed: %s",
 				subnetID, pool.String(), err.Error())
 		}
 	}
@@ -186,7 +186,7 @@ func (p *Pool4Handler) List(ctx *restresource.Context) (interface{}, *resterror.
 			subnet.GetID())
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list pools with subnet %s from db failed: %s",
+			fmt.Sprintf("list pool4s with subnet4 %s from db failed: %s",
 				subnet.GetID(), err.Error()))
 	}
 
@@ -201,7 +201,7 @@ func (p *Pool4Handler) List(ctx *restresource.Context) (interface{}, *resterror.
 func loadPool4sLeases(subnet *resource.Subnet4, pools []*resource.Pool4, reservations []*resource.Reservation4) map[string]uint64 {
 	resp, err := getSubnet4Leases(subnet.SubnetId)
 	if err != nil {
-		log.Warnf("get subnet %s leases failed: %s", subnet.GetID(), err.Error())
+		log.Warnf("get subnet4 %s leases failed: %s", subnet.GetID(), err.Error())
 		return nil
 	}
 
@@ -249,20 +249,20 @@ func (p *Pool4Handler) Get(ctx *restresource.Context) (restresource.Resource, *r
 		if err != nil {
 			return err
 		} else if len(pools) != 1 {
-			return fmt.Errorf("no found pool %s with subnet %s", poolID, subnetID)
+			return fmt.Errorf("no found pool4 %s with subnet4 %s", poolID, subnetID)
 		}
 
 		reservations, err = getReservation4sWithBeginAndEndIp(tx, subnetID, pools[0].BeginIp, pools[0].EndIp)
 		return err
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool %s with subnet %s from db failed: %s",
+			fmt.Sprintf("get pool4 %s with subnet4 %s from db failed: %s",
 				poolID, subnetID, err.Error()))
 	}
 
 	leasesCount, err := getPool4LeasesCount(pools[0], reservations)
 	if err != nil {
-		log.Warnf("get pool %s with subnet %s from db failed: %s",
+		log.Warnf("get pool4 %s with subnet4 %s from db failed: %s",
 			poolID, subnetID, err.Error())
 	}
 
@@ -275,7 +275,7 @@ func getReservation4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, b
 	if err := tx.FillEx(&reservations,
 		"select * from gr_reservation4 where subnet4 = $1 and ip >= $2 and ip <= $3",
 		subnetID, begin, end); err != nil {
-		return nil, fmt.Errorf("get reservations with subnet %s failed: %s",
+		return nil, fmt.Errorf("get reservation4s with subnet4 %s failed: %s",
 			subnetID, err.Error())
 	} else {
 		return reservations, nil
@@ -342,7 +342,7 @@ func (p *Pool4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 		return sendDeletePool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
+			fmt.Sprintf("delete pool4 %s with subnet4 %s failed: %s",
 				pool.String(), subnet.GetID(), err.Error()))
 	}
 
@@ -365,10 +365,10 @@ func checkPool4CouldBeDeleted(tx restdb.Transaction, subnet *resource.Subnet4, p
 	}
 
 	if leasesCount, err := getPool4LeasesCount(pool, reservations); err != nil {
-		return fmt.Errorf("get pool %s leases count failed: %s",
+		return fmt.Errorf("get pool4 %s leases count failed: %s",
 			pool.String(), err.Error())
 	} else if leasesCount != 0 {
-		return fmt.Errorf("can not delete pool with %d ips had been allocated",
+		return fmt.Errorf("can not delete pool4 with %d ips had been allocated",
 			leasesCount)
 	}
 
@@ -379,9 +379,9 @@ func setPool4FromDB(tx restdb.Transaction, pool *resource.Pool4) error {
 	var pools []*resource.Pool4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
 		&pools); err != nil {
-		return fmt.Errorf("get pool from db failed: %s", err.Error())
+		return fmt.Errorf("get pool4 from db failed: %s", err.Error())
 	} else if len(pools) == 0 {
-		return fmt.Errorf("no found pool %s", pool.GetID())
+		return fmt.Errorf("no found pool4 %s", pool.GetID())
 	}
 
 	pool.Subnet4 = pools[0].Subnet4
@@ -421,7 +421,7 @@ func (p *Pool4Handler) Update(ctx *restresource.Context) (restresource.Resource,
 		return nil
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update pool4 %s with subnet %s failed: %s",
+			fmt.Sprintf("update pool4 %s with subnet4 %s failed: %s",
 				pool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
 	}
 
@@ -453,7 +453,7 @@ func (p *Pool4Handler) validTemplate(ctx *restresource.Context) (interface{}, *r
 		return checkPool4CouldBeCreated(tx, subnet, pool)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("template %s invalid: %s", pool.Template, err.Error()))
+			fmt.Sprintf("template4 %s invalid: %s", pool.Template, err.Error()))
 	}
 
 	return &resource.TemplatePool{

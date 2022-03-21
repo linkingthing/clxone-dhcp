@@ -110,7 +110,7 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 	lease6, err := service.GetSubnetLease6WithoutReclaimed(subnetId, ip,
 		subnetLeases)
 	if err != nil {
-		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
+		log.Debugf("get subnet6 %d lease6s failed: %s", subnetId, err.Error())
 		return nil, nil
 	} else if lease6 == nil {
 		return nil, nil
@@ -144,7 +144,7 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
 		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 	if err != nil {
-		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
+		log.Debugf("get subnet6 %d lease6s failed: %s", subnetId, err.Error())
 		return nil, nil
 	}
 
@@ -171,7 +171,7 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 			strings.Join(reclaimleasesForRetain, "','") + "')")
 		return err
 	}); err != nil {
-		log.Warnf("delete reclaim leases failed: %s", err.Error())
+		log.Warnf("delete reclaim lease6s failed: %s", err.Error())
 	}
 
 	return leases, nil
@@ -192,7 +192,7 @@ func (l *SubnetLease6Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 	_, err := gohelperip.ParseIPv6(leaseId)
 	if err != nil {
 		return resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("subnet %s lease6 id %s is invalid: %s",
+			fmt.Sprintf("subnet6 %s lease6 id %s is invalid: %s",
 				subnetId, leaseId, err.Error()))
 	}
 
@@ -228,7 +228,7 @@ func (l *SubnetLease6Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 		return err
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete lease %s with subnet6 %s failed: %s",
+			fmt.Sprintf("delete lease6 %s with subnet6 %s failed: %s",
 				leaseId, subnetId, err.Error()))
 	}
 

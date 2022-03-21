@@ -124,7 +124,7 @@ func sendUpdateClientClass6CmdToDHCPAgent(clientclass *resource.ClientClass6) er
 }
 
 func (c *ClientClass6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
-	clientclassID := ctx.Resource.(*resource.ClientClass6).GetID()
+	clientclassID := ctx.Resource.GetID()
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exist, err := tx.Exists(resource.TableSubnet6,
 			map[string]interface{}{"client_class": clientclassID}); err != nil {

@@ -52,7 +52,7 @@ func (d *AdmitHandler) Get(ctx *restresource.Context) (restresource.Resource, *r
 	admit, err := restdb.GetResourceWithID(db.GetDB(), admitID, &admits)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get admit from db failed: %s", err.Error()))
+			fmt.Sprintf("get admit %s from db failed: %s", admitID, err.Error()))
 	}
 
 	return admit.(*resource.Admit), nil

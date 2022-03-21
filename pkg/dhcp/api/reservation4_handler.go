@@ -29,7 +29,7 @@ func (r *Reservation4Handler) Create(ctx *restresource.Context) (restresource.Re
 	reservation := ctx.Resource.(*resource.Reservation4)
 	if err := reservation.Validate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create reservation params invalid: %s", err.Error()))
+			fmt.Sprintf("create reservation4 params invalid: %s", err.Error()))
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -51,7 +51,7 @@ func (r *Reservation4Handler) Create(ctx *restresource.Context) (restresource.Re
 			reservation)
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create reservation %s failed: %s",
+			fmt.Sprintf("create reservation4 %s failed: %s",
 				reservation.String(), err.Error()))
 	}
 
@@ -64,7 +64,7 @@ func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 	}
 
 	if subnet.Ipnet.Contains(reservation.Ip) == false {
-		return fmt.Errorf("reservation ipaddress %s not belongs to subnet %s",
+		return fmt.Errorf("reservation4 ipaddress %s not belongs to subnet4 %s",
 			reservation.IpAddress, subnet.Subnet)
 	}
 
@@ -79,10 +79,10 @@ func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation
 	if count, err := tx.CountEx(resource.TableReservation4,
 		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 or ip_address = $3)",
 		subnetId, reservation.HwAddress, reservation.IpAddress); err != nil {
-		return fmt.Errorf("check reservation %s with subnet %s exists in db failed: %s",
+		return fmt.Errorf("check reservation4 %s with subnet4 %s exists in db failed: %s",
 			reservation.String(), subnetId, err.Error())
 	} else if count != 0 {
-		return fmt.Errorf("reservation exists with subnet %s and mac %s or ip %s",
+		return fmt.Errorf("reservation4 exists with subnet4 %s and mac %s or ip %s",
 			subnetId, reservation.HwAddress, reservation.IpAddress)
 	} else {
 		return nil
@@ -94,7 +94,7 @@ func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId 
 		reservation.Ip, reservation.Ip); err != nil {
 		return err
 	} else if len(reservedpools) != 0 {
-		return fmt.Errorf("reservation %s conflict with reserved pool %s",
+		return fmt.Errorf("reservation4 %s conflict with reserved pool4 %s",
 			reservation.String(), reservedpools[0].String())
 	} else {
 		return nil
@@ -118,7 +118,7 @@ func updateSubnet4OrPool4CapacityWithReservation4(tx restdb.Transaction, subnet 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
 			"capacity": subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet %s capacity to db failed: %s",
+			return fmt.Errorf("update subnet4 %s capacity to db failed: %s",
 				subnet.GetID(), err.Error())
 		}
 	} else {
@@ -131,7 +131,7 @@ func updateSubnet4OrPool4CapacityWithReservation4(tx restdb.Transaction, subnet 
 		if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
 			"capacity": conflictPools[0].Capacity,
 		}, map[string]interface{}{restdb.IDField: conflictPools[0].GetID()}); err != nil {
-			return fmt.Errorf("update pool %s capacity to db failed: %s",
+			return fmt.Errorf("update pool4 %s capacity to db failed: %s",
 				conflictPools[0].String(), err.Error())
 		}
 	}
@@ -146,7 +146,7 @@ func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reser
 		if _, err := dhcpservice.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			nodesForSucceed, dhcpservice.DeleteReservation4,
 			reservation4ToDeleteReservation4Request(subnetID, reservation)); err != nil {
-			log.Errorf("create subnet %d reservation4 %s failed, and rollback it failed: %s",
+			log.Errorf("create subnet4 %d reservation4 %s failed, and rollback it failed: %s",
 				subnetID, reservation.String(), err.Error())
 		}
 	}
@@ -168,7 +168,7 @@ func (r *Reservation4Handler) List(ctx *restresource.Context) (interface{}, *res
 	if err := db.GetResources(map[string]interface{}{
 		"subnet4": subnetID, "orderby": "ip"}, &reservations); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list reservations with subnet %s from db failed: %s",
+			fmt.Sprintf("list reservation4s with subnet4 %s from db failed: %s",
 				subnetID, err.Error()))
 	}
 
@@ -183,7 +183,7 @@ func (r *Reservation4Handler) List(ctx *restresource.Context) (interface{}, *res
 func getReservation4sLeasesCount(subnetId uint64, reservations []*resource.Reservation4) map[string]uint64 {
 	resp, err := getSubnet4Leases(subnetId)
 	if err != nil {
-		log.Warnf("get subnet %s leases failed: %s", subnetId, err.Error())
+		log.Warnf("get subnet4 %s leases failed: %s", subnetId, err.Error())
 		return nil
 	}
 
@@ -220,13 +220,13 @@ func (r *Reservation4Handler) Get(ctx *restresource.Context) (restresource.Resou
 		reservationID, &reservations)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get reservation %s with subnetID %s from db failed: %s",
+			fmt.Sprintf("get reservation4 %s with subnet4 %s from db failed: %s",
 				reservationID, subnetID, err.Error()))
 	}
 
 	reservation := reservationInterface.(*resource.Reservation4)
 	if leasesCount, err := getReservation4LeaseCount(reservation); err != nil {
-		log.Warnf("get reservation %s with subnet %s leases used ratio failed: %s",
+		log.Warnf("get reservation4 %s with subnet4 %s leases used ratio failed: %s",
 			reservation.String(), subnetID, err.Error())
 	} else {
 		setReservation4LeasesUsedRatio(reservation, leasesCount)
@@ -276,7 +276,7 @@ func (r *Reservation4Handler) Delete(ctx *restresource.Context) *resterror.APIEr
 			reservation)
 	}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete reservation %s with subnet %s failed: %s",
+			fmt.Sprintf("delete reservation4 %s with subnet4 %s failed: %s",
 				reservation.String(), subnet.GetID(), err.Error()))
 	}
 
@@ -293,10 +293,10 @@ func checkReservation4CouldBeDeleted(tx restdb.Transaction, subnet *resource.Sub
 	}
 
 	if leasesCount, err := getReservation4LeaseCount(reservation); err != nil {
-		return fmt.Errorf("get reservation %s leases count failed: %s",
+		return fmt.Errorf("get reservation4 %s leases count failed: %s",
 			reservation.String(), err.Error())
 	} else if leasesCount != 0 {
-		return fmt.Errorf("can not delete reservation with %d ips had been allocated",
+		return fmt.Errorf("can not delete reservation4 with %d ips had been allocated",
 			leasesCount)
 	}
 
@@ -309,7 +309,7 @@ func setReservation4FromDB(tx restdb.Transaction, reservation *resource.Reservat
 		&reservations); err != nil {
 		return err
 	} else if len(reservations) == 0 {
-		return fmt.Errorf("no found reservation %s", reservation.GetID())
+		return fmt.Errorf("no found reservation4 %s", reservation.GetID())
 	}
 
 	reservation.Subnet4 = reservations[0].Subnet4
@@ -348,7 +348,7 @@ func (r *Reservation4Handler) Update(ctx *restresource.Context) (restresource.Re
 		return nil
 	}); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update reservation4 %s with subnet %s failed: %s",
+			fmt.Sprintf("update reservation4 %s with subnet4 %s failed: %s",
 				reservation.String(), ctx.Resource.GetParent().GetID(), err.Error()))
 	}
 
