@@ -42,12 +42,15 @@
 * DHCP模块的顶级资源，用于配置ping检测
 * 字段
   * enabled 是否开启 
+    * 类型 bool
     * 必填
     * 默认为false
     * 可更新
   * timeout 检测时延
+    * 类型 uint32
     * 必填
     * 可更新
+    * 单位 毫秒
 * 支持改、查
 * 改
 
@@ -67,13 +70,16 @@
 * DHCP模块的顶级资源，用于识别网卡厂商
 * 字段
   * oui OUI
+    * 类型 string
     * 必填
     * 不可更新
     * 必须为48位MAC地址的前24位
   * organization 厂商
+    * 类型 string
     * 必填
     * 可更新
   * isReadOnly 是否只读
+    * 类型 bool
     * 不可更新
     * 系统默认oui为true，用户自定义添加的oui为false
 * 支持增、删、改、查
@@ -108,19 +114,25 @@
 * DHCP模块的顶级资源，用于DHCP指纹库的扩展
 * 字段
   * fingerprint 指纹编码
+    * 类型 string
     * 必填
     * 不可更新
     * 由数字和逗号组成，数字必须在1，254之间
   * vendorId 厂商标示
+    * 类型 string
     * 可更新
   * operatingSystem 操作系统
+    * 类型 string
     * 可更新
   * clientType 客户端类型
+    * 类型 string
     * 可更新
   * matchPattern 厂商匹配模式
+    * 类型 string
     * 可更新
     * 支持 equal，prefix，suffix，keyword，regexp
   * isReadOnly 是否只读
+    * 类型 bool
     * 不可更新
     * 系统默认的fingerprint为true，用户自定义的fingerprint为false
 * 支持增、删、改、查
@@ -160,6 +172,7 @@
 * DHCP模块的顶级资源，用于配置准入是否开启
 * 字段
   * enabled 是否开启
+    * 类型 bool
     * 必填
     * 可更新
     * 默认为false
@@ -180,10 +193,12 @@
 * DHCP模块的admit子资源，用于配置客户端mac是否被准入
 * 字段
   * hwAddress 硬件地址
+    * 类型 string
     * 必填
     * 必须为有效net.HardwareAddr地址
     * 不可更新
   * comment 备注
+    * 类型 string
     * 可更新
 * 支持增、删、改、查
 * 增
@@ -216,10 +231,12 @@
 * DHCP模块的admit子资源，用于配置客户端duid是否被准入
 * 字段
   * duid DUID
+    * 类型 string
     * 必填
     * 不可更新
-    * 不能为空
+    * 长度不得少于2，只能包含十六进制字符，长度为偶数
   * comment 备注
+    * 类型 string
     * 可更新
 * 支持增、删、改、查
 * 增
@@ -252,6 +269,7 @@
 * DHCP模块的admit子资源，用于配置客户端指纹类型是否被准入
 * 字段
   * clientType 客户端类型
+    * 类型 string
     * 必填
     * 不可为空，:支持
       * Android
@@ -285,6 +303,7 @@
 * DHCP模块的顶级资源，配置限速是否开启
 * 字段
   * enabled 是否开启
+    * 类型 bool
     * 必填
     * 默认为false
     * 可更新
@@ -305,13 +324,16 @@
 * DHCP模块的ratelimit的子资源，配置限速的mac
 * 字段
   * hwAddress MAC地址
+    * 类型 string
     * 必填
     * 不可更新
     * 必须为有效的net.HardwareAddr地址
   * rateLimit 限速指标
+    * 类型 uint32
     * 必填
     * 可更新
   * comment 备注
+    * 类型 string
     * 可更新
 * 支持增、删、改、查
 * 增
@@ -346,13 +368,16 @@
 * DHCP模块的ratelimit的子资源，配置限速的duid
 * 字段
   * duid DUID
+    * 类型 string
     * 必填
     * 不可更新
-    * 不可为空
+    * 长度不得少于2，只能包含十六进制字符，长度为偶数
   * rateLimit 限速指标
+    * 类型 uint32
     * 必填
     * 可更新
   * comment 备注
+    * 类型 string
     * 可更新
 * 支持增、删、改、查
 * 增
@@ -388,18 +413,22 @@
 * DHCP模块的顶级资源，配置subnet4、subnet6的租赁时间和DNS
 * 字段
   * validLifetime  默认租约时长
+    * 类型 uint32
     * 默认值为 14400
     * 可更新
     * 不可小于3600
   * maxValidLifetime 最大租约时长
+    * 类型 uint32
     * 默认值为 28800
     * 可更新
     * 不可小于3600
   * minValidLifetime 最小租约时长
+    * 类型 uint32
     * 默认值为 10800
     * 可更新
     * 不可小于3600
   * domainServers DNS服务器列表
+    * 类型 string array
     * 可更新
     * 每个dns服务器必须为有效ip地址
 * 支持改、查
@@ -424,7 +453,9 @@
 * DHCP模块的顶级资源，下发DHCPv4配置时，用于选择DHCP的节点
 * 字段
   * name 节点名字
+    * 类型 string
   * ip 节点地址
+    * 类型 string
 * 从monitor服务获取sentry节点信息，如果节点是活跃的且满足以下其一
   * 如果某个节点存在vip，说明dhcp sentry为ha部署，只取该节点
   * 如果任何节点都没有vip，说明dhcp sentry为单机部署或者集群部署，取获取到的所有节点
@@ -438,10 +469,12 @@
 * DHCP模块的顶级资源，配置DHCPv4的option60
 * 字段
   * name 名字
+    * 类型 string
   	* 必填
   	* 不可更新
   	* 不可为空
   * regexp 正则表达式的值
+    * 类型 string
     * 必填
     * 可更新
     * 不可为空
@@ -482,18 +515,22 @@
 * DHCP模块的顶级资源，配置DHCPv4的动态地址池模版，用于生成Subnet4的地址池Pool4
 * 字段
 	* name 模版名字
+	  * 类型 string
 	  * 必填
 	  * 不可更新
 	  * 不可为空
 	* beginOffset 起始偏移量
+	  * 类型 uint64
 	  * 必填
 	  * 可更新
 	  * 有效值为（0，65535）
 	* capacity 容量
+	  * 类型 uint64
 	  * 必填
 	  * 可更新
 	  * 有效值为（0，65535）
 	* comment 备注
+	  * 类型 string
 	  * 可更新
 * 支持增、删、改、查
 * 增
@@ -532,57 +569,76 @@
 * DHCP模块的顶级资源，配置DHCPv4子网
 * 字段
   * subnet 子网地址
+    * 类型 string
     * 必填
     * 不可更新
     * 必须为有效net.IPNet
   * validLifetime 租约生命周期
+    * 类型 uint32
     * 可更新
     * 默认值为DhcpConfig的validLifetime
   * maxValidLifetime 最大租约生命周期
+    * 类型 uint32
     * 可更新
     * 默认值为DhcpConfig的maxValidLifetime 
   * minValidLifetime 最小租约生命周期 
+    * 类型 uint32
     * 可更新
     * 默认值为DhcpConfig的minValidLifetime
   * subnetMask 子网掩码
+    * 类型 string
     * 可更新
     * 必须为有效的net.IP且为IPv4
   * domainServers 域名服务器列表 （DNS）
+    * 类型 string array
     * 可更新
     * 每个dns必须为有效的net.IP且为IPv4
     * 默认值为DhcpConfig的domainServers
   * routers 网关列表
+    * 类型 string array
     * 可更新
     * 每个router必须为有效的net.IP且为IPv4
   * clientClass 自定义属性（option60）
+    * 类型 string
     * 可更新
     * 必须在clientclass4中存在
   * ifaceName 网卡名字
+    * 类型 string
     * 可更新
   * nextServer 启动服务器地址(web端暂不提供)
+    * 类型 string
     * 可更新
   * relayAgentAddresses 中继路由地址列表 （option82）
+    * 类型 string array
     * 可更新
     * 每个relay必须为有效的net.IP且为IPv4
   * tftpServer TFTP服务器地址(option66)
+    * 类型 string
     * 可更新
     * 必须为有效url.URL
   * bootfile  TFTP服务器启动文件(option67)
+    * 类型 string
     * 可更新
   * tags 子网名字
+    * 类型 string
     * 可更新
   * nodes 节点IP列表
+    * 类型 string array
     * 不可通过PUT更新，只能通过action＝update_nodes更新
     * 每个节点必须为有效的net.IP
   * nodeNames 节点名字列表
+    * 类型 string array
     * 不可更新
     * 实时从monitor服务根据节点IP获取节点名字
   * capacity 子网容量
+    * 类型 uint64
     * 不可更新
   * usedRatio 子网地址使用率
+    * 类型 string
     * 不可更新
     * 实时从dhcp代理端获取租赁个数计算
   * usedCount 子网地址已使用个数
+    * 类型 uint64
     * 不可更新
     * 实时从dhcp代理端获取租赁个数
 * 支持增、删、改、查
@@ -651,6 +707,7 @@
   * importcsv
     * input
       * name 导入文件名字
+        * 类型 string
       
  | 子网地址* | 子网名称 | 租约时长 | 最大租约时长 | 最小租约时长 | 子网掩码 | 默认网关 | DNS | 网卡名字 | option60 | option82 | option66 | option67 | 节点列表 | 动态地址池 | 保留地址池 | 固定地址池 | 
  | ---- | 
@@ -659,12 +716,15 @@
   * exportcsv
     * output
       * path 导出文件路径
+        * 类型 string
   * exportcsvtemplate
     * output
       * path 到处文件路径
+        * 类型 string
   * update_nodes 更新子网节点配置
     * input 
       * nodes 节点列表
+        * 类型 string array
       
 			POST /apis/linkingthing.com/dhcp/v1/subnet4s/1?action=update_nodes
 			{
@@ -674,6 +734,7 @@
   * could_be_created 检查subnet是否可以创建
     * input
       * subnet 子网
+        * 类型 string
       
 			POST /apis/linkingthing.com/dhcp/v1/subnet4s?action=could_be_created
 			{
@@ -683,8 +744,10 @@
   * list_with_subnets
     * input
       * subnets 子网列表
+        * 类型 string array
     * output
       * subnet4s Subnet4列表
+        * 类型 subnet4 array
       
 			POST  /apis/linkingthing.com/dhcp/v1/subnet4s?action=list_with_subnets
 			{
@@ -695,17 +758,21 @@
 * DHCP模块的顶级资源，配置共享网络
 * 字段
   * name 名字
+    * 类型 string
     * 必填
     * 不可为空
   * subnetIds subnet4的ID列表
+    * 类型 string array
     * 用于创建和更新，不用于显示
-    * 个数不能少于2个
+    * 子网ID个数不能少于2个
     * 每个ID对应的子网必须存在
     * 每个ID不在被其他共享网络使用，即每个共享网络使用的子网互斥
     * 每个ID对应子网的节点列表不能为空，且必须存在共同交集，即子网1与子网2的节点交集，其它子网的节点列表必须包含这个交集
   * subnets subnet4的subnet列表
+    * 类型 string array
     * 仅用于展示
   * comment 备注
+    * 类型 string
     * 可更新
 * 支持增、删、改、查
 * 增
@@ -741,25 +808,33 @@
 * DHCP模块subnet4的子资源，配置subnet4的地址池
 * 字段
   * beginAddress 开始地址
+    * 类型 string
     * 不可更新
     * 若有值，必须为有效的net.IP且为IPv4
     * 如果来源于pool4template，通过子网的起始地址＋pool4template的起始偏移量beginOffset计算得出
   * endAddress 结束地址
+    * 类型 string
     * 不可更新
     * 若有值，必须为有效的net.IP且为IPv4
     * 如果来源于pool4template，通过地址池的开始地址beginAddress＋pool4template的容量capacity － 1计算得出
   * template 地址池模版名字
+    * 类型 string
     * 不可更新
     * 若有值，必须存在对应的pool4template
   * capacity 地址池容量
+    * 类型 uint64
     * 不可更新
     * 首先通过endAddress － beginAddress ＋ 1 计算或者pool4template的capacity得出初始容量，然后减去地址池范围内的固定地址和保留地址的个数，最终得到该地址池的容量
   * usedRatio 地址池地址使用率
+    * 类型 string
     * 不可更新
   * usedCount 地址池地址已使用个数
+    * 类型 uint64
     * 不可更新
   * comment 备注
+    * 类型 string
     * 可更新
+    * 不能包含逗号，因为逗号作为导入时的分隔符
 * 其它检查
   * beginAddress和endAddress与template二者必填其一
   * endAddress不能小于beginAddress
@@ -804,9 +879,12 @@
   * valid_template 检查该模版是否可以用于创建动态地址池
     * 入参
       * template 模版名字
+        * 类型 string
     * 出参
       * beginAddress 开始地址
+        * 类型 string
       * endAddress 结束地址
+        * 类型 string
       
 			POST /apis/linkingthing.com/dhcp/v1/subnet4s/1/pool4s
 			{
@@ -814,8 +892,8 @@
 			}
 
 ## ReservedPool4
-* DHCP模块subnet4的子资源，配置subnet4的保留地址池，与Reservation4互斥
-* 字段
+* DHCP模块subnet4的子资源，配置subnet4的保留地址池
+* 字段(与pool4一致)
   * beginAddress 开始地址
   * endAddress 结束地址
   * template 地址池模版名字
@@ -823,7 +901,10 @@
   * usedRatio 地址池地址使用率
   * usedCount 地址池地址已使用个数
   * comment 备注
-* 创建和删除时，可能会影响地址池pool4及子网subnet4的容量
+* 其它检查
+  * 保留地址池不能相互包含
+  * 与reservation4互斥
+  * 创建和删除时，可能会影响地址池pool4及子网subnet4的容量
 * 支持增、删、改、查
 * 增
 
@@ -875,21 +956,28 @@
 * DHCP模块subnet4的子资源，配置subnet4的固定地址
 * 字段
   * hwAddress 硬件地址
+    * 类型 string
     * 必填
     * 不可更新
     * 必须为有效的net.HardwareAddr
   * ipAddress IP地址
+    * 类型 string
     * 必填
     * 不可更新
     * 必须为有效的net.IP且为IPv4
   * capacity 容量
+    * 类型 uint64
     * 不可更新
   * usedRatio 地址使用率
+    * 类型 string
     * 不可更新
   * usedCount 已使用地址个数
+    * 类型 uint64
     * 不可更新
   * comment 备注
+    * 类型 string
     * 可更新
+    * 不能包含逗号，因为逗号作为导入时的分隔符
 * 其它检查
   * hwAddress和ipAddress不能被其它保留地址使用
   * ipAddress必须属于子网范围
@@ -927,18 +1015,31 @@
 * DHCP模块subnet4的子资源，获取子网的所有租赁信息
 * 字段
   * address IP地址
+    * 类型 string
   * addressType IP地址类型（dynamic, reservation）
+    * 类型 string
   * hwAddress MAC地址
+    * 类型 string
   * hwAddressOrganization MAC厂商
+    * 类型 string
   * clientId 客户端ID
+    * 类型 string
   * validLifetime 租赁时长
+    * 类型 uint32
   * expire 租赁过期时间
+    * 类型 string
   * hostname 客户端主机名
+    * 类型 string
   * fingerprint 指纹
+    * 类型 string
   * vendorId 厂商
+    * 类型 string
   * operatingSystem 操作系统
+    * 类型 string
   * clientType 客户端类型
+    * 类型 string
   * leaseState 租赁状态 （NORMAL, DECLINED, RECLAIMED）
+    * 类型 string
 * 其它检查
   * 删除租赁会在管理端保存已回收状态的租赁信息，如果服务端完成回收，获取子网的所有租赁信息时才会触发从管理端删除。
   * 删除租赁会检查该租赁是否是已回收状态，如果是，不做任何操作
@@ -953,7 +1054,9 @@
 * DHCP模块的顶级资源，下发DHCPv6配置时，用于选择DHCP的节点
 * 字段
   * name 节点名字 
+    * 类型 string
   * ip 节点地址
+    * 类型 string
 * 仅支持查询
 
 		GET /apis/linkingthing.com/dhcp/v1/agent6s
@@ -964,10 +1067,12 @@
 * DHCP模块的顶级资源，配置DHCPv6的option16
 * 字段
   * name 名字
+    * 类型 string
     * 必填
     * 不可更新
     * 不可为空
   * regexp 正则表达式的值
+    * 类型 string
     * 必填
     * 不可更新
     * 不可为空
@@ -1008,18 +1113,22 @@
 * DHCP模块的顶级资源，配置DHCPv6的动态地址池模版，用于生成Subnet6的地址池Pool6
 * 字段
 	* name 模版名字
+	  * 类型 string
 	  * 必填
 	  * 不可更新
 	  * 不能为空
 	* beginOffset 起始偏移量
+	  * 类型 uint64
 	  * 必填
 	  * 可更新
 	  * 有效值为(0, 2147483647)
 	* capacity 容量
+	  * 类型 string
 	  * 必填
 	  * 可更新
 	  * 有效值为(0, 2147483647)
 	* comment 备注
+	  * 类型 string
 	  * 可更新
 * 支持增、删、改、查
 * 增
@@ -1059,52 +1168,69 @@
 * DHCP模块的顶级资源，配置DHCPv6子网
 * 字段
   * subnet 子网地址
+    * 类型 string
     * 必填
     * 不可更新
     * 必须为有效net.IPNet
   * validLifetime 租约生命周期
+    * 类型 uint32
     * 可更新
     * 默认值为DhcpConfig的validLifetime
   * maxValidLifetime 最大租约生命周期
+    * 类型 uint32
     * 可更新
     * 默认值为DhcpConfig的maxValidLifetime
   * minValidLifetime 最小租约生命周期
+    * 类型 uint32
     * 可更新
     * 默认值为DhcpConfig的minValidLifetime
   * preferredLifetime 首选租约生命周期
+    * 类型 uint32
     * 可更新
     * 默认值为DhcpConfig的validLifetime
     * 有效值为[minValidLifetime，validLifetime]
   * domainServers 域名服务器列表 （DNS）
+    * 类型 string array
     * 可更新
     * 每个dns必须为有效的net.IP且为IPv6
     * 默认值为DhcpConfig的domainServers
   * clientClass 自定义属性 （option16）
+    * 类型 string
     * 可更新
     * 必须在clientclass6中存在
   * ifaceName 网卡名字
+    * 类型 string
     * 可更新
   * relayAgentInterfaceId 中继路由网卡 （option18）
+    * 类型 string
     * 可更新
   * relayAgentAddresses 中继路由地址列表
+    * 类型 string array
     * 可更新
     * 每个relay必须为有效的net.IP且为IPv6
   * tags 子网名字
+    * 类型 string
     * 可更新
   * nodes 节点列表
+    * 类型 string array
     * 不可通过PUT更新，只能通过action＝update_nodes更新
     * 每个节点必须为有效的net.IP
   * nodeNames 节点名字列表
+    * 类型 string array
     * 不可更新
     * 实时从monitor服务根据节点IP获取节点名字
   * useEui64 是否启用EUI64分配地址
+    * 类型 bool
     * 可更新
     * 只有子网掩码为64的子网才能开启
   * capacity 子网容量
+    * 类型 uint64
     * 不可更新
   * usedRatio 子网地址使用率
+    * 类型 string
     * 不可更新
   * usedCount 子网地址已使用个数
+    * 类型 uint64
     * 不可更新
 * 其它检查
   * 目前支持1w子网管理
@@ -1165,6 +1291,7 @@
   * importcsv
     * input
       * name 导入文件名字
+        * 类型 string
       
  | 子网地址* | 子网名称 | EUI64 | 租约时长 | 最大租约时长 | 最小租约时长 | 首选租约时长 | DNS | 网卡名字 | 中继路由地址 | option16 | option18 | 节点列表 | 动态地址池 | 保留地址池 | 固定地址池 | 前缀委派地址池 | 
  | ---- |
@@ -1175,12 +1302,15 @@
   * exportcsv
     * output
       * path 导出文件路径
+        * 类型 string
   * exportcsvtemplate
     * output
       * path 到处文件路径
+        * 类型 string
   * update_nodes 更新子网节点配置
     * input 
       * nodes 节点列表
+        * 类型 string array
 
 			POST /apis/linkingthing.com/dhcp/v1/subnet6s/1?action=update_nodes
 			{
@@ -1190,6 +1320,7 @@
   * could_be_created 检查subnet是否可以创建
     * input
       * subnet 子网
+        * 类型 string
 
 			POST /apis/linkingthing.com/dhcp/v1/subnet6s?action=could_be_created
 			{
@@ -1199,8 +1330,10 @@
   * list_with_subnets
     * input
       * subnets 子网列表
+        * 类型 string array
     * output
       * subnet6s Subnet6列表
+        * 类型 subnet6 array
 
 			POST /apis/linkingthing.com/dhcp/v1/subnet6s?action=list_with_subnets
 			{
@@ -1211,25 +1344,33 @@
 * DHCP模块subnet6的子资源，配置subnet6的地址池
 * 字段
   * beginAddress 开始地址
+    * 类型 string
     * 不可更新
     * 若有值，必须为有效的net.IP且为IPv6
     * 如果来源于pool6template，通过子网的起始地址＋pool6template的起始偏移量beginOffset计算得出
   * endAddress 结束地址
+    * 类型 string
     * 不可更新
     * 若有值，必须为有效的net.IP且为IPv6
     * 如果来源于pool6template，通过地址池的开始地址beginAddress＋pool6template的容量capacity － 1计算得出
   * template 地址池模版名字
+    * 类型 string
     * 不可更新
     * 若有值，必须存在对应的pool4template
   * capacity 地址池容量
+    * 类型 uint64
     * 不可更新
     * 首先通过endAddress － beginAddress ＋ 1 计算或者pool6template的capacity得出初始容量，然后减去地址池范围内的固定地址和保留地址的个数，最终得到该地址池的容量
   * usedRatio 地址池地址使用率
+    * 类型 string
     * 不可更新
   * usedCount 地址池地址已使用个数
+    * 类型 uint64
     * 不可更新
   * comment 备注
+    * 类型 string
     * 可更新
+    * 不能包含逗号，因为逗号作为导入时的分隔符
 * 其它检查
   * beginAddress和endAddress与template二者必填其一
   * endAddress不能小于beginAddress
@@ -1276,9 +1417,12 @@
   * valid_template 检查该模版是否可以用于创建动态地址池
     * 入参
       * template 模版名字
+        * 类型 string
     * 出参
       * beginAddress 开始地址
+        * 类型 string
       * endAddress 结束地址
+        * 类型 string
       
 			POST /apis/linkingthing.com/dhcp/v1/subnet6s/1/pool6s
 			{
@@ -1286,8 +1430,8 @@
 			}
 					
 ## ReservedPool6
-* DHCP模块subnet6的子资源，配置subnet6的保留地址池，与Reservation6互斥
-* 字段
+* DHCP模块subnet6的子资源，配置subnet6的保留地址池
+* 字段(与pool6一致)
   * beginAddress 开始地址
   * endAddress 结束地址
   * template 地址池模版名字
@@ -1295,7 +1439,10 @@
   * usedRatio 地址池地址使用率
   * usedCount 地址池地址已使用个数
   * comment 备注
-* 创建和删除时，可能会影响地址池pool6及子网subnet6的容量
+* 其它检查
+  * reservedpool6之间不能有交集
+  *	不能包含Reservation6
+  * 创建和删除时，可能会影响地址池pool6及子网subnet6的容量
 * 支持增、删、改、查
 * 增
 
@@ -1346,31 +1493,41 @@
 * DHCP模块subnet6的子资源，配置subnet6的固定地址
 * 字段
   * duid 设备唯一标识符
+    * 类型 string
     * 不可更新
+    * 长度不得少于2，只能包含十六进制字符，长度为偶数
   * hwAddress 硬件地址
+    * 类型 string
     * 不可更新
     * 如果有值，必须为有效的net.HardwareAddr
   * ipAddresses IP地址列表
+    * 类型 string array
     * 不可更新
     * 如果有值，没有IP必须为有效的net.IP且为IPv6
   * prefixes 前缀列表 (web端暂不提供)
+    * 类型 string array
     * 不可更新
-    * 如果有值，没有IP必须为有效的net.IPNet且为IPv6，掩码长度不能超过63
+    * 如果有值，没有IP必须为有效的net.IPNet且为IPv6，掩码长度不能超过64
   * capacity 容量
+    * 类型 uint64
     * 不可更新
     * ipAddresses或者prefixes的个数
   * usedRatio 地址使用率
+    * 类型 string
     * 不可更新
   * usedCount 已使用地址个数
+    * 类型 uint64
     * 不可更新
   * comment 备注
+    * 类型 string
     * 可更新
+    * 不能包含逗号，因为逗号作为导入时的分隔符
 * 其它检查
   * duid与hwAddress必须且只能存在一个，且不能被其它固定地址使用
-  * ipAddresses与prefixes必须且只能存在一个，且不能被其它固定地址使用，同时必须在子网的范围内
+  * ipAddresses与prefixes必须且只能存在一个，且不能被其它固定地址使用，如果是prefixes，不能与其它固定地址相互包含，同时必须在子网的范围内
   * 开启了EUI64的子网不能创建固定地址
   * 与ReservedPool6、ReservedPdPool互斥
-  * 创建和删除时，可能会影响子网和地址池的容量
+  * 创建和删除时，可能会影响子网和pool6或者pdpool的容量
   * 不能删除已分配的固定地址
 * 支持增、删、改、查
 * 增
@@ -1425,22 +1582,37 @@
 * DHCP模块subnet6的子资源，配置subnet6的前缀委派
 * 字段
   * prefix 前缀地址
+    * 类型 string
     * 必填
     * 不可更新
     * 必须为有效的net.IP且为IPv6
   * prefixLen 前缀长度
+    * 类型 uint32
     * 必填
     * 不可更新
-    * 有效值为（0，64）
+    * 有效值为（0，64］
   * delegatedLen 委派长度
+    * 类型 uint32
     * 必填
     * 不可更新
     * 有效值为[prefixLen，64]
   * capacity 前缀容量
+    * 类型 uint64
     * 不可更新
-    * 通过(1 << (delegatedLen - prefixLen)) - 1计算得出
+    * 通过 1 << (delegatedLen - prefixLen) 计算得出初始容量，真实容量可能受reservation6或者reservedpdpool影响，如果pdpool的前缀与reservation6或者reservedpdpool的前缀相互包含，可根据reservation6或者reservedpdpool的前缀长度prefixLen计算pdpool的容量
+      * 如果	prefixLen <= pdpool.prefixLen，被保留的容量为 1 << (pdpool.DelegatedLen - pdpool.PrefixLen)，即capacity为0
+      * 如果	prefixLen >= pdpool.delegatedLen，被保留的容量为 1，即capacity -= 1
+      * 如果	prefixLen > pdpool.prefixLen && prefixLen < pdpool.delegatedLen，被保留的容量为 1 << (pdpool.DelegatedLen - prefixLen), 即capacity -= 1 << (pdpool.DelegatedLen - prefixLen)
+  * usedRatio 地址使用率
+    * 类型 string
+    * 不可更新
+  * usedCount 已使用地址个数
+    * 类型 uint64
+    * 不可更新
   * comment 备注
+    * 类型 string
     * 可更新
+    * 不能包含逗号，因为逗号作为导入时的分隔符
 * 其它检查
   * 开启EUI64的子网不能创建前缀委派
   * prefix和prefixLen必须在子网范围内
@@ -1475,14 +1647,17 @@
 		
 		
 ## ReservedPdPool（web端暂不提供）
-* DHCP模块subnet6的子资源，配置subnet6的保留前缀委派，与Reservation6互斥
-* 字段
+* DHCP模块subnet6的子资源，配置subnet6的保留前缀委派
+* 字段(与pdpool一致)
   * prefix 前缀地址
   * prefixLen 前缀长度
   * delegatedLen 委派长度
   * capacity 前缀容量
   * comment 备注
-* 子网的保留前缀委派不能相互包含
+* 其它检查
+  * 子网的保留前缀委派不能相互包含
+  * 与Reservation6互斥
+  * 创建和删除可能会影响子网和pdpool的容量
 * 支持增、删、改、查
 * 增
 
@@ -1514,24 +1689,43 @@
 * DHCP模块subnet6的子资源，获取子网的所有租赁信息
 * 字段
   * address IP地址
+    * 类型 string
   * addressType IP地址类型（dynamic, reservation）
+    * 类型 string
   * prefixLen 前缀长度（仅PD有效）
+    * 类型 uint32
   * duid DUID
+    * 类型 string
   * iaid IAID
+    * 类型 string
   * leaseType 租赁类型（IA_NA, IA_TA, IA_PD, IA_V4）
+    * 类型 string
   * hwAddress MAC地址
+    * 类型 string
   * hwAddressType MAC地址类型
+    * 类型 string
   * hwAddressSource MAC地址来源 (DUID, IPv6_LINKLOCAL, CLIENT_LINKADDR, REMOTE_ID, DOCSIS_CMTS, DOCSIS_MODEM)
+    * 类型 string
   * hwAddressOrganization MAC厂商
+    * 类型 string
   * preferredLifetime 首选租赁时长
+    * 类型 uint32
   * validLifetime 租赁时长
+    * 类型 uint32
   * expire 租赁过期时间
+    * 类型 string
   * hostname 客户端主机名
+    * 类型 string
   * fingerprint 指纹
+    * 类型 string
   * vendorId 厂商
+    * 类型 string
   * operatingSystem 操作系统
+    * 类型 string
   * clientType 客户端类型
+    * 类型 string
   * leaseState 租赁状态 (NORMAL, DECLINED, RECLAIMED)
+    * 类型 string
 * 其它检查
   * 删除租赁会在管理端保存已回收状态的租赁信息，如果服务端完成回收，获取子网的所有租赁信息时才会触发从管理端删除。
   * 删除租赁会检查该租赁是否是已回收状态，如果是，不做任何操作
