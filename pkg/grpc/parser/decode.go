@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	"time"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -57,4 +58,20 @@ func DecodeSubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.Sub
 
 	lease6.SetID(lease.GetAddress())
 	return lease6
+}
+
+func DecodePbToReservation4s(pbPools []*dhcp.Reservation4) []*resource.Reservation4 {
+	pools := make([]*resource.Reservation4, len(pbPools))
+	for i, pbPool := range pbPools {
+		pools[i] = DecodeOnePbToReservation4(pbPool)
+	}
+	return pools
+}
+
+func DecodeOnePbToReservation4(pbPool *dhcp.Reservation4) *resource.Reservation4 {
+	return &resource.Reservation4{
+		HwAddress: pbPool.GetHwAddress(),
+		IpAddress: pbPool.GetIpAddress(),
+		Comment:   pbPool.GetComment(),
+	}
 }

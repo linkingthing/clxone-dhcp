@@ -645,6 +645,19 @@ func GetReservationPool6sByPrefix(prefix string) ([]*resource.Reservation6, erro
 	}
 }
 
+func GetPdPool6sByPrefix(prefix string) ([]*resource.PdPool, error) {
+	subnet6, err := GetSubnet6ByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	if pools, err := ListPdPools(subnet6.GetID()); err != nil {
+		return nil, err
+	} else {
+		return pools, nil
+	}
+}
+
 func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

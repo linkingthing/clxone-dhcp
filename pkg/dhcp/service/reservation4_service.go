@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -23,12 +22,17 @@ func NewReservation4Service() *Reservation4Service {
 	return &Reservation4Service{}
 }
 
-func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) (restresource.Resource, error) {
-	if ret, err := BatchCreateReservation4s(subnet, []*resource.Reservation4{reservation}); err != nil || len(ret) == 0 {
-		return nil, err
-	} else {
-		return ret[0], nil
+func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := reservation.Validate(); err != nil {
+		return fmt.Errorf("create reservation params invalid: %s", err.Error())
 	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return execCreateReservation4(tx, subnet, reservation)
+	}); err != nil {
+		return err
+	}
+	return nil
 }
 
 func BatchCreateReservation4s(subnet *resource.Subnet4, reservations []*resource.Reservation4) ([]restresource.Resource, error) {

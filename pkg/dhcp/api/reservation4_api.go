@@ -21,17 +21,12 @@ func NewReservation4Api() *Reservation4Api {
 func (r *Reservation4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	reservation := ctx.Resource.(*resource.Reservation4)
-	if err := reservation.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create reservation params invalid: %s", err.Error()))
-	}
-	retReservation, err := r.Service.Create(subnet, reservation)
-	if err != nil {
+	if err := r.Service.Create(subnet, reservation); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create reservation %s failed: %s", reservation.String(), err.Error()))
 	}
 
-	return retReservation, nil
+	return reservation, nil
 }
 
 func (r *Reservation4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {

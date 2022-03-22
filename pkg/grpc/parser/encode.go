@@ -98,6 +98,7 @@ func EncodeOneSubnetLeases4ToPb(lease4 *resource.SubnetLease4) *dhcppb.Lease4 {
 		OperatingSystem:       lease4.OperatingSystem,
 		ClientType:            lease4.ClientType,
 		LeaseState:            lease4.LeaseState,
+		AddressType:           string(lease4.AddressType),
 	}
 }
 
@@ -173,6 +174,25 @@ func EncodeOneReservation6ToPb(pool *resource.Reservation6) *dhcppb.Reservation6
 	}
 }
 
+func EncodePdPool6sToPb(pools []*resource.PdPool) []*dhcppb.PdPool6 {
+	pbPools := make([]*dhcppb.PdPool6, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = EncodeOnePdPoolToPb(pool)
+	}
+	return pbPools
+}
+
+func EncodeOnePdPoolToPb(pool *resource.PdPool) *dhcppb.PdPool6 {
+	return &dhcppb.PdPool6{
+		Prefix:       pool.Prefix,
+		PrefixLen:    pool.PrefixLen,
+		PrefixIpnet:  pool.PrefixIpnet.String(),
+		DelegatedLen: pool.DelegatedLen,
+		Capacity:     pool.Capacity,
+		Comment:      pool.Comment,
+	}
+}
+
 func EncodeSubnetLease6sToPb(lease6s []*resource.SubnetLease6) []*dhcppb.Lease6 {
 	pbLease6s := make([]*dhcppb.Lease6, len(lease6s))
 	for i, lease6 := range lease6s {
@@ -200,6 +220,7 @@ func EncodeOneSubnetLease6ToPb(lease6 *resource.SubnetLease6) *dhcppb.Lease6 {
 		OperatingSystem:       lease6.OperatingSystem,
 		ClientType:            lease6.ClientType,
 		LeaseState:            lease6.LeaseState,
+		AddressType:           string(lease6.AddressType),
 	}
 }
 

@@ -110,7 +110,7 @@ func pdpoolToCreatePdPoolRequest(subnetID uint64, pdpool *resource.PdPool) *pbdh
 	}
 }
 
-func (p *PdPoolService) List(subnetID string) (interface{}, error) {
+func ListPdPools(subnetID string) ([]*resource.PdPool, error) {
 	var pdpools []*resource.PdPool
 	if err := db.GetResources(map[string]interface{}{
 		resource.SqlColumnSubnet6: subnetID,

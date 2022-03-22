@@ -22,18 +22,14 @@ func NewPool6Api() *Pool6Api {
 func (p *Pool6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
 	pool := ctx.Resource.(*resource.Pool6)
-	if err := pool.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create pool params invalid: %s", err.Error()))
-	}
-	retpool, err := p.Service.Create(subnet, pool)
-	if err != nil {
+
+	if err := p.Service.Create(subnet, pool); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("create pool %s with subnet %s failed: %s",
 				pool.String(), subnet.GetID(), err.Error()))
 	}
 
-	return retpool, nil
+	return pool, nil
 }
 
 func (p *Pool6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {

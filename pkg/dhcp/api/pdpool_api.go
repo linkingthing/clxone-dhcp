@@ -37,7 +37,7 @@ func (p *PdPoolApi) Create(ctx *restresource.Context) (restresource.Resource, *r
 
 func (p *PdPoolApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetParent().GetID()
-	pdpools, err := p.Service.List(subnetID)
+	pdpools, err := service.ListPdPools(subnetID)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("list pdpools with subnet %s from db failed: %s",

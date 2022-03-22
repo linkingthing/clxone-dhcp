@@ -805,6 +805,15 @@ func (d *DHCPService) GetReservation6sBySubnet(prefix string) ([]*dhcppb.Reserva
 	return parser.EncodeReservation6sToPb(pools), nil
 }
 
+func (d *DHCPService) GetPdPool6sBySubnet(prefix string) ([]*dhcppb.PdPool6, error) {
+	pools, err := service.GetPdPool6sByPrefix(prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	return parser.EncodePdPool6sToPb(pools), nil
+}
+
 func (d *DHCPService) GetLease6ByIp(ip string) (*dhcppb.Lease6, error) {
 	subnet, err := service.GetSubnet6ByIP(ip)
 	if err != nil {
@@ -836,17 +845,19 @@ func (d *DHCPService) GetLease6sBySubnet(prefix string) ([]*dhcppb.Lease6, error
 	return parser.EncodeSubnetLease6sToPb(lease6s), nil
 }
 
-func (d *DHCPService) CreateReservation4s(subnetId string, reservations []*resource.Reservation4) (bool, error) {
-	subnet := &resource.Subnet4{}
-	subnet.SetID(subnetId)
-	_, err := service.BatchCreateReservation4s(subnet, reservations)
+func (d *DHCPService) CreateReservation4s(prefix string, pbPools []*dhcppb.Reservation4) error {
+	subnet, err := service.GetSubnet4ByPrefix(prefix)
 	if err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+
+	if _, err = service.BatchCreateReservation4s(subnet, parser.DecodePbToReservation4s(pbPools)); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (d *DHCPService) CreateReservedPool4(subnetId string, pool []*resource.ReservedPool4) (bool, error) {
+func (d *DHCPService) CreateReservedPool4s(subnetId string, pool []*resource.ReservedPool4) (bool, error) {
 	subnet := &resource.Subnet4{}
 	subnet.SetID(subnetId)
 	_, err := service.BatchCreateReservedPool4(subnet, pool)

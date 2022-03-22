@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -23,7 +22,11 @@ func NewPool6Service() *Pool6Service {
 	return &Pool6Service{}
 }
 
-func (p *Pool6Service) Create(subnet *resource.Subnet6, pool *resource.Pool6) (restresource.Resource, error) {
+func (p *Pool6Service) Create(subnet *resource.Subnet6, pool *resource.Pool6) error {
+	if err := pool.Validate(); err != nil {
+		return fmt.Errorf("create pool params invalid: %s", err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkPool6CouldBeCreated(tx, subnet, pool); err != nil {
 			return err
@@ -47,10 +50,10 @@ func (p *Pool6Service) Create(subnet *resource.Subnet6, pool *resource.Pool6) (r
 
 		return sendCreatePool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
 	}); err != nil {
-		return nil, err
+		return err
 	}
 
-	return pool, nil
+	return nil
 }
 
 func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, pool *resource.Pool6) error {
