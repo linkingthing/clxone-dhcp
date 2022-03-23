@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -15,11 +14,15 @@ import (
 type PingerService struct {
 }
 
-func NewPingerService() *PingerService {
-	return &PingerService{}
+func NewPingerService() (*PingerService, error) {
+	if err := CreateDefaultPinger(); err != nil {
+		return nil, err
+	}
+
+	return &PingerService{}, nil
 }
 
-func (p *PingerService) CreateDefaultPinger() error {
+func CreateDefaultPinger() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TablePinger, nil); err != nil {
 			return fmt.Errorf("check dhcp pinger failed: %s", err.Error())
@@ -36,27 +39,31 @@ func (p *PingerService) CreateDefaultPinger() error {
 	return nil
 }
 
-func (p *PingerService) List() (interface{}, error) {
+func (p *PingerService) List() ([]*resource.Pinger, error) {
 	var pingers []*resource.Pinger
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &pingers)
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list pinger failed:%s", err.Error())
 	}
 
 	return pingers, nil
 }
 
-func (p *PingerService) Get(pingerID string) (restresource.Resource, error) {
+func (p *PingerService) Get(id string) (*resource.Pinger, error) {
 	var pingers []*resource.Pinger
-	pinger, err := restdb.GetResourceWithID(db.GetDB(), pingerID, &pingers)
-	if err != nil {
-		return nil, err
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &pingers)
+	}); err != nil {
+		return nil, fmt.Errorf("get pinger %s failed:%s", id, err.Error())
+	} else if len(pingers) == 0 {
+		return nil, fmt.Errorf("no found pinger %s", id)
 	}
-	return pinger.(*resource.Pinger), nil
+
+	return pingers[0], nil
 }
 
-func (p *PingerService) Update(pinger *resource.Pinger) (restresource.Resource, error) {
+func (p *PingerService) Update(pinger *resource.Pinger) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Update(resource.TablePinger, map[string]interface{}{
 			resource.SqlColumnEnabled: pinger.Enabled,
@@ -67,10 +74,10 @@ func (p *PingerService) Update(pinger *resource.Pinger) (restresource.Resource, 
 
 		return sendUpdatePingerCmdToDHCPAgent(pinger)
 	}); err != nil {
-		return nil, err
+		return fmt.Errorf("update pinger %s failed:%s", pinger.GetID(), err.Error())
 	}
 
-	return pinger, nil
+	return nil
 }
 
 func sendUpdatePingerCmdToDHCPAgent(pinger *resource.Pinger) error {

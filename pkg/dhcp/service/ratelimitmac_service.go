@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	restdb "github.com/linkingthing/gorest/db"
-	resterror "github.com/linkingthing/gorest/error"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -20,61 +18,69 @@ func NewRateLimitMacService() *RateLimitMacService {
 	return &RateLimitMacService{}
 }
 
-func (d *RateLimitMacService) Create(ratelimitMac *resource.RateLimitMac) (restresource.Resource, error) {
+func (d *RateLimitMacService) Create(rateLimitMac *resource.RateLimitMac) error {
+	if err := rateLimitMac.Validate(); err != nil {
+		return fmt.Errorf("validate ratelimit mac %s failed: %s", rateLimitMac.GetID(), err.Error())
+	}
+
+	rateLimitMac.SetID(rateLimitMac.HwAddress)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Insert(ratelimitMac); err != nil {
+		if _, err := tx.Insert(rateLimitMac); err != nil {
 			return err
 		}
 
-		return sendCreateRateLimitMacCmdToDHCPAgent(ratelimitMac)
+		return sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac)
 	}); err != nil {
-		return nil, err
+		return fmt.Errorf("create ratelimit mac %s failed:%s", rateLimitMac.GetID(), err.Error())
 	}
 
-	return ratelimitMac, nil
+	return nil
 }
 
-func sendCreateRateLimitMacCmdToDHCPAgent(ratelimitMac *resource.RateLimitMac) error {
+func sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac *resource.RateLimitMac) error {
 	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateRateLimitMac,
 		&pbdhcpagent.CreateRateLimitMacRequest{
-			HwAddress: ratelimitMac.HwAddress,
-			Limit:     ratelimitMac.RateLimit,
+			HwAddress: rateLimitMac.HwAddress,
+			Limit:     rateLimitMac.RateLimit,
 		})
 }
 
-func (d *RateLimitMacService) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	var macs []*resource.RateLimitMac
-	if err := db.GetResources(util.GenStrConditionsFromFilters(ctx.GetFilters(),
-		resource.SqlColumnHwAddress, resource.SqlColumnHwAddress), &macs); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list ratelimit macs from db failed: %s", err.Error()))
+func (d *RateLimitMacService) List(condition map[string]interface{}) ([]*resource.RateLimitMac, error) {
+	var rateLimitMacs []*resource.RateLimitMac
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(condition, &rateLimitMacs)
+	}); err != nil {
+		return nil, fmt.Errorf("list ratelimit macs from db failed: %s", err.Error())
 	}
 
-	return macs, nil
+	return rateLimitMacs, nil
 }
 
-func (d *RateLimitMacService) Get(ratelimitMacID string) (restresource.Resource, error) {
-	var ratelimitMacs []*resource.RateLimitMac
-	ratelimitMac, err := restdb.GetResourceWithID(db.GetDB(), ratelimitMacID, &ratelimitMacs)
-	if err != nil {
-		return nil, err
+func (d *RateLimitMacService) Get(id string) (*resource.RateLimitMac, error) {
+	var rateLimitMacs []*resource.RateLimitMac
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &rateLimitMacs)
+	}); err != nil {
+		return nil, fmt.Errorf("get ratelimit mac %s failed:%s", id, err.Error())
+	} else if len(rateLimitMacs) == 0 {
+		return nil, fmt.Errorf("no found ratelimit mac %s", id)
 	}
 
-	return ratelimitMac.(*resource.RateLimitMac), nil
+	return rateLimitMacs[0], nil
 }
 
-func (d *RateLimitMacService) Delete(ratelimitMacId string) error {
+func (d *RateLimitMacService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableRateLimitMac, map[string]interface{}{
-			restdb.IDField: ratelimitMacId}); err != nil {
+			restdb.IDField: id}); err != nil {
 			return err
 		} else if rows == 0 {
-			return fmt.Errorf("no found ratelimit mac %s", ratelimitMacId)
+			return fmt.Errorf("no found ratelimit mac %s", id)
 		}
 
-		return sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId)
+		return sendDeleteRateLimitMacCmdToDHCPAgent(id)
 	}); err != nil {
-		return err
+		return fmt.Errorf("delete ratelimit mac %s failed:%s", id, err.Error())
 	}
 
 	return nil
@@ -87,33 +93,33 @@ func sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId string) error {
 		})
 }
 
-func (d *RateLimitMacService) Update(ratelimitMac *resource.RateLimitMac) (restresource.Resource, error) {
+func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var ratelimits []*resource.RateLimitMac
-		if err := tx.Fill(map[string]interface{}{restdb.IDField: ratelimitMac.GetID()},
-			&ratelimits); err != nil {
+		var rateLimits []*resource.RateLimitMac
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: rateLimitMac.GetID()},
+			&rateLimits); err != nil {
 			return err
-		} else if len(ratelimits) == 0 {
-			return fmt.Errorf("no found ratelimit mac %s", ratelimitMac.GetID())
+		} else if len(rateLimits) == 0 {
+			return fmt.Errorf("no found ratelimit mac %s", rateLimitMac.GetID())
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitMac, map[string]interface{}{
-			resource.SqlColumnRateLimit: ratelimitMac.RateLimit,
-			util.SqlColumnsComment:      ratelimitMac.Comment,
-		}, map[string]interface{}{restdb.IDField: ratelimitMac.GetID()}); err != nil {
+			resource.SqlColumnRateLimit: rateLimitMac.RateLimit,
+			util.SqlColumnsComment:      rateLimitMac.Comment,
+		}, map[string]interface{}{restdb.IDField: rateLimitMac.GetID()}); err != nil {
 			return err
 		}
 
-		if ratelimits[0].RateLimit != ratelimitMac.RateLimit {
-			return sendUpdateRateLimitMacCmdToDHCPAgent(ratelimitMac)
+		if rateLimits[0].RateLimit != rateLimitMac.RateLimit {
+			return sendUpdateRateLimitMacCmdToDHCPAgent(rateLimitMac)
 		} else {
 			return nil
 		}
 	}); err != nil {
-		return nil, err
+		return fmt.Errorf("update ratelimit mac %s failed:%s", rateLimitMac.GetID(), err.Error())
 	}
 
-	return ratelimitMac, nil
+	return nil
 }
 
 func sendUpdateRateLimitMacCmdToDHCPAgent(ratelimitMac *resource.RateLimitMac) error {

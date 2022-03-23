@@ -21,51 +21,37 @@ func NewPool4Api() *Pool4Api {
 func (p *Pool4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	pool := ctx.Resource.(*resource.Pool4)
-	if err := pool.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create pool params invalid: %s", err.Error()))
-	}
-	retpool, err := p.Service.Create(subnet, pool)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create pool %s with subnet %s failed: %s",
-				pool.String(), subnet.GetID(), err.Error()))
+
+	if err := p.Service.Create(subnet, pool); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retpool, nil
+	return pool, nil
 }
 
 func (p *Pool4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
-	pools, err := service.ListPool4s(subnet)
+	pools, err := service.ListPool4s(ctx.Resource.GetParent().(*resource.Subnet4))
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list pools with subnet %s from db failed: %s",
-				subnet.GetID(), err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return pools, nil
 }
 
 func (p *Pool4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnetID := ctx.Resource.GetParent().GetID()
-	poolID := ctx.Resource.GetID()
-	pools, err := p.Service.Get(subnetID, poolID)
+	pool, err := p.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool %s with subnet %s from db failed: %s",
-				poolID, subnetID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	return pools, nil
+
+	return pool, nil
 }
 
 func (p *Pool4Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
-	pool := ctx.Resource.(*resource.Pool4)
-	err := p.Service.Delete(subnet, pool)
-	if err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
-				pool.String(), subnet.GetID(), err.Error()))
+	if err := p.Service.Delete(
+		ctx.Resource.GetParent().(*resource.Subnet4),
+		ctx.Resource.(*resource.Pool4)); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil
@@ -73,13 +59,11 @@ func (p *Pool4Api) Delete(ctx *restresource.Context) *resterror.APIError {
 
 func (p *Pool4Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pool := ctx.Resource.(*resource.Pool4)
-	retPool, err := p.Service.Update(pool)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update pool4 %s with subnet %s failed: %s",
-				pool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
+	if err := p.Service.Update(ctx.Resource.GetParent().GetID(), pool); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	return retPool, nil
+
+	return pool, nil
 }
 
 func (p *Pool4Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {

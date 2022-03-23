@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -14,36 +12,38 @@ type PingerApi struct {
 	Service *service.PingerService
 }
 
-func NewPingerApi() *PingerApi {
-	return &PingerApi{Service: service.NewPingerService()}
+func NewPingerApi() (*PingerApi, error) {
+	s, err := service.NewPingerService()
+	if err != nil {
+		return nil, err
+	}
+
+	return &PingerApi{Service: s}, nil
 }
 
 func (d *PingerApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	pingers, err := d.Service.List()
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list dhcp pinger from db failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return pingers, nil
 }
 
 func (d *PingerApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pingerID := ctx.Resource.(*resource.Pinger).GetID()
-	pinger, err := d.Service.Get(pingerID)
+	pinger, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pinger from db failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return pinger.(*resource.Pinger), nil
+	return pinger, nil
 }
 
 func (d *PingerApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pinger := ctx.Resource.(*resource.Pinger)
-	retPinger, err := d.Service.Update(pinger)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update dhcp pinger failed: %s", err.Error()))
+	if err := d.Service.Update(pinger); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	return retPinger, nil
+
+	return pinger, nil
 }

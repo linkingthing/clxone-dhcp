@@ -16,8 +16,6 @@ import (
 
 var (
 	configFile string
-	ip         string
-	port       int
 )
 
 func main() {

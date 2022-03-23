@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type RateLimitMacApi struct {
@@ -19,59 +18,46 @@ func NewRateLimitMacApi() *RateLimitMacApi {
 }
 
 func (d *RateLimitMacApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	ratelimitMac := ctx.Resource.(*resource.RateLimitMac)
-	ratelimitMac.SetID(ratelimitMac.HwAddress)
-	if err := ratelimitMac.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create ratelimit mac %s failed: %s", ratelimitMac.GetID(), err.Error()))
-	}
-	retratelimitMac, err := d.Service.Create(ratelimitMac)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create ratelimit mac %s failed: %s", ratelimitMac.GetID(), err.Error()))
+	rateLimitMac := ctx.Resource.(*resource.RateLimitMac)
+	if err := d.Service.Create(rateLimitMac); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retratelimitMac, nil
+	return rateLimitMac, nil
 }
 
 func (d *RateLimitMacApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	macs, err := d.Service.List(ctx)
+	macs, err := d.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		resource.SqlColumnHwAddress, resource.SqlColumnHwAddress))
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list ratelimit macs failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return macs, nil
 }
 
 func (d *RateLimitMacApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	ratelimitMacID := ctx.Resource.(*resource.RateLimitMac).GetID()
-	ratelimitMac, err := d.Service.Get(ratelimitMacID)
+	rateLimitMac, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get ratelimit mac %s failed: %s", ratelimitMacID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return ratelimitMac.(*resource.RateLimitMac), nil
+	return rateLimitMac, nil
 }
 
 func (d *RateLimitMacApi) Delete(ctx *restresource.Context) *resterror.APIError {
-	ratelimitMacId := ctx.Resource.GetID()
-	if err := d.Service.Delete(ratelimitMacId); err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete ratelimit mac %s failed: %s", ratelimitMacId, err.Error()))
+	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil
 }
 
 func (d *RateLimitMacApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	ratelimitMac := ctx.Resource.(*resource.RateLimitMac)
-	retratelimitMac, err := d.Service.Update(ratelimitMac)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update ratelimit mac %s failed: %s", ratelimitMac.GetID(), err.Error()))
+	rateLimitMac := ctx.Resource.(*resource.RateLimitMac)
+	if err := d.Service.Update(rateLimitMac); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retratelimitMac, nil
+	return rateLimitMac, nil
 }

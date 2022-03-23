@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -19,61 +17,47 @@ func NewAdmitMacApi() *AdmitMacApi {
 	return &AdmitMacApi{Service: service.NewAdmitMacService()}
 }
 
-func (d *AdmitMacApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (a *AdmitMacApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitMac := ctx.Resource.(*resource.AdmitMac)
-	admitMac.SetID(admitMac.HwAddress)
-	if err := admitMac.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create admit mac %s failed: %s", admitMac.GetID(), err.Error()))
+	if err := a.Service.Create(admitMac); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	newAdmitMac, err := d.Service.Create(admitMac)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create admit mac %s failed: %s", admitMac.GetID(), err.Error()))
-	}
-	return newAdmitMac, nil
+
+	return admitMac, nil
 }
 
-func (d *AdmitMacApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	conditions := util.GenStrConditionsFromFilters(ctx.GetFilters(), resource.SqlColumnHwAddress, resource.SqlColumnHwAddress)
-	macs, err := d.Service.List(conditions)
+func (a *AdmitMacApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	macs, err := a.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		resource.SqlColumnHwAddress, resource.SqlColumnHwAddress))
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list admit macs from db failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return macs, nil
 }
 
-func (d *AdmitMacApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admitMacID := ctx.Resource.(*resource.AdmitMac).GetID()
-	admitMac, err := d.Service.Get(admitMacID)
+func (a *AdmitMacApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	admitMac, err := a.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get admit mac %s from db failed: %s", admitMacID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	return admitMac.(*resource.AdmitMac), nil
+
+	return admitMac, nil
 }
 
-func (d *AdmitMacApi) Delete(ctx *restresource.Context) *resterror.APIError {
-	admitMacId := ctx.Resource.GetID()
-	err := d.Service.Delete(admitMacId)
-	if err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete admit mac %s failed: %s", admitMacId, err.Error()))
+func (a *AdmitMacApi) Delete(ctx *restresource.Context) *resterror.APIError {
+	if err := a.Service.Delete(ctx.Resource.GetID()); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return nil
 }
 
-func (d *AdmitMacApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (a *AdmitMacApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitMac := ctx.Resource.(*resource.AdmitMac)
-	if err := admitMac.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("update admit mac %s failed: %s", admitMac.GetID(), err.Error()))
+	if err := a.Service.Update(admitMac); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	retAdmitMac, err := d.Service.Update(admitMac)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create admit mac %s failed: %s", admitMac.GetID(), err.Error()))
-	}
-	return retAdmitMac, nil
+
+	return admitMac, nil
 }

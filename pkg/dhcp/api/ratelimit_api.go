@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -14,37 +12,38 @@ type RateLimitApi struct {
 	Service *service.RateLimitService
 }
 
-func NewRateLimitApi() *RateLimitApi {
-	return &RateLimitApi{Service: service.NewRateLimitService()}
+func NewRateLimitApi() (*RateLimitApi, error) {
+	s, err := service.NewRateLimitService()
+	if err != nil {
+		return nil, err
+	}
+
+	return &RateLimitApi{Service: s}, nil
 }
 
 func (d *RateLimitApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	if ratelimits, err := d.Service.List(); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list dhcp ratelimit failed: %s", err.Error()))
-	} else {
-		return ratelimits, nil
+	rateLimits, err := d.Service.List()
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
+	return rateLimits, nil
 }
 
 func (d *RateLimitApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	ratelimitID := ctx.Resource.(*resource.RateLimit).GetID()
-	ratelimit, err := d.Service.Get(ratelimitID)
+	rateLimit, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get ratelimit failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return ratelimit.(*resource.RateLimit), nil
+	return rateLimit, nil
 }
 
 func (d *RateLimitApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	ratelimit := ctx.Resource.(*resource.RateLimit)
-	retratelimit, err := d.Service.Update(ratelimit)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update dhcp ratelimit failed: %s", err.Error()))
+	rateLimit := ctx.Resource.(*resource.RateLimit)
+	if err := d.Service.Update(rateLimit); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retratelimit, nil
+	return rateLimit, nil
 }

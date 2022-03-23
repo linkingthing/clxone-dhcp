@@ -41,31 +41,29 @@ func RegisterApi(apiServer *gorest.Server, router gin.IRoutes) error {
 
 	apiServer.Schemas.MustImport(&Version, resource.DhcpFingerprint{}, api.NewDhcpFingerprintApi())
 
-	dhcpConfigApi := api.NewDhcpConfigApi()
-	if err := dhcpConfigApi.Service.CreateDefaultDhcpConfig(); err != nil {
+	if dhcpConfigApi, err := api.NewDhcpConfigApi(); err != nil {
 		return err
 	} else {
 		apiServer.Schemas.MustImport(&Version, resource.DhcpConfig{}, dhcpConfigApi)
 	}
-	pingerApi := api.NewPingerApi()
-	if err := pingerApi.Service.CreateDefaultPinger(); err != nil {
+
+	if pingerApi, err := api.NewPingerApi(); err != nil {
 		return err
 	} else {
 		apiServer.Schemas.MustImport(&Version, resource.Pinger{}, pingerApi)
 	}
-	admitApi := api.NewAdmitApi()
-	if err := admitApi.Service.CreateDefaultAdmit(); err != nil {
+
+	if admitApi, err := api.NewAdmitApi(); err != nil {
 		return err
 	} else {
 		apiServer.Schemas.MustImport(&Version, resource.Admit{}, admitApi)
 	}
 
 	apiServer.Schemas.MustImport(&Version, resource.AdmitMac{}, api.NewAdmitMacApi())
-	apiServer.Schemas.MustImport(&Version, resource.AdmitDuid{}, api.NewAdmitDuIdApi())
+	apiServer.Schemas.MustImport(&Version, resource.AdmitDuid{}, api.NewAdmitDuidApi())
 	apiServer.Schemas.MustImport(&Version, resource.AdmitFingerprint{}, api.NewAdmitFingerprintApi())
 
-	rateLimitApi := api.NewRateLimitApi()
-	if err := rateLimitApi.Service.CreateDefaultRateLimit(); err != nil {
+	if rateLimitApi, err := api.NewRateLimitApi(); err != nil {
 		return err
 	} else {
 		apiServer.Schemas.MustImport(&Version, resource.RateLimit{}, rateLimitApi)

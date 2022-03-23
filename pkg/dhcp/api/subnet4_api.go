@@ -21,58 +21,42 @@ func NewSubnet4Api() *Subnet4Handler {
 
 func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.(*resource.Subnet4)
-	if err := subnet.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create subnet params invalid: %s", err.Error()))
-	}
-	retSubnet, err := s.Service.Create(subnet)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create subnet %s failed: %s", subnet.Subnet, err.Error()))
+	if err := s.Service.Create(subnet); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retSubnet, nil
+	return subnet, nil
 }
 
 func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnets, err := s.Service.List(ctx)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list subnet4s from db failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 	return subnets, nil
 }
 
 func (s *Subnet4Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnetID := ctx.Resource.GetID()
-	subnet, err := s.Service.Get(subnetID)
+	subnet, err := s.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get subnet %s from db failed: %s", subnetID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return subnet, nil
 }
 
 func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.(*resource.Subnet4)
-	if err := subnet.ValidateParams(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("update subnet params invalid: %s", err.Error()))
-	}
-	retSubnet, err := s.Service.Update(subnet)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update subnet %s failed: %s", subnet.GetID(), err.Error()))
+	if err := s.Service.Update(subnet); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retSubnet, nil
+	return subnet, nil
 }
 
 func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
-	subnet := ctx.Resource.(*resource.Subnet4)
-	if err := s.Service.Delete(subnet); err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete subnet %s failed: %s", subnet.GetID(), err.Error()))
+	if err := s.Service.Delete(ctx.Resource.(*resource.Subnet4)); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil
@@ -85,7 +69,7 @@ func (s *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 	case csvutil.ActionNameExportCSV:
 		return s.actionExportCSV(ctx)
 	case csvutil.ActionNameExportCSVTemplate:
-		return s.actionExportCSVTemplate(ctx)
+		return s.actionExportCSVTemplate()
 	case resource.ActionNameUpdateNodes:
 		return s.actionUpdateNodes(ctx)
 	case resource.ActionNameCouldBeCreated:
@@ -103,7 +87,8 @@ func (s *Subnet4Handler) actionImportCSV(ctx *restresource.Context) (interface{}
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.ServerError, "action importcsv input invalid")
 	}
-	if _, err := s.Service.ImportCSV(file); err != nil {
+
+	if err := s.Service.ImportCSV(file); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("import subnet4s from file %s failed: %s",
 				file.Name, err.Error()))
@@ -114,13 +99,13 @@ func (s *Subnet4Handler) actionImportCSV(ctx *restresource.Context) (interface{}
 func (s *Subnet4Handler) actionExportCSV(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	if exportFile, err := s.Service.ExportCSV(); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("export device failed: %s", err.Error()))
+			fmt.Sprintf("export subnet csv failed: %s", err.Error()))
 	} else {
 		return exportFile, nil
 	}
 }
 
-func (s *Subnet4Handler) actionExportCSVTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Handler) actionExportCSVTemplate() (interface{}, *resterror.APIError) {
 	if file, err := s.Service.ExportCSVTemplate(); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("export subnet4 template failed: %s", err.Error()))
@@ -151,8 +136,8 @@ func (s *Subnet4Handler) actionCouldBeCreated(ctx *restresource.Context) (interf
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action check subnet could be created input invalid"))
 	}
-	_, err := s.Service.CouldBeCreated(couldBeCreatedSubnet)
-	if err != nil {
+
+	if err := s.Service.CouldBeCreated(couldBeCreatedSubnet); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("action check subnet could be created failed: %s", err.Error()))
 	}
@@ -166,6 +151,7 @@ func (s *Subnet4Handler) actionListWithSubnets(ctx *restresource.Context) (inter
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action list subnet input invalid"))
 	}
+
 	ret, err := s.Service.ListWithSubnets(subnetListInput)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,

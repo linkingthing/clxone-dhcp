@@ -415,7 +415,7 @@ func setIpv4InfosAddressTypeAndGetSubnetLeases(tx restdb.Transaction, ips []stri
 
 func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs string, unfoundIps map[string]struct{}, ipv4Infos map[string]*dhcppb.Ipv4Information) error {
 	var reservations []*resource.Reservation4
-	if err := tx.FillEx(reservations,
+	if err := tx.FillEx(&reservations,
 		"select * from gr_reservation4 where ip_address in "+
 			ipsArgs+"and subnet4 in ('"+subnetIdsArgs+"')"); err != nil {
 		return fmt.Errorf("get reservations failed: %s", err.Error())
@@ -846,43 +846,17 @@ func (d *DHCPService) GetLease6sBySubnet(prefix string) ([]*dhcppb.Lease6, error
 }
 
 func (d *DHCPService) CreateReservation4s(prefix string, pbPools []*dhcppb.Reservation4) error {
-	subnet, err := service.GetSubnet4ByPrefix(prefix)
-	if err != nil {
-		return err
-	}
-
-	if _, err = service.BatchCreateReservation4s(subnet, parser.DecodePbToReservation4s(pbPools)); err != nil {
-		return err
-	}
 	return nil
 }
 
-func (d *DHCPService) CreateReservedPool4s(subnetId string, pool []*resource.ReservedPool4) (bool, error) {
-	subnet := &resource.Subnet4{}
-	subnet.SetID(subnetId)
-	_, err := service.BatchCreateReservedPool4(subnet, pool)
-	if err != nil {
-		return false, err
-	}
+func (d *DHCPService) CreateReservedPool4s(prefix string, pool []*resource.ReservedPool4) (bool, error) {
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservation6s(subnetId string, reservations []*resource.Reservation6) (bool, error) {
-	subnet := &resource.Subnet6{}
-	subnet.SetID(subnetId)
-	_, err := service.BatchCreateReservation6s(subnet, reservations)
-	if err != nil {
-		return false, err
-	}
+func (d *DHCPService) CreateReservation6s(prefix string, reservations []*resource.Reservation6) (bool, error) {
 	return true, nil
 }
 
-func (d *DHCPService) CreateReservedPool6(subnetId string, pools []*resource.ReservedPool6) (bool, error) {
-	subnet := &resource.Subnet6{}
-	subnet.SetID(subnetId)
-	_, err := service.BatchCreateReservedPool6(subnet, pools)
-	if err != nil {
-		return false, err
-	}
+func (d *DHCPService) CreateReservedPool6(prefix string, pools []*resource.ReservedPool6) (bool, error) {
 	return true, nil
 }

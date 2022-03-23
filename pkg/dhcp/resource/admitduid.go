@@ -22,8 +22,8 @@ func (a AdmitDuid) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AdmitDuid) Validate() error {
-	if len(a.Duid) == 0 {
-		return ErrDuidMissing
+	if err := parseDUID(a.Duid); err != nil {
+		return err
 	} else {
 		return nil
 	}

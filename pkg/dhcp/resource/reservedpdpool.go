@@ -36,6 +36,10 @@ func (pdpool *ReservedPdPool) Validate() error {
 		return err
 	}
 
+	if err := checkCommentValid(pdpool.Comment); err != nil {
+		return err
+	}
+
 	pdpool.Prefix = prefix.String()
 	pdpool.PrefixIpnet = ipToIPNet(prefix, pdpool.PrefixLen)
 	pdpool.Capacity = capacity
@@ -47,11 +51,12 @@ func (pdpool *ReservedPdPool) CheckConflictWithAnother(another *ReservedPdPool) 
 		another.PrefixIpnet.Contains(pdpool.PrefixIpnet.IP)
 }
 
-func (pdpool *ReservedPdPool) Contains(prefix string) bool {
+func (pdpool *ReservedPdPool) Intersect(prefix string) bool {
 	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 		return false
 	} else {
-		return pdpool.PrefixIpnet.Contains(ipnet.IP)
+		return pdpool.PrefixIpnet.Contains(ipnet.IP) ||
+			ipnet.Contains(pdpool.PrefixIpnet.IP)
 	}
 }
 

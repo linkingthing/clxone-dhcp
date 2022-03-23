@@ -24,29 +24,34 @@ func NewDhcpOuiService() *DhcpOuiService {
 	return &DhcpOuiService{}
 }
 
-func (d *DhcpOuiService) Create(dhcpoui *resource.DhcpOui) (restresource.Resource, error) {
+func (d *DhcpOuiService) Create(dhcpOui *resource.DhcpOui) error {
+	if err := dhcpOui.Validate(); err != nil {
+		return fmt.Errorf("validate dhcp oui %s failed: %s", dhcpOui.Oui, err.Error())
+	}
+
+	dhcpOui.SetID(dhcpOui.Oui)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Insert(dhcpoui); err != nil {
+		if _, err := tx.Insert(dhcpOui); err != nil {
 			return err
 		}
 
-		return sendCreateDhcpOuiCmdToDHCPAgent(dhcpoui)
+		return sendCreateDhcpOuiCmdToDHCPAgent(dhcpOui)
 	}); err != nil {
-		return nil, err
+		return fmt.Errorf("create dhcp oui %s failed:%s", dhcpOui.Oui, err.Error())
 	}
 
-	return dhcpoui, nil
+	return nil
 }
 
-func sendCreateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
+func sendCreateDhcpOuiCmdToDHCPAgent(dhcpOui *resource.DhcpOui) error {
 	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateOui,
 		&pbdhcpagent.CreateOuiRequest{
-			Oui:          dhcpoui.Oui,
-			Organization: dhcpoui.Organization,
+			Oui:          dhcpOui.Oui,
+			Organization: dhcpOui.Organization,
 		})
 }
 
-func (d *DhcpOuiService) List(ctx *restresource.Context) (interface{}, error) {
+func (d *DhcpOuiService) List(ctx *restresource.Context) ([]*resource.DhcpOui, error) {
 	listCtx := genGetOUIContext(ctx)
 	var ouis []*resource.DhcpOui
 	var ouiCount int
@@ -62,8 +67,9 @@ func (d *DhcpOuiService) List(ctx *restresource.Context) (interface{}, error) {
 
 		return tx.FillEx(&ouis, listCtx.sql, listCtx.params...)
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list dhcp oui failed:%s", err.Error())
 	}
+
 	setPagination(ctx, listCtx.hasPagination, ouiCount)
 	return ouis, nil
 }
@@ -102,31 +108,41 @@ func genGetOUIContext(ctx *restresource.Context) listOUIContext {
 	return listCtx
 }
 
-func (d *DhcpOuiService) Get(dhcpouiID string) (restresource.Resource, error) {
-	var dhcpouis []*resource.DhcpOui
-	dhcpoui, err := restdb.GetResourceWithID(db.GetDB(), dhcpouiID, &dhcpouis)
-	if err != nil {
-		return nil, err
+func (d *DhcpOuiService) Get(id string) (*resource.DhcpOui, error) {
+	var dhcpOuis []*resource.DhcpOui
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &dhcpOuis)
+	}); err != nil {
+		return nil, fmt.Errorf("get dhcp oui %s failed:%s", id, err.Error())
+	} else if len(dhcpOuis) == 0 {
+		return nil, fmt.Errorf("no found dhcp oui %s", id)
 	}
 
-	return dhcpoui.(*resource.DhcpOui), nil
+	return dhcpOuis[0], nil
 }
 
-func (d *DhcpOuiService) Update(dhcpoui *resource.DhcpOui) (restresource.Resource, error) {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Update(resource.TableDhcpOui,
-			map[string]interface{}{resource.SqlDhcpOuiOrg: dhcpoui.Organization},
-			map[string]interface{}{restdb.IDField: dhcpoui.GetID()}); err != nil {
-			return err
-		} else if rows == 0 {
-			return fmt.Errorf("no found oui %s", dhcpoui.GetID())
-		}
-		return sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui)
-	}); err != nil {
-		return nil, err
+func (d *DhcpOuiService) Update(dhcpOui *resource.DhcpOui) error {
+	if err := dhcpOui.Validate(); err != nil {
+		return fmt.Errorf("validate dhcp oui %s failed: %s", dhcpOui.Oui, err.Error())
 	}
 
-	return dhcpoui, nil
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := d.updateOrDeleteOuiValid(tx, dhcpOui.GetID()); err != nil {
+			return err
+		}
+
+		if _, err := tx.Update(resource.TableDhcpOui, map[string]interface{}{
+			resource.SqlDhcpOuiOrg: dhcpOui.Organization,
+		}, map[string]interface{}{restdb.IDField: dhcpOui.GetID()}); err != nil {
+			return err
+		}
+
+		return sendUpdateDhcpOuiCmdToDHCPAgent(dhcpOui)
+	}); err != nil {
+		return fmt.Errorf("update dhcp oui %s failed:%s", dhcpOui.GetID(), err.Error())
+	}
+
+	return nil
 }
 
 func sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
@@ -137,16 +153,18 @@ func sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
 		})
 }
 
-func (d *DhcpOuiService) Delete(dhcpouiId string) error {
+func (d *DhcpOuiService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Delete(resource.TableDhcpOui, map[string]interface{}{
-			restdb.IDField: dhcpouiId}); err != nil {
+		if err := d.updateOrDeleteOuiValid(tx, id); err != nil {
 			return err
-		} else if rows == 0 {
-			return fmt.Errorf("no found oui %s", dhcpouiId)
 		}
 
-		return sendDeleteDhcpOuiCmdToDHCPAgent(dhcpouiId)
+		if _, err := tx.Delete(resource.TableDhcpOui, map[string]interface{}{
+			restdb.IDField: id}); err != nil {
+			return err
+		}
+
+		return sendDeleteDhcpOuiCmdToDHCPAgent(id)
 	}); err != nil {
 		return err
 	}
@@ -154,9 +172,23 @@ func (d *DhcpOuiService) Delete(dhcpouiId string) error {
 	return nil
 }
 
-func sendDeleteDhcpOuiCmdToDHCPAgent(dhcpouiId string) error {
+func sendDeleteDhcpOuiCmdToDHCPAgent(dhcpOuiId string) error {
 	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteOui,
 		&pbdhcpagent.DeleteOuiRequest{
-			Oui: dhcpouiId,
+			Oui: dhcpOuiId,
 		})
+}
+
+func (d *DhcpOuiService) updateOrDeleteOuiValid(tx restdb.Transaction, id string) error {
+	var dhcpOuis []*resource.DhcpOui
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
+		&dhcpOuis); err != nil {
+		return err
+	} else if len(dhcpOuis) == 0 {
+		return fmt.Errorf("no found dhcp oui %s", id)
+	} else if dhcpOuis[0].IsReadOnly {
+		return fmt.Errorf("delete readonly dhcp oui %s", id)
+	}
+
+	return nil
 }

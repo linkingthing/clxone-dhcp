@@ -5,6 +5,7 @@ import (
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
@@ -44,6 +45,18 @@ const (
 
 func (s Subnet6) GetActions() []restresource.Action {
 	return []restresource.Action{
+		restresource.Action{
+			Name:  csvutil.ActionNameImportCSV,
+			Input: &csvutil.ImportFile{},
+		},
+		restresource.Action{
+			Name:   csvutil.ActionNameExportCSV,
+			Output: &csvutil.ExportFile{},
+		},
+		restresource.Action{
+			Name:   csvutil.ActionNameExportCSVTemplate,
+			Output: &csvutil.ExportFile{},
+		},
 		restresource.Action{
 			Name:  ActionNameUpdateNodes,
 			Input: &SubnetNode{},

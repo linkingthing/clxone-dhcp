@@ -17,8 +17,12 @@ type Pool4Template struct {
 	Comment                   string `json:"comment"`
 }
 
+var ErrPoolTemplateNameMissing = fmt.Errorf("pool template name is required")
+
 func (p *Pool4Template) Validate() error {
-	if p.BeginOffset <= 0 || p.BeginOffset >= 65535 || p.Capacity <= 0 || p.Capacity >= 65535 {
+	if len(p.Name) == 0 {
+		return ErrPoolTemplateNameMissing
+	} else if p.BeginOffset <= 0 || p.BeginOffset >= 65535 || p.Capacity <= 0 || p.Capacity >= 65535 {
 		return fmt.Errorf("offset %v or capacity %v should in (0, 65535)", p.BeginOffset, p.Capacity)
 	} else {
 		return nil

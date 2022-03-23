@@ -26,6 +26,7 @@ type SubnetLease6 struct {
 	OperatingSystem           string      `json:"operatingSystem"`
 	ClientType                string      `json:"clientType"`
 	LeaseState                string      `json:"leaseState"`
+	RequestSourceAddr         string      `json:"requestSourceAddr"`
 }
 
 func (l SubnetLease6) GetParents() []restresource.ResourceKind {

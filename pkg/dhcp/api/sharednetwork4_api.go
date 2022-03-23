@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SharedNetwork4Api struct {
@@ -20,64 +19,45 @@ func NewSharedNetwork4Api() *SharedNetwork4Api {
 
 func (s *SharedNetwork4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	sharedNetwork4 := ctx.Resource.(*resource.SharedNetwork4)
-	if err := sharedNetwork4.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create shared network4 params invalid: %s", err.Error()))
-	}
-	retsharedNetwork4, err := s.Service.Create(sharedNetwork4)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create shared network4 %s failed: %s",
-				sharedNetwork4.Name, err.Error()))
+	if err := s.Service.Create(sharedNetwork4); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retsharedNetwork4, nil
+	return sharedNetwork4, nil
 }
 
 func (s *SharedNetwork4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	sharedNetwork4s, err := s.Service.List(ctx)
+	sharedNetwork4s, err := s.Service.List(
+		util.GenStrConditionsFromFilters(ctx.GetFilters(),
+			util.FilterNameName, util.FilterNameName))
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list shared network4s from db failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return sharedNetwork4s, nil
 }
 
 func (s *SharedNetwork4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	sharedNetwork4 := ctx.Resource.(*resource.SharedNetwork4)
-	retSharedNetwork4, err := s.Service.Get(sharedNetwork4)
+	sharedNetwork4, err := s.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get shared network4 %s failed: %s",
-				sharedNetwork4.GetID(), err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retSharedNetwork4, nil
+	return sharedNetwork4, nil
 }
 
 func (s *SharedNetwork4Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	sharedNetwork4 := ctx.Resource.(*resource.SharedNetwork4)
-	if err := sharedNetwork4.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("update shared network4 params invalid: %s", err.Error()))
-	}
-	retSharedNetwork4, err := s.Service.Update(sharedNetwork4)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update shared network4 %s failed: %s",
-				sharedNetwork4.Name, err.Error()))
+	if err := s.Service.Update(sharedNetwork4); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retSharedNetwork4, nil
+	return sharedNetwork4, nil
 }
 
 func (s *SharedNetwork4Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	sharedNetwork4Id := ctx.Resource.GetID()
-	if err := s.Service.Delete(sharedNetwork4Id); err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete shared network4 %s failed: %s",
-				sharedNetwork4Id, err.Error()))
+	if err := s.Service.Delete(ctx.Resource.GetID()); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil

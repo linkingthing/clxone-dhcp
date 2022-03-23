@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -22,46 +20,35 @@ func (r *Reservation4Api) Create(ctx *restresource.Context) (restresource.Resour
 	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	reservation := ctx.Resource.(*resource.Reservation4)
 	if err := r.Service.Create(subnet, reservation); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create reservation %s failed: %s", reservation.String(), err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return reservation, nil
 }
 
 func (r *Reservation4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	subnetID := ctx.Resource.GetParent().GetID()
-	reservations, err := service.ListReservation4s(subnetID)
+	reservations, err := service.ListReservation4s(ctx.Resource.GetParent().GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list reservations with subnet %s failed: %s",
-				subnetID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return reservations, nil
 }
 
 func (r *Reservation4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnetID := ctx.Resource.GetParent().GetID()
-	reservationID := ctx.Resource.GetID()
-
-	reservation, err := r.Service.Get(subnetID, reservationID)
+	reservation, err := r.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get reservation %s with subnetID %s failed: %s",
-				reservationID, subnetID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return reservation, nil
 }
 
 func (r *Reservation4Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
-	reservation := ctx.Resource.(*resource.Reservation4)
-	if err := r.Service.Delete(subnet, reservation); err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete reservation %s with subnet %s failed: %s",
-				reservation.String(), subnet.GetID(), err.Error()))
+	if err := r.Service.Delete(
+		ctx.Resource.GetParent().(*resource.Subnet4),
+		ctx.Resource.(*resource.Reservation4)); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil
@@ -69,12 +56,9 @@ func (r *Reservation4Api) Delete(ctx *restresource.Context) *resterror.APIError 
 
 func (r *Reservation4Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	reservation := ctx.Resource.(*resource.Reservation4)
-	retreservation, err := r.Service.Update(reservation)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update reservation4 %s with subnet %s failed: %s",
-				reservation.String(), ctx.Resource.GetParent().GetID(), err.Error()))
+	if err := r.Service.Update(ctx.Resource.GetParent().GetID(), reservation); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retreservation, nil
+	return reservation, nil
 }

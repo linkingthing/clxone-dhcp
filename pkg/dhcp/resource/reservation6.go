@@ -1,8 +1,12 @@
 package resource
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net"
+	"strings"
+
+	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
@@ -37,6 +41,14 @@ func (r *Reservation6) String() string {
 	}
 }
 
+func (r *Reservation6) AddrString() string {
+	if len(r.IpAddresses) != 0 {
+		return "ips-" + strings.Join(r.IpAddresses, "_")
+	} else {
+		return "prefixes-" + strings.Join(r.Prefixes, "_")
+	}
+}
+
 func (r *Reservation6) CheckConflictWithAnother(another *Reservation6) bool {
 	if r.Duid == another.Duid && r.HwAddress == another.HwAddress {
 		return true
@@ -52,13 +64,27 @@ func (r *Reservation6) CheckConflictWithAnother(another *Reservation6) bool {
 
 	for _, prefix := range r.Prefixes {
 		for _, prefix_ := range another.Prefixes {
-			if prefix_ == prefix {
+			if isPrefixesIntersect(prefix, prefix_) {
 				return true
 			}
 		}
 	}
 
 	return false
+}
+
+func isPrefixesIntersect(onePrefix, anotherPrefix string) bool {
+	one, err := gohelperip.ParseCIDRv6(onePrefix)
+	if err != nil {
+		return false
+	}
+
+	another, err := gohelperip.ParseCIDRv6(anotherPrefix)
+	if err != nil {
+		return false
+	}
+
+	return one.Contains(another.IP) || another.Contains(one.IP)
 }
 
 func (r *Reservation6) Validate() error {
@@ -82,6 +108,10 @@ func (r *Reservation6) Validate() error {
 		if _, err := net.ParseMAC(r.HwAddress); err != nil {
 			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
 		}
+	} else {
+		if err := parseDUID(r.Duid); err != nil {
+			return fmt.Errorf("duid %s is invalid", r.Duid)
+		}
 	}
 
 	for _, ip := range r.IpAddresses {
@@ -95,11 +125,30 @@ func (r *Reservation6) Validate() error {
 	for _, prefix := range r.Prefixes {
 		if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 			return err
-		} else if ones, _ := ipnet.Mask.Size(); ones >= 64 {
-			return fmt.Errorf("prefix %s mask size %d should less than 64", prefix, ones)
+		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
+			return fmt.Errorf("prefix %s mask size %d must not bigger than 64", prefix, ones)
 		}
+	}
+
+	if err := checkCommentValid(r.Comment); err != nil {
+		return err
 	}
 
 	r.Capacity = uint64(len(r.IpAddresses) + len(r.Prefixes))
 	return nil
+}
+
+func parseDUID(duid string) error {
+	if len(duid) == 0 {
+		return fmt.Errorf("duid is required")
+	}
+
+	duidhexstr := strings.Replace(duid, ":", "", -1)
+	duidbytes, err := hex.DecodeString(duidhexstr)
+	if err != nil {
+		return fmt.Errorf("decode duid with hex failed: %s", err.Error())
+	}
+
+	_, err = dhcp6.DuidFromBytes(duidbytes)
+	return err
 }

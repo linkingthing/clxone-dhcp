@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -10,70 +8,53 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 )
 
-type DhcpOuiHandler struct {
+type DhcpOuiApi struct {
 	Service *service.DhcpOuiService
 }
 
-func NewDhcpOuiApi() *DhcpOuiHandler {
-	return &DhcpOuiHandler{Service: service.NewDhcpOuiService()}
+func NewDhcpOuiApi() *DhcpOuiApi {
+	return &DhcpOuiApi{Service: service.NewDhcpOuiService()}
 }
 
-func (d *DhcpOuiHandler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	dhcpoui := ctx.Resource.(*resource.DhcpOui)
-	if err := dhcpoui.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create dhcp oui %s failed: %s", dhcpoui.Oui, err.Error()))
+func (d *DhcpOuiApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	dhcpOui := ctx.Resource.(*resource.DhcpOui)
+	if err := d.Service.Create(dhcpOui); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	dhcpoui.SetID(dhcpoui.Oui)
-	retDhcpoui, err := d.Service.Create(dhcpoui)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create dhcp oui %s failed: %s", dhcpoui.GetID(), err.Error()))
-	}
-	return retDhcpoui, nil
+
+	return dhcpOui, nil
 }
 
-func (d *DhcpOuiHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (d *DhcpOuiApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	ouis, err := d.Service.List(ctx)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list dhcp ouis from db failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return ouis, nil
 }
 
-func (d *DhcpOuiHandler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	dhcpouiID := ctx.Resource.(*resource.DhcpOui).GetID()
-	dhcpoui, err := d.Service.Get(dhcpouiID)
+func (d *DhcpOuiApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	dhcpOui, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get dhcp oui %s from db failed: %s", dhcpouiID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return dhcpoui.(*resource.DhcpOui), nil
+	return dhcpOui, nil
 }
 
-func (d *DhcpOuiHandler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	dhcpoui := ctx.Resource.(*resource.DhcpOui)
-	if err := dhcpoui.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("update dhcp oui %s failed: %s", dhcpoui.Oui, err.Error()))
-	}
-	retdhcpoui, err := d.Service.Update(dhcpoui)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update dhcp oui %s failed: %s", dhcpoui.GetID(), err.Error()))
+func (d *DhcpOuiApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	dhcpOui := ctx.Resource.(*resource.DhcpOui)
+	if err := d.Service.Update(dhcpOui); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retdhcpoui, nil
+	return dhcpOui, nil
 }
 
-func (d *DhcpOuiHandler) Delete(ctx *restresource.Context) *resterror.APIError {
-	dhcpouiId := ctx.Resource.GetID()
-	err := d.Service.Delete(dhcpouiId)
-	if err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete dhcp oui %s failed: %s", dhcpouiId, err.Error()))
+func (d *DhcpOuiApi) Delete(ctx *restresource.Context) *resterror.APIError {
+	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil

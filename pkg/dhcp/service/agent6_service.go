@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	restresource "github.com/linkingthing/gorest/resource"
-
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
@@ -19,12 +17,13 @@ func NewAgent6Service() *Agent6Service {
 	return &Agent6Service{}
 }
 
-func (h *Agent6Service) List() (interface{}, error) {
+func (h *Agent6Service) List() ([]*resource.Agent6, error) {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get dhcpNodes failed: %s", err.Error())
 	}
+
 	var agents []*resource.Agent6
 	for _, node := range dhcpNodes.GetNodes() {
 		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), kafka.AgentRoleSentry6) {
@@ -33,6 +32,7 @@ func (h *Agent6Service) List() (interface{}, error) {
 				Ip:   node.GetIpv4(),
 			}
 			agent6.SetID(node.GetIpv4())
+
 			if node.GetVirtualIp() != "" {
 				return []*resource.Agent6{agent6}, nil
 			} else {
@@ -44,11 +44,11 @@ func (h *Agent6Service) List() (interface{}, error) {
 	return agents, nil
 }
 
-func (h *Agent6Service) Get(agent *resource.Agent6) (restresource.Resource, error) {
+func (h *Agent6Service) Get(agent *resource.Agent6) error {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("get dhcpNodes failed: %s", err.Error())
+		return fmt.Errorf("get dhcpNodes failed: %s", err.Error())
 	}
 
 	for _, node := range dhcpNodes.GetNodes() {
@@ -56,8 +56,9 @@ func (h *Agent6Service) Get(agent *resource.Agent6) (restresource.Resource, erro
 			node.Ipv4 == agent.GetID() {
 			agent.Name = node.GetName()
 			agent.Ip = node.GetIpv4()
-			return agent, nil
+			return nil
 		}
 	}
-	return nil, fmt.Errorf("no found dhcp agent %s", agent.GetID())
+
+	return fmt.Errorf("no found dhcp agent %s", agent.GetID())
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -13,11 +12,15 @@ import (
 type DhcpConfigService struct {
 }
 
-func NewDhcpConfigService() *DhcpConfigService {
-	return &DhcpConfigService{}
+func NewDhcpConfigService() (*DhcpConfigService, error) {
+	if err := CreateDefaultDhcpConfig(); err != nil {
+		return nil, err
+	}
+
+	return &DhcpConfigService{}, nil
 }
 
-func (d *DhcpConfigService) CreateDefaultDhcpConfig() error {
+func CreateDefaultDhcpConfig() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableDhcpConfig, nil); err != nil {
 			return fmt.Errorf("check dhcp config failed: %s", err.Error())
@@ -31,29 +34,39 @@ func (d *DhcpConfigService) CreateDefaultDhcpConfig() error {
 	}); err != nil {
 		return err
 	}
+
 	return nil
 }
 
-func (d *DhcpConfigService) List() (interface{}, error) {
+func (d *DhcpConfigService) List() ([]*resource.DhcpConfig, error) {
 	var configs []*resource.DhcpConfig
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &configs)
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list dhcp config failed:%s", err.Error())
 	}
+
 	return configs, nil
 }
 
-func (d *DhcpConfigService) Get(configID string) (restresource.Resource, error) {
+func (d *DhcpConfigService) Get(id string) (*resource.DhcpConfig, error) {
 	var configs []*resource.DhcpConfig
-	config, err := restdb.GetResourceWithID(db.GetDB(), configID, &configs)
-	if err != nil {
-		return nil, err
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &configs)
+	}); err != nil {
+		return nil, fmt.Errorf("get dhcp config %s failed:%s", id, err.Error())
+	} else if len(configs) == 0 {
+		return nil, fmt.Errorf("no found dhcp config %s", id)
 	}
-	return config.(*resource.DhcpConfig), nil
+
+	return configs[0], nil
 }
 
-func (d *DhcpConfigService) Update(config *resource.DhcpConfig) (restresource.Resource, error) {
+func (d *DhcpConfigService) Update(config *resource.DhcpConfig) error {
+	if err := config.Validate(); err != nil {
+		return fmt.Errorf("validate config config params failed: %s", err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		_, err := tx.Update(resource.TableDhcpConfig, map[string]interface{}{
 			resource.SqlColumnValidLifetime:     config.ValidLifetime,
@@ -63,7 +76,8 @@ func (d *DhcpConfigService) Update(config *resource.DhcpConfig) (restresource.Re
 		}, map[string]interface{}{restdb.IDField: config.GetID()})
 		return err
 	}); err != nil {
-		return nil, err
+		return fmt.Errorf("update dhcp config %s failed:%s", config.GetID(), err.Error())
 	}
-	return config, nil
+
+	return nil
 }

@@ -2,42 +2,43 @@ package service
 
 import (
 	"fmt"
-
-	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
-
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	restdb "github.com/linkingthing/gorest/db"
 )
 
 const (
 	FieldDuid = "duid"
 )
 
-type AdmitDuIdService struct{}
+type AdmitDuidService struct{}
 
-func NewAdmitDuIdService() *AdmitDuIdService {
-	return &AdmitDuIdService{}
+func NewAdmitDuidService() *AdmitDuidService {
+	return &AdmitDuidService{}
 }
 
-func (d *AdmitDuIdService) Create(admitDuid *resource.AdmitDuid) (restresource.Resource, error) {
+func (d *AdmitDuidService) Create(admitDuid *resource.AdmitDuid) error {
 	admitDuid.SetID(admitDuid.Duid)
 	if err := admitDuid.Validate(); err != nil {
-		return nil, fmt.Errorf("create admit duid Validate err : %s", err.Error())
+		return fmt.Errorf("validate admit duid %s failed:%s",
+			admitDuid.GetID(), err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitDuid); err != nil {
 			return err
 		}
+
 		return sendCreateAdmitDuidCmdToDHCPAgent(admitDuid)
 	}); err != nil {
-		return nil, fmt.Errorf("create admit duid insertdb failed: %s", err.Error())
+		return fmt.Errorf("create admit duid %s failed: %s",
+			admitDuid.GetID(), err.Error())
 	}
 
-	return admitDuid, nil
+	return nil
 }
 
 func sendCreateAdmitDuidCmdToDHCPAgent(admitDuid *resource.AdmitDuid) error {
@@ -47,34 +48,42 @@ func sendCreateAdmitDuidCmdToDHCPAgent(admitDuid *resource.AdmitDuid) error {
 		})
 }
 
-func (d *AdmitDuIdService) List(conditions map[string]interface{}) (interface{}, error) {
+func (d *AdmitDuidService) List(conditions map[string]interface{}) ([]*resource.AdmitDuid, error) {
 	var duids []*resource.AdmitDuid
-	if err := db.GetResources(conditions, &duids); err != nil {
-		return nil, err
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(conditions, &duids)
+	}); err != nil {
+		return nil, fmt.Errorf("list admit duid failed:%s", err.Error())
 	}
+
 	return duids, nil
 }
 
-func (d *AdmitDuIdService) Get(admitDuidID string) (restresource.Resource, error) {
+func (d *AdmitDuidService) Get(id string) (*resource.AdmitDuid, error) {
 	var admitDuids []*resource.AdmitDuid
-	admitDuid, err := restdb.GetResourceWithID(db.GetDB(), admitDuidID, &admitDuids)
-	if err != nil {
-		return nil, err
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &admitDuids)
+	}); err != nil {
+		return nil, fmt.Errorf("get admit duid of %s failed:%s", id, err.Error())
+	} else if len(admitDuids) != 1 {
+		return nil, fmt.Errorf("no found admit duid %s", id)
 	}
-	return admitDuid.(*resource.AdmitDuid), nil
+
+	return admitDuids[0], nil
 }
 
-func (d *AdmitDuIdService) Delete(admitDuidId string) error {
+func (d *AdmitDuidService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableAdmitDuid,
-			map[string]interface{}{restdb.IDField: admitDuidId}); err != nil {
+			map[string]interface{}{restdb.IDField: id}); err != nil {
 			return err
 		} else if rows == 0 {
-			return fmt.Errorf("no found admit duid %s", admitDuidId)
+			return fmt.Errorf("no found admit duid %s", id)
 		}
-		return sendDeleteAdmitDuidCmdToDHCPAgent(admitDuidId)
+
+		return sendDeleteAdmitDuidCmdToDHCPAgent(id)
 	}); err != nil {
-		return err
+		return fmt.Errorf("delete admit duid %s failed:%s", id, err.Error())
 	}
 
 	return nil
@@ -87,18 +96,24 @@ func sendDeleteAdmitDuidCmdToDHCPAgent(admitDuidId string) error {
 		})
 }
 
-func (d *AdmitDuIdService) Update(admitDuid *resource.AdmitDuid) (restresource.Resource, error) {
+func (d *AdmitDuidService) Update(admitDuid *resource.AdmitDuid) error {
+	if err := admitDuid.Validate(); err != nil {
+		return fmt.Errorf("validate admit duid %s failed: %s", admitDuid.GetID(), err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableAdmitDuid,
-			map[string]interface{}{"comment": admitDuid.Comment},
+			map[string]interface{}{util.SqlColumnsComment: admitDuid.Comment},
 			map[string]interface{}{restdb.IDField: admitDuid.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {
 			return fmt.Errorf("no found admit duid %s", admitDuid.GetID())
 		}
+
 		return nil
 	}); err != nil {
-		return nil, err
+		return fmt.Errorf("update admit duid %s failed:%s", admitDuid.GetID(), err.Error())
 	}
-	return admitDuid, nil
+
+	return nil
 }

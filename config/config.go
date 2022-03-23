@@ -49,7 +49,7 @@ type CallServiceConf struct {
 }
 
 type DHCPScanConf struct {
-	Interval uint32 `yanl:"interval"`
+	Interval uint32 `yaml:"interval"`
 }
 type PrometheusConf struct {
 	Addr       string `yaml:"addr"`

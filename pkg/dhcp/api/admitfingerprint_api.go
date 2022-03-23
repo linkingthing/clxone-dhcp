@@ -1,8 +1,6 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -20,44 +18,35 @@ func NewAdmitFingerprintApi() *AdmitFingerprintApi {
 
 func (d *AdmitFingerprintApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitFingerprint := ctx.Resource.(*resource.AdmitFingerprint)
-	admitFingerprint.SetID(admitFingerprint.ClientType)
-	if err := admitFingerprint.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create admit fingerprint %s failed: %s", admitFingerprint.GetID(), err.Error()))
+	if err := d.Service.Create(admitFingerprint); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	retAdmitFingerprint, err := d.Service.Create(admitFingerprint)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create admit fingerprint %s failed: %s", admitFingerprint.GetID(), err.Error()))
-	}
-	return retAdmitFingerprint, nil
+
+	return admitFingerprint, nil
 }
 
 func (d *AdmitFingerprintApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	fingerprints, err := d.Service.List()
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list admit fingerprints from db failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return fingerprints, nil
 }
 
 func (d *AdmitFingerprintApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admitFingerprintID := ctx.Resource.(*resource.AdmitFingerprint).GetID()
-	admitFingerprint, err := d.Service.Get(admitFingerprintID)
+	admitFingerprint, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get admit fingerprint %s from db failed: %s", admitFingerprintID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-	return admitFingerprint.(*resource.AdmitFingerprint), nil
+
+	return admitFingerprint, nil
 }
 
 func (d *AdmitFingerprintApi) Delete(ctx *restresource.Context) *resterror.APIError {
-	admitFingerprintId := ctx.Resource.GetID()
-	err := d.Service.Delete(admitFingerprintId)
-	if err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete admit fingerprint %s failed: %s", admitFingerprintId, err.Error()))
+	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return nil
 }

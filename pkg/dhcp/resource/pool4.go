@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
@@ -83,11 +84,23 @@ func (p *Pool4) String() string {
 }
 
 func (p *Pool4) Validate() error {
+	if err := checkCommentValid(p.Comment); err != nil {
+		return err
+	}
+
 	if p.Template != "" {
 		return nil
 	}
 
 	return p.ValidateAddress()
+}
+
+func checkCommentValid(comment string) error {
+	if strings.Contains(comment, ",") {
+		return fmt.Errorf("comment %s contains illegal character comma", comment)
+	} else {
+		return nil
+	}
 }
 
 func (p *Pool4) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet4) error {

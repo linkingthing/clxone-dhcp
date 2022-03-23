@@ -21,54 +21,49 @@ func NewReservedPool4Api() *ReservedPool4Api {
 func (p *ReservedPool4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	pool := ctx.Resource.(*resource.ReservedPool4)
-	if err := pool.Validate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("create reserved pool params invalid: %s", err.Error()))
-	}
-	retpool, err := p.Service.Create(subnet, pool)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("create pool %s with subnet %s failed: %s",
-				pool.String(), subnet.GetID(), err.Error()))
+
+	if err := p.Service.Create(subnet, pool); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
-	return retpool, nil
+	return pool, nil
 }
 
 func (p *ReservedPool4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	subnetID := ctx.Resource.GetParent().GetID()
-	pools, err := service.ListReservedPool4s(subnetID)
+	pools, err := service.ListReservedPool4s(ctx.Resource.GetParent().GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list reserved pools with subnet %s failed: %s",
-				subnetID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return pools, nil
 }
 
 func (p *ReservedPool4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnetID := ctx.Resource.GetParent().GetID()
-	poolID := ctx.Resource.GetID()
-	pool, err := p.Service.Get(subnetID, poolID)
+	pool, err := p.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool %s with subnet %s failed: %s",
-				poolID, subnetID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return pool, nil
 }
 
 func (p *ReservedPool4Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
-	pool := ctx.Resource.(*resource.ReservedPool4)
-	if err := p.Service.Delete(subnet, pool); err != nil {
-		return resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("delete pool %s with subnet %s failed: %s",
-				pool.String(), subnet.GetID(), err.Error()))
+	if err := p.Service.Delete(
+		ctx.Resource.GetParent().(*resource.Subnet4),
+		ctx.Resource.(*resource.ReservedPool4)); err != nil {
+		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil
+}
+
+func (p *ReservedPool4Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	pool := ctx.Resource.(*resource.ReservedPool4)
+	if err := p.Service.Update(ctx.Resource.GetParent().GetID(), pool); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+	}
+
+	return pool, nil
 }
 
 func (p *ReservedPool4Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
@@ -89,22 +84,11 @@ func (p *ReservedPool4Api) actionValidTemplate(ctx *restresource.Context) (inter
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("parse action valid pool template input invalid"))
 	}
+
 	ret, err := p.Service.ActionValidTemplate(subnet, pool, templateInfo)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("exec actionvalidtemplate failed :%s", err.Error()))
 	}
 	return ret, nil
-}
-
-func (p *ReservedPool4Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pool := ctx.Resource.(*resource.ReservedPool4)
-	retPool, err := p.Service.Update(pool)
-	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update reserved pool4 %s with subnet %s failed: %s",
-				pool.String(), ctx.Resource.GetParent().GetID(), err.Error()))
-	}
-
-	return retPool, nil
 }

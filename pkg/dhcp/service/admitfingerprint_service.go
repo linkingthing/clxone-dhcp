@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -19,16 +18,24 @@ func NewAdmitFingerprintService() *AdmitFingerprintService {
 	return &AdmitFingerprintService{}
 }
 
-func (d *AdmitFingerprintService) Create(admitFingerprint *resource.AdmitFingerprint) (restresource.Resource, error) {
+func (d *AdmitFingerprintService) Create(admitFingerprint *resource.AdmitFingerprint) error {
+	admitFingerprint.SetID(admitFingerprint.ClientType)
+	if err := admitFingerprint.Validate(); err != nil {
+		return fmt.Errorf("create admit fingerprint %s failed: %s",
+			admitFingerprint.GetID(), err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitFingerprint); err != nil {
 			return err
 		}
+
 		return sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint)
 	}); err != nil {
-		return nil, err
+		return fmt.Errorf("create admit fingerprint failed:%s", err.Error())
 	}
-	return admitFingerprint, nil
+
+	return nil
 }
 
 func sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint *resource.AdmitFingerprint) error {
@@ -38,38 +45,45 @@ func sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint *resource.AdmitFi
 		})
 }
 
-func (d *AdmitFingerprintService) List() (interface{}, error) {
+func (d *AdmitFingerprintService) List() ([]*resource.AdmitFingerprint, error) {
 	var fingerprints []*resource.AdmitFingerprint
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{util.SqlOrderBy: resource.AdmitFingerprintClientType}, &fingerprints)
+		return tx.Fill(map[string]interface{}{
+			util.SqlOrderBy: resource.AdmitFingerprintClientType}, &fingerprints)
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list admit fingerprints from db failed: %s", err.Error())
 	}
+
 	return fingerprints, nil
 }
 
-func (d *AdmitFingerprintService) Get(admitFingerprintID string) (restresource.Resource, error) {
+func (d *AdmitFingerprintService) Get(id string) (*resource.AdmitFingerprint, error) {
 	var admitFingerprints []*resource.AdmitFingerprint
-	admitFingerprint, err := restdb.GetResourceWithID(db.GetDB(), admitFingerprintID, &admitFingerprints)
-	if err != nil {
-		return nil, err
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &admitFingerprints)
+	}); err != nil {
+		return nil, fmt.Errorf("get admit fingerprint %s failed:%s", id, err.Error())
+	} else if len(admitFingerprints) == 0 {
+		return nil, fmt.Errorf("get admit fingerprint of %s failed: record not found", id)
 	}
 
-	return admitFingerprint.(*resource.AdmitFingerprint), nil
+	return admitFingerprints[0], nil
 }
 
-func (d *AdmitFingerprintService) Delete(admitFingerprintId string) error {
+func (d *AdmitFingerprintService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableAdmitFingerprint,
-			map[string]interface{}{restdb.IDField: admitFingerprintId}); err != nil {
+			map[string]interface{}{restdb.IDField: id}); err != nil {
 			return err
 		} else if rows == 0 {
-			return fmt.Errorf("no found admit fingerprint %s", admitFingerprintId)
+			return fmt.Errorf("no found admit fingerprint %s", id)
 		}
-		return sendDeleteAdmitFingerprintCmdToDHCPAgent(admitFingerprintId)
+
+		return sendDeleteAdmitFingerprintCmdToDHCPAgent(id)
 	}); err != nil {
 		return err
 	}
+
 	return nil
 }
 

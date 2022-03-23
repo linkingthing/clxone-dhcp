@@ -20,6 +20,8 @@ type PdPool struct {
 	PrefixIpnet               net.IPNet `json:"-"`
 	DelegatedLen              uint32    `json:"delegatedLen" rest:"required=true"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
+	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
+	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 	Comment                   string    `json:"comment"`
 }
 
@@ -31,23 +33,27 @@ const (
 	SqlColumnBeginOffset = "begin_offset"
 )
 
-func (p PdPool) GetParents() []restresource.ResourceKind {
+func (pdPool PdPool) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet6{}}
 }
 
-func (p *PdPool) String() string {
-	return p.PrefixIpnet.String() + "-" + strconv.Itoa(int(p.DelegatedLen))
+func (pdPool *PdPool) String() string {
+	return pdPool.Prefix + "-" + strconv.Itoa(int(pdPool.PrefixLen)) + "-" + strconv.Itoa(int(pdPool.DelegatedLen))
 }
 
-func (pdpool *PdPool) Validate() error {
-	prefix, capacity, err := validPdPool(pdpool.Prefix, pdpool.PrefixLen, pdpool.DelegatedLen)
+func (pdPool *PdPool) Validate() error {
+	prefix, capacity, err := validPdPool(pdPool.Prefix, pdPool.PrefixLen, pdPool.DelegatedLen)
 	if err != nil {
 		return err
 	}
 
-	pdpool.Prefix = prefix.String()
-	pdpool.PrefixIpnet = ipToIPNet(prefix, pdpool.PrefixLen)
-	pdpool.Capacity = capacity
+	if err := checkCommentValid(pdPool.Comment); err != nil {
+		return err
+	}
+
+	pdPool.Prefix = prefix.String()
+	pdPool.PrefixIpnet = ipToIPNet(prefix, pdPool.PrefixLen)
+	pdPool.Capacity = capacity
 	return nil
 }
 
@@ -58,17 +64,33 @@ func ipToIPNet(ip net.IP, prefixLen uint32) net.IPNet {
 	}
 }
 
-func (pdpool *PdPool) CheckConflictWithAnother(another *PdPool) bool {
-	return pdpool.PrefixIpnet.Contains(another.PrefixIpnet.IP) ||
-		another.PrefixIpnet.Contains(pdpool.PrefixIpnet.IP)
+func (pdPool *PdPool) CheckConflictWithAnother(another *PdPool) bool {
+	return pdPool.PrefixIpnet.Contains(another.PrefixIpnet.IP) ||
+		another.PrefixIpnet.Contains(pdPool.PrefixIpnet.IP)
 }
 
-func (pdpool *PdPool) Contains(prefix string) bool {
+func (pdPool *PdPool) Contains(prefix string) bool {
 	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 		return false
 	} else {
-		return pdpool.PrefixIpnet.Contains(ipnet.IP)
+		prefixLen, _ := ipnet.Mask.Size()
+		return pdPool.DelegatedLen == uint32(prefixLen) &&
+			pdPool.PrefixIpnet.Contains(ipnet.IP)
 	}
+}
+
+func (pdPool *PdPool) IntersectPrefix(prefix string) bool {
+	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
+		return false
+	} else {
+		return pdPool.PrefixIpnet.Contains(ipnet.IP) ||
+			ipnet.Contains(pdPool.PrefixIpnet.IP)
+	}
+}
+
+func (pdPool *PdPool) IntersectIpnet(ipnet net.IPNet) bool {
+	return pdPool.PrefixIpnet.Contains(ipnet.IP) ||
+		ipnet.Contains(pdPool.PrefixIpnet.IP)
 }
 
 func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, uint64, error) {
@@ -77,8 +99,8 @@ func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, uint64,
 		return nil, 0, fmt.Errorf("pdpool prefix %s is invalid: %s", prefix, err.Error())
 	}
 
-	if prefixLen <= 0 || prefixLen >= 64 {
-		return nil, 0, fmt.Errorf("pdpool prefix len %d not in (0, 64)", prefixLen)
+	if prefixLen <= 0 || prefixLen > 64 {
+		return nil, 0, fmt.Errorf("pdpool prefix len %d not in (0, 64]", prefixLen)
 	}
 
 	if delegatedLen < prefixLen || delegatedLen > 64 {
@@ -86,11 +108,11 @@ func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, uint64,
 			delegatedLen, prefixLen)
 	}
 
-	return prefixIp, (1 << (delegatedLen - prefixLen)) - 1, nil
+	return prefixIp, 1 << (delegatedLen - prefixLen), nil
 }
 
-func (pdpool *PdPool) GetRange() (string, string) {
-	return pdpool.Prefix, getPdPoolEndPrefix(pdpool.PrefixIpnet, pdpool.DelegatedLen)
+func (pdPool *PdPool) GetRange() (string, string) {
+	return pdPool.Prefix, getPdPoolEndPrefix(pdPool.PrefixIpnet, pdPool.DelegatedLen)
 }
 
 func getPdPoolEndPrefix(prefixIpnet net.IPNet, delegatedLen uint32) string {

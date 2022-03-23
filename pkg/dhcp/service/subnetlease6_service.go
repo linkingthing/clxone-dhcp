@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	resterror "github.com/linkingthing/gorest/error"
 	"net"
 	"strings"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
-	"github.com/linkingthing/clxone-dhcp/pkg/grpc/parser"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
@@ -63,8 +61,7 @@ func ListSubnetLease6(subnetId, ip string) ([]*resource.SubnetLease6, error) {
 		if err == ErrorIpNotBelongToSubnet {
 			return nil, nil
 		} else {
-			return nil, resterror.NewAPIError(resterror.ServerError,
-				fmt.Sprintf("get subnet6 %s from db failed: %s", subnetId, err.Error()))
+			return nil, fmt.Errorf("get subnet6 %s from db failed: %s", subnetId, err.Error())
 		}
 	}
 
@@ -119,15 +116,23 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 	lease6, err := GetSubnetLease6WithoutReclaimed(subnetId, ip,
 		subnetLeases)
 	if err != nil {
-		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
+		log.Debugf("get subnet6 %d lease6s failed: %s", subnetId, err.Error())
 		return nil, nil
 	} else if lease6 == nil {
 		return nil, nil
 	}
 
+	leasePrefix := prefixFromAddressAndPrefixLen(lease6.Address, lease6.PrefixLen)
 	for _, reservation := range reservations {
 		for _, ipaddress := range reservation.IpAddresses {
 			if ipaddress == lease6.Address {
+				lease6.AddressType = resource.AddressTypeReservation
+				break
+			}
+		}
+
+		for _, prefix := range reservation.Prefixes {
+			if prefix == leasePrefix {
 				lease6.AddressType = resource.AddressTypeReservation
 				break
 			}
@@ -141,12 +146,29 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 	return []*resource.SubnetLease6{lease6}, nil
 }
 
+func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease6) (*resource.SubnetLease6, error) {
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(context.TODO(),
+		&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
+	if err != nil {
+		return nil, err
+	}
+
+	subnetLease6 := SubnetLease6FromPbLease6(resp.GetLease())
+	for _, reclaimSubnetLease6 := range subnetLeases {
+		if reclaimSubnetLease6.Equal(subnetLease6) {
+			return nil, nil
+		}
+	}
+
+	return subnetLease6, nil
+}
+
 func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6,
 	subnetLeases []*resource.SubnetLease6) ([]*resource.SubnetLease6, error) {
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
 		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 	if err != nil {
-		log.Debugf("get subnet6 %d leases failed: %s", subnetId, err.Error())
+		log.Debugf("get subnet6 %d lease6s failed: %s", subnetId, err.Error())
 		return nil, nil
 	}
 
@@ -173,21 +195,55 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6,
 			strings.Join(reclaimleasesForRetain, "','") + "')")
 		return err
 	}); err != nil {
-		log.Warnf("delete reclaim leases failed: %s", err.Error())
+		log.Warnf("delete reclaim lease6s failed: %s", err.Error())
 	}
 
 	return leases, nil
 }
 
 func subnetLease6FromPbLease6AndReservations(lease *pbdhcpagent.DHCPLease6, reservationMap map[string]struct{}) *resource.SubnetLease6 {
-	subnetLease6 := parser.DecodeSubnetLease6FromPbLease6(lease)
-	if _, ok := reservationMap[subnetLease6.Address]; ok {
+	subnetLease6 := SubnetLease6FromPbLease6(lease)
+	if _, ok := reservationMap[prefixFromAddressAndPrefixLen(subnetLease6.Address,
+		subnetLease6.PrefixLen)]; ok {
 		subnetLease6.AddressType = resource.AddressTypeReservation
 	}
 	return subnetLease6
 }
 
+func SubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.SubnetLease6 {
+	lease6 := &resource.SubnetLease6{
+		Address:               lease.GetAddress(),
+		AddressType:           resource.AddressTypeDynamic,
+		PrefixLen:             lease.GetPrefixLen(),
+		Duid:                  lease.GetDuid(),
+		Iaid:                  lease.GetIaid(),
+		HwAddress:             lease.GetHwAddress(),
+		HwAddressType:         lease.GetHwAddressType(),
+		HwAddressSource:       lease.GetHwAddressSource().String(),
+		HwAddressOrganization: lease.GetHwAddressOrganization(),
+		ValidLifetime:         lease.GetValidLifetime(),
+		PreferredLifetime:     lease.GetPreferredLifetime(),
+		Expire:                timeFromUinx(lease.GetExpire()),
+		LeaseType:             lease.GetLeaseType(),
+		Hostname:              lease.GetHostname(),
+		Fingerprint:           lease.GetFingerprint(),
+		VendorId:              lease.GetVendorId(),
+		OperatingSystem:       lease.GetOperatingSystem(),
+		ClientType:            lease.GetClientType(),
+		LeaseState:            lease.GetLeaseState().String(),
+		RequestSourceAddr:     lease.GetRequestSourceAddr(),
+	}
+
+	lease6.SetID(lease.GetAddress())
+	return lease6
+}
+
 func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
+	_, err := gohelperip.ParseIPv6(leaseId)
+	if err != nil {
+		return fmt.Errorf("subnet6 %s lease6 id %s is invalid: %s", subnetId, leaseId, err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		subnet6, err := getSubnet6FromDB(tx, subnetId)
 		if err != nil {
@@ -219,25 +275,8 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 				LeaseType: lease6.LeaseType, Address: leaseId})
 		return err
 	}); err != nil {
-		return err
+		return fmt.Errorf("delete lease6 %s with subnet6 %s failed: %s", leaseId, subnetId, err.Error())
 	}
 
 	return nil
-}
-
-func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease6) (*resource.SubnetLease6, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(context.TODO(),
-		&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
-	if err != nil {
-		return nil, err
-	}
-
-	subnetLease6 := parser.DecodeSubnetLease6FromPbLease6(resp.GetLease())
-	for _, reclaimSubnetLease6 := range subnetLeases {
-		if reclaimSubnetLease6.Equal(subnetLease6) {
-			return nil, nil
-		}
-	}
-
-	return subnetLease6, nil
 }
