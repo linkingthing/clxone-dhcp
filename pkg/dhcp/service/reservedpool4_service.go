@@ -337,3 +337,47 @@ func GetReservedPool4sByPrefix(prefix string) ([]*resource.ReservedPool4, error)
 		return pools, nil
 	}
 }
+
+func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) error {
+	subnet, err := GetSubnet4ByPrefix(prefix)
+	if err != nil {
+		return err
+	}
+
+	for _, pool := range pools {
+		if err := pool.Validate(); err != nil {
+			return fmt.Errorf("validate reserved pool4 params invalid: %s", err.Error())
+		}
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, pool := range pools {
+			if err := checkReservedPool4CouldBeCreated(tx, subnet, pool); err != nil {
+				return err
+			}
+
+			if err := updateSubnet4AndPoolsCapacityWithReservedPool4(tx, subnet,
+				pool, true); err != nil {
+				return err
+			}
+
+			pool.Subnet4 = subnet.GetID()
+			if _, err := tx.Insert(pool); err != nil {
+				return err
+			}
+		}
+
+		for _, pool := range pools {
+			if err := sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("batch create reserved pool4s with subnet4 %s failed: %s",
+			subnet.GetID(), err.Error())
+	}
+
+	return nil
+}

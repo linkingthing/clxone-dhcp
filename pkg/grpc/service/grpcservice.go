@@ -247,13 +247,28 @@ func (g *GrpcService) CreateReservation4S(ctx context.Context, request *dhcppb.C
 }
 
 func (g *GrpcService) CreateReservedPool4S(ctx context.Context, request *dhcppb.CreateReservedPool4SRequest) (*dhcppb.CreateReservedPool4SResponse, error) {
-	panic("implement me")
+	if err := GetDHCPService().CreateReservedPool4s(request.GetSubnet(),
+		request.GetReservedPool4S()); err != nil {
+		return nil, err
+	} else {
+		return &dhcppb.CreateReservedPool4SResponse{Succeed: true}, nil
+	}
 }
 
 func (g *GrpcService) CreateReservation6S(ctx context.Context, request *dhcppb.CreateReservation6SRequest) (*dhcppb.CreateReservation6SResponse, error) {
-	panic("implement me")
+	if err := GetDHCPService().CreateReservation6s(request.GetSubnet(),
+		request.GetReservation6S()); err != nil {
+		return nil, err
+	} else {
+		return &dhcppb.CreateReservation6SResponse{Succeed: true}, nil
+	}
 }
 
 func (g *GrpcService) CreateReservedPool6S(ctx context.Context, request *dhcppb.CreateReservedPool6SRequest) (*dhcppb.CreateReservedPool6SResponse, error) {
-	panic("implement me")
+	if err := GetDHCPService().CreateReservedPool6s(request.GetSubnet(),
+		request.GetReservedPool6S()); err != nil {
+		return nil, err
+	} else {
+		return &dhcppb.CreateReservedPool6SResponse{Succeed: true}, nil
+	}
 }

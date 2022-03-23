@@ -581,3 +581,43 @@ func GetReservationPool6sByPrefix(prefix string) ([]*resource.Reservation6, erro
 		return pools, nil
 	}
 }
+
+func BatchCreateReservation6s(prefix string, reservations []*resource.Reservation6) error {
+	subnet, err := GetSubnet6ByPrefix(prefix)
+	if err != nil {
+		return err
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, reservation := range reservations {
+			if err := reservation.Validate(); err != nil {
+				return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
+			}
+			if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
+				return err
+			}
+		}
+
+		for _, reservation := range reservations {
+			if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
+				reservation, true); err != nil {
+				return err
+			}
+
+			reservation.Subnet6 = subnet.GetID()
+			if _, err := tx.Insert(reservation); err != nil {
+				return err
+			}
+
+			if err := sendCreateReservation6CmdToDHCPAgent(
+				subnet.SubnetId, subnet.Nodes, reservation); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("create reservation6s failed: %s", err.Error())
+	}
+
+	return nil
+}

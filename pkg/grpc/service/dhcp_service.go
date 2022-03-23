@@ -846,17 +846,17 @@ func (d *DHCPService) GetLease6sBySubnet(prefix string) ([]*dhcppb.Lease6, error
 }
 
 func (d *DHCPService) CreateReservation4s(prefix string, pbPools []*dhcppb.Reservation4) error {
-	return nil
+	return service.BatchCreateReservation4s(prefix, parser.DecodePbToReservation4s(pbPools))
 }
 
-func (d *DHCPService) CreateReservedPool4s(prefix string, pool []*resource.ReservedPool4) (bool, error) {
-	return true, nil
+func (d *DHCPService) CreateReservedPool4s(prefix string, pools []*dhcppb.ReservedPool4) error {
+	return service.BatchCreateReservedPool4s(prefix, parser.DecodePbToReservedPool4s(pools))
 }
 
-func (d *DHCPService) CreateReservation6s(prefix string, reservations []*resource.Reservation6) (bool, error) {
-	return true, nil
+func (d *DHCPService) CreateReservation6s(prefix string, pools []*dhcppb.Reservation6) error {
+	return service.BatchCreateReservation6s(prefix, parser.DecodePbToReservation6s(pools))
 }
 
-func (d *DHCPService) CreateReservedPool6(prefix string, pools []*resource.ReservedPool6) (bool, error) {
-	return true, nil
+func (d *DHCPService) CreateReservedPool6s(prefix string, pools []*dhcppb.ReservedPool6) error {
+	return service.BatchCreateReservedPool6s(prefix, parser.DecodePbToReservedPool6s(pools))
 }

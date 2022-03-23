@@ -160,7 +160,7 @@ func ListReservation4s(subnetID string) ([]*resource.Reservation4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet4: subnetID,
-			util.SqlOrderBy: resource.SqlColumnsIp}, &reservations)
+			util.SqlOrderBy:           resource.SqlColumnsIp}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation4s with subnet4 %s from db failed: %s",
 			subnetID, err.Error())
@@ -214,7 +214,7 @@ func (r *Reservation4Service) Get(subnetID, reservationID string) (*resource.Res
 		return nil, fmt.Errorf("get reservation %s with subnetID %s failed: %s",
 			reservationID, subnetID, err.Error())
 	} else if len(reservations) == 0 {
-		return nil, fmt.Errorf("no found reservation %s with subnetID %s",reservationID,subnetID)
+		return nil, fmt.Errorf("no found reservation %s with subnetID %s", reservationID, subnetID)
 	}
 
 	if leasesCount, err := getReservation4LeaseCount(reservations[0]); err != nil {
@@ -266,7 +266,7 @@ func (r *Reservation4Service) Delete(subnet *resource.Subnet4, reservation *reso
 			reservation)
 	}); err != nil {
 		return fmt.Errorf("delete reservation4 %s with subnet4 %s failed: %s",
-				reservation.String(), subnet.GetID(), err.Error())
+			reservation.String(), subnet.GetID(), err.Error())
 	}
 
 	return nil
@@ -336,7 +336,7 @@ func (r *Reservation4Service) Update(subnetId string, reservation *resource.Rese
 		return nil
 	}); err != nil {
 		return fmt.Errorf("update reservation4 %s with subnet4 %s failed: %s",
-				reservation.String(), subnetId, err.Error())
+			reservation.String(), subnetId, err.Error())
 	}
 
 	return nil
@@ -353,4 +353,45 @@ func GetReservationPool4sByPrefix(prefix string) ([]*resource.Reservation4, erro
 	} else {
 		return pools, nil
 	}
+}
+
+func BatchCreateReservation4s(prefix string, reservations []*resource.Reservation4) error {
+	subnet, err := GetSubnet4ByPrefix(prefix)
+	if err != nil {
+		return err
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, reservation := range reservations {
+			if err := reservation.Validate(); err != nil {
+				return fmt.Errorf("validate reservation params invalid: %s", err.Error())
+			}
+
+			if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
+				return err
+			}
+		}
+
+		for _, reservation := range reservations {
+			if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
+				reservation, true); err != nil {
+				return err
+			}
+
+			reservation.Subnet4 = subnet.GetID()
+			if _, err := tx.Insert(reservation); err != nil {
+				return err
+			}
+
+			if err := sendCreateReservation4CmdToDHCPAgent(
+				subnet.SubnetId, subnet.Nodes, reservation); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("create reservation4s failed: %s", err.Error())
+	}
+
+	return nil
 }
