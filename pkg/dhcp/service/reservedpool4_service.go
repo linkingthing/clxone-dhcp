@@ -202,10 +202,10 @@ func reservedPool4ToCreateReservedPool4Request(subnetID uint64, pool *resource.R
 }
 
 func (p *ReservedPool4Service) List(subnetID string) ([]*resource.ReservedPool4, error) {
-	return ListReservedPool4s(subnetID)
+	return listReservedPool4s(subnetID)
 }
 
-func ListReservedPool4s(subnetID string) ([]*resource.ReservedPool4, error) {
+func listReservedPool4s(subnetID string) ([]*resource.ReservedPool4, error) {
 	var pools []*resource.ReservedPool4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
@@ -334,7 +334,7 @@ func GetReservedPool4sByPrefix(prefix string) ([]*resource.ReservedPool4, error)
 		return nil, err
 	}
 
-	if pools, err := ListReservedPool4s(subnet4.GetID()); err != nil {
+	if pools, err := listReservedPool4s(subnet4.GetID()); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

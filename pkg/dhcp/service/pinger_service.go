@@ -15,14 +15,14 @@ type PingerService struct {
 }
 
 func NewPingerService() (*PingerService, error) {
-	if err := CreateDefaultPinger(); err != nil {
+	if err := createDefaultPinger(); err != nil {
 		return nil, err
 	}
 
 	return &PingerService{}, nil
 }
 
-func CreateDefaultPinger() error {
+func createDefaultPinger() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TablePinger, nil); err != nil {
 			return fmt.Errorf("check dhcp pinger failed: %s", err.Error())

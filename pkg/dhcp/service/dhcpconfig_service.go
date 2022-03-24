@@ -13,14 +13,14 @@ type DhcpConfigService struct {
 }
 
 func NewDhcpConfigService() (*DhcpConfigService, error) {
-	if err := CreateDefaultDhcpConfig(); err != nil {
+	if err := createDefaultDhcpConfig(); err != nil {
 		return nil, err
 	}
 
 	return &DhcpConfigService{}, nil
 }
 
-func CreateDefaultDhcpConfig() error {
+func createDefaultDhcpConfig() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableDhcpConfig, nil); err != nil {
 			return fmt.Errorf("check dhcp config failed: %s", err.Error())

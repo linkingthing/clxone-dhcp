@@ -35,6 +35,9 @@ func GenStrConditionsFromFilters(filters []restresource.Filter, orderby string, 
 	for _, filterName := range filterNames {
 		if value, ok := GetFilterValueWithEqModifierFromFilters(filterName, filters); ok {
 			conditions[filterName] = value
+			if filterName == orderby {
+				delete(conditions, "orderby")
+			}
 		}
 	}
 

@@ -161,20 +161,16 @@ func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 	}
 }
 
-func (p *Pool4Service) List(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
-	return ListPool4s(subnet)
+func (p *Pool4Service) List(subnetID string) ([]*resource.Pool4, error) {
+	return listPool4s(subnetID)
 }
 
-func ListPool4s(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
+func listPool4s(subnetID string) ([]*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := setSubnet4FromDB(tx, subnet); err != nil {
-			return err
-		}
-
 		if err := tx.Fill(map[string]interface{}{
-			resource.SqlColumnSubnet4: subnet.GetID(),
+			resource.SqlColumnSubnet4: subnetID,
 			resource.SqlOrderBy:       resource.SqlColumnBeginIp}, &pools); err != nil {
 			return err
 		}
@@ -186,13 +182,13 @@ func ListPool4s(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
 				r4.subnet4 = p4.subnet4 and 
 				r4.ip_address >= p4.begin_address and 
 				r4.ip_address <= p4.end_address
-			)`, subnet.GetID())
+			)`, subnetID)
 	}); err != nil {
 		return nil, fmt.Errorf("list pool4s with subnet4 %s from db failed: %s",
-			subnet.GetID(), err.Error())
+			subnetID, err.Error())
 	}
 
-	poolsLeases := loadPool4sLeases(subnet, pools, reservations)
+	poolsLeases := loadPool4sLeases(subnetID, pools, reservations)
 	for _, pool := range pools {
 		setPool4LeasesUsedRatio(pool, poolsLeases[pool.GetID()])
 	}
@@ -200,10 +196,10 @@ func ListPool4s(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
 	return pools, nil
 }
 
-func loadPool4sLeases(subnet *resource.Subnet4, pools []*resource.Pool4, reservations []*resource.Reservation4) map[string]uint64 {
-	resp, err := getSubnet4Leases(subnet.SubnetId)
+func loadPool4sLeases(subnetID string, pools []*resource.Pool4, reservations []*resource.Reservation4) map[string]uint64 {
+	resp, err := getSubnet4Leases(subnetIDStrToUint64(subnetID))
 	if err != nil {
-		log.Warnf("get subnet4 %s leases failed: %s", subnet.GetID(), err.Error())
+		log.Warnf("get subnet4 %s leases failed: %s", subnetID, err.Error())
 		return nil
 	}
 
@@ -442,7 +438,7 @@ func GetPool4sByPrefix(prefix string) ([]*resource.Pool4, error) {
 		return nil, err
 	}
 
-	if pools, err := ListPool4s(subnet4); err != nil {
+	if pools, err := listPool4s(subnet4.GetID()); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

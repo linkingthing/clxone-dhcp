@@ -187,10 +187,10 @@ func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 }
 
 func (p *Pool6Service) List(subnetId string) ([]*resource.Pool6, error) {
-	return ListPool6s(subnetId)
+	return listPool6s(subnetId)
 }
 
-func ListPool6s(subnetId string) ([]*resource.Pool6, error) {
+func listPool6s(subnetId string) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -438,7 +438,7 @@ func GetPool6sByPrefix(prefix string) ([]*resource.Pool6, error) {
 		return nil, err
 	}
 
-	if pools, err := ListPool6s(subnet6.GetID()); err != nil {
+	if pools, err := listPool6s(subnet6.GetID()); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

@@ -31,12 +31,11 @@ func (l *SubnetLease4Service) List(subnet *resource.Subnet4, ip string) ([]*reso
 }
 
 func ListSubnetLease4(subnet *resource.Subnet4, ip string) ([]*resource.SubnetLease4, error) {
-	hasAddressFilter := false
-	if ip != "" {
+	hasAddressFilter := ip != ""
+	if hasAddressFilter {
 		if _, err := gohelperip.ParseIPv4(ip); err != nil {
 			return nil, nil
 		}
-		hasAddressFilter = true
 	}
 
 	var subnet4SubnetId uint64

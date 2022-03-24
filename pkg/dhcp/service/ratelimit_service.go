@@ -15,14 +15,14 @@ type RateLimitService struct {
 }
 
 func NewRateLimitService() (*RateLimitService, error) {
-	if err := CreateDefaultRateLimit(); err != nil {
+	if err := createDefaultRateLimit(); err != nil {
 		return nil, err
 	}
 
 	return &RateLimitService{}, nil
 }
 
-func CreateDefaultRateLimit() error {
+func createDefaultRateLimit() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableRateLimit, nil); err != nil {
 			return fmt.Errorf("check dhcp ratelimit failed: %s", err.Error())

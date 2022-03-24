@@ -127,7 +127,7 @@ func (d *DhcpOuiService) Update(dhcpOui *resource.DhcpOui) error {
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := d.updateOrDeleteOuiValid(tx, dhcpOui.GetID()); err != nil {
+		if err := d.checkOuiIsReadOnly(tx, dhcpOui.GetID()); err != nil {
 			return err
 		}
 
@@ -145,6 +145,20 @@ func (d *DhcpOuiService) Update(dhcpOui *resource.DhcpOui) error {
 	return nil
 }
 
+func (d *DhcpOuiService) checkOuiIsReadOnly(tx restdb.Transaction, id string) error {
+	var dhcpOuis []*resource.DhcpOui
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
+		&dhcpOuis); err != nil {
+		return err
+	} else if len(dhcpOuis) == 0 {
+		return fmt.Errorf("no found dhcp oui %s", id)
+	} else if dhcpOuis[0].IsReadOnly {
+		return fmt.Errorf("dhcp oui %s is readonly", id)
+	} else {
+		return nil
+	}
+}
+
 func sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
 	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateOui,
 		&pbdhcpagent.UpdateOuiRequest{
@@ -155,7 +169,7 @@ func sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
 
 func (d *DhcpOuiService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := d.updateOrDeleteOuiValid(tx, id); err != nil {
+		if err := d.checkOuiIsReadOnly(tx, id); err != nil {
 			return err
 		}
 
@@ -177,18 +191,4 @@ func sendDeleteDhcpOuiCmdToDHCPAgent(dhcpOuiId string) error {
 		&pbdhcpagent.DeleteOuiRequest{
 			Oui: dhcpOuiId,
 		})
-}
-
-func (d *DhcpOuiService) updateOrDeleteOuiValid(tx restdb.Transaction, id string) error {
-	var dhcpOuis []*resource.DhcpOui
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
-		&dhcpOuis); err != nil {
-		return err
-	} else if len(dhcpOuis) == 0 {
-		return fmt.Errorf("no found dhcp oui %s", id)
-	} else if dhcpOuis[0].IsReadOnly {
-		return fmt.Errorf("delete readonly dhcp oui %s", id)
-	}
-
-	return nil
 }

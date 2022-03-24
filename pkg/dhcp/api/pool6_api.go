@@ -78,7 +78,7 @@ func (p *Pool6Api) actionValidTemplate(ctx *restresource.Context) (interface{}, 
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			"parse action refresh input invalid")
+			"parse action valid template input invalid")
 	}
 
 	templatePool, err := p.Service.ActionValidTemplate(
@@ -86,8 +86,7 @@ func (p *Pool6Api) actionValidTemplate(ctx *restresource.Context) (interface{}, 
 		ctx.Resource.(*resource.Pool6),
 		templateInfo)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("template %s invalid: %s", ctx.Resource.(*resource.Pool6).Template, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return templatePool, nil

@@ -333,10 +333,10 @@ func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resou
 }
 
 func (r *Reservation6Service) List(subnetID string) ([]*resource.Reservation6, error) {
-	return ListReservation6s(subnetID)
+	return listReservation6s(subnetID)
 }
 
-func ListReservation6s(subnetID string) ([]*resource.Reservation6, error) {
+func listReservation6s(subnetID string) ([]*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
@@ -578,7 +578,7 @@ func GetReservationPool6sByPrefix(prefix string) ([]*resource.Reservation6, erro
 		return nil, err
 	}
 
-	if pools, err := ListReservation6s(subnet6.GetID()); err != nil {
+	if pools, err := listReservation6s(subnet6.GetID()); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

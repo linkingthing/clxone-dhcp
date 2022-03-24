@@ -21,7 +21,7 @@ func (h *Agent6Service) List() ([]*resource.Agent6, error) {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("get dhcpNodes failed: %s", err.Error())
+		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
 	var agents []*resource.Agent6
@@ -48,7 +48,7 @@ func (h *Agent6Service) Get(agent *resource.Agent6) error {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return fmt.Errorf("get dhcpNodes failed: %s", err.Error())
+		return fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
 	for _, node := range dhcpNodes.GetNodes() {
@@ -60,5 +60,5 @@ func (h *Agent6Service) Get(agent *resource.Agent6) error {
 		}
 	}
 
-	return fmt.Errorf("no found dhcp agent %s", agent.GetID())
+	return fmt.Errorf("no found dhcp node %s", agent.GetID())
 }

@@ -86,8 +86,7 @@ func (p *ReservedPool4Api) actionValidTemplate(ctx *restresource.Context) (inter
 		ctx.Resource.(*resource.ReservedPool4),
 		templateInfo)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("exec actionvalidtemplate failed :%s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return ret, nil

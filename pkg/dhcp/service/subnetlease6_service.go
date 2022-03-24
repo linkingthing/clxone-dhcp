@@ -27,12 +27,11 @@ func (l *SubnetLease6Service) List(subnet *resource.Subnet6, ip string) ([]*reso
 }
 
 func ListSubnetLease6(subnet *resource.Subnet6, ip string) ([]*resource.SubnetLease6, error) {
-	hasAddressFilter := false
-	if ip != "" {
+	hasAddressFilter := ip != ""
+	if hasAddressFilter {
 		if _, err := gohelperip.ParseIPv6(ip); err != nil {
 			return nil, nil
 		}
-		hasAddressFilter = true
 	}
 
 	var subnet6SubnetId uint64

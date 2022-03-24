@@ -27,15 +27,8 @@ func (p *Pool6TemplateApi) Create(ctx *restresource.Context) (restresource.Resou
 }
 
 func (p *Pool6TemplateApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	conditions := make(map[string]interface{})
-	if name, ok := util.GetFilterValueWithEqModifierFromFilters(
-		util.FilterNameName, ctx.GetFilters()); ok {
-		conditions[util.FilterNameName] = name
-	} else {
-		conditions[resource.SqlOrderBy] = resource.SqlColumnName
-	}
-
-	templates, err := p.Service.List(conditions)
+	templates, err := p.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		resource.SqlColumnName, resource.SqlColumnName))
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

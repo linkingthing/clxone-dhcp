@@ -155,10 +155,10 @@ func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resou
 }
 
 func (r *Reservation4Service) List(subnetID string) ([]*resource.Reservation4, error) {
-	return ListReservation4s(subnetID)
+	return listReservation4s(subnetID)
 }
 
-func ListReservation4s(subnetID string) ([]*resource.Reservation4, error) {
+func listReservation4s(subnetID string) ([]*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
@@ -351,7 +351,7 @@ func GetReservationPool4sByPrefix(prefix string) ([]*resource.Reservation4, erro
 		return nil, err
 	}
 
-	if pools, err := ListReservation4s(subnet4.GetID()); err != nil {
+	if pools, err := listReservation4s(subnet4.GetID()); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

@@ -213,10 +213,10 @@ func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.R
 }
 
 func (p *ReservedPool6Service) List(subnetId string) ([]*resource.ReservedPool6, error) {
-	return ListReservedPool6s(subnetId)
+	return listReservedPool6s(subnetId)
 }
 
-func ListReservedPool6s(subnetId string) ([]*resource.ReservedPool6, error) {
+func listReservedPool6s(subnetId string) ([]*resource.ReservedPool6, error) {
 	var pools []*resource.ReservedPool6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
@@ -344,7 +344,7 @@ func GetReservedPool6sByPrefix(prefix string) ([]*resource.ReservedPool6, error)
 		return nil, err
 	}
 
-	if pools, err := ListReservedPool6s(subnet6.GetID()); err != nil {
+	if pools, err := listReservedPool6s(subnet6.GetID()); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

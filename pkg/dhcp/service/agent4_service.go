@@ -21,7 +21,7 @@ func (h *Agent4Service) List() ([]*resource.Agent4, error) {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("list dhcp agent4s failed: %s", err.Error())
+		return nil, fmt.Errorf("list dhcp nodes failed: %s", err.Error())
 	}
 
 	var agents []*resource.Agent4
@@ -48,7 +48,7 @@ func (h *Agent4Service) Get(agent *resource.Agent4) error {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return fmt.Errorf("get dhcpNodes failed: %s", err.Error())
+		return fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
 	for _, node := range dhcpNodes.GetNodes() {
@@ -60,14 +60,14 @@ func (h *Agent4Service) Get(agent *resource.Agent4) error {
 		}
 	}
 
-	return fmt.Errorf("no found dhcp agent %s", agent.GetID())
+	return fmt.Errorf("no found dhcp node %s", agent.GetID())
 }
 
 func GetNodeNames(isv4 bool) (map[string]string, error) {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("get dhcpNodes failed: %s", err.Error())
+		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
 	sentryRole := kafka.AgentRoleSentry4

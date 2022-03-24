@@ -28,7 +28,7 @@ func (p *Pool4Api) Create(ctx *restresource.Context) (restresource.Resource, *re
 }
 
 func (p *Pool4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pools, err := p.Service.List(ctx.Resource.GetParent().(*resource.Subnet4))
+	pools, err := p.Service.List(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -78,15 +78,14 @@ func (p *Pool4Api) actionValidTemplate(ctx *restresource.Context) (interface{}, 
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
-			"parse action refresh input invalid")
+			"parse action valid template input invalid")
 	}
 
 	if templatePool, err := p.Service.ActionValidTemplate(
 		ctx.Resource.GetParent().(*resource.Subnet4),
 		ctx.Resource.(*resource.Pool4),
 		templateInfo); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidAction,
-			fmt.Sprintf("action validTemplate failed :%s", err))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return templatePool, nil
 	}

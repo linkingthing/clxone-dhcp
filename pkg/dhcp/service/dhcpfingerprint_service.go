@@ -111,14 +111,9 @@ func (h *DhcpFingerprintService) Update(fingerprint *resource.DhcpFingerprint) e
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var fingerprints []*resource.DhcpFingerprint
-		if err := tx.Fill(map[string]interface{}{restdb.IDField: fingerprint.GetID()},
-			&fingerprints); err != nil {
+		oldFingerprint, err := getFingerprintWithoutReadOnly(tx, fingerprint.GetID())
+		if err != nil {
 			return err
-		} else if len(fingerprints) == 0 {
-			return fmt.Errorf("no found fingerprint %s", fingerprint.GetID())
-		} else if fingerprints[0].IsReadOnly {
-			return fmt.Errorf("update readonly fingerprint %s", fingerprint.GetID())
 		}
 
 		if _, err := tx.Update(resource.TableDhcpFingerprint, map[string]interface{}{
@@ -132,13 +127,27 @@ func (h *DhcpFingerprintService) Update(fingerprint *resource.DhcpFingerprint) e
 			return err
 		}
 
-		return sendUpdateFingerprintCmdToDHCPAgent(fingerprints[0], fingerprint)
+		return sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, fingerprint)
 	}); err != nil {
 		return fmt.Errorf("update fingerprint %s failed:%s",
 			fingerprint.Fingerprint, err.Error())
 	}
 
 	return nil
+}
+
+func getFingerprintWithoutReadOnly(tx restdb.Transaction, id string) (*resource.DhcpFingerprint, error) {
+	var fingerprints []*resource.DhcpFingerprint
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
+		&fingerprints); err != nil {
+		return nil, err
+	} else if len(fingerprints) == 0 {
+		return nil, fmt.Errorf("no found fingerprint %s", id)
+	} else if fingerprints[0].IsReadOnly {
+		return nil, fmt.Errorf("fingerprint %s is readonly", id)
+	} else {
+		return fingerprints[0], nil
+	}
 }
 
 func sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, newFingerprint *resource.DhcpFingerprint) error {
@@ -150,14 +159,9 @@ func sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, newFingerprint *resourc
 
 func (h *DhcpFingerprintService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var fingerprints []*resource.DhcpFingerprint
-		if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
-			&fingerprints); err != nil {
+		oldFingerprint, err := getFingerprintWithoutReadOnly(tx, id)
+		if err != nil {
 			return err
-		} else if len(fingerprints) == 0 {
-			return fmt.Errorf("no found fingerprint %s", id)
-		} else if fingerprints[0].IsReadOnly {
-			return fmt.Errorf("delete readonly fingerprint %s", id)
 		}
 
 		if _, err := tx.Delete(resource.TableDhcpFingerprint, map[string]interface{}{
@@ -165,7 +169,7 @@ func (h *DhcpFingerprintService) Delete(id string) error {
 			return err
 		}
 
-		return sendDeleteFingerprintCmdToDHCPAgent(fingerprints[0])
+		return sendDeleteFingerprintCmdToDHCPAgent(oldFingerprint)
 	}); err != nil {
 		return fmt.Errorf("delete fingerprint %s failed:%s", id, err.Error())
 	}

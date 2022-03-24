@@ -14,14 +14,14 @@ import (
 type AdmitService struct{}
 
 func NewAdmitService() (*AdmitService, error) {
-	if err := CreateDefaultAdmit(); err != nil {
+	if err := createDefaultAdmit(); err != nil {
 		return nil, err
 	}
 
 	return &AdmitService{}, nil
 }
 
-func CreateDefaultAdmit() error {
+func createDefaultAdmit() error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableAdmit, nil); err != nil {
 			return fmt.Errorf("check dhcp admit failed: %s", err.Error())
@@ -60,11 +60,10 @@ func (d *AdmitService) Get(id string) (*resource.Admit, error) {
 }
 
 func (d *AdmitService) Update(admit *resource.Admit) error {
-	cond := map[string]interface{}{restdb.IDField: admit.GetID()}
-	newValue := map[string]interface{}{resource.SqlColumnEnabled: admit.Enabled}
-
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableAdmit, newValue, cond); err != nil {
+		if _, err := tx.Update(resource.TableAdmit,
+			map[string]interface{}{resource.SqlColumnEnabled: admit.Enabled},
+			map[string]interface{}{restdb.IDField: admit.GetID()}); err != nil {
 			return err
 		}
 
