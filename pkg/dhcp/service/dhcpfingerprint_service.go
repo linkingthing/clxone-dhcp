@@ -2,14 +2,13 @@ package service
 
 import (
 	"fmt"
+
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var (
@@ -81,10 +80,7 @@ func getVendorIdByMatchPattern(vendorId string, matchPattern resource.MatchPatte
 	return string(vendorBytes)
 }
 
-func (h *DhcpFingerprintService) List(ctx *restresource.Context) ([]*resource.DhcpFingerprint, error) {
-	conditions := util.GenStrConditionsFromFilters(ctx.GetFilters(),
-		OrderByCreateTime, FingerprintFilterNames...)
-
+func (h *DhcpFingerprintService) List(conditions map[string]interface{}) ([]*resource.DhcpFingerprint, error) {
 	var fingerprints []*resource.DhcpFingerprint
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &fingerprints)
@@ -126,10 +122,10 @@ func (h *DhcpFingerprintService) Update(fingerprint *resource.DhcpFingerprint) e
 		}
 
 		if _, err := tx.Update(resource.TableDhcpFingerprint, map[string]interface{}{
-			resource.SqlDhcpFPrintVendorId:        fingerprint.VendorId,
-			resource.SqlDhcpFPrintOperatingSystem: fingerprint.OperatingSystem,
-			resource.SqlDhcpFPrintClientType:      fingerprint.ClientType,
-			resource.SqlDhcpFPrintMatchPattern:    fingerprint.MatchPattern,
+			resource.SqlColumnVendorId:        fingerprint.VendorId,
+			resource.SqlColumnOperatingSystem: fingerprint.OperatingSystem,
+			resource.SqlColumnClientType:      fingerprint.ClientType,
+			resource.SqlColumnMatchPattern:    fingerprint.MatchPattern,
 		}, map[string]interface{}{
 			restdb.IDField: fingerprint.GetID(),
 		}); err != nil {

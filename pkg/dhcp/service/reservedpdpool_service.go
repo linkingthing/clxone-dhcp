@@ -10,7 +10,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type ReservedPdPoolService struct {
@@ -182,7 +181,7 @@ func (p *ReservedPdPoolService) List(subnetID string) ([]*resource.ReservedPdPoo
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet6: subnetID,
-			util.SqlOrderBy:           resource.SqlColumnPrefixIpNet}, &pdpools)
+			resource.SqlOrderBy:       resource.SqlColumnPrefixIpNet}, &pdpools)
 	}); err != nil {
 		return nil, fmt.Errorf("list pdpools with subnet %s failed: %s",
 			subnetID, err.Error())
@@ -191,15 +190,15 @@ func (p *ReservedPdPoolService) List(subnetID string) ([]*resource.ReservedPdPoo
 	return pdpools, nil
 }
 
-func (p *ReservedPdPoolService) Get(subnetID, pdpoolID string) (*resource.ReservedPdPool, error) {
+func (p *ReservedPdPoolService) Get(subnet *resource.Subnet6, pdpoolID string) (*resource.ReservedPdPool, error) {
 	var pdpools []*resource.ReservedPdPool
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: pdpoolID}, &pdpools)
 	}); err != nil {
 		return nil, fmt.Errorf("get pdpool %s with subnet %s from db failed: %s",
-			pdpoolID, subnetID, err.Error())
+			pdpoolID, subnet.GetID(), err.Error())
 	} else if len(pdpools) == 0 {
-		return nil, fmt.Errorf("no found pdpool %s with subnet %s", pdpoolID, subnetID)
+		return nil, fmt.Errorf("no found pdpool %s with subnet %s", pdpoolID, subnet.GetID())
 	}
 
 	return pdpools[0], nil
@@ -270,7 +269,7 @@ func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resour
 func (p *ReservedPdPoolService) Update(subnetId string, pool *resource.ReservedPdPool) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPdPool, map[string]interface{}{
-			util.SqlColumnsComment: pool.Comment,
+			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {

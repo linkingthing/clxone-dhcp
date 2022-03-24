@@ -13,10 +13,6 @@ type AdmitDuid struct {
 	Comment                   string `json:"comment"`
 }
 
-const (
-	FieldDuid = "duid"
-)
-
 func (a AdmitDuid) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Admit{}}
 }

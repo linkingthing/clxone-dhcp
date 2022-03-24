@@ -10,7 +10,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SharedNetwork4Service struct{}
@@ -89,10 +88,10 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 		}
 
 		if _, err := tx.Update(resource.TableSharedNetwork4, map[string]interface{}{
-			util.SqlColumnsName:          sharedNetwork4.Name,
+			resource.SqlColumnName:       sharedNetwork4.Name,
 			resource.SqlColumnsSubnetIds: sharedNetwork4.SubnetIds,
 			resource.SqlColumnsSubnets:   sharedNetwork4.Subnets,
-			util.SqlColumnsComment:       sharedNetwork4.Comment,
+			resource.SqlColumnComment:    sharedNetwork4.Comment,
 		}, map[string]interface{}{
 			restdb.IDField: sharedNetwork4.GetID()}); err != nil {
 			return err

@@ -3,19 +3,16 @@ package service
 import (
 	"context"
 	"fmt"
-	resterror "github.com/linkingthing/gorest/error"
 	"net"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Pool6Service struct {
@@ -189,12 +186,17 @@ func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 	}
 }
 
+func (p *Pool6Service) List(subnetId string) ([]*resource.Pool6, error) {
+	return ListPool6s(subnetId)
+}
+
 func ListPool6s(subnetId string) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId,
-			util.SqlOrderBy: resource.SqlColumnBeginIp}, &pools)
+		err := tx.Fill(map[string]interface{}{
+			resource.SqlColumnSubnet6: subnetId,
+			resource.SqlOrderBy:       resource.SqlColumnBeginIp}, &pools)
 		if err != nil {
 			return err
 		}
@@ -255,7 +257,7 @@ func setPool6LeasesUsedRatio(pool *resource.Pool6, leasesCount uint64) {
 	}
 }
 
-func (p *Pool6Service) Get(subnetID, poolID string) (*resource.Pool6, error) {
+func (p *Pool6Service) Get(subnet *resource.Subnet6, poolID string) (*resource.Pool6, error) {
 	var pools []*resource.Pool6
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -263,21 +265,20 @@ func (p *Pool6Service) Get(subnetID, poolID string) (*resource.Pool6, error) {
 		if err != nil {
 			return err
 		} else if len(pools) != 1 {
-			return fmt.Errorf("no found pool6 %s with subnet6 %s", poolID, subnetID)
+			return fmt.Errorf("no found pool6 %s with subnet6 %s", poolID, subnet.GetID())
 		}
 
-		reservations, err = getReservation6sWithIpsExists(tx, subnetID)
+		reservations, err = getReservation6sWithIpsExists(tx, subnet.GetID())
 		return err
 	}); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("get pool6 %s with subnet6 %s from db failed: %s",
-				poolID, subnetID, err.Error()))
+		return nil, fmt.Errorf("get pool6 %s with subnet6 %s from db failed: %s",
+			poolID, subnet.GetID(), err.Error())
 	}
 
 	leasesCount, err := getPool6LeasesCount(pools[0], reservations)
 	if err != nil {
 		log.Warnf("get pool6 %s with subnet6 %s from db failed: %s",
-			poolID, subnetID, err.Error())
+			poolID, subnet.GetID(), err.Error())
 	}
 
 	setPool6LeasesUsedRatio(pools[0], leasesCount)
@@ -403,7 +404,7 @@ func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 func (p *Pool6Service) Update(subnetId string, pool *resource.Pool6) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TablePool6, map[string]interface{}{
-			util.SqlColumnsComment: pool.Comment,
+			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {
@@ -418,14 +419,7 @@ func (p *Pool6Service) Update(subnetId string, pool *resource.Pool6) error {
 	return nil
 }
 
-func (p *Pool6Service) ActionValidTemplate(ctx *restresource.Context) (*resource.TemplatePool, error) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
-	pool := ctx.Resource.(*resource.Pool6)
-	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
-	if ok == false {
-		return nil, fmt.Errorf("parse action refresh input invalid")
-	}
-
+func (p *Pool6Service) ActionValidTemplate(subnet *resource.Subnet6, pool *resource.Pool6, templateInfo *resource.TemplateInfo) (*resource.TemplatePool, error) {
 	pool.Template = templateInfo.Template
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkPool6CouldBeCreated(tx, subnet, pool)

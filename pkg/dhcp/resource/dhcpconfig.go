@@ -33,13 +33,6 @@ type DhcpConfig struct {
 	DomainServers             []string `json:"domainServers"`
 }
 
-const (
-	SqlColumnValidLifetime     = "valid_lifetime"
-	SqlColumnMaxValidLifetime  = "max_valid_lifetime"
-	SqlColumnMinValidLifetime  = "min_valid_lifetime"
-	SqlDhcpConfigDomainServers = "domain_servers"
-)
-
 func (config *DhcpConfig) Validate() error {
 	if err := gohelperip.CheckIPsValid(config.DomainServers...); err != nil {
 		return err

@@ -25,14 +25,6 @@ type PdPool struct {
 	Comment                   string    `json:"comment"`
 }
 
-const (
-	SqlColumnSubnet6     = "subnet6"
-	SqlColumnSubnet4     = "subnet4"
-	SqlColumnBeginIp     = "begin_ip"
-	SqlColumnPrefixIpNet = "prefix_ipnet"
-	SqlColumnBeginOffset = "begin_offset"
-)
-
 func (pdPool PdPool) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet6{}}
 }

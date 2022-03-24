@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Pool4TemplateApi struct {
@@ -26,7 +27,15 @@ func (p *Pool4TemplateApi) Create(ctx *restresource.Context) (restresource.Resou
 }
 
 func (p *Pool4TemplateApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	templates, err := p.Service.List(ctx)
+	conditions := make(map[string]interface{})
+	if name, ok := util.GetFilterValueWithEqModifierFromFilters(
+		util.FilterNameName, ctx.GetFilters()); ok {
+		conditions[util.FilterNameName] = name
+	} else {
+		conditions[resource.SqlOrderBy] = resource.SqlColumnName
+	}
+
+	templates, err := p.Service.List(conditions)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

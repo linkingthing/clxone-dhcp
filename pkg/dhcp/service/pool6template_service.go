@@ -4,11 +4,9 @@ import (
 	"fmt"
 
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Pool6TemplateService struct {
@@ -36,15 +34,7 @@ func (p *Pool6TemplateService) Create(template *resource.Pool6Template) error {
 	return nil
 }
 
-func (p *Pool6TemplateService) List(ctx *restresource.Context) ([]*resource.Pool6Template, error) {
-	conditions := make(map[string]interface{})
-	if name, ok := util.GetFilterValueWithEqModifierFromFilters(
-		util.FilterNameName, ctx.GetFilters()); ok {
-		conditions[util.FilterNameName] = name
-	} else {
-		conditions[util.SqlOrderBy] = util.SqlColumnsName
-	}
-
+func (p *Pool6TemplateService) List(conditions map[string]interface{}) ([]*resource.Pool6Template, error) {
 	var templates []*resource.Pool6Template
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &templates)
@@ -78,7 +68,7 @@ func (p *Pool6TemplateService) Update(template *resource.Pool6Template) error {
 		if rows, err := tx.Update(resource.TablePool6Template, map[string]interface{}{
 			resource.SqlColumnBeginOffset: template.BeginOffset,
 			resource.SqlColumnCapacity:    template.Capacity,
-			util.SqlColumnsComment:        template.Comment,
+			resource.SqlColumnComment:     template.Comment,
 		}, map[string]interface{}{restdb.IDField: template.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {

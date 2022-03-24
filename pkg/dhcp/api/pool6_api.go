@@ -19,10 +19,8 @@ func NewPool6Api() *Pool6Api {
 }
 
 func (p *Pool6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
 	pool := ctx.Resource.(*resource.Pool6)
-
-	if err := p.Service.Create(subnet, pool); err != nil {
+	if err := p.Service.Create(ctx.Resource.GetParent().(*resource.Subnet6), pool); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
@@ -30,7 +28,7 @@ func (p *Pool6Api) Create(ctx *restresource.Context) (restresource.Resource, *re
 }
 
 func (p *Pool6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pools, err := service.ListPool6s(ctx.Resource.GetParent().GetID())
+	pools, err := p.Service.List(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -39,7 +37,7 @@ func (p *Pool6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIE
 }
 
 func (p *Pool6Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pool, err := p.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
+	pool, err := p.Service.Get(ctx.Resource.GetParent().(*resource.Subnet6), ctx.Resource.GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -77,7 +75,16 @@ func (p *Pool6Api) Action(ctx *restresource.Context) (interface{}, *resterror.AP
 }
 
 func (p *Pool6Api) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	templatePool, err := p.Service.ActionValidTemplate(ctx)
+	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidFormat,
+			"parse action refresh input invalid")
+	}
+
+	templatePool, err := p.Service.ActionValidTemplate(
+		ctx.Resource.GetParent().(*resource.Subnet6),
+		ctx.Resource.(*resource.Pool6),
+		templateInfo)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("template %s invalid: %s", ctx.Resource.(*resource.Pool6).Template, err.Error()))

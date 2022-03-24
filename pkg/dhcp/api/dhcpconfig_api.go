@@ -41,7 +41,7 @@ func (d *DhcpConfigApi) Get(ctx *restresource.Context) (restresource.Resource, *
 
 func (d *DhcpConfigApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	config := ctx.Resource.(*resource.DhcpConfig)
-	if err := d.Service.Update(config);err != nil {
+	if err := d.Service.Update(config); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 

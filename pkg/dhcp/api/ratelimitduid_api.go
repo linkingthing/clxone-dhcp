@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type RateLimitDuidHandler struct {
@@ -26,7 +27,9 @@ func (d *RateLimitDuidHandler) Create(ctx *restresource.Context) (restresource.R
 }
 
 func (d *RateLimitDuidHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	rateLimitDuids, err := d.Service.List(ctx)
+	conditions := util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		resource.SqlColumnDuid, resource.SqlColumnDuid)
+	rateLimitDuids, err := d.Service.List(conditions)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

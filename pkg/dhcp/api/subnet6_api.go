@@ -2,13 +2,13 @@ package api
 
 import (
 	"fmt"
-	csvutil "github.com/linkingthing/clxone-utils/csv"
 
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 )
 
 type Subnet6Api struct {
@@ -105,8 +105,8 @@ func (s *Subnet6Api) actionCouldBeCreated(ctx *restresource.Context) (interface{
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action check subnet could be created input invalid"))
 	}
-	_, err := s.Service.CouldBeCreated(couldBeCreatedSubnet)
-	if err != nil {
+
+	if err := s.Service.CouldBeCreated(couldBeCreatedSubnet); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("action check subnet could be created failed: %s", err.Error()))
 	}
@@ -120,6 +120,7 @@ func (s *Subnet6Api) actionListWithSubnets(ctx *restresource.Context) (interface
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action list subnet input invalid"))
 	}
+
 	ret, err := s.Service.ListWithSubnets(subnetListInput)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
@@ -135,9 +136,9 @@ func (s *Subnet6Api) importCSV(ctx *restresource.Context) (interface{}, *resterr
 			fmt.Sprintf("action importcsv input invalid"))
 	}
 
-	if err := s.Service.ImportCSV(file); err !=nil {
+	if err := s.Service.ImportCSV(file); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("import subnet6 csv failed:%s",err.Error()))
+			fmt.Sprintf("import subnet6 csv failed:%s", err.Error()))
 	}
 
 	return nil, nil

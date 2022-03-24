@@ -6,12 +6,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	restdb "github.com/linkingthing/gorest/db"
-)
-
-const (
-	FieldDuid = "duid"
 )
 
 type AdmitDuidService struct{}
@@ -103,7 +98,7 @@ func (d *AdmitDuidService) Update(admitDuid *resource.AdmitDuid) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableAdmitDuid,
-			map[string]interface{}{util.SqlColumnsComment: admitDuid.Comment},
+			map[string]interface{}{resource.SqlColumnComment: admitDuid.Comment},
 			map[string]interface{}{restdb.IDField: admitDuid.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {

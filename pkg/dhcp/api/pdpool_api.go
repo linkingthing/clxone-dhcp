@@ -17,10 +17,8 @@ func NewPdPoolApi() *PdPoolApi {
 }
 
 func (p *PdPoolApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
 	pdPool := ctx.Resource.(*resource.PdPool)
-
-	if err := p.Service.Create(subnet, pdPool); err != nil {
+	if err := p.Service.Create(ctx.Resource.GetParent().(*resource.Subnet6), pdPool); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
@@ -28,7 +26,7 @@ func (p *PdPoolApi) Create(ctx *restresource.Context) (restresource.Resource, *r
 }
 
 func (p *PdPoolApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pdPools, err := service.ListPdPools(ctx.Resource.GetParent().GetID())
+	pdPools, err := p.Service.List(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -37,7 +35,9 @@ func (p *PdPoolApi) List(ctx *restresource.Context) (interface{}, *resterror.API
 }
 
 func (p *PdPoolApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pdPool, err := p.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
+	pdPool, err := p.Service.Get(
+		ctx.Resource.GetParent().(*resource.Subnet6),
+		ctx.Resource.GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

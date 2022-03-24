@@ -9,7 +9,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type RateLimitMacService struct{}
@@ -105,7 +104,7 @@ func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error 
 
 		if _, err := tx.Update(resource.TableRateLimitMac, map[string]interface{}{
 			resource.SqlColumnRateLimit: rateLimitMac.RateLimit,
-			util.SqlColumnsComment:      rateLimitMac.Comment,
+			resource.SqlColumnComment:   rateLimitMac.Comment,
 		}, map[string]interface{}{restdb.IDField: rateLimitMac.GetID()}); err != nil {
 			return err
 		}

@@ -4,7 +4,9 @@ import (
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SubnetLease4Api struct {
@@ -16,7 +18,10 @@ func NewSubnetLease4Api() *SubnetLease4Api {
 }
 
 func (h *SubnetLease4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	subnetLease4s, err := h.Service.List(ctx)
+	ip, _ := util.GetFilterValueWithEqModifierFromFilters(
+		util.FilterNameIp, ctx.GetFilters())
+
+	subnetLease4s, err := h.Service.List(ctx.Resource.GetParent().(*resource.Subnet4), ip)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -25,7 +30,9 @@ func (h *SubnetLease4Api) List(ctx *restresource.Context) (interface{}, *resterr
 }
 
 func (h *SubnetLease4Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := h.Service.Delete(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID()); err != nil {
+	if err := h.Service.Delete(
+		ctx.Resource.GetParent().(*resource.Subnet4),
+		ctx.Resource.GetID()); err != nil {
 		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 

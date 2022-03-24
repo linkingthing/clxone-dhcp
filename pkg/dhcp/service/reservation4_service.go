@@ -12,7 +12,6 @@ import (
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Reservation4Service struct {
@@ -155,12 +154,16 @@ func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resou
 	}
 }
 
+func (r *Reservation4Service) List(subnetID string) ([]*resource.Reservation4, error) {
+	return ListReservation4s(subnetID)
+}
+
 func ListReservation4s(subnetID string) ([]*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet4: subnetID,
-			util.SqlOrderBy:           resource.SqlColumnsIp}, &reservations)
+			resource.SqlOrderBy:       resource.SqlColumnsIp}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation4s with subnet4 %s from db failed: %s",
 			subnetID, err.Error())
@@ -206,20 +209,20 @@ func reservationMapFromReservation4s(reservations []*resource.Reservation4) map[
 	return reservationMap
 }
 
-func (r *Reservation4Service) Get(subnetID, reservationID string) (*resource.Reservation4, error) {
+func (r *Reservation4Service) Get(subnet *resource.Subnet4, reservationID string) (*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: reservationID}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("get reservation %s with subnetID %s failed: %s",
-			reservationID, subnetID, err.Error())
+			reservationID, subnet.GetID(), err.Error())
 	} else if len(reservations) == 0 {
-		return nil, fmt.Errorf("no found reservation %s with subnetID %s", reservationID, subnetID)
+		return nil, fmt.Errorf("no found reservation %s with subnetID %s", reservationID, subnet.GetID())
 	}
 
 	if leasesCount, err := getReservation4LeaseCount(reservations[0]); err != nil {
 		log.Warnf("get reservation4 %s with subnet4 %s leases used ratio failed: %s",
-			reservations[0].String(), subnetID, err.Error())
+			reservations[0].String(), subnet.GetID(), err.Error())
 	} else {
 		setReservation4LeasesUsedRatio(reservations[0], leasesCount)
 	}
@@ -326,7 +329,7 @@ func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resou
 func (r *Reservation4Service) Update(subnetId string, reservation *resource.Reservation4) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservation4, map[string]interface{}{
-			util.SqlColumnsComment: reservation.Comment,
+			resource.SqlColumnComment: reservation.Comment,
 		}, map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {
@@ -361,18 +364,18 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 		return err
 	}
 
+	for _, reservation := range reservations {
+		if err := reservation.Validate(); err != nil {
+			return fmt.Errorf("validate reservation params invalid: %s", err.Error())
+		}
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, reservation := range reservations {
-			if err := reservation.Validate(); err != nil {
-				return fmt.Errorf("validate reservation params invalid: %s", err.Error())
-			}
-
 			if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
 				return err
 			}
-		}
 
-		for _, reservation := range reservations {
 			if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
 				reservation, true); err != nil {
 				return err

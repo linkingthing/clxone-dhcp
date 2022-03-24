@@ -14,7 +14,6 @@ import (
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type PdPoolService struct {
@@ -202,13 +201,17 @@ func pdPoolToCreatePdPoolRequest(subnetID uint64, pdPool *resource.PdPool) *pbdh
 	}
 }
 
+func (p *PdPoolService) List(subnetId string) ([]*resource.PdPool, error) {
+	return ListPdPools(subnetId)
+}
+
 func ListPdPools(subnetID string) ([]*resource.PdPool, error) {
 	var pdPools []*resource.PdPool
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		err := tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet6: subnetID,
-			util.SqlOrderBy:           resource.SqlColumnPrefixIpNet}, &pdPools)
+			resource.SqlOrderBy:       resource.SqlColumnPrefixIpNet}, &pdPools)
 		if err != nil {
 			return err
 		}
@@ -269,7 +272,7 @@ func setPdPoolLeasesUsedRatio(pdPool *resource.PdPool, leasesCount uint64) {
 	}
 }
 
-func (p *PdPoolService) Get(subnetId, pdPoolId string) (*resource.PdPool, error) {
+func (p *PdPoolService) Get(subnet *resource.Subnet6, pdPoolId string) (*resource.PdPool, error) {
 	var pdPools []*resource.PdPool
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -277,20 +280,20 @@ func (p *PdPoolService) Get(subnetId, pdPoolId string) (*resource.PdPool, error)
 		if err != nil {
 			return err
 		} else if len(pdPools) != 1 {
-			return fmt.Errorf("no found pdpool %s with subnet %s", pdPoolId, subnetId)
+			return fmt.Errorf("no found pdpool %s with subnet %s", pdPoolId, subnet.GetID())
 		}
 
-		reservations, err = getReservation6sWithPrefixesExists(tx, subnetId)
+		reservations, err = getReservation6sWithPrefixesExists(tx, subnet.GetID())
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("get pdpool %s with subnet %s from db failed: %s",
-			pdPoolId, subnetId, err.Error())
+			pdPoolId, subnet.GetID(), err.Error())
 	}
 
 	leasesCount, err := getPdPoolLeasesCount(pdPools[0], reservations)
 	if err != nil {
 		log.Warnf("get pdpool %s with subnet %s from db failed: %s",
-			pdPoolId, subnetId, err.Error())
+			pdPoolId, subnet.GetID(), err.Error())
 	}
 
 	setPdPoolLeasesUsedRatio(pdPools[0], leasesCount)
@@ -425,7 +428,7 @@ func (p *PdPoolService) Update(subnetId string, pdPool *resource.PdPool) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TablePdPool,
-			map[string]interface{}{util.SqlColumnsComment: pdPool.Comment},
+			map[string]interface{}{resource.SqlColumnComment: pdPool.Comment},
 			map[string]interface{}{restdb.IDField: pdPool.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {

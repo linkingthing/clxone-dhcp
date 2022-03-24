@@ -14,10 +14,6 @@ type AdmitFingerprint struct {
 	ClientType                string `json:"clientType" rest:"required=true"`
 }
 
-const (
-	AdmitFingerprintClientType = "client_type"
-)
-
 func (a AdmitFingerprint) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Admit{}}
 }

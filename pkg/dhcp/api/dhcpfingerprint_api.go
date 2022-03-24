@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type DhcpFingerprintHandler struct {
@@ -26,7 +27,8 @@ func (h *DhcpFingerprintHandler) Create(ctx *restresource.Context) (restresource
 }
 
 func (h *DhcpFingerprintHandler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	fingerprints, err := h.Service.List(ctx)
+	fingerprints, err := h.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		service.OrderByCreateTime, service.FingerprintFilterNames...))
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

@@ -41,21 +41,6 @@ type Subnet4 struct {
 }
 
 const (
-	SqlColumnSubnetMask          = "subnet_mask"
-	SqlColumnDomainServers       = "domain_servers"
-	SqlColumnRouters             = "routers"
-	SqlColumnClientClass         = "client_class"
-	SqlColumnIfaceName           = "iface_name"
-	SqlColumnRelayAgentAddresses = "relay_agent_addresses"
-	SqlColumnNextServer          = "next_server"
-	SqlColumnTftpServer          = "tftp_server"
-	SqlColumnBootfile            = "bootfile"
-	SqlColumnTags                = "tags"
-	SqlColumnSubnetId            = "subnet_id"
-	SqlColumnNodes               = "nodes"
-)
-
-const (
 	ActionNameUpdateNodes     = "update_nodes"
 	ActionNameCouldBeCreated  = "could_be_created"
 	ActionNameListWithSubnets = "list_with_subnets"

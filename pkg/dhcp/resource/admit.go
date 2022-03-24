@@ -13,9 +13,3 @@ type Admit struct {
 	restresource.ResourceBase `json:",inline"`
 	Enabled                   bool `json:"enabled" rest:"required=true"`
 }
-
-const (
-	SqlColumnEnabled  = "enabled"
-	SqlColumnTimeout  = "timeout"
-	SqlColumnCapacity = "capacity"
-)

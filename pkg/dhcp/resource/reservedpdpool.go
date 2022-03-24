@@ -22,12 +22,12 @@ type ReservedPdPool struct {
 	Comment                   string    `json:"comment"`
 }
 
-func (p ReservedPdPool) GetParents() []restresource.ResourceKind {
+func (pdpool ReservedPdPool) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet6{}}
 }
 
-func (p *ReservedPdPool) String() string {
-	return p.PrefixIpnet.String() + "-" + strconv.Itoa(int(p.DelegatedLen))
+func (pdpool *ReservedPdPool) String() string {
+	return pdpool.PrefixIpnet.String() + "-" + strconv.Itoa(int(pdpool.DelegatedLen))
 }
 
 func (pdpool *ReservedPdPool) Validate() error {

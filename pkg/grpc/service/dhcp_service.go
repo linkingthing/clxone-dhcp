@@ -730,7 +730,7 @@ func (d DHCPService) GetLease4ByIp(ip string) (*dhcppb.Lease4, error) {
 		return nil, err
 	}
 
-	lease4s, err := service.ListSubnetLease4(subnet.GetID(), ip)
+	lease4s, err := service.ListSubnetLease4(subnet, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -748,7 +748,7 @@ func (d DHCPService) GetLease4ByPrefix(prefix string) ([]*dhcppb.Lease4, error) 
 		return nil, err
 	}
 
-	lease4s, err := service.ListSubnetLease4(subnet.GetID(), "")
+	lease4s, err := service.ListSubnetLease4(subnet, "")
 	if err != nil {
 		return nil, err
 	}
@@ -820,7 +820,7 @@ func (d *DHCPService) GetLease6ByIp(ip string) (*dhcppb.Lease6, error) {
 		return nil, err
 	}
 
-	lease6s, err := service.ListSubnetLease6(subnet.GetID(), ip)
+	lease6s, err := service.ListSubnetLease6(subnet, ip)
 	if err != nil {
 		return nil, err
 	}
@@ -838,7 +838,7 @@ func (d *DHCPService) GetLease6sBySubnet(prefix string) ([]*dhcppb.Lease6, error
 		return nil, err
 	}
 
-	lease6s, err := service.ListSubnetLease6(subnet.GetID(), "")
+	lease6s, err := service.ListSubnetLease6(subnet, "")
 	if err != nil {
 		return nil, err
 	}

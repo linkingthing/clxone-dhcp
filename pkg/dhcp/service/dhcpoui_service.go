@@ -132,7 +132,7 @@ func (d *DhcpOuiService) Update(dhcpOui *resource.DhcpOui) error {
 		}
 
 		if _, err := tx.Update(resource.TableDhcpOui, map[string]interface{}{
-			resource.SqlDhcpOuiOrg: dhcpOui.Organization,
+			resource.SqlColumnOuiOrganization: dhcpOui.Organization,
 		}, map[string]interface{}{restdb.IDField: dhcpOui.GetID()}); err != nil {
 			return err
 		}

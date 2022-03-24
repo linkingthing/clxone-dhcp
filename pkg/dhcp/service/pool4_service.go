@@ -8,14 +8,12 @@ import (
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Pool4Service struct {
@@ -163,6 +161,10 @@ func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 	}
 }
 
+func (p *Pool4Service) List(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
+	return ListPool4s(subnet)
+}
+
 func ListPool4s(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	var reservations []*resource.Reservation4
@@ -173,18 +175,18 @@ func ListPool4s(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
 
 		if err := tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet4: subnet.GetID(),
-			util.SqlOrderBy:           resource.SqlColumnBeginIp}, &pools); err != nil {
+			resource.SqlOrderBy:       resource.SqlColumnBeginIp}, &pools); err != nil {
 			return err
 		}
 
 		return tx.FillEx(&reservations, `
-select * from gr_reservation4 where id in 
-(select distinct r4.id from gr_reservation4 r4, gr_pool4 p4 
-where r4.subnet4 = $1 and 
-r4.subnet4 = p4.subnet4 and 
-r4.ip_address >= p4.begin_address and 
-r4.ip_address <= p4.end_address)
-`, subnet.GetID())
+		select * from gr_reservation4 where id in 
+			(select distinct r4.id from gr_reservation4 r4, gr_pool4 p4 where 
+				r4.subnet4 = $1 and 
+				r4.subnet4 = p4.subnet4 and 
+				r4.ip_address >= p4.begin_address and 
+				r4.ip_address <= p4.end_address
+			)`, subnet.GetID())
 	}); err != nil {
 		return nil, fmt.Errorf("list pool4s with subnet4 %s from db failed: %s",
 			subnet.GetID(), err.Error())
@@ -239,7 +241,7 @@ func setPool4LeasesUsedRatio(pool *resource.Pool4, leasesCount uint64) {
 	}
 }
 
-func (p *Pool4Service) Get(subnetID, poolID string) (*resource.Pool4, error) {
+func (p *Pool4Service) Get(subnet *resource.Subnet4, poolID string) (*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -247,20 +249,20 @@ func (p *Pool4Service) Get(subnetID, poolID string) (*resource.Pool4, error) {
 		if err != nil {
 			return err
 		} else if len(pools) != 1 {
-			return fmt.Errorf("no found pool4 %s with subnet4 %s", poolID, subnetID)
+			return fmt.Errorf("no found pool4 %s with subnet4 %s", poolID, subnet.GetID())
 		}
 
-		reservations, err = getReservation4sWithBeginAndEndIp(tx, subnetID, pools[0].BeginIp, pools[0].EndIp)
+		reservations, err = getReservation4sWithBeginAndEndIp(tx, subnet.GetID(), pools[0].BeginIp, pools[0].EndIp)
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("get pool4 %s with subnet4 %s failed: %s",
-			poolID, subnetID, err.Error())
+			poolID, subnet.GetID(), err.Error())
 	}
 
 	leasesCount, err := getPool4LeasesCount(pools[0], reservations)
 	if err != nil {
 		log.Warnf("get pool4 %s with subnet4 %s from db failed: %s",
-			poolID, subnetID, err.Error())
+			poolID, subnet.GetID(), err.Error())
 	}
 
 	setPool4LeasesUsedRatio(pools[0], leasesCount)
@@ -404,7 +406,7 @@ func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 func (p *Pool4Service) Update(subnetId string, pool *resource.Pool4) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TablePool4, map[string]interface{}{
-			util.SqlColumnsComment: pool.Comment,
+			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {
@@ -420,14 +422,7 @@ func (p *Pool4Service) Update(subnetId string, pool *resource.Pool4) error {
 	return nil
 }
 
-func (p *Pool4Service) ActionValidTemplate(ctx *restresource.Context) (*resource.TemplatePool, error) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
-	pool := ctx.Resource.(*resource.Pool4)
-	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
-	if ok == false {
-		return nil, fmt.Errorf("parse action refresh input invalid")
-	}
-
+func (p *Pool4Service) ActionValidTemplate(subnet *resource.Subnet4, pool *resource.Pool4, templateInfo *resource.TemplateInfo) (*resource.TemplatePool, error) {
 	pool.Template = templateInfo.Template
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

@@ -9,7 +9,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type AdmitFingerprintService struct{}
@@ -49,7 +48,7 @@ func (d *AdmitFingerprintService) List() ([]*resource.AdmitFingerprint, error) {
 	var fingerprints []*resource.AdmitFingerprint
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
-			util.SqlOrderBy: resource.AdmitFingerprintClientType}, &fingerprints)
+			resource.SqlOrderBy: resource.SqlColumnClientType}, &fingerprints)
 	}); err != nil {
 		return nil, fmt.Errorf("list admit fingerprints from db failed: %s", err.Error())
 	}

@@ -19,10 +19,8 @@ func NewPool4Api() *Pool4Api {
 }
 
 func (p *Pool4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet4)
 	pool := ctx.Resource.(*resource.Pool4)
-
-	if err := p.Service.Create(subnet, pool); err != nil {
+	if err := p.Service.Create(ctx.Resource.GetParent().(*resource.Subnet4), pool); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
@@ -30,7 +28,7 @@ func (p *Pool4Api) Create(ctx *restresource.Context) (restresource.Resource, *re
 }
 
 func (p *Pool4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pools, err := service.ListPool4s(ctx.Resource.GetParent().(*resource.Subnet4))
+	pools, err := p.Service.List(ctx.Resource.GetParent().(*resource.Subnet4))
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -39,7 +37,7 @@ func (p *Pool4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIE
 }
 
 func (p *Pool4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pool, err := p.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
+	pool, err := p.Service.Get(ctx.Resource.GetParent().(*resource.Subnet4), ctx.Resource.GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -77,7 +75,16 @@ func (p *Pool4Api) Action(ctx *restresource.Context) (interface{}, *resterror.AP
 }
 
 func (p *Pool4Api) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	if templatePool, err := p.Service.ActionValidTemplate(ctx); err != nil {
+	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
+	if ok == false {
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			"parse action refresh input invalid")
+	}
+
+	if templatePool, err := p.Service.ActionValidTemplate(
+		ctx.Resource.GetParent().(*resource.Subnet4),
+		ctx.Resource.(*resource.Pool4),
+		templateInfo); err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action validTemplate failed :%s", err))
 	} else {

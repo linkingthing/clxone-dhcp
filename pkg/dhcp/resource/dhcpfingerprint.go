@@ -37,13 +37,6 @@ type DhcpFingerprint struct {
 	IsReadOnly                bool         `json:"isReadOnly"`
 }
 
-const (
-	SqlDhcpFPrintVendorId        = "vendor_id"
-	SqlDhcpFPrintOperatingSystem = "operating_system"
-	SqlDhcpFPrintClientType      = "client_type"
-	SqlDhcpFPrintMatchPattern    = "match_pattern"
-)
-
 func (f *DhcpFingerprint) Validate() error {
 	if len(f.Fingerprint) == 0 {
 		return fmt.Errorf("fingerprint is required")

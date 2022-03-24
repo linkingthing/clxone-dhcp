@@ -19,10 +19,8 @@ func NewReservedPool6Api() *ReservedPool6Handler {
 }
 
 func (p *ReservedPool6Handler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
 	pool := ctx.Resource.(*resource.ReservedPool6)
-
-	if err := p.Service.Create(subnet, pool); err != nil {
+	if err := p.Service.Create(ctx.Resource.GetParent().(*resource.Subnet6), pool); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
@@ -30,7 +28,7 @@ func (p *ReservedPool6Handler) Create(ctx *restresource.Context) (restresource.R
 }
 
 func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pools, err := service.ListReservedPool6s(ctx.Resource.GetParent().GetID())
+	pools, err := p.Service.List(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -39,7 +37,7 @@ func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *re
 }
 
 func (p *ReservedPool6Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pool, err := p.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
+	pool, err := p.Service.Get(ctx.Resource.GetParent().(*resource.Subnet6), ctx.Resource.GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -68,18 +66,19 @@ func (p *ReservedPool6Handler) Action(ctx *restresource.Context) (interface{}, *
 }
 
 func (p *ReservedPool6Handler) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
-	pool := ctx.Resource.(*resource.ReservedPool6)
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("parse action refresh input invalid"))
 	}
 
-	ret, err := p.Service.ActionValidTemplate(subnet, pool, templateInfo)
+	ret, err := p.Service.ActionValidTemplate(
+		ctx.Resource.GetParent().(*resource.Subnet6),
+		ctx.Resource.(*resource.ReservedPool6),
+		templateInfo)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("exec template %s failed: %s", pool.Template, err.Error()))
+			fmt.Sprintf("exec template failed: %s", err.Error()))
 	}
 
 	return ret, nil

@@ -69,10 +69,10 @@ func (d *DhcpConfigService) Update(config *resource.DhcpConfig) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		_, err := tx.Update(resource.TableDhcpConfig, map[string]interface{}{
-			resource.SqlColumnValidLifetime:     config.ValidLifetime,
-			resource.SqlColumnMaxValidLifetime:  config.MaxValidLifetime,
-			resource.SqlColumnMinValidLifetime:  config.MinValidLifetime,
-			resource.SqlDhcpConfigDomainServers: config.DomainServers,
+			resource.SqlColumnValidLifetime:    config.ValidLifetime,
+			resource.SqlColumnMaxValidLifetime: config.MaxValidLifetime,
+			resource.SqlColumnMinValidLifetime: config.MinValidLifetime,
+			resource.SqlColumnDomainServers:    config.DomainServers,
 		}, map[string]interface{}{restdb.IDField: config.GetID()})
 		return err
 	}); err != nil {

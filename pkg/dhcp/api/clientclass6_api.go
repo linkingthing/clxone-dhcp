@@ -18,7 +18,7 @@ func NewClientClass6Api() *ClientClass6Api {
 
 func (c *ClientClass6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	clientClass := ctx.Resource.(*resource.ClientClass6)
-	if err := c.Service.Create(clientClass);err != nil {
+	if err := c.Service.Create(clientClass); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
@@ -45,7 +45,7 @@ func (c *ClientClass6Api) Get(ctx *restresource.Context) (restresource.Resource,
 
 func (c *ClientClass6Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	clientClass := ctx.Resource.(*resource.ClientClass6)
-	if err := c.Service.Update(clientClass);err != nil {
+	if err := c.Service.Update(clientClass); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
@@ -53,7 +53,7 @@ func (c *ClientClass6Api) Update(ctx *restresource.Context) (restresource.Resour
 }
 
 func (c *ClientClass6Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := c.Service.Delete(ctx.Resource.GetID());err != nil {
+	if err := c.Service.Delete(ctx.Resource.GetID()); err != nil {
 		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 

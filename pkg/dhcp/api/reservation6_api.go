@@ -17,10 +17,8 @@ func NewReservation6Api() *Reservation6Api {
 }
 
 func (r *Reservation6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	subnet := ctx.Resource.GetParent().(*resource.Subnet6)
 	reservation := ctx.Resource.(*resource.Reservation6)
-
-	if err := r.Service.Create(subnet, reservation); err != nil {
+	if err := r.Service.Create(ctx.Resource.GetParent().(*resource.Subnet6), reservation); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
@@ -28,7 +26,7 @@ func (r *Reservation6Api) Create(ctx *restresource.Context) (restresource.Resour
 }
 
 func (r *Reservation6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	reservations, err := service.ListReservation6s(ctx.Resource.GetParent().GetID())
+	reservations, err := r.Service.List(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
@@ -37,7 +35,7 @@ func (r *Reservation6Api) List(ctx *restresource.Context) (interface{}, *resterr
 }
 
 func (r *Reservation6Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	reservation, err := r.Service.Get(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID())
+	reservation, err := r.Service.Get(ctx.Resource.GetParent().(*resource.Subnet6), ctx.Resource.GetID())
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

@@ -17,11 +17,6 @@ type ClientClass4 struct {
 
 var ErrNameOrRegexpMissing = fmt.Errorf("clientclass name and regexp are required")
 
-const (
-	SqlColumnClassRegexp = "regexp"
-	SqlColumnClassID     = "client_class"
-)
-
 func (c *ClientClass4) Validate() error {
 	if len(c.Name) == 0 || len(c.Regexp) == 0 {
 		return ErrNameOrRegexpMissing

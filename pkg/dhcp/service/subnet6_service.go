@@ -20,7 +20,6 @@ import (
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 const (
@@ -81,7 +80,7 @@ func checkSubnet6CouldBeCreated(tx restdb.Transaction, subnet string) error {
 func setSubnet6ID(tx restdb.Transaction, subnet *resource.Subnet6) error {
 	var subnets []*resource.Subnet6
 	if err := tx.Fill(map[string]interface{}{
-		util.SqlOrderBy: "subnet_id desc", "offset": 0, "limit": 1},
+		resource.SqlOrderBy: "subnet_id desc", "offset": 0, "limit": 1},
 		&subnets); err != nil {
 		return err
 	}
@@ -1142,7 +1141,7 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 	var reservations []*resource.Reservation6
 	var pdpools []*resource.PdPool
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(map[string]interface{}{util.SqlOrderBy: resource.SqlColumnSubnetId},
+		if err := tx.Fill(map[string]interface{}{resource.SqlOrderBy: resource.SqlColumnSubnetId},
 			&subnet6s); err != nil {
 			return err
 		}
@@ -1345,19 +1344,19 @@ func genCreateSubnets6AndPoolsRequestWithSubnet6(tx restdb.Transaction, subnet6 
 	return req, kafka.CreateSubnet6sAndPools, nil
 }
 
-func (s *Subnet6Service) CouldBeCreated(couldBeCreatedSubnet *resource.CouldBeCreatedSubnet) (interface{}, error) {
+func (s *Subnet6Service) CouldBeCreated(couldBeCreatedSubnet *resource.CouldBeCreatedSubnet) error {
 	if _, err := gohelperip.ParseCIDRv6(couldBeCreatedSubnet.Subnet); err != nil {
-		return nil, fmt.Errorf("action check subnet could be created input subnet %s invalid: %s",
+		return fmt.Errorf("action check subnet could be created input subnet %s invalid: %s",
 			couldBeCreatedSubnet.Subnet, err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkSubnet6CouldBeCreated(tx, couldBeCreatedSubnet.Subnet)
 	}); err != nil {
-		return nil, fmt.Errorf("action check subnet6 could be created: %s", err.Error())
+		return fmt.Errorf("action check subnet6 could be created: %s", err.Error())
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (s *Subnet6Service) ListWithSubnets(subnetListInput *resource.SubnetListInput) (*resource.Subnet6ListOutput, error) {

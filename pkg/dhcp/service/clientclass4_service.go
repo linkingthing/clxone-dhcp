@@ -10,7 +10,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 const (
@@ -66,7 +65,7 @@ func (c *ClientClass4Service) List() ([]*resource.ClientClass4, error) {
 	var clientClasses []*resource.ClientClass4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
-			util.SqlOrderBy: util.SqlColumnsName},
+			resource.SqlOrderBy: resource.SqlColumnName},
 			&clientClasses)
 	}); err != nil {
 		return nil, fmt.Errorf("list clientclass4 failed:%s", err.Error())
@@ -122,7 +121,7 @@ func sendUpdateClientClass4CmdToDHCPAgent(clientClass *resource.ClientClass4) er
 func (c *ClientClass4Service) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exist, err := tx.Exists(resource.TableSubnet4,
-			map[string]interface{}{resource.SqlColumnClassID: id}); err != nil {
+			map[string]interface{}{resource.SqlColumnClientClass: id}); err != nil {
 			return err
 		} else if exist {
 			return fmt.Errorf("client class %s used by subnet4", id)

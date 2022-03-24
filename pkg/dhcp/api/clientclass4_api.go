@@ -53,7 +53,7 @@ func (c *ClientClass4Api) Update(ctx *restresource.Context) (restresource.Resour
 }
 
 func (c *ClientClass4Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := c.Service.Delete(ctx.Resource.GetID());err != nil {
+	if err := c.Service.Delete(ctx.Resource.GetID()); err != nil {
 		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 

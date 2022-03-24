@@ -28,7 +28,7 @@ func (d *AdmitDuidApi) Create(ctx *restresource.Context) (restresource.Resource,
 
 func (d *AdmitDuidApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	duids, err := d.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
-		resource.FieldDuid, resource.FieldDuid))
+		resource.SqlColumnDuid, resource.SqlColumnDuid))
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

@@ -12,7 +12,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type ReservedPool4Service struct {
@@ -202,12 +201,16 @@ func reservedPool4ToCreateReservedPool4Request(subnetID uint64, pool *resource.R
 	}
 }
 
+func (p *ReservedPool4Service) List(subnetID string) ([]*resource.ReservedPool4, error) {
+	return ListReservedPool4s(subnetID)
+}
+
 func ListReservedPool4s(subnetID string) ([]*resource.ReservedPool4, error) {
 	var pools []*resource.ReservedPool4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet4: subnetID,
-			util.SqlOrderBy:           resource.SqlColumnBeginIp},
+			resource.SqlOrderBy:       resource.SqlColumnBeginIp},
 			&pools)
 	}); err != nil {
 		return nil, fmt.Errorf("list reserved pool4s with subnet4 %s from db failed: %s",
@@ -217,15 +220,15 @@ func ListReservedPool4s(subnetID string) ([]*resource.ReservedPool4, error) {
 	return pools, nil
 }
 
-func (p *ReservedPool4Service) Get(subnetID, poolID string) (*resource.ReservedPool4, error) {
+func (p *ReservedPool4Service) Get(subnet *resource.Subnet4, poolID string) (*resource.ReservedPool4, error) {
 	var pools []*resource.ReservedPool4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 	}); err != nil {
 		return nil, fmt.Errorf("get reserved pool4 %s with subnet4 %s from db failed: %s",
-			poolID, subnetID, err.Error())
+			poolID, subnet.GetID(), err.Error())
 	} else if len(pools) != 1 {
-		return nil, fmt.Errorf("no found reserved pool4 %s with subnet4 %s", poolID, subnetID)
+		return nil, fmt.Errorf("no found reserved pool4 %s with subnet4 %s", poolID, subnet.GetID())
 	}
 
 	return pools[0], nil
@@ -295,7 +298,7 @@ func reservedPool4ToDeleteReservedPool4Request(subnetID uint64, pool *resource.R
 func (p *ReservedPool4Service) Update(subnetId string, pool *resource.ReservedPool4) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPool4, map[string]interface{}{
-			util.SqlColumnsComment: pool.Comment,
+			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {
@@ -365,9 +368,7 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 			if _, err := tx.Insert(pool); err != nil {
 				return err
 			}
-		}
 
-		for _, pool := range pools {
 			if err := sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool); err != nil {
 				return err
 			}

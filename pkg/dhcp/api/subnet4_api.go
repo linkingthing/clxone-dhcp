@@ -33,6 +33,7 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return subnets, nil
 }
 
@@ -67,7 +68,7 @@ func (s *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 	case csvutil.ActionNameImportCSV:
 		return s.actionImportCSV(ctx)
 	case csvutil.ActionNameExportCSV:
-		return s.actionExportCSV(ctx)
+		return s.actionExportCSV()
 	case csvutil.ActionNameExportCSVTemplate:
 		return s.actionExportCSVTemplate()
 	case resource.ActionNameUpdateNodes:
@@ -96,7 +97,7 @@ func (s *Subnet4Handler) actionImportCSV(ctx *restresource.Context) (interface{}
 	return nil, nil
 }
 
-func (s *Subnet4Handler) actionExportCSV(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Handler) actionExportCSV() (interface{}, *resterror.APIError) {
 	if exportFile, err := s.Service.ExportCSV(); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("export subnet csv failed: %s", err.Error()))
@@ -121,8 +122,8 @@ func (s *Subnet4Handler) actionUpdateNodes(ctx *restresource.Context) (interface
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action update subnet4 %s nodes input invalid", subnetID))
 	}
-	_, err := s.Service.UpdateNodes(subnetID, subnetNode)
-	if err != nil {
+
+	if err := s.Service.UpdateNodes(subnetID, subnetNode); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
 			fmt.Sprintf("update subnet4 %s nodes failed: %s", subnetID, err.Error()))
 	}

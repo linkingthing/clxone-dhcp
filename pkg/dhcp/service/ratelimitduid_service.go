@@ -3,14 +3,11 @@ package service
 import (
 	"fmt"
 
-	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
-
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+	restdb "github.com/linkingthing/gorest/db"
 )
 
 type RateLimitDuidService struct{}
@@ -46,10 +43,11 @@ func sendCreateRateLimitDuidCmdToDHCPAgent(rateLimitDuid *resource.RateLimitDuid
 		})
 }
 
-func (d *RateLimitDuidService) List(ctx *restresource.Context) ([]*resource.RateLimitDuid, error) {
+func (d *RateLimitDuidService) List(conditions map[string]interface{}) ([]*resource.RateLimitDuid, error) {
 	var duids []*resource.RateLimitDuid
-	if err := db.GetResources(util.GenStrConditionsFromFilters(ctx.GetFilters(),
-		FieldDuid, FieldDuid), &duids); err != nil {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(conditions, &duids)
+	}); err != nil {
 		return nil, fmt.Errorf("list ratelimit duids from db failed: %s", err.Error())
 	}
 
@@ -109,7 +107,7 @@ func (d *RateLimitDuidService) Update(rateLimitDuid *resource.RateLimitDuid) err
 
 		if _, err := tx.Update(resource.TableRateLimitDuid, map[string]interface{}{
 			resource.SqlColumnRateLimit: rateLimitDuid.RateLimit,
-			util.SqlColumnsComment:      rateLimitDuid.Comment,
+			resource.SqlColumnComment:   rateLimitDuid.Comment,
 		}, map[string]interface{}{restdb.IDField: rateLimitDuid.GetID()}); err != nil {
 			return err
 		}

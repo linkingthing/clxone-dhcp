@@ -9,13 +9,11 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
-	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SubnetLease6Service struct{}
@@ -24,14 +22,11 @@ func NewSubnetLease6Service() *SubnetLease6Service {
 	return &SubnetLease6Service{}
 }
 
-func (l *SubnetLease6Service) List(ctx *restresource.Context) (interface{}, error) {
-	ip, _ := util.GetFilterValueWithEqModifierFromFilters(
-		util.FilterNameIp, ctx.GetFilters())
-
-	return ListSubnetLease6(ctx.Resource.GetParent().GetID(), ip)
+func (l *SubnetLease6Service) List(subnet *resource.Subnet6, ip string) ([]*resource.SubnetLease6, error) {
+	return ListSubnetLease6(subnet, ip)
 }
 
-func ListSubnetLease6(subnetId, ip string) ([]*resource.SubnetLease6, error) {
+func ListSubnetLease6(subnet *resource.Subnet6, ip string) ([]*resource.SubnetLease6, error) {
 	hasAddressFilter := false
 	if ip != "" {
 		if _, err := gohelperip.ParseIPv6(ip); err != nil {
@@ -44,7 +39,7 @@ func ListSubnetLease6(subnetId, ip string) ([]*resource.SubnetLease6, error) {
 	var reservations []*resource.Reservation6
 	var subnetLeases []*resource.SubnetLease6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		subnet6, err := getSubnet6FromDB(tx, subnetId)
+		subnet6, err := getSubnet6FromDB(tx, subnet.GetID())
 		if err != nil {
 			return err
 		}
@@ -54,14 +49,14 @@ func ListSubnetLease6(subnetId, ip string) ([]*resource.SubnetLease6, error) {
 			reservations, subnetLeases, err = getReservation6sAndSubnetLease6sWithIp(
 				tx, subnet6, ip)
 		} else {
-			reservations, subnetLeases, err = getReservation6sAndSubnetLease6s(tx, subnetId)
+			reservations, subnetLeases, err = getReservation6sAndSubnetLease6s(tx, subnet.GetID())
 		}
 		return err
 	}); err != nil {
 		if err == ErrorIpNotBelongToSubnet {
 			return nil, nil
 		} else {
-			return nil, fmt.Errorf("get subnet6 %s from db failed: %s", subnetId, err.Error())
+			return nil, fmt.Errorf("get subnet6 %s from db failed: %s", subnet.GetID(), err.Error())
 		}
 	}
 

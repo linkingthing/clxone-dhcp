@@ -9,7 +9,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type AdmitMacService struct{}
@@ -100,7 +99,7 @@ func (d *AdmitMacService) Update(admitMac *resource.AdmitMac) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableAdmitMac,
-			map[string]interface{}{util.SqlColumnsComment: admitMac.Comment},
+			map[string]interface{}{resource.SqlColumnComment: admitMac.Comment},
 			map[string]interface{}{restdb.IDField: admitMac.GetID()}); err != nil {
 			return err
 		} else if rows == 0 {
