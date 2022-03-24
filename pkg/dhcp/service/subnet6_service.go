@@ -1189,7 +1189,7 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 	for _, pdpool := range pdpools {
 		pdpoolSlices := subnetPdPools[pdpool.Subnet6]
 		pdpoolSlices = append(pdpoolSlices, pdpool.String()+"-"+pdpool.Comment)
-		subnetPools[pdpool.Subnet6] = pdpoolSlices
+		subnetPdPools[pdpool.Subnet6] = pdpoolSlices
 	}
 
 	var strMatrix [][]string
