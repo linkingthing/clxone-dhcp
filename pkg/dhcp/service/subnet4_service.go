@@ -44,7 +44,7 @@ func NewSubnet4Service() *Subnet4Service {
 
 func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 	if err := subnet.Validate(); err != nil {
-		return fmt.Errorf("validate subnet params invalid: %s", err.Error())
+		return fmt.Errorf("validate subnet4 params invalid: %s", err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -583,7 +583,7 @@ func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
 		return sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForSentryCreate, reqsForSentryDelete,
 			reqForServerCreate, reqForServerDelete)
 	}); err != nil {
-		return err
+		return fmt.Errorf("import subnet4s from file %s failed: %s", file.Name, err.Error())
 	}
 
 	return nil
@@ -1093,7 +1093,7 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 
 		return tx.Fill(nil, &reservations)
 	}); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("export subnet4s failed: %s", err.Error())
 	}
 
 	subnetPools := make(map[string][]string)
@@ -1139,7 +1139,7 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 
 	if filepath, err := csvutil.WriteCSVFile(Subnet4FileNamePrefix+
 		time.Now().Format(csvutil.TimeFormat), TableHeaderSubnet4, strMatrix); err != nil {
-		return nil, fmt.Errorf("export device failed: %s", err.Error())
+		return nil, fmt.Errorf("export subnet4s failed: %s", err.Error())
 	} else {
 		return &csvutil.ExportFile{Path: filepath}, nil
 	}
@@ -1169,7 +1169,7 @@ func (s *Subnet4Service) UpdateNodes(subnetID string, subnetNode *resource.Subne
 
 		return sendUpdateSubnet4NodesCmdToDHCPAgent(tx, subnet4, subnetNode.Nodes)
 	}); err != nil {
-		return err
+		return fmt.Errorf("update subnet4 %s nodes failed: %s", subnetID, err.Error())
 	}
 
 	return nil
@@ -1309,14 +1309,14 @@ func genCreateSubnets4AndPoolsRequestWithSubnet4(tx restdb.Transaction, subnet4 
 
 func (s *Subnet4Service) CouldBeCreated(couldBeCreatedSubnet *resource.CouldBeCreatedSubnet) error {
 	if _, err := gohelperip.ParseCIDRv4(couldBeCreatedSubnet.Subnet); err != nil {
-		return fmt.Errorf("action check subnet4 could be created input invalid: %s",
-			err.Error())
+		return fmt.Errorf("action check subnet4 could be created input subnet %s invalid: %s",
+			couldBeCreatedSubnet.Subnet, err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkSubnet4CouldBeCreated(tx, couldBeCreatedSubnet.Subnet)
 	}); err != nil {
-		return fmt.Errorf("action check subnet4 could be created: %s", err.Error())
+		return fmt.Errorf("action check subnet4 could be created failed: %s", err.Error())
 	}
 
 	return nil
@@ -1326,13 +1326,13 @@ func (s *Subnet4Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 	for _, subnet := range subnetListInput.Subnets {
 		if _, err := gohelperip.ParseCIDRv4(subnet); err != nil {
 			return nil, resterror.NewAPIError(resterror.InvalidFormat,
-				fmt.Sprintf("action list subnet4s input invalid: %s",
-					err.Error()))
+				fmt.Sprintf("action list subnet4s input subnet %s invalid: %s",
+					subnet, err.Error()))
 		}
 	}
 	subnets, err := ListSubnet4sByPrefixes(subnetListInput.Subnets)
 	if err != nil {
-		return nil, fmt.Errorf("action list subnet failed: %s", err.Error())
+		return nil, fmt.Errorf("action list subnet4s failed: %s", err.Error())
 	}
 
 	return &resource.Subnet4ListOutput{Subnet4s: subnets}, nil
@@ -1343,7 +1343,7 @@ func ListSubnet4sByPrefixes(prefixes []string) ([]*resource.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnet4s, "select * from gr_subnet4 where subnet = any ($1)", prefixes)
 	}); err != nil {
-		return nil, fmt.Errorf("action list subnet4s failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet4 from db failed: %s", err.Error())
 	}
 
 	if err := SetSubnet4UsedInfo(subnet4s, true); err != nil {
@@ -1361,7 +1361,7 @@ func GetSubnet4ByIP(ip string) (*resource.Subnet4, error) {
 	}
 
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("not found subnet of ip %s", ip)
+		return nil, fmt.Errorf("not found subnet4 with ip %s", ip)
 	} else {
 		return subnets[0], nil
 	}
@@ -1376,7 +1376,7 @@ func GetSubnet4ByPrefix(prefix string) (*resource.Subnet4, error) {
 	}
 
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("not found subnet of prefix %s", prefix)
+		return nil, fmt.Errorf("not found subnet4 with prefix %s", prefix)
 	} else {
 		return subnets[0], nil
 	}

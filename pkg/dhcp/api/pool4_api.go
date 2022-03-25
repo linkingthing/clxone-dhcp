@@ -78,13 +78,11 @@ func (p *Pool4Api) actionValidTemplate(ctx *restresource.Context) (interface{}, 
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
-			"parse action valid template input invalid")
+			"parse action valid pool4 template input invalid")
 	}
 
-	if templatePool, err := p.Service.ActionValidTemplate(
-		ctx.Resource.GetParent().(*resource.Subnet4),
-		ctx.Resource.(*resource.Pool4),
-		templateInfo); err != nil {
+	if templatePool, err := p.Service.ActionValidTemplate(ctx.Resource.GetParent().(*resource.Subnet4),
+		ctx.Resource.(*resource.Pool4), templateInfo); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return templatePool, nil

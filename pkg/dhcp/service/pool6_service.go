@@ -24,7 +24,7 @@ func NewPool6Service() *Pool6Service {
 
 func (p *Pool6Service) Create(subnet *resource.Subnet6, pool *resource.Pool6) error {
 	if err := pool.Validate(); err != nil {
-		return fmt.Errorf("validate pool params invalid: %s", err.Error())
+		return fmt.Errorf("validate pool6 params invalid: %s", err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -375,7 +375,7 @@ func setPool6FromDB(tx restdb.Transaction, pool *resource.Pool6) error {
 		&pools); err != nil {
 		return fmt.Errorf("get pool6 from db failed: %s", err.Error())
 	} else if len(pools) == 0 {
-		return fmt.Errorf("no found pool %s", pool.GetID())
+		return fmt.Errorf("no found pool6 %s", pool.GetID())
 	}
 
 	pool.Subnet6 = pools[0].Subnet6

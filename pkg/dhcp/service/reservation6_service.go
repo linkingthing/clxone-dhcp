@@ -73,7 +73,7 @@ func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Reservation6) error {
 	subnetMaskLen, _ := ipnet.Mask.Size()
 	if subnetMaskLen < 64 && len(reservation.Ips) != 0 {
-		return fmt.Errorf("subnet6 %s mask less than 64, can`t create reservation ips %v",
+		return fmt.Errorf("subnet6 %s mask less than 64, can`t create reservation6 ips %v",
 			ipnet.String(), reservation.Ips)
 	}
 

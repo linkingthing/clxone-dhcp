@@ -311,7 +311,7 @@ func (p *ReservedPool6Service) ActionValidTemplate(subnet *resource.Subnet6, poo
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkReservedPool6CouldBeCreated(tx, subnet, pool)
 	}); err != nil {
-		return nil, fmt.Errorf("template %s invalid: %s", pool.Template, err.Error())
+		return nil, fmt.Errorf("template6 %s invalid: %s", pool.Template, err.Error())
 	}
 
 	return &resource.TemplatePool{

@@ -83,7 +83,7 @@ func getReservation6sAndSubnetLease6sWithIp(tx restdb.Transaction, subnet6 *reso
 		resource.SqlColumnAddress: ip,
 		resource.SqlColumnSubnet6: subnet6.GetID()},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet lease6 %s failed: %s", ip, err.Error())
+		return nil, nil, fmt.Errorf("get subnet6 lease6 %s failed: %s", ip, err.Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -99,7 +99,7 @@ func getReservation6sAndSubnetLease6s(tx restdb.Transaction, subnetId string) ([
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet lease6s failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("get subnet6 lease6s failed: %s", err.Error())
 	}
 
 	return reservations, subnetLeases, nil

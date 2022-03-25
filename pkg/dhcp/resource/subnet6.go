@@ -88,7 +88,7 @@ func (s *Subnet6) Validate() error {
 	s.Subnet = ipnet.String()
 	if s.UseEui64 {
 		if ones, _ := s.Ipnet.Mask.Size(); ones != 64 {
-			return fmt.Errorf("subnet use EUI64, mask size %d is not 64", ones)
+			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", ones)
 		}
 		s.Capacity = MaxUint64
 	}

@@ -70,16 +70,16 @@ func (s *SharedNetwork4) setSharedNetworkSubnets(subnet4s []*Subnet4) error {
 
 	nodeSet := getIntersectionNodes(subnet4s[0].Nodes, subnet4s[1].Nodes)
 	if nodeSet == nil {
-		return fmt.Errorf("subnet %s nodes %v has no intersection with subnet %s nodes %v",
+		return fmt.Errorf("subnet4 %s nodes %v has no intersection with subnet4 %s nodes %v",
 			subnet4s[0].Subnet, subnet4s[0].Nodes, subnet4s[1].Subnet, subnet4s[1].Nodes)
 	}
 
 	var subnets []string
 	for _, subnet4 := range subnet4s {
 		if len(subnet4.Nodes) == 0 {
-			return fmt.Errorf("subnet %s no nodes info, can`t used by shared network", subnet4.Subnet)
+			return fmt.Errorf("subnet4 %s no nodes info, can`t used by shared network4", subnet4.Subnet)
 		} else if isFullyContains(subnet4.Nodes, nodeSet) == false {
-			return fmt.Errorf("subnet %s nodes %v should contains nodes %v",
+			return fmt.Errorf("subnet4 %s nodes %v should contains nodes %v",
 				subnet4.Subnet, subnet4.Nodes, nodeSet.ToSlice())
 		} else {
 			subnets = append(subnets, subnet4.Subnet)
@@ -124,7 +124,7 @@ func (s *SharedNetwork4) checkConflictWithOthers(sharedNetworks []*SharedNetwork
 
 	for _, id := range s.SubnetIds {
 		if name, ok := sharedNetworksIds[id]; ok {
-			return fmt.Errorf("shared network %s subnet id %d exists in other shared network %s",
+			return fmt.Errorf("shared network4 %s subnet id %d exists in other shared network4 %s",
 				s.Name, id, name)
 		}
 	}

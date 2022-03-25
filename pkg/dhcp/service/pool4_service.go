@@ -25,7 +25,7 @@ func NewPool4Service() *Pool4Service {
 
 func (p *Pool4Service) Create(subnet *resource.Subnet4, pool *resource.Pool4) error {
 	if err := pool.Validate(); err != nil {
-		return fmt.Errorf("validate pool params invalid: %s", err.Error())
+		return fmt.Errorf("validate pool4 params invalid: %s", err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

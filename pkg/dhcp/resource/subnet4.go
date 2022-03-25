@@ -152,7 +152,7 @@ func (s *Subnet4) ValidateParams() error {
 
 	if s.SubnetMask != "" {
 		if err := gohelperip.CheckIPv4sValid(s.SubnetMask); err != nil {
-			return fmt.Errorf("subnet mask invalid: %s", err.Error())
+			return fmt.Errorf("subnet4 mask invalid: %s", err.Error())
 		}
 	}
 

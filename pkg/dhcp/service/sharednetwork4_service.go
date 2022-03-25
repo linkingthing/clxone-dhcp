@@ -160,9 +160,9 @@ func checkUsedBySharedNetwork(tx restdb.Transaction, subnetId uint64) error {
 	if err := tx.FillEx(&sharedNetwork4s,
 		"select * from gr_shared_network4 where $1::numeric = any(subnet_ids)",
 		subnetId); err != nil {
-		return fmt.Errorf("check if it is used failed: %s", err.Error())
+		return fmt.Errorf("check subnet4 is used by shared network4 failed: %s", err.Error())
 	} else if len(sharedNetwork4s) != 0 {
-		return fmt.Errorf("used by shared network4 %s", sharedNetwork4s[0].Name)
+		return fmt.Errorf("subnet4 used by shared network4 %s", sharedNetwork4s[0].Name)
 	} else {
 		return nil
 	}

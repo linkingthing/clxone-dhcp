@@ -78,16 +78,13 @@ func (p *Pool6Api) actionValidTemplate(ctx *restresource.Context) (interface{}, 
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			"parse action valid template input invalid")
+			"parse action valid pool6 template input invalid")
 	}
 
-	templatePool, err := p.Service.ActionValidTemplate(
-		ctx.Resource.GetParent().(*resource.Subnet6),
-		ctx.Resource.(*resource.Pool6),
-		templateInfo)
-	if err != nil {
+	if templatePool, err := p.Service.ActionValidTemplate(ctx.Resource.GetParent().(*resource.Subnet6),
+		ctx.Resource.(*resource.Pool6), templateInfo); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+	} else {
+		return templatePool, nil
 	}
-
-	return templatePool, nil
 }

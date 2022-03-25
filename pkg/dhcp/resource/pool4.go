@@ -132,7 +132,7 @@ func parsePool4FromTemplate(tx restdb.Transaction, template string, subnet *Subn
 	}
 
 	if len(templates) != 1 {
-		return nil, nil, 0, fmt.Errorf("no found pool template %s", template)
+		return nil, nil, 0, fmt.Errorf("no found pool4 template %s", template)
 	}
 
 	subnetIpUint32 := gohelperip.IPv4ToUint32(subnet.Ipnet.IP)
@@ -141,7 +141,7 @@ func parsePool4FromTemplate(tx restdb.Transaction, template string, subnet *Subn
 	beginIp := gohelperip.IPv4FromUint32(beginUint32)
 	endIp := gohelperip.IPv4FromUint32(endUint32)
 	if subnet.Ipnet.Contains(beginIp) == false || subnet.Ipnet.Contains(endIp) == false {
-		return nil, nil, 0, fmt.Errorf("template %s pool %s-%s not belongs to subnet %s",
+		return nil, nil, 0, fmt.Errorf("pool4 template %s pool4 %s-%s not belongs to subnet4 %s",
 			template, beginIp.String(), endIp.String(), subnet.Subnet)
 	}
 
@@ -161,13 +161,13 @@ func (p *Pool4) ValidateAddress() error {
 func validPool4(beginAddr, endAddr string) (net.IP, net.IP, uint64, error) {
 	beginIp, err := gohelperip.ParseIPv4(beginAddr)
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("pool begin address %s is invalid: %s",
+		return nil, nil, 0, fmt.Errorf("pool4 begin address %s is invalid: %s",
 			beginAddr, err.Error())
 	}
 
 	endIp, err := gohelperip.ParseIPv4(endAddr)
 	if err != nil {
-		return nil, nil, 0, fmt.Errorf("pool end address %s is invalid: %s",
+		return nil, nil, 0, fmt.Errorf("pool4 end address %s is invalid: %s",
 			endAddr, err.Error())
 	}
 

@@ -23,7 +23,7 @@ func NewReservation4Service() *Reservation4Service {
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) error {
 	if err := reservation.Validate(); err != nil {
-		return fmt.Errorf("validate reservation params invalid: %s", err.Error())
+		return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -214,10 +214,10 @@ func (r *Reservation4Service) Get(subnet *resource.Subnet4, reservationID string
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: reservationID}, &reservations)
 	}); err != nil {
-		return nil, fmt.Errorf("get reservation %s with subnetID %s failed: %s",
+		return nil, fmt.Errorf("get reservation4 %s with subnetID %s failed: %s",
 			reservationID, subnet.GetID(), err.Error())
 	} else if len(reservations) == 0 {
-		return nil, fmt.Errorf("no found reservation %s with subnetID %s", reservationID, subnet.GetID())
+		return nil, fmt.Errorf("no found reservation4 %s with subnetID %s", reservationID, subnet.GetID())
 	}
 
 	if leasesCount, err := getReservation4LeaseCount(reservations[0]); err != nil {
@@ -366,7 +366,7 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
-			return fmt.Errorf("validate reservation params invalid: %s", err.Error())
+			return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
 		}
 	}
 

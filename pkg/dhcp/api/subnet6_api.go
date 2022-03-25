@@ -92,8 +92,7 @@ func (s *Subnet6Api) actionUpdateNodes(ctx *restresource.Context) (interface{}, 
 	}
 
 	if err := s.Service.UpdateNodes(subnetID, subnetNode); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("update subnet6 %s nodes failed: %s", subnetID, err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil, nil
@@ -107,8 +106,7 @@ func (s *Subnet6Api) actionCouldBeCreated(ctx *restresource.Context) (interface{
 	}
 
 	if err := s.Service.CouldBeCreated(couldBeCreatedSubnet); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("action check subnet could be created failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil, nil
@@ -123,9 +121,9 @@ func (s *Subnet6Api) actionListWithSubnets(ctx *restresource.Context) (interface
 
 	ret, err := s.Service.ListWithSubnets(subnetListInput)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("action list subnet failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
+
 	return ret, nil
 }
 
@@ -133,12 +131,11 @@ func (s *Subnet6Api) importCSV(ctx *restresource.Context) (interface{}, *resterr
 	file, ok := ctx.Resource.GetAction().Input.(*csvutil.ImportFile)
 	if ok == false {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action importcsv input invalid"))
+			fmt.Sprintf("action import subnet6s input invalid"))
 	}
 
 	if err := s.Service.ImportCSV(file); err != nil {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("import subnet6 csv failed:%s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil, nil
@@ -146,8 +143,7 @@ func (s *Subnet6Api) importCSV(ctx *restresource.Context) (interface{}, *resterr
 
 func (s *Subnet6Api) actionExportCSV() (interface{}, *resterror.APIError) {
 	if exportFile, err := s.Service.ExportCSV(); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("export subnet6 csv failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return exportFile, nil
 	}
@@ -155,8 +151,7 @@ func (s *Subnet6Api) actionExportCSV() (interface{}, *resterror.APIError) {
 
 func (s *Subnet6Api) exportCSVTemplate() (interface{}, *resterror.APIError) {
 	if file, err := s.Service.ExportCSVTemplate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("export subnet6 template failed: %s", err.Error()))
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return file, nil
 	}
