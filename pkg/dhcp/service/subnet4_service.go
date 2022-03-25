@@ -1147,7 +1147,7 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 
 func (s *Subnet4Service) ExportCSVTemplate() (interface{}, error) {
 	if filepath, err := csvutil.WriteCSVFile(Subnet4TemplateFileName,
-		TableHeaderSubnet4, nil); err != nil {
+		TableHeaderSubnet4, TemplateSubnet4); err != nil {
 		return nil, fmt.Errorf("export subnet4 template failed: %s", err.Error())
 	} else {
 		return &csvutil.ExportFile{Path: filepath}, nil

@@ -1226,7 +1226,7 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 
 func (s *Subnet6Service) ExportCSVTemplate() (*csvutil.ExportFile, error) {
 	if filepath, err := csvutil.WriteCSVFile(Subnet6TemplateFileName,
-		TableHeaderSubnet6, nil); err != nil {
+		TableHeaderSubnet6, TemplateSubnet6); err != nil {
 		return nil, fmt.Errorf("export subnet6 template failed: %s", err.Error())
 	} else {
 		return &csvutil.ExportFile{Path: filepath}, nil
