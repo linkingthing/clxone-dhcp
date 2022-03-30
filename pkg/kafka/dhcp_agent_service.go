@@ -15,7 +15,6 @@ import (
 type DHCPCmd string
 
 const (
-	TopicDHCP   = "dhcp"
 	TopicPrefix = "dhcp_"
 
 	CreateSubnet4sAndPools DHCPCmd = "create_subnet4s_and_pools"

@@ -38,5 +38,6 @@ func (l *SubnetLease6) Equal(another *SubnetLease6) bool {
 		l.Expire == another.Expire &&
 		l.Duid == another.Duid &&
 		l.HwAddress == another.HwAddress &&
-		l.LeaseType == another.LeaseType
+		l.LeaseType == another.LeaseType &&
+		l.Iaid == another.Iaid
 }
