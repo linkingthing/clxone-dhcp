@@ -140,13 +140,3 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 
 	return succeedNodes, nil
 }
-
-func (a *DHCPAgentService) SendDHCPCmd(cmd DHCPCmd, msg proto.Message) error {
-	data, err := proto.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("marshal %s failed: %s\n", cmd, err.Error())
-	}
-
-	return a.dhcpWriter.WriteMessages(context.Background(), kg.Message{
-		Topic: TopicDHCP, Key: []byte(cmd), Value: data})
-}
