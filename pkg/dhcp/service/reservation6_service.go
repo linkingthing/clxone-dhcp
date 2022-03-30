@@ -308,18 +308,16 @@ func getPdPoolReservedCount(pdpool *resource.PdPool, prefixLen uint32) uint64 {
 }
 
 func sendCreateReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {
-	nodesForSucceed, err := kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservation6,
-		reservation6ToCreateReservation6Request(subnetID, reservation))
-	if err != nil {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			nodesForSucceed, kafka.DeleteReservation6,
-			reservation6ToDeleteReservation6Request(subnetID, reservation)); err != nil {
-			log.Errorf("create subnet6 %d reservation6 %s failed, and rollback it failed: %s",
-				subnetID, reservation.String(), err.Error())
-		}
-	}
-
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservation6,
+		reservation6ToCreateReservation6Request(subnetID, reservation),
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteReservation6,
+				reservation6ToDeleteReservation6Request(subnetID, reservation)); err != nil {
+				log.Errorf("create subnet6 %d reservation6 %s failed, rollback with nodes %v failed: %s",
+					subnetID, reservation.String(), nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resource.Reservation6) *pbdhcpagent.CreateReservation6Request {
@@ -540,9 +538,8 @@ func setReservation6FromDB(tx restdb.Transaction, reservation *resource.Reservat
 }
 
 func sendDeleteReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {
-	_, err := kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservation6,
-		reservation6ToDeleteReservation6Request(subnetID, reservation))
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservation6,
+		reservation6ToDeleteReservation6Request(subnetID, reservation), nil)
 }
 
 func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resource.Reservation6) *pbdhcpagent.DeleteReservation6Request {

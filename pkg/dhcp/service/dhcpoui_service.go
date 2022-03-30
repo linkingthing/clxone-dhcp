@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -44,11 +45,16 @@ func (d *DhcpOuiService) Create(dhcpOui *resource.DhcpOui) error {
 }
 
 func sendCreateDhcpOuiCmdToDHCPAgent(dhcpOui *resource.DhcpOui) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateOui,
-		&pbdhcpagent.CreateOuiRequest{
-			Oui:          dhcpOui.Oui,
-			Organization: dhcpOui.Organization,
-		})
+	return kafka.SendDHCPCmd(kafka.CreateOui, &pbdhcpagent.CreateOuiRequest{
+		Oui:          dhcpOui.Oui,
+		Organization: dhcpOui.Organization,
+	}, func(nodesForSucceed []string) {
+		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForSucceed,
+			kafka.DeleteOui, &pbdhcpagent.DeleteOuiRequest{Oui: dhcpOui.Oui}); err != nil {
+			log.Errorf("create oui %s failed, rollback with nodes %v failed: %s",
+				dhcpOui.Oui, nodesForSucceed, err.Error())
+		}
+	})
 }
 
 func (d *DhcpOuiService) List(ctx *restresource.Context) ([]*resource.DhcpOui, error) {
@@ -160,11 +166,10 @@ func (d *DhcpOuiService) checkOuiIsReadOnly(tx restdb.Transaction, id string) er
 }
 
 func sendUpdateDhcpOuiCmdToDHCPAgent(dhcpoui *resource.DhcpOui) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateOui,
-		&pbdhcpagent.UpdateOuiRequest{
-			Oui:          dhcpoui.Oui,
-			Organization: dhcpoui.Organization,
-		})
+	return kafka.SendDHCPCmd(kafka.UpdateOui, &pbdhcpagent.UpdateOuiRequest{
+		Oui:          dhcpoui.Oui,
+		Organization: dhcpoui.Organization,
+	}, nil)
 }
 
 func (d *DhcpOuiService) Delete(id string) error {
@@ -187,8 +192,6 @@ func (d *DhcpOuiService) Delete(id string) error {
 }
 
 func sendDeleteDhcpOuiCmdToDHCPAgent(dhcpOuiId string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteOui,
-		&pbdhcpagent.DeleteOuiRequest{
-			Oui: dhcpOuiId,
-		})
+	return kafka.SendDHCPCmd(kafka.DeleteOui,
+		&pbdhcpagent.DeleteOuiRequest{Oui: dhcpOuiId}, nil)
 }

@@ -2,11 +2,14 @@ package service
 
 import (
 	"fmt"
+
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	restdb "github.com/linkingthing/gorest/db"
 )
 
 type AdmitDuidService struct{}
@@ -37,9 +40,15 @@ func (d *AdmitDuidService) Create(admitDuid *resource.AdmitDuid) error {
 }
 
 func sendCreateAdmitDuidCmdToDHCPAgent(admitDuid *resource.AdmitDuid) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateAdmitDuid,
-		&pbdhcpagent.CreateAdmitDuidRequest{
-			Duid: admitDuid.Duid,
+	return kafka.SendDHCPCmd(kafka.CreateAdmitDuid,
+		&pbdhcpagent.CreateAdmitDuidRequest{Duid: admitDuid.Duid},
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteAdmitDuid,
+				&pbdhcpagent.DeleteAdmitDuidRequest{Duid: admitDuid.Duid}); err != nil {
+				log.Errorf("create admit duid %s failed, rollback with nodes %v failed: %s",
+					admitDuid.Duid, nodesForSucceed, err.Error())
+			}
 		})
 }
 
@@ -85,10 +94,8 @@ func (d *AdmitDuidService) Delete(id string) error {
 }
 
 func sendDeleteAdmitDuidCmdToDHCPAgent(admitDuidId string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteAdmitDuid,
-		&pbdhcpagent.DeleteAdmitDuidRequest{
-			Duid: admitDuidId,
-		})
+	return kafka.SendDHCPCmd(kafka.DeleteAdmitDuid,
+		&pbdhcpagent.DeleteAdmitDuidRequest{Duid: admitDuidId}, nil)
 }
 
 func (d *AdmitDuidService) Update(admitDuid *resource.AdmitDuid) error {

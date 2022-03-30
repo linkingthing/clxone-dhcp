@@ -139,18 +139,15 @@ func updateSubnet4CapacityWithPool4(tx restdb.Transaction, subnetID string, capa
 }
 
 func sendCreatePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool4) error {
-	nodesForSucceed, err := kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreatePool4,
-		pool4ToCreatePool4Request(subnetID, pool))
-	if err != nil {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			nodesForSucceed, kafka.DeletePool4,
-			pool4ToDeletePool4Request(subnetID, pool)); err != nil {
-			log.Errorf("create subnet4 %d pool4 %s failed, and rollback it failed: %s",
-				subnetID, pool.String(), err.Error())
-		}
-	}
-
-	return err
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreatePool4,
+		pool4ToCreatePool4Request(subnetID, pool), func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeletePool4,
+				pool4ToDeletePool4Request(subnetID, pool)); err != nil {
+				log.Errorf("create subnet4 %d pool4 %s failed, rollback with nodes %v failed: %s",
+					subnetID, pool.String(), nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpagent.CreatePool4Request {
@@ -386,9 +383,8 @@ func setPool4FromDB(tx restdb.Transaction, pool *resource.Pool4) error {
 }
 
 func sendDeletePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool4) error {
-	_, err := kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeletePool4,
-		pool4ToDeletePool4Request(subnetID, pool))
-	return err
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeletePool4,
+		pool4ToDeletePool4Request(subnetID, pool), nil)
 }
 
 func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpagent.DeletePool4Request {

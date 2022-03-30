@@ -45,20 +45,19 @@ func (c *ClientClass6Service) Create(clientClass *resource.ClientClass6) error {
 }
 
 func sendCreateClientClass6CmdToAgent(clientClass *resource.ClientClass6) error {
-	err := kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateClientClass6,
+	return kafka.SendDHCPCmd(kafka.CreateClientClass6,
 		&pbdhcpagent.CreateClientClass6Request{
 			Name:   clientClass.Name,
 			Code:   16,
 			Regexp: fmt.Sprintf(ClientClass6Option60, clientClass.Regexp),
+		}, func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteClientClass6,
+				&pbdhcpagent.DeleteClientClass6Request{Name: clientClass.Name}); err != nil {
+				log.Errorf("add clientclass6 %s failed, rollback with nodes %v failed: %s",
+					clientClass.Name, nodesForSucceed, err.Error())
+			}
 		})
-	if err != nil {
-		if err := sendDeleteClientClass6CmdToDHCPAgent(clientClass.Name); err != nil {
-			log.Errorf("add clientclass6 %s failed, rollback it failed: %s",
-				clientClass.Name, err.Error())
-		}
-	}
-
-	return err
 }
 
 func (c *ClientClass6Service) List() ([]*resource.ClientClass6, error) {
@@ -111,12 +110,12 @@ func (c *ClientClass6Service) Update(clientClass *resource.ClientClass6) error {
 }
 
 func sendUpdateClientClass6CmdToDHCPAgent(clientClass *resource.ClientClass6) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateClientClass6,
+	return kafka.SendDHCPCmd(kafka.UpdateClientClass6,
 		&pbdhcpagent.UpdateClientClass6Request{
 			Name:   clientClass.Name,
 			Code:   16,
 			Regexp: fmt.Sprintf(ClientClass6Option60, clientClass.Regexp),
-		})
+		}, nil)
 }
 
 func (c *ClientClass6Service) Delete(id string) error {
@@ -144,8 +143,6 @@ func (c *ClientClass6Service) Delete(id string) error {
 }
 
 func sendDeleteClientClass6CmdToDHCPAgent(clientClassID string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteClientClass6,
-		&pbdhcpagent.DeleteClientClass6Request{
-			Name: clientClassID,
-		})
+	return kafka.SendDHCPCmd(kafka.DeleteClientClass6,
+		&pbdhcpagent.DeleteClientClass6Request{Name: clientClassID}, nil)
 }

@@ -106,18 +106,15 @@ func setSubnet4ID(tx restdb.Transaction, subnet *resource.Subnet4) error {
 }
 
 func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
-	nodesForSucceed, err := kafka.SendDHCPCmdWithNodes(true, subnet.Nodes, kafka.CreateSubnet4,
-		subnet4ToCreateSubnet4Request(subnet))
-	if err != nil {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			nodesForSucceed, kafka.DeleteSubnet4,
-			&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId}); err != nil {
-			log.Errorf("create subnet4 %s failed, and rollback it failed: %s",
-				subnet.Subnet, err.Error())
-		}
-	}
-
-	return err
+	return kafka.SendDHCPCmdWithNodes(true, subnet.Nodes, kafka.CreateSubnet4,
+		subnet4ToCreateSubnet4Request(subnet), func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteSubnet4,
+				&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId}); err != nil {
+				log.Errorf("create subnet4 %s failed, and rollback with nodes %v failed: %s",
+					subnet.Subnet, nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *pbdhcpagent.CreateSubnet4Request {
@@ -487,7 +484,7 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 }
 
 func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
-	_, err := kafka.SendDHCPCmdWithNodes(true, subnet.Nodes, kafka.UpdateSubnet4,
+	return kafka.SendDHCPCmdWithNodes(true, subnet.Nodes, kafka.UpdateSubnet4,
 		&pbdhcpagent.UpdateSubnet4Request{
 			Id:                  subnet.SubnetId,
 			Subnet:              subnet.Subnet,
@@ -501,8 +498,7 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 			NextServer:          subnet.NextServer,
 			SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
-		})
-	return err
+		}, nil)
 }
 
 func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
@@ -545,9 +541,8 @@ func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4)
 }
 
 func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4, nodes []string) error {
-	_, err := kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeleteSubnet4,
-		&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId})
-	return err
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeleteSubnet4,
+		&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId}, nil)
 }
 
 func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
@@ -1018,7 +1013,7 @@ func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForSentryCreate map[string]*pb
 		sentryNodes = append(sentryNodes, node)
 	}
 
-	nodes, err := kafka.GetDHCPNodes(sentryNodes, true)
+	nodes, err := kafka.GetDHCPNodesWithSentryNodes(sentryNodes, true)
 	if err != nil {
 		return err
 	}
@@ -1202,7 +1197,7 @@ func getChangedNodes(oldNodes, newNodes []string, isv4 bool) ([]string, []string
 
 	if len(deleteSlices) != 0 && len(deleteSlices) == len(oldNodes) &&
 		len(createSlices) == 0 {
-		if nodes, err := kafka.GetDHCPNodes(deleteSlices, isv4); err != nil {
+		if nodes, err := kafka.GetDHCPNodesWithSentryNodes(deleteSlices, isv4); err != nil {
 			return nil, nil, err
 		} else {
 			deleteSlices = nodes
@@ -1210,7 +1205,7 @@ func getChangedNodes(oldNodes, newNodes []string, isv4 bool) ([]string, []string
 	}
 
 	if len(oldNodes) == 0 && len(createSlices) != 0 {
-		if nodes, err := kafka.GetDHCPNodes(createSlices, isv4); err != nil {
+		if nodes, err := kafka.GetDHCPNodesWithSentryNodes(createSlices, isv4); err != nil {
 			return nil, nil, err
 		} else {
 			createSlices = nodes

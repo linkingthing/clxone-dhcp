@@ -81,9 +81,9 @@ func (p *PingerService) Update(pinger *resource.Pinger) error {
 }
 
 func sendUpdatePingerCmdToDHCPAgent(pinger *resource.Pinger) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdatePinger,
+	return kafka.SendDHCPCmd(kafka.UpdatePinger,
 		&pbdhcpagent.UpdatePingerRequest{
 			Enabled: pinger.Enabled,
 			Timeout: pinger.Timeout,
-		})
+		}, nil)
 }

@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -37,10 +38,17 @@ func (d *RateLimitMacService) Create(rateLimitMac *resource.RateLimitMac) error 
 }
 
 func sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac *resource.RateLimitMac) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateRateLimitMac,
+	return kafka.SendDHCPCmd(kafka.CreateRateLimitMac,
 		&pbdhcpagent.CreateRateLimitMacRequest{
 			HwAddress: rateLimitMac.HwAddress,
 			Limit:     rateLimitMac.RateLimit,
+		}, func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForSucceed,
+				kafka.DeleteRateLimitMac, &pbdhcpagent.DeleteRateLimitMacRequest{
+					HwAddress: rateLimitMac.HwAddress}); err != nil {
+				log.Errorf("create ratelimit mac %s failed, rollback with nodes %v failed: %s",
+					rateLimitMac.HwAddress, nodesForSucceed, err.Error())
+			}
 		})
 }
 
@@ -86,10 +94,8 @@ func (d *RateLimitMacService) Delete(id string) error {
 }
 
 func sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteRateLimitMac,
-		&pbdhcpagent.DeleteRateLimitMacRequest{
-			HwAddress: ratelimitMacId,
-		})
+	return kafka.SendDHCPCmd(kafka.DeleteRateLimitMac,
+		&pbdhcpagent.DeleteRateLimitMacRequest{HwAddress: ratelimitMacId}, nil)
 }
 
 func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error {
@@ -122,9 +128,9 @@ func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error 
 }
 
 func sendUpdateRateLimitMacCmdToDHCPAgent(ratelimitMac *resource.RateLimitMac) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateRateLimitMac,
+	return kafka.SendDHCPCmd(kafka.UpdateRateLimitMac,
 		&pbdhcpagent.UpdateRateLimitMacRequest{
 			HwAddress: ratelimitMac.HwAddress,
 			Limit:     ratelimitMac.RateLimit,
-		})
+		}, nil)
 }

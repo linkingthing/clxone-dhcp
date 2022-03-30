@@ -76,8 +76,6 @@ func (d *AdmitService) Update(admit *resource.Admit) error {
 }
 
 func sendUpdateAdmitCmdToDHCPAgent(admit *resource.Admit) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateAdmit,
-		&pbdhcpagent.UpdateAdmitRequest{
-			Enabled: admit.Enabled,
-		})
+	return kafka.SendDHCPCmd(kafka.UpdateAdmit,
+		&pbdhcpagent.UpdateAdmitRequest{Enabled: admit.Enabled}, nil)
 }

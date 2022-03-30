@@ -153,18 +153,16 @@ func recalculatePdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, subnet 
 }
 
 func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
-	nodesForSucceed, err := kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPdPool,
-		reservedPdPoolToCreateReservedPdPoolRequest(subnetID, pdpool))
-	if err != nil {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			nodesForSucceed, kafka.DeleteReservedPdPool,
-			reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool)); err != nil {
-			log.Errorf("create subnet %d reserved pdpool %s failed, and rollback it failed: %s",
-				subnetID, pdpool.String(), err.Error())
-		}
-	}
-
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPdPool,
+		reservedPdPoolToCreateReservedPdPoolRequest(subnetID, pdpool),
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteReservedPdPool,
+				reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool)); err != nil {
+				log.Errorf("create subnet %d reserved pdpool %s failed, rollback with nodes %v failed: %s",
+					subnetID, pdpool.String(), nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func reservedPdPoolToCreateReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *pbdhcpagent.CreateReservedPdPoolRequest {
@@ -252,9 +250,8 @@ func setReservedPdPoolFromDB(tx restdb.Transaction, pdpool *resource.ReservedPdP
 }
 
 func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
-	_, err := kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPdPool,
-		reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool))
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPdPool,
+		reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool), nil)
 }
 
 func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *pbdhcpagent.DeleteReservedPdPoolRequest {

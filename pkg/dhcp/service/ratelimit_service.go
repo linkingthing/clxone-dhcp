@@ -80,8 +80,6 @@ func (d *RateLimitService) Update(rateLimit *resource.RateLimit) error {
 }
 
 func sendUpdateRateLimitCmdToDHCPAgent(rateLimit *resource.RateLimit) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateRateLimit,
-		&pbdhcpagent.UpdateRateLimitRequest{
-			Enabled: rateLimit.Enabled,
-		})
+	return kafka.SendDHCPCmd(kafka.UpdateRateLimit,
+		&pbdhcpagent.UpdateRateLimitRequest{Enabled: rateLimit.Enabled}, nil)
 }

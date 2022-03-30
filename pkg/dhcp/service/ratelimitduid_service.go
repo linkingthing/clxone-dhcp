@@ -3,11 +3,13 @@ package service
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
+	restdb "github.com/linkingthing/gorest/db"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
-	restdb "github.com/linkingthing/gorest/db"
 )
 
 type RateLimitDuidService struct{}
@@ -36,10 +38,17 @@ func (d *RateLimitDuidService) Create(rateLimitDuid *resource.RateLimitDuid) err
 }
 
 func sendCreateRateLimitDuidCmdToDHCPAgent(rateLimitDuid *resource.RateLimitDuid) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateRateLimitDuid,
+	return kafka.SendDHCPCmd(kafka.CreateRateLimitDuid,
 		&pbdhcpagent.CreateRateLimitDuidRequest{
 			Duid:  rateLimitDuid.Duid,
 			Limit: rateLimitDuid.RateLimit,
+		}, func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteRateLimitDuid,
+				&pbdhcpagent.DeleteRateLimitDuidRequest{Duid: rateLimitDuid.Duid}); err != nil {
+				log.Errorf("create ratelimit duid %s failed, rollback with nodes %v failed: %s",
+					rateLimitDuid.Duid, nodesForSucceed, err.Error())
+			}
 		})
 }
 
@@ -85,10 +94,8 @@ func (d *RateLimitDuidService) Delete(id string) error {
 }
 
 func sendDeleteRateLimitDuidCmdToDHCPAgent(rateLimitDuidId string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteRateLimitDuid,
-		&pbdhcpagent.DeleteRateLimitDuidRequest{
-			Duid: rateLimitDuidId,
-		})
+	return kafka.SendDHCPCmd(kafka.DeleteRateLimitDuid,
+		&pbdhcpagent.DeleteRateLimitDuidRequest{Duid: rateLimitDuidId}, nil)
 }
 
 func (d *RateLimitDuidService) Update(rateLimitDuid *resource.RateLimitDuid) error {
@@ -125,9 +132,9 @@ func (d *RateLimitDuidService) Update(rateLimitDuid *resource.RateLimitDuid) err
 }
 
 func sendUpdateRateLimitDuidCmdToDHCPAgent(rateLimitDuid *resource.RateLimitDuid) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateRateLimitDuid,
+	return kafka.SendDHCPCmd(kafka.UpdateRateLimitDuid,
 		&pbdhcpagent.UpdateRateLimitDuidRequest{
 			Duid:  rateLimitDuid.Duid,
 			Limit: rateLimitDuid.RateLimit,
-		})
+		}, nil)
 }

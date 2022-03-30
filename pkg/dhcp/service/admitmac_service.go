@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -37,9 +38,16 @@ func (d *AdmitMacService) Create(admitMac *resource.AdmitMac) error {
 }
 
 func sendCreateAdmitMacCmdToDHCPAgent(admitMac *resource.AdmitMac) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateAdmitMac,
-		&pbdhcpagent.CreateAdmitMacRequest{
-			HwAddress: admitMac.HwAddress,
+	return kafka.SendDHCPCmd(kafka.CreateAdmitMac,
+		&pbdhcpagent.CreateAdmitMacRequest{HwAddress: admitMac.HwAddress},
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteAdmitMac,
+				&pbdhcpagent.DeleteAdmitMacRequest{HwAddress: admitMac.HwAddress},
+			); err != nil {
+				log.Errorf("create admit mac %s failed, rollback with nodes %v failed: %s",
+					admitMac.HwAddress, nodesForSucceed, err.Error())
+			}
 		})
 }
 
@@ -85,10 +93,8 @@ func (d *AdmitMacService) Delete(id string) error {
 }
 
 func sendDeleteAdmitMacCmdToDHCPAgent(admitMacId string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteAdmitMac,
-		&pbdhcpagent.DeleteAdmitMacRequest{
-			HwAddress: admitMacId,
-		})
+	return kafka.SendDHCPCmd(kafka.DeleteAdmitMac,
+		&pbdhcpagent.DeleteAdmitMacRequest{HwAddress: admitMacId}, nil)
 }
 
 func (d *AdmitMacService) Update(admitMac *resource.AdmitMac) error {

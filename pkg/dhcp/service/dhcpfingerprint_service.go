@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -47,8 +48,15 @@ func (h *DhcpFingerprintService) Create(fingerprint *resource.DhcpFingerprint) e
 }
 
 func sendCreateFingerprintCmdToAgent(fingerprint *resource.DhcpFingerprint) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateFingerprint,
-		fingerprintToCreateFingerprintRequest(fingerprint))
+	return kafka.SendDHCPCmd(kafka.CreateFingerprint,
+		fingerprintToCreateFingerprintRequest(fingerprint), func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteFingerprint,
+				fingerprintToDeleteFingerprintRequest(fingerprint)); err != nil {
+				log.Errorf("create dhcp fingerprint %s failed, rollback with nodes %v failed: %s",
+					fingerprint.Fingerprint, nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func fingerprintToCreateFingerprintRequest(fingerprint *resource.DhcpFingerprint) *pbdhcpagent.CreateFingerprintRequest {
@@ -151,10 +159,10 @@ func getFingerprintWithoutReadOnly(tx restdb.Transaction, id string) (*resource.
 }
 
 func sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, newFingerprint *resource.DhcpFingerprint) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateFingerprint,
+	return kafka.SendDHCPCmd(kafka.UpdateFingerprint,
 		&pbdhcpagent.UpdateFingerprintRequest{
 			Old: fingerprintToDeleteFingerprintRequest(oldFingerprint),
-			New: fingerprintToCreateFingerprintRequest(newFingerprint)})
+			New: fingerprintToCreateFingerprintRequest(newFingerprint)}, nil)
 }
 
 func (h *DhcpFingerprintService) Delete(id string) error {
@@ -178,8 +186,8 @@ func (h *DhcpFingerprintService) Delete(id string) error {
 }
 
 func sendDeleteFingerprintCmdToDHCPAgent(oldFingerprint *resource.DhcpFingerprint) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteFingerprint,
-		fingerprintToDeleteFingerprintRequest(oldFingerprint))
+	return kafka.SendDHCPCmd(kafka.DeleteFingerprint,
+		fingerprintToDeleteFingerprintRequest(oldFingerprint), nil)
 }
 
 func fingerprintToDeleteFingerprintRequest(fingerprint *resource.DhcpFingerprint) *pbdhcpagent.DeleteFingerprintRequest {

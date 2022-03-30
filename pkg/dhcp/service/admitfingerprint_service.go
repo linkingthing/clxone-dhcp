@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -38,9 +39,17 @@ func (d *AdmitFingerprintService) Create(admitFingerprint *resource.AdmitFingerp
 }
 
 func sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint *resource.AdmitFingerprint) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateAdmitFingerprint,
-		&pbdhcpagent.CreateAdmitFingerprintRequest{
-			ClientType: admitFingerprint.ClientType,
+	return kafka.SendDHCPCmd(kafka.CreateAdmitFingerprint,
+		&pbdhcpagent.CreateAdmitFingerprintRequest{ClientType: admitFingerprint.ClientType},
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteAdmitFingerprint,
+				&pbdhcpagent.DeleteAdmitFingerprintRequest{
+					ClientType: admitFingerprint.ClientType,
+				}); err != nil {
+				log.Errorf("create admit fingerprint %s failed, rollback with nodes %v failed: %s",
+					admitFingerprint.ClientType, nodesForSucceed, err.Error())
+			}
 		})
 }
 
@@ -87,8 +96,6 @@ func (d *AdmitFingerprintService) Delete(id string) error {
 }
 
 func sendDeleteAdmitFingerprintCmdToDHCPAgent(admitFingerprintId string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteAdmitFingerprint,
-		&pbdhcpagent.DeleteAdmitFingerprintRequest{
-			ClientType: admitFingerprintId,
-		})
+	return kafka.SendDHCPCmd(kafka.DeleteAdmitFingerprint,
+		&pbdhcpagent.DeleteAdmitFingerprintRequest{ClientType: admitFingerprintId}, nil)
 }

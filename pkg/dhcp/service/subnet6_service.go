@@ -96,18 +96,15 @@ func setSubnet6ID(tx restdb.Transaction, subnet *resource.Subnet6) error {
 }
 
 func sendCreateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
-	nodesForSucceed, err := kafka.SendDHCPCmdWithNodes(false, subnet.Nodes, kafka.CreateSubnet6,
-		subnet6ToCreateSubnet6Request(subnet))
-	if err != nil {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			nodesForSucceed, kafka.DeleteSubnet6,
-			&pbdhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId}); err != nil {
-			log.Errorf("create subnet6 %s failed, and rollback it failed: %s",
-				subnet.Subnet, err.Error())
-		}
-	}
-
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, subnet.Nodes, kafka.CreateSubnet6,
+		subnet6ToCreateSubnet6Request(subnet), func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteSubnet6,
+				&pbdhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId}); err != nil {
+				log.Errorf("create subnet6 %s failed, and rollback with nodes %v failed: %s",
+					subnet.Subnet, nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *pbdhcpagent.CreateSubnet6Request {
@@ -383,7 +380,7 @@ func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, erro
 }
 
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
-	_, err := kafka.SendDHCPCmdWithNodes(false, subnet.Nodes, kafka.UpdateSubnet6,
+	return kafka.SendDHCPCmdWithNodes(false, subnet.Nodes, kafka.UpdateSubnet6,
 		&pbdhcpagent.UpdateSubnet6Request{
 			Id:                    subnet.SubnetId,
 			Subnet:                subnet.Subnet,
@@ -402,8 +399,7 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			RapidCommit:           subnet.RapidCommit,
 			UseEui64:              subnet.UseEui64,
 			SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
-		})
-	return err
+		}, nil)
 }
 
 func (s *Subnet6Service) Delete(subnet *resource.Subnet6) error {
@@ -443,9 +439,8 @@ func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
 }
 
 func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6, nodes []string) error {
-	_, err := kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteSubnet6,
-		&pbdhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId})
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteSubnet6,
+		&pbdhcpagent.DeleteSubnet6Request{Id: subnet.SubnetId}, nil)
 }
 
 func (s *Subnet6Service) UpdateNodes(subnetID string, subnetNode *resource.SubnetNode) error {
@@ -1080,7 +1075,7 @@ func sendCreateSubnet6sAndPoolsCmdToDHCPAgent(reqsForSentryCreate map[string]*pb
 		sentryNodes = append(sentryNodes, node)
 	}
 
-	nodes, err := kafka.GetDHCPNodes(sentryNodes, false)
+	nodes, err := kafka.GetDHCPNodesWithSentryNodes(sentryNodes, false)
 	if err != nil {
 		return err
 	}

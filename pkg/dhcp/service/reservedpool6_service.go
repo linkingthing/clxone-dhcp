@@ -191,17 +191,15 @@ func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *
 }
 
 func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
-	nodesForSucceed, err := kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPool6,
-		reservedPool6ToCreateReservedPool6Request(subnetID, pool))
-	if err != nil {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			nodesForSucceed, kafka.DeleteReservedPool6,
-			reservedPool6ToDeleteReservedPool6Request(subnetID, pool)); err != nil {
-			log.Errorf("create subnet6 %d reserved pool6 %s failed, and rollback it failed: %s",
-				subnetID, pool.String(), err.Error())
-		}
-	}
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPool6,
+		reservedPool6ToCreateReservedPool6Request(subnetID, pool), func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteReservedPool6,
+				reservedPool6ToDeleteReservedPool6Request(subnetID, pool)); err != nil {
+				log.Errorf("create subnet6 %d reserved pool6 %s failed, rollback with nodes %v failed: %s",
+					subnetID, pool.String(), nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.CreateReservedPool6Request {
@@ -292,9 +290,8 @@ func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6)
 }
 
 func sendDeleteReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
-	_, err := kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPool6,
-		reservedPool6ToDeleteReservedPool6Request(subnetID, pool))
-	return err
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPool6,
+		reservedPool6ToDeleteReservedPool6Request(subnetID, pool), nil)
 }
 
 func reservedPool6ToDeleteReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.DeleteReservedPool6Request {

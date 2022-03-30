@@ -179,18 +179,16 @@ func getPool4ReservedCountWithReservedPool4(pool *resource.Pool4, reservedPool *
 }
 
 func sendCreateReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool4) error {
-	nodesForSucceed, err := kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreateReservedPool4,
-		reservedPool4ToCreateReservedPool4Request(subnetID, pool))
-	if err != nil {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			nodesForSucceed, kafka.DeleteReservedPool4,
-			reservedPool4ToDeleteReservedPool4Request(subnetID, pool)); err != nil {
-			log.Errorf("create subnet4 %d reserved pool4 %s failed, and rollback it failed: %s",
-				subnetID, pool.String(), err.Error())
-		}
-	}
-
-	return err
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreateReservedPool4,
+		reservedPool4ToCreateReservedPool4Request(subnetID, pool),
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteReservedPool4,
+				reservedPool4ToDeleteReservedPool4Request(subnetID, pool)); err != nil {
+				log.Errorf("create subnet4 %d reserved pool4 %s failed, rollback with nodes %v failed: %s",
+					subnetID, pool.String(), nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func reservedPool4ToCreateReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *pbdhcpagent.CreateReservedPool4Request {
@@ -282,9 +280,8 @@ func setReservedPool4FromDB(tx restdb.Transaction, pool *resource.ReservedPool4)
 }
 
 func sendDeleteReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool4) error {
-	_, err := kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeleteReservedPool4,
-		reservedPool4ToDeleteReservedPool4Request(subnetID, pool))
-	return err
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeleteReservedPool4,
+		reservedPool4ToDeleteReservedPool4Request(subnetID, pool), nil)
 }
 
 func reservedPool4ToDeleteReservedPool4Request(subnetID uint64, pool *resource.ReservedPool4) *pbdhcpagent.DeleteReservedPool4Request {

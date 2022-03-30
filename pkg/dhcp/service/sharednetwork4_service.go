@@ -38,16 +38,16 @@ func (s *SharedNetwork4Service) Create(sharedNetwork4 *resource.SharedNetwork4) 
 }
 
 func sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4 *resource.SharedNetwork4) error {
-	err := kafka.GetDHCPAgentService().SendDHCPCmd(kafka.CreateSharedNetwork4,
-		sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4))
-	if err != nil {
-		if err := sendDeleteSharedNetwork4CmdToDHCPAgent(sharedNetwork4.Name); err != nil {
-			log.Errorf("create shared network4 %s failed, and rollback it failed: %s",
-				sharedNetwork4.Name, err.Error())
-		}
-	}
-
-	return err
+	return kafka.SendDHCPCmd(kafka.CreateSharedNetwork4,
+		sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4),
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteSharedNetwork4,
+				sharedNetworkNameToDeleteSharedNetwork4Request(sharedNetwork4.Name)); err != nil {
+				log.Errorf("create shared network4 %s failed, and rollback with nodes %v failed: %s",
+					sharedNetwork4.Name, nodesForSucceed, err.Error())
+			}
+		})
 }
 
 func sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4 *resource.SharedNetwork4) *pbdhcpagent.CreateSharedNetwork4Request {
@@ -107,11 +107,11 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 }
 
 func sendUpdateSharedNetwork4CmdToDHCPAgent(name string, sharedNetwork4 *resource.SharedNetwork4) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.UpdateSharedNetwork4,
+	return kafka.SendDHCPCmd(kafka.UpdateSharedNetwork4,
 		&pbdhcpagent.UpdateSharedNetwork4Request{
 			Old: sharedNetworkNameToDeleteSharedNetwork4Request(name),
 			New: sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4),
-		})
+		}, nil)
 }
 
 func (s *SharedNetwork4Service) Delete(sharedNetwork4Id string) error {
@@ -147,8 +147,8 @@ func getOldSharedNetwork(tx restdb.Transaction, id string) (*resource.SharedNetw
 }
 
 func sendDeleteSharedNetwork4CmdToDHCPAgent(name string) error {
-	return kafka.GetDHCPAgentService().SendDHCPCmd(kafka.DeleteSharedNetwork4,
-		sharedNetworkNameToDeleteSharedNetwork4Request(name))
+	return kafka.SendDHCPCmd(kafka.DeleteSharedNetwork4,
+		sharedNetworkNameToDeleteSharedNetwork4Request(name), nil)
 }
 
 func sharedNetworkNameToDeleteSharedNetwork4Request(name string) *pbdhcpagent.DeleteSharedNetwork4Request {
