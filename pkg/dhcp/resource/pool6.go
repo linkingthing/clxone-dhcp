@@ -159,7 +159,7 @@ func validPool6(beginAddr, endAddr string) (net.IP, net.IP, uint64, error) {
 	}
 }
 
-const MaxUint64 uint64 = 1844674407370955165
+const MaxUint64 uint64 = 18446744073709551615
 
 func calculateIpv6Pool6Capacity(begin, end net.IP) (uint64, error) {
 	beginBigInt := gohelperip.IPv6ToBigInt(begin)
