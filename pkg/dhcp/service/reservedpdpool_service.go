@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
@@ -185,6 +186,10 @@ func (p *ReservedPdPoolService) List(subnetID string) ([]*resource.ReservedPdPoo
 			subnetID, err.Error())
 	}
 
+	for _, pdpool := range pdpools {
+		pdpool.CapacityString = strconv.FormatUint(pdpool.Capacity, 10)
+	}
+
 	return pdpools, nil
 }
 
@@ -199,6 +204,7 @@ func (p *ReservedPdPoolService) Get(subnet *resource.Subnet6, pdpoolID string) (
 		return nil, fmt.Errorf("no found reserved pdpool %s with subnet6 %s", pdpoolID, subnet.GetID())
 	}
 
+	pdpools[0].CapacityString = strconv.FormatUint(pdpools[0].Capacity, 10)
 	return pdpools[0], nil
 }
 

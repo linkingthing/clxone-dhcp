@@ -19,6 +19,7 @@ type ReservedPdPool struct {
 	PrefixIpnet               net.IPNet `json:"-"`
 	DelegatedLen              uint32    `json:"delegatedLen" rest:"required=true"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
+	CapacityString            string    `json:"capacityString" rest:"description=readonly" db:"-"`
 	Comment                   string    `json:"comment"`
 }
 

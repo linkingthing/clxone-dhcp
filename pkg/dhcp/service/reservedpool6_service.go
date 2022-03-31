@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net"
+	"strconv"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
@@ -225,6 +226,10 @@ func listReservedPool6s(subnetId string) ([]*resource.ReservedPool6, error) {
 			subnetId, err.Error())
 	}
 
+	for _, pool := range pools {
+		pool.CapacityString = strconv.FormatUint(pool.Capacity, 10)
+	}
+
 	return pools, nil
 }
 
@@ -239,6 +244,7 @@ func (p *ReservedPool6Service) Get(subnet *resource.Subnet6, poolID string) (*re
 		return nil, fmt.Errorf("no found reserved pool6 %s with subnet6 %s", poolID, subnet.GetID())
 	}
 
+	pools[0].CapacityString = strconv.FormatUint(pools[0].Capacity, 10)
 	return pools[0], nil
 }
 

@@ -199,22 +199,22 @@ func SetSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) error {
 			context.TODO(), &pbdhcpagent.GetSubnetsLeasesCountRequest{})
 	}
 
-	if err != nil {
-		return err
-	}
-
 	subnetsLeasesCount := resp.GetSubnetsLeasesCount()
 	for _, subnet := range subnets {
-		if subnet.Capacity != 0 {
-			if leasesCount, ok := subnetsLeasesCount[subnet.SubnetId]; ok {
-				subnet.UsedCount = leasesCount
-				subnet.UsedRatio = fmt.Sprintf("%.4f",
-					float64(leasesCount)/float64(subnet.Capacity))
-			}
-		}
+		setSubnet6LeasesUsedRatio(subnet, subnetsLeasesCount[subnet.SubnetId])
 	}
 
-	return nil
+	return err
+}
+
+func setSubnet6LeasesUsedRatio(subnet *resource.Subnet6, leasesCount uint64) {
+	if subnet.Capacity != 0 {
+		subnet.CapacityString = strconv.FormatUint(subnet.Capacity, 10)
+		if leasesCount != 0 {
+			subnet.UsedCount = leasesCount
+			subnet.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(subnet.Capacity))
+		}
+	}
 }
 
 func setSubnet6sNodeNames(subnets []*resource.Subnet6, nodeNames map[string]string) {
@@ -233,10 +233,7 @@ func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
 		return nil, fmt.Errorf("no found subnet6 %s", id)
 	}
 
-	if err := setSubnet6LeasesUsedRatio(subnets[0]); err != nil {
-		log.Warnf("get subnet6 %s leases used ratio failed: %s", id, err.Error())
-	}
-
+	setSubnet6LeasesUsedInfo(subnets[0])
 	if nodeNames, err := GetNodeNames(false); err != nil {
 		log.Warnf("get node names failed: %s", err.Error())
 	} else {
@@ -246,18 +243,13 @@ func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
 	return subnets[0], nil
 }
 
-func setSubnet6LeasesUsedRatio(subnet *resource.Subnet6) error {
+func setSubnet6LeasesUsedInfo(subnet *resource.Subnet6) {
 	leasesCount, err := getSubnet6LeasesCount(subnet)
 	if err != nil {
-		return err
+		log.Warnf("get subnet6 %s leases used ratio failed: %s", subnet.GetID(), err.Error())
 	}
 
-	if leasesCount != 0 {
-		subnet.UsedCount = leasesCount
-		subnet.UsedRatio = fmt.Sprintf("%.4f",
-			float64(leasesCount)/float64(subnet.Capacity))
-	}
-	return nil
+	setSubnet6LeasesUsedRatio(subnet, leasesCount)
 }
 
 func getSubnet6LeasesCount(subnet *resource.Subnet6) (uint64, error) {
@@ -270,6 +262,7 @@ func getSubnet6LeasesCount(subnet *resource.Subnet6) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return resp.GetLeasesCount(), err
 }
 
@@ -520,7 +513,11 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6) ([]s
 		return nil, nil, nil, nil, nil, err
 	}
 
-	oldSubnetsLen := len(oldSubnets)
+	var maxOldSubnetId uint64
+	if len(oldSubnets) != 0 {
+		maxOldSubnetId = oldSubnets[0].SubnetId
+	}
+
 	subnets := make([]*resource.Subnet6, 0)
 	subnetPools := make(map[uint64][]*resource.Pool6)
 	subnetReservedPools := make(map[uint64][]*resource.ReservedPool6)
@@ -558,7 +555,7 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6) ([]s
 		} else if err := checkPdPoolsValid(subnet, pdpools, reservations); err != nil {
 			log.Warnf("subnet6 %s pdpools is invalid: %s", subnet.Subnet, err.Error())
 		} else {
-			subnet.SubnetId = uint64(oldSubnetsLen + len(subnets) + 1)
+			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
 			subnets = append(subnets, subnet)
 			if len(pools) != 0 {
@@ -1052,7 +1049,7 @@ func pdpoolsToInsertSqlAndRequest(subnetPdPools map[uint64][]*resource.PdPool, r
 	for subnetId, pdpools := range subnetPdPools {
 		for _, pdpool := range pdpools {
 			buf.WriteString(pdpoolToInsertDBSqlString(subnetId, pdpool))
-			pbPdPool := pdPoolToCreatePdPoolRequest(subnetId, pdpool)
+			pbPdPool := pdpoolToCreatePdPoolRequest(subnetId, pdpool)
 			reqForServerCreate.PdPools = append(reqForServerCreate.PdPools, pbPdPool)
 			for _, node := range subnetAndNodes[subnetId] {
 				if req, ok := reqsForSentryCreate[node]; ok {
@@ -1329,7 +1326,7 @@ func genCreateSubnets6AndPoolsRequestWithSubnet6(tx restdb.Transaction, subnet6 
 
 	for _, pdpool := range pdpools {
 		req.PdPools = append(req.PdPools,
-			pdPoolToCreatePdPoolRequest(subnet6.SubnetId, pdpool))
+			pdpoolToCreatePdPoolRequest(subnet6.SubnetId, pdpool))
 	}
 
 	for _, pdpool := range reservedPdPools {

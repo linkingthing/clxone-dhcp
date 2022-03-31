@@ -32,6 +32,7 @@ type Subnet6 struct {
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
 	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
+	CapacityString            string    `json:"capacityString" rest:"description=readonly" db:"-"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 }

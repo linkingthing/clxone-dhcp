@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
@@ -248,9 +249,12 @@ func getSubnet6Leases(subnetId uint64) (*pbdhcpagent.GetLeases6Response, error) 
 }
 
 func setPool6LeasesUsedRatio(pool *resource.Pool6, leasesCount uint64) {
-	if leasesCount != 0 && pool.Capacity != 0 {
-		pool.UsedCount = leasesCount
-		pool.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(pool.Capacity))
+	if pool.Capacity != 0 {
+		pool.CapacityString = strconv.FormatUint(pool.Capacity, 10)
+		if leasesCount != 0 {
+			pool.UsedCount = leasesCount
+			pool.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(pool.Capacity))
+		}
 	}
 }
 

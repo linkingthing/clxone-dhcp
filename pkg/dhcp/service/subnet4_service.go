@@ -330,21 +330,22 @@ func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 	}
 
 	if err != nil {
-		return err
+		return
 	}
 
 	subnetsLeasesCount := resp.GetSubnetsLeasesCount()
 	for _, subnet := range subnets {
-		if subnet.Capacity != 0 {
-			if leasesCount, ok := subnetsLeasesCount[subnet.SubnetId]; ok {
-				subnet.UsedCount = leasesCount
-				subnet.UsedRatio = fmt.Sprintf("%.4f",
-					float64(leasesCount)/float64(subnet.Capacity))
-			}
-		}
+		setSubnet4LeasesUsedRatio(subnet, subnetsLeasesCount[subnet.SubnetId])
 	}
 
 	return
+}
+
+func setSubnet4LeasesUsedRatio(subnet *resource.Subnet4, leasesCount uint64) {
+	if leasesCount != 0 && subnet.Capacity != 0 {
+		subnet.UsedCount = leasesCount
+		subnet.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(subnet.Capacity))
+	}
 }
 
 func setPagination(ctx *restresource.Context, hasPagination bool, pageTotal int) {
@@ -383,10 +384,7 @@ func (s *Subnet4Service) Get(id string) (*resource.Subnet4, error) {
 		return nil, fmt.Errorf("no found subnet4 %s", id)
 	}
 
-	if err := setSubnet4LeasesUsedRatio(subnets[0]); err != nil {
-		log.Warnf("get subnet4 %s leases used ratio failed: %s", id, err.Error())
-	}
-
+	setSubnet4LeasesUsedInfo(subnets[0])
 	if nodeNames, err := GetNodeNames(true); err != nil {
 		log.Warnf("get node names failed: %s", err.Error())
 	} else {
@@ -396,18 +394,13 @@ func (s *Subnet4Service) Get(id string) (*resource.Subnet4, error) {
 	return subnets[0], nil
 }
 
-func setSubnet4LeasesUsedRatio(subnet *resource.Subnet4) error {
+func setSubnet4LeasesUsedInfo(subnet *resource.Subnet4) {
 	leasesCount, err := getSubnet4LeasesCount(subnet)
 	if err != nil {
-		return err
+		log.Warnf("get subnet4 %s leases used ratio failed: %s", subnet.GetID(), err.Error())
 	}
 
-	if leasesCount != 0 {
-		subnet.UsedCount = leasesCount
-		subnet.UsedRatio = fmt.Sprintf("%.4f",
-			float64(leasesCount)/float64(subnet.Capacity))
-	}
-	return nil
+	setSubnet4LeasesUsedRatio(subnet, leasesCount)
 }
 
 func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
@@ -600,7 +593,11 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 		return nil, nil, nil, nil, nil, err
 	}
 
-	oldSubnetsLen := len(oldSubnets)
+	var maxOldSubnetId uint64
+	if len(oldSubnets) != 0 {
+		maxOldSubnetId = oldSubnets[0].SubnetId
+	}
+
 	subnets := make([]*resource.Subnet4, 0)
 	subnetPools := make(map[uint64][]*resource.Pool4)
 	subnetReservedPools := make(map[uint64][]*resource.ReservedPool4)
@@ -635,7 +632,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 			reservations); err != nil {
 			log.Warnf("subnet4 %s pool4s is invalid: %s", subnet.Subnet, err.Error())
 		} else {
-			subnet.SubnetId = uint64(oldSubnetsLen + len(subnets) + 1)
+			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
 			subnets = append(subnets, subnet)
 			if len(pools) != 0 {

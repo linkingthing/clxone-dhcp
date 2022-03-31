@@ -54,7 +54,6 @@ func EncodeOneReservedPool4ToPb(pool *resource.ReservedPool4) *dhcppb.ReservedPo
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,
 		Capacity:     pool.Capacity,
-		UsedCount:    pool.UsedCount,
 		Comment:      pool.Comment,
 	}
 }
@@ -151,7 +150,6 @@ func EncodeOneReservedPool6ToPb(pool *resource.ReservedPool6) *dhcppb.ReservedPo
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,
 		Capacity:     pool.Capacity,
-		UsedCount:    pool.UsedCount,
 		Comment:      pool.Comment,
 	}
 }

@@ -18,8 +18,6 @@ type ReservedPool4 struct {
 	EndAddress                string `json:"endAddress" rest:"description=immutable"`
 	EndIp                     net.IP `json:"-"`
 	Capacity                  uint64 `json:"capacity" rest:"description=readonly"`
-	UsedRatio                 string `json:"usedRatio" rest:"description=readonly" db:"-"`
-	UsedCount                 uint64 `json:"usedCount" rest:"description=readonly" db:"-"`
 	Template                  string `json:"template" db:"-"`
 	Comment                   string `json:"comment"`
 }

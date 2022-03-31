@@ -451,8 +451,7 @@ func (r *Reservation6Service) Get(subnet *resource.Subnet6, reservationID string
 func setReservation6LeasesUsedRatio(reservation *resource.Reservation6, leasesCount uint64) {
 	if leasesCount != 0 {
 		reservation.UsedCount = leasesCount
-		reservation.UsedRatio = fmt.Sprintf("%.4f",
-			float64(leasesCount)/float64(reservation.Capacity))
+		reservation.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(reservation.Capacity))
 	}
 }
 
