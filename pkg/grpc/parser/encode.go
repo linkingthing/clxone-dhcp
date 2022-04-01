@@ -2,291 +2,216 @@ package parser
 
 import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	dhcppb "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
+	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 )
 
-func EncodeSubnet4sToPb(subnet4s []*resource.Subnet4) []*dhcppb.Subnet4 {
-	pbSubnets := make([]*dhcppb.Subnet4, len(subnet4s))
-	for i, subnet := range subnet4s {
-		pbSubnets[i] = EncodeOneSubnet4ToPb(subnet)
+func Subnet4sToPbDHCPSubnet4s(subnets []*resource.Subnet4) []*pbdhcp.Subnet4 {
+	pbSubnets := make([]*pbdhcp.Subnet4, len(subnets))
+	for i, subnet := range subnets {
+		pbSubnets[i] = Subnet4ToPbDHCPSubnet4(subnet, subnet.UsedCount)
 	}
+
 	return pbSubnets
 }
 
-func EncodeOneSubnet4ToPb(subnet *resource.Subnet4) *dhcppb.Subnet4 {
-	return &dhcppb.Subnet4{
+func Subnet4ToPbDHCPSubnet4(subnet *resource.Subnet4, leasesCount uint64) *pbdhcp.Subnet4 {
+	return &pbdhcp.Subnet4{
+		Id:            subnet.GetID(),
 		Subnet:        subnet.Subnet,
+		SubnetId:      subnet.SubnetId,
 		Capacity:      subnet.Capacity,
-		UsedCount:     subnet.UsedCount,
 		DomainServers: subnet.DomainServers,
 		Routers:       subnet.Routers,
+		UsedCount:     leasesCount,
 	}
 }
 
-func EncodePool4sToPb(pools []*resource.Pool4) []*dhcppb.Pool4 {
-	pbPools := make([]*dhcppb.Pool4, len(pools))
-	for i, pool4 := range pools {
-		pbPools[i] = EncodeOnePool4ToPb(pool4)
+func Pool4sToPbDHCPPool4s(pools []*resource.Pool4) []*pbdhcp.Pool4 {
+	pbPools := make([]*pbdhcp.Pool4, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = &pbdhcp.Pool4{
+			BeginAddress: pool.BeginAddress,
+			EndAddress:   pool.EndAddress,
+			Capacity:     pool.Capacity,
+			UsedCount:    pool.UsedCount,
+			Comment:      pool.Comment,
+		}
 	}
+
 	return pbPools
 }
 
-func EncodeOnePool4ToPb(pool *resource.Pool4) *dhcppb.Pool4 {
-	return &dhcppb.Pool4{
-		BeginAddress: pool.BeginAddress,
-		EndAddress:   pool.EndAddress,
-		Capacity:     pool.Capacity,
-		UsedCount:    pool.UsedCount,
-		Comment:      pool.Comment,
+func ReservedPool4sToPbDHCPReservedPool4s(pools []*resource.ReservedPool4) []*pbdhcp.ReservedPool4 {
+	pbPools := make([]*pbdhcp.ReservedPool4, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = &pbdhcp.ReservedPool4{
+			BeginAddress: pool.BeginAddress,
+			EndAddress:   pool.EndAddress,
+			Capacity:     pool.Capacity,
+			Comment:      pool.Comment,
+		}
 	}
-}
 
-func EncodeReservedPool4sToPb(pools []*resource.ReservedPool4) []*dhcppb.ReservedPool4 {
-	pbPools := make([]*dhcppb.ReservedPool4, len(pools))
-	for i, reservedPool4 := range pools {
-		pbPools[i] = EncodeOneReservedPool4ToPb(reservedPool4)
-	}
 	return pbPools
 }
 
-func EncodeOneReservedPool4ToPb(pool *resource.ReservedPool4) *dhcppb.ReservedPool4 {
-	return &dhcppb.ReservedPool4{
-		BeginAddress: pool.BeginAddress,
-		EndAddress:   pool.EndAddress,
-		Capacity:     pool.Capacity,
-		Comment:      pool.Comment,
+func Reservation4sToPbDHCPReservation4s(reservations []*resource.Reservation4) []*pbdhcp.Reservation4 {
+	pbReservations := make([]*pbdhcp.Reservation4, len(reservations))
+	for i, reservation := range reservations {
+		pbReservations[i] = &pbdhcp.Reservation4{
+			HwAddress: reservation.HwAddress,
+			IpAddress: reservation.IpAddress,
+			Capacity:  reservation.Capacity,
+			UsedCount: reservation.UsedCount,
+			Comment:   reservation.Comment,
+		}
 	}
+
+	return pbReservations
 }
 
-func EncodeReservation4sToPb(pools []*resource.Reservation4) []*dhcppb.Reservation4 {
-	pbPools := make([]*dhcppb.Reservation4, len(pools))
-	for i, reservation4 := range pools {
-		pbPools[i] = EncodeOneReservation4ToPb(reservation4)
+func SubnetLeases4sToPbDHCPLease4s(leases []*resource.SubnetLease4) []*pbdhcp.Lease4 {
+	pbLease4s := make([]*pbdhcp.Lease4, len(leases))
+	for i, lease := range leases {
+		pbLease4s[i] = SubnetLease4ToPbDHCPLease4(lease)
 	}
-	return pbPools
-}
 
-func EncodeOneReservation4ToPb(pool *resource.Reservation4) *dhcppb.Reservation4 {
-	return &dhcppb.Reservation4{
-		HwAddress: pool.HwAddress,
-		IpAddress: pool.IpAddress,
-		Capacity:  pool.Capacity,
-		UsedCount: pool.UsedCount,
-		Comment:   pool.Comment,
-	}
-}
-
-func EncodeSubnetLeases4sToPb(lease4s []*resource.SubnetLease4) []*dhcppb.Lease4 {
-	pbLease4s := make([]*dhcppb.Lease4, len(lease4s))
-	for i, lease4 := range lease4s {
-		pbLease4s[i] = EncodeOneSubnetLeases4ToPb(lease4)
-	}
 	return pbLease4s
 }
 
-func EncodeOneSubnetLeases4ToPb(lease4 *resource.SubnetLease4) *dhcppb.Lease4 {
-	return &dhcppb.Lease4{
-		Address:               lease4.Address,
-		HwAddress:             lease4.HwAddress,
-		HwAddressOrganization: lease4.HwAddressOrganization,
-		ClientId:              lease4.ClientId,
-		ValidLifetime:         lease4.ValidLifetime,
-		Expire:                lease4.Expire,
-		Hostname:              lease4.Hostname,
-		VendorId:              lease4.VendorId,
-		OperatingSystem:       lease4.OperatingSystem,
-		ClientType:            lease4.ClientType,
-		LeaseState:            lease4.LeaseState,
-		AddressType:           string(lease4.AddressType),
+func SubnetLease4ToPbDHCPLease4(lease *resource.SubnetLease4) *pbdhcp.Lease4 {
+	if lease == nil {
+		return nil
+	}
+
+	return &pbdhcp.Lease4{
+		Address:               lease.Address,
+		HwAddress:             lease.HwAddress,
+		HwAddressOrganization: lease.HwAddressOrganization,
+		ClientId:              lease.ClientId,
+		ValidLifetime:         lease.ValidLifetime,
+		Expire:                lease.Expire,
+		Hostname:              lease.Hostname,
+		VendorId:              lease.VendorId,
+		OperatingSystem:       lease.OperatingSystem,
+		ClientType:            lease.ClientType,
+		LeaseState:            lease.LeaseState,
+		AddressType:           lease.AddressType.String(),
 	}
 }
 
-func EncodeSubnet6sToPb(subnet6s []*resource.Subnet6) []*dhcppb.Subnet6 {
-	pbSubnets := make([]*dhcppb.Subnet6, len(subnet6s))
-	for i, subnet := range subnet6s {
-		pbSubnets[i] = EncodeOneSubnet6ToPb(subnet)
+func Subnet6sToPbDHCPSubnet6s(subnets []*resource.Subnet6) []*pbdhcp.Subnet6 {
+	pbSubnets := make([]*pbdhcp.Subnet6, len(subnets))
+	for i, subnet := range subnets {
+		pbSubnets[i] = Subnet6ToPbDHCPSubnet6(subnet, subnet.UsedCount)
 	}
+
 	return pbSubnets
 }
 
-func EncodeOneSubnet6ToPb(subnet *resource.Subnet6) *dhcppb.Subnet6 {
-	return &dhcppb.Subnet6{
+func Subnet6ToPbDHCPSubnet6(subnet *resource.Subnet6, leasesCount uint64) *pbdhcp.Subnet6 {
+	return &pbdhcp.Subnet6{
+		Id:            subnet.GetID(),
+		SubnetId:      subnet.SubnetId,
 		Subnet:        subnet.Subnet,
 		Capacity:      subnet.Capacity,
-		UsedCount:     subnet.UsedCount,
 		DomainServers: subnet.DomainServers,
 		UseEui64:      subnet.UseEui64,
+		UsedCount:     leasesCount,
 	}
 }
 
-func EncodePool6sToPb(pools []*resource.Pool6) []*dhcppb.Pool6 {
-	pbPools := make([]*dhcppb.Pool6, len(pools))
-	for i, pool6 := range pools {
-		pbPools[i] = EncodeOnePool6ToPb(pool6)
-	}
-	return pbPools
-}
-
-func EncodeOnePool6ToPb(pool *resource.Pool6) *dhcppb.Pool6 {
-	return &dhcppb.Pool6{
-		BeginAddress: pool.BeginAddress,
-		EndAddress:   pool.EndAddress,
-		Capacity:     pool.Capacity,
-		UsedCount:    pool.UsedCount,
-		Comment:      pool.Comment,
-	}
-}
-
-func EncodeReservedPool6sToPb(pools []*resource.ReservedPool6) []*dhcppb.ReservedPool6 {
-	pbPools := make([]*dhcppb.ReservedPool6, len(pools))
-	for i, pool6 := range pools {
-		pbPools[i] = EncodeOneReservedPool6ToPb(pool6)
-	}
-	return pbPools
-}
-
-func EncodeOneReservedPool6ToPb(pool *resource.ReservedPool6) *dhcppb.ReservedPool6 {
-	return &dhcppb.ReservedPool6{
-		BeginAddress: pool.BeginAddress,
-		EndAddress:   pool.EndAddress,
-		Capacity:     pool.Capacity,
-		Comment:      pool.Comment,
-	}
-}
-
-func EncodeReservation6sToPb(pools []*resource.Reservation6) []*dhcppb.Reservation6 {
-	pbPools := make([]*dhcppb.Reservation6, len(pools))
-	for i, reservation6 := range pools {
-		pbPools[i] = EncodeOneReservation6ToPb(reservation6)
-	}
-	return pbPools
-}
-
-func EncodeOneReservation6ToPb(pool *resource.Reservation6) *dhcppb.Reservation6 {
-	return &dhcppb.Reservation6{
-		HwAddress:   pool.HwAddress,
-		IpAddresses: pool.IpAddresses,
-		Capacity:    pool.Capacity,
-		UsedCount:   pool.UsedCount,
-		Comment:     pool.Comment,
-	}
-}
-
-func EncodePdPool6sToPb(pools []*resource.PdPool) []*dhcppb.PdPool6 {
-	pbPools := make([]*dhcppb.PdPool6, len(pools))
+func Pool6sToPbDHCPPool6s(pools []*resource.Pool6) []*pbdhcp.Pool6 {
+	pbPools := make([]*pbdhcp.Pool6, len(pools))
 	for i, pool := range pools {
-		pbPools[i] = EncodeOnePdPoolToPb(pool)
+		pbPools[i] = &pbdhcp.Pool6{
+			BeginAddress: pool.BeginAddress,
+			EndAddress:   pool.EndAddress,
+			Capacity:     pool.Capacity,
+			UsedCount:    pool.UsedCount,
+			Comment:      pool.Comment,
+		}
 	}
+
 	return pbPools
 }
 
-func EncodeOnePdPoolToPb(pool *resource.PdPool) *dhcppb.PdPool6 {
-	return &dhcppb.PdPool6{
-		Prefix:       pool.Prefix,
-		PrefixLen:    pool.PrefixLen,
-		PrefixIpnet:  pool.PrefixIpnet.String(),
-		DelegatedLen: pool.DelegatedLen,
-		Capacity:     pool.Capacity,
-		Comment:      pool.Comment,
+func ReservedPool6sToPbDHCPReservedPool6s(pools []*resource.ReservedPool6) []*pbdhcp.ReservedPool6 {
+	pbPools := make([]*pbdhcp.ReservedPool6, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = &pbdhcp.ReservedPool6{
+			BeginAddress: pool.BeginAddress,
+			EndAddress:   pool.EndAddress,
+			Capacity:     pool.Capacity,
+			Comment:      pool.Comment,
+		}
 	}
+
+	return pbPools
 }
 
-func EncodeSubnetLease6sToPb(lease6s []*resource.SubnetLease6) []*dhcppb.Lease6 {
-	pbLease6s := make([]*dhcppb.Lease6, len(lease6s))
-	for i, lease6 := range lease6s {
-		pbLease6s[i] = EncodeOneSubnetLease6ToPb(lease6)
+func Reservation6sToPbDHCPReservation6s(reservations []*resource.Reservation6) []*pbdhcp.Reservation6 {
+	pbReservations := make([]*pbdhcp.Reservation6, len(reservations))
+	for i, reservation := range reservations {
+		pbReservations[i] = &pbdhcp.Reservation6{
+			HwAddress:   reservation.HwAddress,
+			IpAddresses: reservation.IpAddresses,
+			Capacity:    reservation.Capacity,
+			UsedCount:   reservation.UsedCount,
+			Comment:     reservation.Comment,
+		}
 	}
-	return pbLease6s
+
+	return pbReservations
 }
 
-func EncodeOneSubnetLease6ToPb(lease6 *resource.SubnetLease6) *dhcppb.Lease6 {
-	return &dhcppb.Lease6{
-		Address:               lease6.Address,
-		PrefixLen:             lease6.PrefixLen,
-		Duid:                  lease6.Duid,
-		Iaid:                  lease6.Iaid,
-		PreferredLifetime:     lease6.PreferredLifetime,
-		ValidLifetime:         lease6.ValidLifetime,
-		Expire:                lease6.Expire,
-		HwAddress:             lease6.HwAddress,
-		HwAddressType:         lease6.HwAddressType,
-		HwAddressSource:       lease6.HwAddressSource,
-		HwAddressOrganization: lease6.HwAddressOrganization,
-		LeaseType:             lease6.LeaseType,
-		Hostname:              lease6.Hostname,
-		VendorId:              lease6.VendorId,
-		OperatingSystem:       lease6.OperatingSystem,
-		ClientType:            lease6.ClientType,
-		LeaseState:            lease6.LeaseState,
-		AddressType:           string(lease6.AddressType),
+func PdPool6sToPbDHCPPdPools(pdpools []*resource.PdPool) []*pbdhcp.PdPool6 {
+	pbPdPools := make([]*pbdhcp.PdPool6, len(pdpools))
+	for i, pdpool := range pdpools {
+		pbPdPools[i] = &pbdhcp.PdPool6{
+			Prefix:       pdpool.Prefix,
+			PrefixLen:    pdpool.PrefixLen,
+			PrefixIpnet:  pdpool.PrefixIpnet.String(),
+			DelegatedLen: pdpool.DelegatedLen,
+			Capacity:     pdpool.Capacity,
+			Comment:      pdpool.Comment,
+		}
 	}
+
+	return pbPdPools
 }
 
-func EncodeDhcpSubnet4FromSubnet4(subnet *resource.Subnet4, leasesCount uint64) *dhcppb.Subnet4 {
-	return &dhcppb.Subnet4{
-		Subnet:        subnet.Subnet,
-		SubnetId:      subnet.SubnetId,
-		Capacity:      subnet.Capacity,
-		UsedCount:     leasesCount,
-		DomainServers: subnet.DomainServers,
-		Routers:       subnet.Routers,
-		Id:            subnet.GetID(),
+func SubnetLease6sToPbDHCPLease6s(leases []*resource.SubnetLease6) []*pbdhcp.Lease6 {
+	pbLeases := make([]*pbdhcp.Lease6, len(leases))
+	for i, lease := range leases {
+		pbLeases[i] = SubnetLease6ToPbDHCPLease6(lease)
 	}
+	return pbLeases
 }
 
-func EncodeDhcpSubnet6FromSubnet6(subnet *resource.Subnet6, leasesCount uint64) *dhcppb.Subnet6 {
-	return &dhcppb.Subnet6{
-		Subnet:        subnet.Subnet,
-		SubnetId:      subnet.SubnetId,
-		Capacity:      subnet.Capacity,
-		UsedCount:     leasesCount,
-		DomainServers: subnet.DomainServers,
-		UseEui64:      subnet.UseEui64,
-		Id:            subnet.GetID(),
-	}
-}
-
-func EncodeDhcpLease4FromSubnetLease4(lease4 *resource.SubnetLease4) *dhcppb.Lease4 {
-	if lease4 == nil {
-		return nil
-	}
-	return &dhcppb.Lease4{
-		Address:               lease4.Address,
-		HwAddress:             lease4.HwAddress,
-		HwAddressOrganization: lease4.HwAddressOrganization,
-		ClientId:              lease4.ClientId,
-		ValidLifetime:         lease4.ValidLifetime,
-		Expire:                lease4.Expire,
-		Hostname:              lease4.Hostname,
-		VendorId:              lease4.VendorId,
-		OperatingSystem:       lease4.OperatingSystem,
-		ClientType:            lease4.ClientType,
-		LeaseState:            lease4.LeaseState,
-	}
-}
-
-func EncodeDhcpLease6FromSubnetLease6(lease6 *resource.SubnetLease6) *dhcppb.Lease6 {
-	if lease6 == nil {
+func SubnetLease6ToPbDHCPLease6(lease *resource.SubnetLease6) *pbdhcp.Lease6 {
+	if lease == nil {
 		return nil
 	}
 
-	return &dhcppb.Lease6{
-		Address:               lease6.Address,
-		PrefixLen:             lease6.PrefixLen,
-		Duid:                  lease6.Duid,
-		Iaid:                  lease6.Iaid,
-		HwAddress:             lease6.HwAddress,
-		HwAddressType:         lease6.HwAddressType,
-		HwAddressSource:       lease6.HwAddressSource,
-		HwAddressOrganization: lease6.HwAddressOrganization,
-		ValidLifetime:         lease6.ValidLifetime,
-		PreferredLifetime:     lease6.PreferredLifetime,
-		Expire:                lease6.Expire,
-		LeaseType:             lease6.LeaseType,
-		Hostname:              lease6.Hostname,
-		VendorId:              lease6.VendorId,
-		OperatingSystem:       lease6.OperatingSystem,
-		ClientType:            lease6.ClientType,
-		LeaseState:            lease6.LeaseState,
+	return &pbdhcp.Lease6{
+		Address:               lease.Address,
+		PrefixLen:             lease.PrefixLen,
+		Duid:                  lease.Duid,
+		Iaid:                  lease.Iaid,
+		PreferredLifetime:     lease.PreferredLifetime,
+		ValidLifetime:         lease.ValidLifetime,
+		Expire:                lease.Expire,
+		HwAddress:             lease.HwAddress,
+		HwAddressType:         lease.HwAddressType,
+		HwAddressSource:       lease.HwAddressSource,
+		HwAddressOrganization: lease.HwAddressOrganization,
+		LeaseType:             lease.LeaseType,
+		Hostname:              lease.Hostname,
+		VendorId:              lease.VendorId,
+		OperatingSystem:       lease.OperatingSystem,
+		ClientType:            lease.ClientType,
+		LeaseState:            lease.LeaseState,
+		AddressType:           lease.AddressType.String(),
 	}
 }

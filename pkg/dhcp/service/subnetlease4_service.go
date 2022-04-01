@@ -14,7 +14,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
-	"github.com/linkingthing/clxone-dhcp/pkg/grpc/parser"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
@@ -157,7 +156,7 @@ func SubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLea
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ClientId:              lease.GetClientId(),
 		ValidLifetime:         lease.GetValidLifetime(),
-		Expire:                timeFromUinx(lease.GetExpire()),
+		Expire:                TimeFromUinx(lease.GetExpire()),
 		Hostname:              lease.GetHostname(),
 		Fingerprint:           lease.GetFingerprint(),
 		VendorId:              lease.GetVendorId(),
@@ -170,7 +169,7 @@ func SubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLea
 	return lease4
 }
 
-func timeFromUinx(t int64) string {
+func TimeFromUinx(t int64) string {
 	return time.Unix(t, 0).Format(time.RFC3339)
 }
 
@@ -214,7 +213,7 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4,
 }
 
 func subnetLease4FromPbLease4AndReservations(lease *pbdhcpagent.DHCPLease4, reservationMap map[string]string) *resource.SubnetLease4 {
-	subnetLease4 := parser.DecodeSubnetLease4FromPbLease4(lease)
+	subnetLease4 := SubnetLease4FromPbLease4(lease)
 	if _, ok := reservationMap[subnetLease4.Address]; ok {
 		subnetLease4.AddressType = resource.AddressTypeReservation
 	}
