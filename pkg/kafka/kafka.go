@@ -60,6 +60,10 @@ func GetDHCPNodesWithSentryNodes(sentryNodes []string, isv4 bool) ([]string, err
 	for _, node := range dhcpNodes.GetNodes() {
 		hasSentry := IsAgentService(node.GetServiceTags(), sentryRole)
 		if hasSentry {
+			if node.GetVirtualIp() != "" {
+				sentryNodes = []string{node.GetIpv4()}
+			}
+
 			sentryNodeMap[node.GetIpv4()] = struct{}{}
 		}
 
