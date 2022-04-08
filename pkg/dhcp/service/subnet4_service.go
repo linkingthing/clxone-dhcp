@@ -12,6 +12,7 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
+	"github.com/linkingthing/cement/slice"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 	restdb "github.com/linkingthing/gorest/db"
 	resterror "github.com/linkingthing/gorest/error"
@@ -549,8 +550,13 @@ func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
 		return fmt.Errorf("subnet4s count has reached maximum (1w)")
 	}
 
+	sentryNodes, serverNodes, err := kafka.GetDHCPNodes(kafka.AgentStack4)
+	if err != nil {
+		return err
+	}
+
 	validSqls, reqsForSentryCreate, reqsForSentryDelete,
-		reqForServerCreate, reqForServerDelete, err := parseSubnet4sFromFile(file.Name, oldSubnet4s)
+		reqForServerCreate, reqForServerDelete, err := parseSubnet4sFromFile(file.Name, oldSubnet4s, sentryNodes)
 	if err != nil {
 		return fmt.Errorf("parse subnet4s from file %s failed: %s",
 			file.Name, err.Error())
@@ -568,7 +574,7 @@ func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
 			}
 		}
 
-		return sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForSentryCreate, reqsForSentryDelete,
+		return sendCreateSubnet4sAndPoolsCmdToDHCPAgent(serverNodes, reqsForSentryCreate, reqsForSentryDelete,
 			reqForServerCreate, reqForServerDelete)
 	}); err != nil {
 		return fmt.Errorf("import subnet4s from file %s failed: %s", file.Name, err.Error())
@@ -577,7 +583,7 @@ func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
 	return nil
 }
 
-func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]string, map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets4Request, *pbdhcpagent.CreateSubnets4AndPoolsRequest, *pbdhcpagent.DeleteSubnets4Request, error) {
+func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sentryNodes []string) ([]string, map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets4Request, *pbdhcpagent.CreateSubnets4AndPoolsRequest, *pbdhcpagent.DeleteSubnets4Request, error) {
 	contents, err := csvutil.ReadCSVFile(fileName)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -619,6 +625,8 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4) ([]s
 			log.Warnf("parse subnet4 %s fields failed: %s", subnet.Subnet, err.Error())
 		} else if err := subnet.Validate(); err != nil {
 			log.Warnf("subnet4 %s is invalid: %s", subnet.Subnet, err.Error())
+		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodes); err != nil {
+			log.Warnf("subnet4 %s nodes invalid: %s", subnet.Subnet, err.Error())
 		} else if err := checkSubnet4ConflictWithSubnet4s(subnet,
 			append(oldSubnets, subnets...)); err != nil {
 			log.Warnf(err.Error())
@@ -806,6 +814,16 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 	}
 
 	return reservations, nil
+}
+
+func checkSubnetNodesValid(subnetNodes, sentryNodes []string) error {
+	for _, subnetNode := range sentryNodes {
+		if slice.SliceIndex(sentryNodes, subnetNode) == -1 {
+			return fmt.Errorf("subnet node %s invalid", subnetNode)
+		}
+	}
+
+	return nil
 }
 
 func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*resource.Subnet4) error {
@@ -1000,19 +1018,9 @@ func reservation4sToInsertSqlAndRequest(subnetReservations map[uint64][]*resourc
 	return strings.TrimSuffix(buf.String(), ",") + ";"
 }
 
-func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, reqsForSentryDelete map[string]*pbdhcpagent.DeleteSubnets4Request, reqForServerCreate *pbdhcpagent.CreateSubnets4AndPoolsRequest, reqForServerDelete *pbdhcpagent.DeleteSubnets4Request) error {
+func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(serverNodes []string, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, reqsForSentryDelete map[string]*pbdhcpagent.DeleteSubnets4Request, reqForServerCreate *pbdhcpagent.CreateSubnets4AndPoolsRequest, reqForServerDelete *pbdhcpagent.DeleteSubnets4Request) error {
 	if len(reqsForSentryCreate) == 0 {
 		return nil
-	}
-
-	var sentryNodes []string
-	for node := range reqsForSentryCreate {
-		sentryNodes = append(sentryNodes, node)
-	}
-
-	nodes, err := kafka.GetDHCPNodesWithSentryNodes(sentryNodes, true)
-	if err != nil {
-		return err
 	}
 
 	var succeedSentryNodes []string
@@ -1027,7 +1035,7 @@ func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(reqsForSentryCreate map[string]*pb
 	}
 
 	var succeedServerNodes []string
-	for _, node := range nodes[len(sentryNodes):] {
+	for _, node := range serverNodes {
 		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			[]string{node}, kafka.CreateSubnet4sAndPools,
 			reqForServerCreate); err != nil {
@@ -1088,6 +1096,11 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 		return nil, fmt.Errorf("export subnet4s failed: %s", err.Error())
 	}
 
+	virtualIp, err := GetSentryVirtualIpNode(true)
+	if err != nil {
+		return nil, err
+	}
+
 	subnetPools := make(map[string][]string)
 	for _, pool := range pools {
 		poolSlices := subnetPools[pool.Subnet4]
@@ -1111,7 +1124,7 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 
 	var strMatrix [][]string
 	for _, subnet4 := range subnet4s {
-		subnetSlices := localizationSubnet4ToStrSlice(subnet4)
+		subnetSlices := localizationSubnet4ToStrSlice(subnet4, virtualIp)
 		slices := make([]string, TableHeaderSubnet4Len)
 		copy(slices, subnetSlices)
 		if poolSlices, ok := subnetPools[subnet4.GetID()]; ok {
@@ -1220,6 +1233,14 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 	if len(subnet4.Nodes) != 0 && len(newNodes) == 0 {
 		if err := checkSubnet4CouldBeDelete(tx, subnet4); err != nil {
 			return err
+		}
+	}
+
+	if len(subnet4.Nodes) != 0 && len(newNodes) != 0 {
+		if virtualIp, err := GetSentryVirtualIpNode(true); err != nil {
+			return err
+		} else if virtualIp != "" {
+			return nil
 		}
 	}
 

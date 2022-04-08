@@ -19,6 +19,14 @@ const (
 	AgentRoleServer6 AgentRole = "server6"
 )
 
+type AgentStack string
+
+const (
+	AgentStack4    AgentStack = "4"
+	AgentStack6    AgentStack = "6"
+	AgentStackDual AgentStack = "dual"
+)
+
 type RollBackFunc func([]string)
 
 func SendDHCPCmdWithNodes(isv4 bool, sentryNodes []string, cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
@@ -39,7 +47,7 @@ func SendDHCPCmdWithNodes(isv4 bool, sentryNodes []string, cmd DHCPCmd, req prot
 	return err
 }
 
-func GetDHCPNodesWithSentryNodes(sentryNodes []string, isv4 bool) ([]string, error) {
+func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]string, error) {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
@@ -54,6 +62,7 @@ func GetDHCPNodesWithSentryNodes(sentryNodes []string, isv4 bool) ([]string, err
 	}
 
 	var serverNodes []string
+	var sentryNodes []string
 	sentryNodeMap := make(map[string]struct{})
 	hasServer := false
 	hasVirtualIp := false
@@ -86,13 +95,17 @@ func GetDHCPNodesWithSentryNodes(sentryNodes []string, isv4 bool) ([]string, err
 		return nil, fmt.Errorf("no found valid dhcp server nodes")
 	}
 
-	for _, sentryNode := range sentryNodes {
+	for _, sentryNode := range selectedSentryNodes {
 		if _, ok := sentryNodeMap[sentryNode]; ok == false {
 			return nil, fmt.Errorf("invalid sentry node %s", sentryNode)
 		}
 	}
 
-	return append(sentryNodes, serverNodes...), nil
+	if len(sentryNodes) != 0 {
+		return append(sentryNodes, serverNodes...), nil
+	} else {
+		return append(selectedSentryNodes, serverNodes...), nil
+	}
 }
 
 func IsAgentService(tags []string, roles ...AgentRole) bool {
@@ -108,12 +121,12 @@ func IsAgentService(tags []string, roles ...AgentRole) bool {
 }
 
 func SendDHCPCmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
-	nodes, err := getDHCPNodes()
+	sentryNodes, serverNodes, err := GetDHCPNodes(AgentStackDual)
 	if err != nil {
 		return err
 	}
 
-	nodesForSucceed, err := GetDHCPAgentService().SendDHCPCmdWithNodes(nodes, cmd, req)
+	nodesForSucceed, err := GetDHCPAgentService().SendDHCPCmdWithNodes(append(sentryNodes, serverNodes...), cmd, req)
 	if err != nil && rollback != nil {
 		rollback(nodesForSucceed)
 	}
@@ -121,11 +134,21 @@ func SendDHCPCmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
 	return err
 }
 
-func getDHCPNodes() ([]string, error) {
+func GetDHCPNodes(stack AgentStack) ([]string, []string, error) {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+	}
+
+	sentryRoles := []AgentRole{AgentRoleSentry4, AgentRoleSentry6}
+	serverRoles := []AgentRole{AgentRoleServer4, AgentRoleServer6}
+	if stack == AgentStack4 {
+		sentryRoles = []AgentRole{AgentRoleSentry4}
+		serverRoles = []AgentRole{AgentRoleServer4}
+	} else if stack == AgentStack6 {
+		sentryRoles = []AgentRole{AgentRoleSentry6}
+		serverRoles = []AgentRole{AgentRoleServer6}
 	}
 
 	var serverNodes []string
@@ -134,7 +157,7 @@ func getDHCPNodes() ([]string, error) {
 	hasSentryVirtualIp := false
 	hasServerVirtualIp := false
 	for _, node := range dhcpNodes.GetNodes() {
-		hasSentry := IsAgentService(node.GetServiceTags(), AgentRoleSentry4, AgentRoleSentry6)
+		hasSentry := IsAgentService(node.GetServiceTags(), sentryRoles...)
 		if hasSentry {
 			if node.GetVirtualIp() != "" {
 				hasSentryVirtualIp = true
@@ -146,7 +169,7 @@ func getDHCPNodes() ([]string, error) {
 			}
 		}
 
-		if IsAgentService(node.GetServiceTags(), AgentRoleServer4, AgentRoleServer6) {
+		if IsAgentService(node.GetServiceTags(), serverRoles...) {
 			hasServer = true
 			if hasSentry == false {
 				if node.GetVirtualIp() != "" {
@@ -162,8 +185,8 @@ func getDHCPNodes() ([]string, error) {
 	}
 
 	if len(sentryNodes) == 0 || hasServer == false {
-		return nil, fmt.Errorf("no found valid dhcp sentry or server nodes")
+		return nil, nil, fmt.Errorf("no found valid dhcp sentry or server nodes")
 	}
 
-	return append(sentryNodes, serverNodes...), nil
+	return sentryNodes, serverNodes, nil
 }

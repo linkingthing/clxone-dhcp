@@ -78,13 +78,31 @@ func GetNodeNames(isv4 bool) (map[string]string, error) {
 	nodeNames := make(map[string]string)
 	for _, node := range dhcpNodes.GetNodes() {
 		if kafka.IsAgentService(node.GetServiceTags(), sentryRole) {
-			if node.GetVirtualIp() != "" {
-				return map[string]string{node.GetIpv4(): node.GetName()}, nil
-			} else {
-				nodeNames[node.GetIpv4()] = node.GetName()
-			}
+			nodeNames[node.GetIpv4()] = node.GetName()
 		}
 	}
 
 	return nodeNames, nil
+}
+
+func GetSentryVirtualIpNode(isv4 bool) (string, error) {
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+		&pbmonitor.GetDHCPNodesRequest{})
+	if err != nil {
+		return "", fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+	}
+
+	sentryRole := kafka.AgentRoleSentry4
+	if isv4 == false {
+		sentryRole = kafka.AgentRoleSentry6
+	}
+
+	for _, node := range dhcpNodes.GetNodes() {
+		if kafka.IsAgentService(node.GetServiceTags(), sentryRole) &&
+			node.GetVirtualIp() != "" {
+			return node.GetIpv4(), nil
+		}
+	}
+
+	return "", nil
 }
