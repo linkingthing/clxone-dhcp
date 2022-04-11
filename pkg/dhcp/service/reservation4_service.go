@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
@@ -236,13 +237,14 @@ func setReservation4LeasesUsedRatio(reservation *resource.Reservation4, leasesCo
 }
 
 func getReservation4LeaseCount(reservation *resource.Reservation4) (uint64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetReservation4LeaseCount(
-		context.TODO(), &pbdhcpagent.GetReservation4LeaseCountRequest{
+		ctx, &pbdhcpagent.GetReservation4LeaseCountRequest{
 			SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
 			HwAddress: reservation.HwAddress,
 			IpAddress: reservation.IpAddress,
 		})
-
 	return resp.GetLeasesCount(), err
 }
 

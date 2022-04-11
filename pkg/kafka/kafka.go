@@ -48,6 +48,10 @@ func SendDHCPCmdWithNodes(isv4 bool, sentryNodes []string, cmd DHCPCmd, req prot
 }
 
 func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]string, error) {
+	if len(selectedSentryNodes) == 0 {
+		return nil, nil
+	}
+
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
@@ -69,7 +73,11 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 	for _, node := range dhcpNodes.GetNodes() {
 		hasSentry := IsAgentService(node.GetServiceTags(), sentryRole)
 		if hasSentry {
-			if node.GetVirtualIp() != "" {
+			if vip := node.GetVirtualIp(); vip != "" {
+				if vip != selectedSentryNodes[0] {
+					return nil, fmt.Errorf("only node with virtual ip could be selected for ha model")
+				}
+
 				sentryNodes = []string{node.GetIpv4()}
 			}
 
@@ -95,15 +103,15 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 		return nil, fmt.Errorf("no found valid dhcp server nodes")
 	}
 
-	for _, sentryNode := range selectedSentryNodes {
-		if _, ok := sentryNodeMap[sentryNode]; ok == false {
-			return nil, fmt.Errorf("invalid sentry node %s", sentryNode)
-		}
-	}
-
 	if len(sentryNodes) != 0 {
 		return append(sentryNodes, serverNodes...), nil
 	} else {
+		for _, sentryNode := range selectedSentryNodes {
+			if _, ok := sentryNodeMap[sentryNode]; ok == false {
+				return nil, fmt.Errorf("invalid sentry node %s", sentryNode)
+			}
+		}
+
 		return append(selectedSentryNodes, serverNodes...), nil
 	}
 }
@@ -121,7 +129,7 @@ func IsAgentService(tags []string, roles ...AgentRole) bool {
 }
 
 func SendDHCPCmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
-	sentryNodes, serverNodes, err := GetDHCPNodes(AgentStackDual)
+	sentryNodes, serverNodes, _, err := GetDHCPNodes(AgentStackDual)
 	if err != nil {
 		return err
 	}
@@ -134,11 +142,11 @@ func SendDHCPCmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
 	return err
 }
 
-func GetDHCPNodes(stack AgentStack) ([]string, []string, error) {
+func GetDHCPNodes(stack AgentStack) ([]string, []string, string, error) {
 	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+		return nil, nil, "", fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
 	sentryRoles := []AgentRole{AgentRoleSentry4, AgentRoleSentry6}
@@ -156,11 +164,13 @@ func GetDHCPNodes(stack AgentStack) ([]string, []string, error) {
 	hasServer := false
 	hasSentryVirtualIp := false
 	hasServerVirtualIp := false
+	var virtualIp string
 	for _, node := range dhcpNodes.GetNodes() {
 		hasSentry := IsAgentService(node.GetServiceTags(), sentryRoles...)
 		if hasSentry {
-			if node.GetVirtualIp() != "" {
+			if vip := node.GetVirtualIp(); vip != "" {
 				hasSentryVirtualIp = true
+				virtualIp = vip
 				sentryNodes = []string{node.GetIpv4()}
 			}
 
@@ -185,8 +195,8 @@ func GetDHCPNodes(stack AgentStack) ([]string, []string, error) {
 	}
 
 	if len(sentryNodes) == 0 || hasServer == false {
-		return nil, nil, fmt.Errorf("no found valid dhcp sentry or server nodes")
+		return nil, nil, "", fmt.Errorf("no found valid dhcp sentry or server nodes")
 	}
 
-	return sentryNodes, serverNodes, nil
+	return sentryNodes, serverNodes, virtualIp, nil
 }

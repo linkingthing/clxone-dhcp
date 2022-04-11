@@ -132,7 +132,9 @@ func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource
 }
 
 func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease4) (*resource.SubnetLease4, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Lease(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Lease(ctx,
 		&pbdhcpagent.GetSubnet4LeaseRequest{Id: subnetId, Address: ip})
 	if err != nil {
 		return nil, err
@@ -173,9 +175,10 @@ func TimeFromUinx(t int64) string {
 	return time.Unix(t, 0).Format(time.RFC3339)
 }
 
-func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4,
-	subnetLeases []*resource.SubnetLease4) ([]*resource.SubnetLease4, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Leases(context.TODO(),
+func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, subnetLeases []*resource.SubnetLease4) ([]*resource.SubnetLease4, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4Leases(ctx,
 		&pbdhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
 	if err != nil {
 		log.Debugf("get subnet4 %d lease4s failed: %s", subnetId, err.Error())
@@ -252,7 +255,9 @@ func (l *SubnetLease4Service) Delete(subnet *resource.Subnet4, leaseId string) e
 			return err
 		}
 
-		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease4(context.TODO(),
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease4(ctx,
 			&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
 		return err
 	}); err != nil {

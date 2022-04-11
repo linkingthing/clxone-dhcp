@@ -87,12 +87,7 @@ var (
 	}
 )
 
-func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4, virtualIp string) []string {
-	subnetNodes := virtualIp
-	if virtualIp == "" {
-		subnetNodes = strings.Join(subnet4.Nodes, ",")
-	}
-
+func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 	return []string{
 		subnet4.Subnet, subnet4.Tags,
 		lifetimeToString(subnet4.ValidLifetime),
@@ -101,16 +96,11 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4, virtualIp string) 
 		subnet4.SubnetMask, strings.Join(subnet4.Routers, ","),
 		strings.Join(subnet4.DomainServers, ","), subnet4.IfaceName,
 		subnet4.ClientClass, strings.Join(subnet4.RelayAgentAddresses, ","),
-		subnet4.TftpServer, subnet4.Bootfile, subnetNodes,
+		subnet4.TftpServer, subnet4.Bootfile, strings.Join(subnet4.Nodes, ","),
 	}
 }
 
-func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6, virtualIp string) []string {
-	subnetNodes := virtualIp
-	if virtualIp == "" {
-		subnetNodes = strings.Join(subnet6.Nodes, ",")
-	}
-
+func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 	return []string{
 		subnet6.Subnet, subnet6.Tags, eui64ToString(subnet6.UseEui64),
 		lifetimeToString(subnet6.ValidLifetime),
@@ -119,7 +109,7 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6, virtualIp string) 
 		lifetimeToString(subnet6.PreferredLifetime),
 		strings.Join(subnet6.DomainServers, ","), subnet6.IfaceName,
 		strings.Join(subnet6.RelayAgentAddresses, ","), subnet6.ClientClass,
-		subnet6.RelayAgentInterfaceId, subnetNodes,
+		subnet6.RelayAgentInterfaceId, strings.Join(subnet6.Nodes, ","),
 	}
 }
 

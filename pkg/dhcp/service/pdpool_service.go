@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
@@ -306,7 +307,9 @@ func getPdPoolLeasesCount(pdpool *resource.PdPool, reservations []*resource.Rese
 	}
 
 	beginAddr, endAddr := pdpool.GetRange()
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6Leases(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6Leases(ctx,
 		&pbdhcpagent.GetPool6LeasesRequest{
 			SubnetId:     subnetIDStrToUint64(pdpool.Subnet6),
 			BeginAddress: beginAddr,

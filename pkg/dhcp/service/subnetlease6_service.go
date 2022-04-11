@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
@@ -141,7 +142,9 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 }
 
 func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease6) (*resource.SubnetLease6, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(ctx,
 		&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
 	if err != nil {
 		return nil, err
@@ -157,9 +160,10 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 	return subnetLease6, nil
 }
 
-func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6,
-	subnetLeases []*resource.SubnetLease6) ([]*resource.SubnetLease6, error) {
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
+func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) ([]*resource.SubnetLease6, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(ctx,
 		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 	if err != nil {
 		log.Debugf("get subnet6 %d lease6s failed: %s", subnetId, err.Error())
@@ -264,7 +268,9 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 			return err
 		}
 
-		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(context.TODO(),
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(ctx,
 			&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
 				LeaseType: lease6.LeaseType, Address: leaseId})
 		return err

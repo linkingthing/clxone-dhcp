@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
@@ -18,7 +19,9 @@ func NewAgent6Service() *Agent6Service {
 }
 
 func (h *Agent6Service) List() ([]*resource.Agent6, error) {
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
@@ -27,15 +30,19 @@ func (h *Agent6Service) List() ([]*resource.Agent6, error) {
 	var agents []*resource.Agent6
 	for _, node := range dhcpNodes.GetNodes() {
 		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), kafka.AgentRoleSentry6) {
-			agent6 := &resource.Agent6{
-				Name: node.GetName(),
-				Ip:   node.GetIpv4(),
-			}
-			agent6.SetID(node.GetIpv4())
-
-			if node.GetVirtualIp() != "" {
+			if vip := node.GetVirtualIp(); vip != "" {
+				agent6 := &resource.Agent6{
+					Name: vip,
+					Ip:   vip,
+				}
+				agent6.SetID(node.GetIpv4())
 				return []*resource.Agent6{agent6}, nil
 			} else {
+				agent6 := &resource.Agent6{
+					Name: node.GetName(),
+					Ip:   node.GetIpv4(),
+				}
+				agent6.SetID(node.GetIpv4())
 				agents = append(agents, agent6)
 			}
 		}
@@ -45,7 +52,9 @@ func (h *Agent6Service) List() ([]*resource.Agent6, error) {
 }
 
 func (h *Agent6Service) Get(agent *resource.Agent6) error {
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
 		return fmt.Errorf("get dhcp nodes failed: %s", err.Error())

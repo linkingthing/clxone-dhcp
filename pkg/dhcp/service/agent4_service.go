@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
@@ -18,7 +19,9 @@ func NewAgent4Service() *Agent4Service {
 }
 
 func (h *Agent4Service) List() ([]*resource.Agent4, error) {
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("list dhcp nodes failed: %s", err.Error())
@@ -27,15 +30,19 @@ func (h *Agent4Service) List() ([]*resource.Agent4, error) {
 	var agents []*resource.Agent4
 	for _, node := range dhcpNodes.GetNodes() {
 		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), kafka.AgentRoleSentry4) {
-			agent4 := &resource.Agent4{
-				Name: node.GetName(),
-				Ip:   node.GetIpv4(),
-			}
-			agent4.SetID(node.GetIpv4())
-
-			if node.GetVirtualIp() != "" {
+			if vip := node.GetVirtualIp(); vip != "" {
+				agent4 := &resource.Agent4{
+					Name: vip,
+					Ip:   vip,
+				}
+				agent4.SetID(node.GetIpv4())
 				return []*resource.Agent4{agent4}, nil
 			} else {
+				agent4 := &resource.Agent4{
+					Name: node.GetName(),
+					Ip:   node.GetIpv4(),
+				}
+				agent4.SetID(node.GetIpv4())
 				agents = append(agents, agent4)
 			}
 		}
@@ -45,7 +52,9 @@ func (h *Agent4Service) List() ([]*resource.Agent4, error) {
 }
 
 func (h *Agent4Service) Get(agent *resource.Agent4) error {
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
 		return fmt.Errorf("get dhcp nodes failed: %s", err.Error())
@@ -64,7 +73,9 @@ func (h *Agent4Service) Get(agent *resource.Agent4) error {
 }
 
 func GetNodeNames(isv4 bool) (map[string]string, error) {
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
@@ -78,18 +89,24 @@ func GetNodeNames(isv4 bool) (map[string]string, error) {
 	nodeNames := make(map[string]string)
 	for _, node := range dhcpNodes.GetNodes() {
 		if kafka.IsAgentService(node.GetServiceTags(), sentryRole) {
-			nodeNames[node.GetIpv4()] = node.GetName()
+			if vip := node.GetVirtualIp(); vip != "" {
+				return map[string]string{vip: vip}, nil
+			} else {
+				nodeNames[node.GetIpv4()] = node.GetName()
+			}
 		}
 	}
 
 	return nodeNames, nil
 }
 
-func GetSentryVirtualIpNode(isv4 bool) (string, error) {
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
+func IsSentryHA(isv4 bool) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
 		&pbmonitor.GetDHCPNodesRequest{})
 	if err != nil {
-		return "", fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+		return false, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
 	sentryRole := kafka.AgentRoleSentry4
@@ -100,9 +117,9 @@ func GetSentryVirtualIpNode(isv4 bool) (string, error) {
 	for _, node := range dhcpNodes.GetNodes() {
 		if kafka.IsAgentService(node.GetServiceTags(), sentryRole) &&
 			node.GetVirtualIp() != "" {
-			return node.GetIpv4(), nil
+			return true, nil
 		}
 	}
 
-	return "", nil
+	return false, nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
@@ -244,7 +245,9 @@ func loadPool6sLeases(subnetID string, pools []*resource.Pool6, reservations []*
 }
 
 func getSubnet6Leases(subnetId uint64) (*pbdhcpagent.GetLeases6Response, error) {
-	return grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(ctx,
 		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 }
 
@@ -291,7 +294,9 @@ func getPool6LeasesCount(pool *resource.Pool6, reservations []*resource.Reservat
 		return 0, nil
 	}
 
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6Leases(context.TODO(),
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6Leases(ctx,
 		&pbdhcpagent.GetPool6LeasesRequest{
 			SubnetId:     subnetIDStrToUint64(pool.Subnet6),
 			BeginAddress: pool.BeginAddress,
