@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"net"
 	"time"
 
@@ -192,7 +193,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 	return nil
 }
 
-func recalculatePoolsCapacityWithReservation6(tx restdb.Transaction, subnet *resource.Subnet6, reservation6 *resource.Reservation6, isCreate bool) (map[string]uint64, map[string]uint64, error) {
+func recalculatePoolsCapacityWithReservation6(tx restdb.Transaction, subnet *resource.Subnet6, reservation6 *resource.Reservation6, isCreate bool) (map[string]string, map[string]string, error) {
 	if affectedPool6s, err := recalculatePool6sCapacityWithIps(tx, subnet,
 		reservation6.IpAddresses, isCreate); err != nil {
 		return nil, nil, err
@@ -205,7 +206,7 @@ func recalculatePoolsCapacityWithReservation6(tx restdb.Transaction, subnet *res
 	return nil, affectedPdPools, err
 }
 
-func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Subnet6, ips []string, isCreate bool) (map[string]uint64, error) {
+func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Subnet6, ips []string, isCreate bool) (map[string]string, error) {
 	if len(ips) == 0 {
 		return nil, nil
 	}
@@ -217,38 +218,43 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 			subnet.GetID(), err.Error())
 	}
 
-	if isCreate {
-		subnet.Capacity += uint64(len(ips))
-	} else {
-		subnet.Capacity -= uint64(len(ips))
-	}
-
-	affectedPool6s := make(map[string]uint64)
+	affectedPool6s := make(map[string]string)
+	unreservedCount := big.NewInt(0)
 	for _, ip := range ips {
+		reserved := false
 		for _, pool := range pools {
 			if pool.Contains(ip) {
+				reserved = true
 				capacity, ok := affectedPool6s[pool.GetID()]
 				if ok == false {
 					capacity = pool.Capacity
 				}
 
 				if isCreate {
-					affectedPool6s[pool.GetID()] = capacity - 1
-					subnet.Capacity -= 1
+					affectedPool6s[pool.GetID()] = resource.SubCapacityWithBigInt(capacity, big.NewInt(1))
 				} else {
-					affectedPool6s[pool.GetID()] = capacity + 1
-					subnet.Capacity += 1
+					affectedPool6s[pool.GetID()] = resource.AddCapacityWithBigInt(capacity, big.NewInt(1))
 				}
 
 				break
 			}
 		}
+
+		if reserved == false {
+			unreservedCount = new(big.Int).Add(unreservedCount, big.NewInt(1))
+		}
+	}
+
+	if isCreate {
+		subnet.AddCapacityWithBigInt(unreservedCount)
+	} else {
+		subnet.SubCapacityWithBigInt(unreservedCount)
 	}
 
 	return affectedPool6s, nil
 }
 
-func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resource.Subnet6, prefixes []string, isCreate bool) (map[string]uint64, error) {
+func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resource.Subnet6, prefixes []string, isCreate bool) (map[string]string, error) {
 	if len(prefixes) == 0 {
 		return nil, nil
 	}
@@ -260,14 +266,10 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 			subnet.GetID(), err.Error())
 	}
 
-	if isCreate {
-		subnet.Capacity += uint64(len(prefixes))
-	} else {
-		subnet.Capacity -= uint64(len(prefixes))
-	}
-
-	affectedPdPools := make(map[string]uint64)
+	affectedPdPools := make(map[string]string)
+	unreservedCount := big.NewInt(0)
 	for _, prefix := range prefixes {
+		unreservedCount = new(big.Int).Add(unreservedCount, big.NewInt(1))
 		for _, pdpool := range pdpools {
 			if pdpool.IntersectPrefix(prefix) {
 				capacity, ok := affectedPdPools[pdpool.GetID()]
@@ -276,12 +278,11 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 				}
 
 				reservedCount := getPdPoolReservedCountWithPrefix(pdpool, prefix)
+				unreservedCount = new(big.Int).Sub(unreservedCount, reservedCount)
 				if isCreate {
-					affectedPdPools[pdpool.GetID()] = capacity - reservedCount
-					subnet.Capacity -= reservedCount
+					affectedPdPools[pdpool.GetID()] = resource.SubCapacityWithBigInt(capacity, reservedCount)
 				} else {
-					affectedPdPools[pdpool.GetID()] = capacity + reservedCount
-					subnet.Capacity += reservedCount
+					affectedPdPools[pdpool.GetID()] = resource.AddCapacityWithBigInt(capacity, reservedCount)
 				}
 
 				break
@@ -289,22 +290,28 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 		}
 	}
 
+	if isCreate {
+		subnet.AddCapacityWithBigInt(unreservedCount)
+	} else {
+		subnet.SubCapacityWithBigInt(unreservedCount)
+	}
+
 	return affectedPdPools, nil
 }
 
-func getPdPoolReservedCountWithPrefix(pdpool *resource.PdPool, prefix string) uint64 {
+func getPdPoolReservedCountWithPrefix(pdpool *resource.PdPool, prefix string) *big.Int {
 	_, ipnet, _ := net.ParseCIDR(prefix)
 	prefixLen, _ := ipnet.Mask.Size()
 	return getPdPoolReservedCount(pdpool, uint32(prefixLen))
 }
 
-func getPdPoolReservedCount(pdpool *resource.PdPool, prefixLen uint32) uint64 {
+func getPdPoolReservedCount(pdpool *resource.PdPool, prefixLen uint32) *big.Int {
 	if prefixLen <= pdpool.PrefixLen {
-		return uint64(1 << (pdpool.DelegatedLen - pdpool.PrefixLen))
+		return new(big.Int).Lsh(big.NewInt(1), uint(pdpool.DelegatedLen-pdpool.PrefixLen))
 	} else if prefixLen >= pdpool.DelegatedLen {
-		return 1
+		return big.NewInt(1)
 	} else {
-		return uint64(1 << (pdpool.DelegatedLen - prefixLen))
+		return new(big.Int).Lsh(big.NewInt(1), uint(pdpool.DelegatedLen-prefixLen))
 	}
 }
 
@@ -452,7 +459,7 @@ func (r *Reservation6Service) Get(subnet *resource.Subnet6, reservationID string
 func setReservation6LeasesUsedRatio(reservation *resource.Reservation6, leasesCount uint64) {
 	if leasesCount != 0 {
 		reservation.UsedCount = leasesCount
-		reservation.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(reservation.Capacity))
+		reservation.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(reservation.Capacity, leasesCount))
 	}
 }
 

@@ -17,8 +17,7 @@ type ReservedPool6 struct {
 	BeginIp                   net.IP `json:"-"`
 	EndAddress                string `json:"endAddress" rest:"description=immutable"`
 	EndIp                     net.IP `json:"-"`
-	Capacity                  uint64 `json:"capacity" rest:"description=readonly"`
-	CapacityString            string `json:"capacityString" rest:"description=readonly" db:"-"`
+	Capacity                  string `json:"capacity" rest:"description=readonly"`
 	Template                  string `json:"template" db:"-"`
 	Comment                   string `json:"comment"`
 }
@@ -90,7 +89,7 @@ func (p *ReservedPool6) ParseAddressWithTemplate(tx restdb.Transaction, subnet *
 	return nil
 }
 
-func (p *ReservedPool6) setAddrAndCapacity(beginIp, endIp net.IP, capacity uint64) {
+func (p *ReservedPool6) setAddrAndCapacity(beginIp, endIp net.IP, capacity string) {
 	p.BeginAddress = beginIp.String()
 	p.EndAddress = endIp.String()
 	p.BeginIp = beginIp

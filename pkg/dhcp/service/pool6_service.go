@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"fmt"
+	"math/big"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/linkingthing/cement/log"
@@ -39,7 +39,7 @@ func (p *Pool6Service) Create(subnet *resource.Subnet6, pool *resource.Pool6) er
 		}
 
 		if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
-			subnet.Capacity+pool.Capacity); err != nil {
+			subnet.AddCapacityWithString(pool.Capacity)); err != nil {
 			return err
 		}
 
@@ -142,7 +142,7 @@ func recalculatePool6CapacityWithReservations(pool *resource.Pool6, reservations
 	for _, reservation := range reservations {
 		for _, ipAddress := range reservation.IpAddresses {
 			if pool.Contains(ipAddress) {
-				pool.Capacity -= 1
+				pool.SubCapacityWithBigInt(big.NewInt(1))
 			}
 		}
 	}
@@ -150,11 +150,11 @@ func recalculatePool6CapacityWithReservations(pool *resource.Pool6, reservations
 
 func recalculatePool6CapacityWithReservedPools(pool *resource.Pool6, reservedPools []*resource.ReservedPool6) {
 	for _, reservedPool := range reservedPools {
-		pool.Capacity -= getPool6ReservedCountWithReservedPool6(pool, reservedPool)
+		pool.SubCapacityWithBigInt(getPool6ReservedCountWithReservedPool6(pool, reservedPool))
 	}
 }
 
-func updateSubnet6CapacityWithPool6(tx restdb.Transaction, subnetID string, capacity uint64) error {
+func updateSubnet6CapacityWithPool6(tx restdb.Transaction, subnetID string, capacity string) error {
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 		"capacity": capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
@@ -234,7 +234,7 @@ func loadPool6sLeases(subnetID string, pools []*resource.Pool6, reservations []*
 		}
 
 		for _, pool := range pools {
-			if pool.Capacity != 0 && pool.Contains(lease.GetAddress()) {
+			if resource.IsCapacityZero(pool.Capacity) == false && pool.Contains(lease.GetAddress()) {
 				leasesCount[pool.GetID()] += 1
 				break
 			}
@@ -252,11 +252,10 @@ func getSubnet6Leases(subnetId uint64) (*pbdhcpagent.GetLeases6Response, error) 
 }
 
 func setPool6LeasesUsedRatio(pool *resource.Pool6, leasesCount uint64) {
-	if pool.Capacity != 0 {
-		pool.CapacityString = strconv.FormatUint(pool.Capacity, 10)
+	if resource.IsCapacityZero(pool.Capacity) == false {
 		if leasesCount != 0 {
 			pool.UsedCount = leasesCount
-			pool.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(pool.Capacity))
+			pool.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(pool.Capacity, leasesCount))
 		}
 	}
 }
@@ -290,7 +289,7 @@ func (p *Pool6Service) Get(subnet *resource.Subnet6, poolID string) (*resource.P
 }
 
 func getPool6LeasesCount(pool *resource.Pool6, reservations []*resource.Reservation6) (uint64, error) {
-	if pool.Capacity == 0 {
+	if resource.IsCapacityZero(pool.Capacity) {
 		return 0, nil
 	}
 
@@ -332,7 +331,7 @@ func (p *Pool6Service) Delete(subnet *resource.Subnet6, pool *resource.Pool6) er
 		}
 
 		if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
-			subnet.Capacity-pool.Capacity); err != nil {
+			subnet.SubCapacityWithString(pool.Capacity)); err != nil {
 			return err
 		}
 

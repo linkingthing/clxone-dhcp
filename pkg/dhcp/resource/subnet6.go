@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
@@ -9,6 +10,8 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
+
+const MaxUint64String = "18446744073709551615"
 
 var TableSubnet6 = restdb.ResourceDBType(&Subnet6{})
 
@@ -31,8 +34,7 @@ type Subnet6 struct {
 	Nodes                     []string  `json:"nodes"`
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
-	Capacity                  uint64    `json:"capacity" rest:"description=readonly"`
-	CapacityString            string    `json:"capacityString" rest:"description=readonly" db:"-"`
+	Capacity                  string    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
 }
@@ -91,7 +93,9 @@ func (s *Subnet6) Validate() error {
 		if ones, _ := s.Ipnet.Mask.Size(); ones != 64 {
 			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", ones)
 		}
-		s.Capacity = MaxUint64
+		s.Capacity = MaxUint64String
+	} else {
+		s.Capacity = "0"
 	}
 
 	if err := s.setSubnet6DefaultValue(); err != nil {
@@ -164,4 +168,38 @@ func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime u
 
 func (s *Subnet6) CheckConflictWithAnother(another *Subnet6) bool {
 	return s.Ipnet.Contains(another.Ipnet.IP) || another.Ipnet.Contains(s.Ipnet.IP)
+}
+
+func IsCapacityZero(capacity string) bool {
+	return capacity == "0" || capacity == ""
+}
+
+func (s *Subnet6) AddCapacityWithString(capacityForAdd string) string {
+	capacityForAddBigInt, _ := new(big.Int).SetString(capacityForAdd, 10)
+	return s.AddCapacityWithBigInt(capacityForAddBigInt)
+}
+
+func (s *Subnet6) AddCapacityWithBigInt(capacityForAdd *big.Int) string {
+	s.Capacity = AddCapacityWithBigInt(s.Capacity, capacityForAdd)
+	return s.Capacity
+}
+
+func AddCapacityWithBigInt(capacity string, capacityForAdd *big.Int) string {
+	capacityBigInt, _ := new(big.Int).SetString(capacity, 10)
+	return new(big.Int).Add(capacityBigInt, capacityForAdd).String()
+}
+
+func (s *Subnet6) SubCapacityWithString(capacityForSub string) string {
+	capacityForSubBigInt, _ := new(big.Int).SetString(capacityForSub, 10)
+	return s.SubCapacityWithBigInt(capacityForSubBigInt)
+}
+
+func (s *Subnet6) SubCapacityWithBigInt(capacityForSub *big.Int) string {
+	s.Capacity = SubCapacityWithBigInt(s.Capacity, capacityForSub)
+	return s.Capacity
+}
+
+func SubCapacityWithBigInt(capacity string, capacityForSub *big.Int) string {
+	capacityBigInt, _ := new(big.Int).SetString(capacity, 10)
+	return new(big.Int).Sub(capacityBigInt, capacityForSub).String()
 }

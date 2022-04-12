@@ -125,7 +125,7 @@ func subnet6sToPbDHCPSubnet6s(subnets map[string]*resource.Subnet6) map[string]*
 func getSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]uint64, error) {
 	var subnetIds []uint64
 	for _, subnet := range subnets {
-		if subnet.Capacity != 0 {
+		if resource.IsCapacityZero(subnet.Capacity) == false {
 			subnetIds = append(subnetIds, subnet.SubnetId)
 		}
 	}

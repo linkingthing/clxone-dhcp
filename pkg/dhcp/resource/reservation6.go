@@ -3,6 +3,7 @@ package resource
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"net"
 	"strings"
 
@@ -23,7 +24,7 @@ type Reservation6 struct {
 	IpAddresses               []string `json:"ipAddresses"`
 	Ips                       []net.IP `json:"-"`
 	Prefixes                  []string `json:"prefixes"`
-	Capacity                  uint64   `json:"capacity" rest:"description=readonly"`
+	Capacity                  string   `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string   `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64   `json:"usedCount" rest:"description=readonly" db:"-"`
 	Comment                   string   `json:"comment"`
@@ -114,11 +115,13 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
+	capacity := big.NewInt(0)
 	for _, ip := range r.IpAddresses {
 		if ipv6, err := gohelperip.ParseIPv6(ip); err != nil {
 			return err
 		} else {
 			r.Ips = append(r.Ips, ipv6)
+			capacity = new(big.Int).Add(capacity, big.NewInt(1))
 		}
 	}
 
@@ -127,6 +130,8 @@ func (r *Reservation6) Validate() error {
 			return err
 		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
 			return fmt.Errorf("prefix %s mask size %d must not bigger than 64", prefix, ones)
+		} else {
+			capacity = new(big.Int).Add(capacity, big.NewInt(1))
 		}
 	}
 
@@ -134,7 +139,7 @@ func (r *Reservation6) Validate() error {
 		return err
 	}
 
-	r.Capacity = uint64(len(r.IpAddresses) + len(r.Prefixes))
+	r.Capacity = capacity.String()
 	return nil
 }
 

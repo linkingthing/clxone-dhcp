@@ -2,7 +2,7 @@ package service
 
 import (
 	"fmt"
-	"strconv"
+	"math/big"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
@@ -128,26 +128,32 @@ func updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, su
 	return nil
 }
 
-func recalculatePdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, subnet *resource.Subnet6, reservedPdPool *resource.ReservedPdPool, isCreate bool) (map[string]uint64, error) {
+func recalculatePdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, subnet *resource.Subnet6, reservedPdPool *resource.ReservedPdPool, isCreate bool) (map[string]string, error) {
 	pdpools, err := getPdPoolsWithPrefix(tx, subnet.GetID(), reservedPdPool.PrefixIpnet)
 	if err != nil {
 		return nil, err
 	}
 
-	affectedPdPools := make(map[string]uint64)
+	allReservedCount := big.NewInt(0)
+	affectedPdPools := make(map[string]string)
 	for _, pdpool := range pdpools {
 		if pdpool.IntersectIpnet(reservedPdPool.PrefixIpnet) {
 			reservedCount := getPdPoolReservedCount(pdpool, reservedPdPool.PrefixLen)
+			allReservedCount = new(big.Int).Add(allReservedCount, reservedCount)
 			if isCreate {
-				affectedPdPools[pdpool.GetID()] = pdpool.Capacity - reservedCount
-				subnet.Capacity -= reservedCount
+				affectedPdPools[pdpool.GetID()] = pdpool.SubCapacityWithBigInt(reservedCount)
 			} else {
-				affectedPdPools[pdpool.GetID()] = pdpool.Capacity + reservedCount
-				subnet.Capacity += reservedCount
+				affectedPdPools[pdpool.GetID()] = pdpool.AddCapacityWithBigInt(reservedCount)
 			}
 
 			break
 		}
+	}
+
+	if isCreate {
+		subnet.SubCapacityWithBigInt(allReservedCount)
+	} else {
+		subnet.AddCapacityWithBigInt(allReservedCount)
 	}
 
 	return affectedPdPools, nil
@@ -186,10 +192,6 @@ func (p *ReservedPdPoolService) List(subnetID string) ([]*resource.ReservedPdPoo
 			subnetID, err.Error())
 	}
 
-	for _, pdpool := range pdpools {
-		pdpool.CapacityString = strconv.FormatUint(pdpool.Capacity, 10)
-	}
-
 	return pdpools, nil
 }
 
@@ -204,7 +206,6 @@ func (p *ReservedPdPoolService) Get(subnet *resource.Subnet6, pdpoolID string) (
 		return nil, fmt.Errorf("no found reserved pdpool %s with subnet6 %s", pdpoolID, subnet.GetID())
 	}
 
-	pdpools[0].CapacityString = strconv.FormatUint(pdpools[0].Capacity, 10)
 	return pdpools[0], nil
 }
 

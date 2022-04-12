@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -187,7 +188,7 @@ func SetSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) (err er
 	if useIds {
 		var ids []uint64
 		for _, subnet := range subnets {
-			if subnet.Capacity != 0 {
+			if resource.IsCapacityZero(subnet.Capacity) == false {
 				ids = append(ids, subnet.SubnetId)
 			}
 		}
@@ -216,13 +217,18 @@ func SetSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) (err er
 }
 
 func setSubnet6LeasesUsedRatio(subnet *resource.Subnet6, leasesCount uint64) {
-	if subnet.Capacity != 0 {
-		subnet.CapacityString = strconv.FormatUint(subnet.Capacity, 10)
+	if resource.IsCapacityZero(subnet.Capacity) == false {
 		if leasesCount != 0 {
 			subnet.UsedCount = leasesCount
-			subnet.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(subnet.Capacity))
+			subnet.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(subnet.Capacity, leasesCount))
 		}
 	}
+}
+
+func calculateUsedRatio(capacity string, leasesCount uint64) float64 {
+	capacityFloat, _ := new(big.Float).SetString(capacity)
+	ratio, _ := new(big.Float).Quo(new(big.Float).SetUint64(leasesCount), capacityFloat).Float64()
+	return ratio
 }
 
 func setSubnet6sNodeNames(subnets []*resource.Subnet6, nodeNames map[string]string) {
@@ -261,7 +267,7 @@ func setSubnet6LeasesUsedInfo(subnet *resource.Subnet6) {
 }
 
 func getSubnet6LeasesCount(subnet *resource.Subnet6) (uint64, error) {
-	if subnet.Capacity == 0 {
+	if resource.IsCapacityZero(subnet.Capacity) {
 		return 0, nil
 	}
 
@@ -352,10 +358,10 @@ func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 
 			} else if exists {
 				return fmt.Errorf("subnet6 has pools, can not enabled use eui64")
 			}
-			subnet.Capacity = resource.MaxUint64
+			subnet.Capacity = resource.MaxUint64String
 		}
 	} else if subnet.UseEui64 {
-		subnet.Capacity = 0
+		subnet.Capacity = "0"
 	}
 
 	subnet.UseEui64 = newUseEUI64
@@ -363,7 +369,7 @@ func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 
 }
 
 func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
-	if subnet.Capacity != 0 {
+	if resource.IsCapacityZero(subnet.Capacity) == false {
 		return true, nil
 	}
 
@@ -867,7 +873,7 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 			}
 		}
 
-		subnet.Capacity += reservation.Capacity
+		subnet.AddCapacityWithString(reservation.Capacity)
 	}
 
 	return nil
@@ -940,7 +946,7 @@ func checkPool6sValid(subnet *resource.Subnet6, pools []*resource.Pool6, reserve
 
 		recalculatePool6CapacityWithReservations(pools[i], reservations)
 		recalculatePool6CapacityWithReservedPools(pools[i], reservedPools)
-		subnet.Capacity += pools[i].Capacity
+		subnet.AddCapacityWithString(pools[i].Capacity)
 	}
 
 	return nil
@@ -974,7 +980,7 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 		}
 
 		recalculatePdPoolCapacityWithReservations(pdpools[i], reservations)
-		subnet.Capacity += pdpools[i].Capacity
+		subnet.AddCapacityWithString(pdpools[i].Capacity)
 	}
 
 	return nil

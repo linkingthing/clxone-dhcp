@@ -39,7 +39,7 @@ func (p *PdPoolService) Create(subnet *resource.Subnet6, pdpool *resource.PdPool
 		}
 
 		if err := updateSubnet6CapacityWithPdPool(tx, subnet.GetID(),
-			subnet.Capacity+pdpool.Capacity); err != nil {
+			subnet.AddCapacityWithString(pdpool.Capacity)); err != nil {
 			return err
 		}
 
@@ -152,7 +152,7 @@ func recalculatePdPoolCapacityWithReservations(pdpool *resource.PdPool, reservat
 	for _, reservation := range reservations {
 		for _, prefix := range reservation.Prefixes {
 			if pdpool.IntersectPrefix(prefix) {
-				pdpool.Capacity -= getPdPoolReservedCountWithPrefix(pdpool, prefix)
+				pdpool.SubCapacityWithBigInt(getPdPoolReservedCountWithPrefix(pdpool, prefix))
 			}
 		}
 	}
@@ -161,12 +161,12 @@ func recalculatePdPoolCapacityWithReservations(pdpool *resource.PdPool, reservat
 func recalculatePdPoolCapacityWithReservedPdPools(pdpool *resource.PdPool, reservedPdPools []*resource.ReservedPdPool) {
 	for _, reservedPdPool := range reservedPdPools {
 		if pdpool.IntersectIpnet(reservedPdPool.PrefixIpnet) {
-			pdpool.Capacity -= getPdPoolReservedCount(pdpool, reservedPdPool.PrefixLen)
+			pdpool.SubCapacityWithBigInt(getPdPoolReservedCount(pdpool, reservedPdPool.PrefixLen))
 		}
 	}
 }
 
-func updateSubnet6CapacityWithPdPool(tx restdb.Transaction, subnetID string, capacity uint64) error {
+func updateSubnet6CapacityWithPdPool(tx restdb.Transaction, subnetID string, capacity string) error {
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 		"capacity": capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
@@ -249,7 +249,7 @@ func loadPdPoolsLeases(subnetID string, pdpools []*resource.PdPool, reservations
 		}
 
 		for _, pdpool := range pdpools {
-			if pdpool.Capacity != 0 && pdpool.Contains(leasePrefix) {
+			if resource.IsCapacityZero(pdpool.Capacity) == false && pdpool.Contains(leasePrefix) {
 				leasesCount[pdpool.GetID()] += 1
 				break
 			}
@@ -264,11 +264,10 @@ func prefixFromAddressAndPrefixLen(address string, prefixLen uint32) string {
 }
 
 func setPdPoolLeasesUsedRatio(pdpool *resource.PdPool, leasesCount uint64) {
-	if pdpool.Capacity != 0 {
-		pdpool.CapacityString = strconv.FormatUint(pdpool.Capacity, 10)
+	if resource.IsCapacityZero(pdpool.Capacity) == false {
 		if leasesCount != 0 {
 			pdpool.UsedCount = leasesCount
-			pdpool.UsedRatio = fmt.Sprintf("%.4f", float64(leasesCount)/float64(pdpool.Capacity))
+			pdpool.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(pdpool.Capacity, leasesCount))
 		}
 	}
 }
@@ -302,7 +301,7 @@ func (p *PdPoolService) Get(subnet *resource.Subnet6, pdpoolId string) (*resourc
 }
 
 func getPdPoolLeasesCount(pdpool *resource.PdPool, reservations []*resource.Reservation6) (uint64, error) {
-	if pdpool.Capacity == 0 {
+	if resource.IsCapacityZero(pdpool.Capacity) {
 		return 0, nil
 	}
 
@@ -347,7 +346,7 @@ func (p *PdPoolService) Delete(subnet *resource.Subnet6, pdpool *resource.PdPool
 		}
 
 		if err := updateSubnet6CapacityWithPdPool(tx, subnet.GetID(),
-			subnet.Capacity-pdpool.Capacity); err != nil {
+			subnet.SubCapacityWithString(pdpool.Capacity)); err != nil {
 			return err
 		}
 

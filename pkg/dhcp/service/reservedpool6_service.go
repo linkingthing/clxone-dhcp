@@ -2,8 +2,8 @@ package service
 
 import (
 	"fmt"
+	"math/big"
 	"net"
-	"strconv"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
@@ -152,29 +152,35 @@ func updateSubnet6AndPool6sCapacityWithReservedPool6(tx restdb.Transaction, subn
 	return nil
 }
 
-func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *resource.Subnet6, reservedPool *resource.ReservedPool6, isCreate bool) (map[string]uint64, error) {
+func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *resource.Subnet6, reservedPool *resource.ReservedPool6, isCreate bool) (map[string]string, error) {
 	pools, err := getPool6sWithBeginAndEndIp(tx, subnet.GetID(),
 		reservedPool.BeginIp, reservedPool.EndIp)
 	if err != nil {
 		return nil, err
 	}
 
-	affectedPool6s := make(map[string]uint64)
+	allReservedCount := big.NewInt(0)
+	affectedPool6s := make(map[string]string)
 	for _, pool := range pools {
 		reservedCount := getPool6ReservedCountWithReservedPool6(pool, reservedPool)
+		allReservedCount = new(big.Int).Add(allReservedCount, reservedCount)
 		if isCreate {
-			affectedPool6s[pool.GetID()] = pool.Capacity - reservedCount
-			subnet.Capacity -= reservedCount
+			affectedPool6s[pool.GetID()] = pool.SubCapacityWithBigInt(reservedCount)
 		} else {
-			affectedPool6s[pool.GetID()] = pool.Capacity + reservedCount
-			subnet.Capacity += reservedCount
+			affectedPool6s[pool.GetID()] = pool.AddCapacityWithBigInt(reservedCount)
 		}
+	}
+
+	if isCreate {
+		subnet.SubCapacityWithBigInt(allReservedCount)
+	} else {
+		subnet.AddCapacityWithBigInt(allReservedCount)
 	}
 
 	return affectedPool6s, nil
 }
 
-func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *resource.ReservedPool6) uint64 {
+func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *resource.ReservedPool6) *big.Int {
 	begin := gohelperip.IPv6ToBigInt(pool.BeginIp)
 	if reservedPoolBegin := gohelperip.IPv6ToBigInt(
 		reservedPool.BeginIp); reservedPoolBegin.Cmp(begin) == 1 {
@@ -226,10 +232,6 @@ func listReservedPool6s(subnetId string) ([]*resource.ReservedPool6, error) {
 			subnetId, err.Error())
 	}
 
-	for _, pool := range pools {
-		pool.CapacityString = strconv.FormatUint(pool.Capacity, 10)
-	}
-
 	return pools, nil
 }
 
@@ -244,7 +246,6 @@ func (p *ReservedPool6Service) Get(subnet *resource.Subnet6, poolID string) (*re
 		return nil, fmt.Errorf("no found reserved pool6 %s with subnet6 %s", poolID, subnet.GetID())
 	}
 
-	pools[0].CapacityString = strconv.FormatUint(pools[0].Capacity, 10)
 	return pools[0], nil
 }
 
