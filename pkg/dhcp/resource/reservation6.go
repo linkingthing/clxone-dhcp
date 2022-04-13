@@ -115,13 +115,13 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
-	capacity := big.NewInt(0)
+	capacity := new(big.Int)
 	for _, ip := range r.IpAddresses {
 		if ipv6, err := gohelperip.ParseIPv6(ip); err != nil {
 			return err
 		} else {
 			r.Ips = append(r.Ips, ipv6)
-			capacity = new(big.Int).Add(capacity, big.NewInt(1))
+			capacity.Add(capacity, big.NewInt(1))
 		}
 	}
 
@@ -131,7 +131,7 @@ func (r *Reservation6) Validate() error {
 		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
 			return fmt.Errorf("prefix %s mask size %d must not bigger than 64", prefix, ones)
 		} else {
-			capacity = new(big.Int).Add(capacity, big.NewInt(1))
+			capacity.Add(capacity, big.NewInt(1))
 		}
 	}
 

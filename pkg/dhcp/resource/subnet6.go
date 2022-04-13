@@ -186,7 +186,7 @@ func (s *Subnet6) AddCapacityWithBigInt(capacityForAdd *big.Int) string {
 
 func AddCapacityWithBigInt(capacity string, capacityForAdd *big.Int) string {
 	capacityBigInt, _ := new(big.Int).SetString(capacity, 10)
-	return new(big.Int).Add(capacityBigInt, capacityForAdd).String()
+	return capacityBigInt.Add(capacityBigInt, capacityForAdd).String()
 }
 
 func (s *Subnet6) SubCapacityWithString(capacityForSub string) string {
@@ -201,5 +201,5 @@ func (s *Subnet6) SubCapacityWithBigInt(capacityForSub *big.Int) string {
 
 func SubCapacityWithBigInt(capacity string, capacityForSub *big.Int) string {
 	capacityBigInt, _ := new(big.Int).SetString(capacity, 10)
-	return new(big.Int).Sub(capacityBigInt, capacityForSub).String()
+	return capacityBigInt.Sub(capacityBigInt, capacityForSub).String()
 }

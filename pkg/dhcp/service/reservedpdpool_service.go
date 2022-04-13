@@ -134,12 +134,12 @@ func recalculatePdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, subnet 
 		return nil, err
 	}
 
-	allReservedCount := big.NewInt(0)
+	allReservedCount := new(big.Int)
 	affectedPdPools := make(map[string]string)
 	for _, pdpool := range pdpools {
 		if pdpool.IntersectIpnet(reservedPdPool.PrefixIpnet) {
 			reservedCount := getPdPoolReservedCount(pdpool, reservedPdPool.PrefixLen)
-			allReservedCount = new(big.Int).Add(allReservedCount, reservedCount)
+			allReservedCount.Add(allReservedCount, reservedCount)
 			if isCreate {
 				affectedPdPools[pdpool.GetID()] = pdpool.SubCapacityWithBigInt(reservedCount)
 			} else {

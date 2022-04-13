@@ -219,7 +219,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 	}
 
 	affectedPool6s := make(map[string]string)
-	unreservedCount := big.NewInt(0)
+	unreservedCount := new(big.Int)
 	for _, ip := range ips {
 		reserved := false
 		for _, pool := range pools {
@@ -241,7 +241,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 		}
 
 		if reserved == false {
-			unreservedCount = new(big.Int).Add(unreservedCount, big.NewInt(1))
+			unreservedCount.Add(unreservedCount, big.NewInt(1))
 		}
 	}
 
@@ -267,9 +267,9 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 	}
 
 	affectedPdPools := make(map[string]string)
-	unreservedCount := big.NewInt(0)
+	unreservedCount := new(big.Int)
 	for _, prefix := range prefixes {
-		unreservedCount = new(big.Int).Add(unreservedCount, big.NewInt(1))
+		unreservedCount.Add(unreservedCount, big.NewInt(1))
 		for _, pdpool := range pdpools {
 			if pdpool.IntersectPrefix(prefix) {
 				capacity, ok := affectedPdPools[pdpool.GetID()]
@@ -278,7 +278,7 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 				}
 
 				reservedCount := getPdPoolReservedCountWithPrefix(pdpool, prefix)
-				unreservedCount = new(big.Int).Sub(unreservedCount, reservedCount)
+				unreservedCount.Sub(unreservedCount, reservedCount)
 				if isCreate {
 					affectedPdPools[pdpool.GetID()] = resource.SubCapacityWithBigInt(capacity, reservedCount)
 				} else {
