@@ -185,6 +185,6 @@ func calculateIpv4Pool4Capacity(beginIp, endIp net.IP) (uint64, error) {
 		return 0, fmt.Errorf("begin address %s bigger than end address %s",
 			beginIp.String(), endIp.String())
 	} else {
-		return uint64(endUint32 - beginUint32 + 1), nil
+		return uint64(endUint32) - uint64(beginUint32) + 1, nil
 	}
 }

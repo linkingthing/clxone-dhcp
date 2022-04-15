@@ -175,7 +175,7 @@ func getPool4ReservedCountWithReservedPool4(pool *resource.Pool4, reservedPool *
 		end = reservedPoolEnd
 	}
 
-	return uint64(end - begin + 1)
+	return uint64(end) - uint64(begin) + 1
 }
 
 func sendCreateReservedPool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool4) error {
