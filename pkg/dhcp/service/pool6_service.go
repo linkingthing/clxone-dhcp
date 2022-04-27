@@ -150,7 +150,9 @@ func recalculatePool6CapacityWithReservations(pool *resource.Pool6, reservations
 
 func recalculatePool6CapacityWithReservedPools(pool *resource.Pool6, reservedPools []*resource.ReservedPool6) {
 	for _, reservedPool := range reservedPools {
-		pool.SubCapacityWithBigInt(getPool6ReservedCountWithReservedPool6(pool, reservedPool))
+		if reservedCount := getPool6ReservedCountWithReservedPool6(pool, reservedPool); reservedCount != nil {
+			pool.SubCapacityWithBigInt(reservedCount)
+		}
 	}
 }
 
