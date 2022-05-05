@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -27,7 +28,7 @@ func (d *AdmitDuidService) Create(admitDuid *resource.AdmitDuid) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitDuid); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateAdmitDuidCmdToDHCPAgent(admitDuid)
@@ -57,7 +58,7 @@ func (d *AdmitDuidService) List(conditions map[string]interface{}) ([]*resource.
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &duids)
 	}); err != nil {
-		return nil, fmt.Errorf("list admit duid failed:%s", err.Error())
+		return nil, fmt.Errorf("list admit duid failed:%s", pg.Error(err).Error())
 	}
 
 	return duids, nil
@@ -68,7 +69,7 @@ func (d *AdmitDuidService) Get(id string) (*resource.AdmitDuid, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &admitDuids)
 	}); err != nil {
-		return nil, fmt.Errorf("get admit duid of %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get admit duid of %s failed:%s", id, pg.Error(err).Error())
 	} else if len(admitDuids) != 1 {
 		return nil, fmt.Errorf("no found admit duid %s", id)
 	}
@@ -80,7 +81,7 @@ func (d *AdmitDuidService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableAdmitDuid,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found admit duid %s", id)
 		}
@@ -107,7 +108,7 @@ func (d *AdmitDuidService) Update(admitDuid *resource.AdmitDuid) error {
 		if rows, err := tx.Update(resource.TableAdmitDuid,
 			map[string]interface{}{resource.SqlColumnComment: admitDuid.Comment},
 			map[string]interface{}{restdb.IDField: admitDuid.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found admit duid %s", admitDuid.GetID())
 		}

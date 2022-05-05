@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -32,7 +33,7 @@ func (c *ClientClass4Service) Create(clientClass *resource.ClientClass4) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(clientClass); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateClientClass4CmdToAgent(clientClass)
@@ -63,11 +64,9 @@ func sendCreateClientClass4CmdToAgent(clientClass4 *resource.ClientClass4) error
 func (c *ClientClass4Service) List() ([]*resource.ClientClass4, error) {
 	var clientClasses []*resource.ClientClass4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{
-			resource.SqlOrderBy: resource.SqlColumnName},
-			&clientClasses)
+		return tx.Fill(map[string]interface{}{resource.SqlOrderBy: resource.SqlColumnName}, &clientClasses)
 	}); err != nil {
-		return nil, fmt.Errorf("list clientclass4 failed:%s", err.Error())
+		return nil, fmt.Errorf("list clientclass4 failed:%s", pg.Error(err).Error())
 	}
 
 	return clientClasses, nil
@@ -78,7 +77,7 @@ func (c *ClientClass4Service) Get(id string) (*resource.ClientClass4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &clientClasses)
 	}); err != nil {
-		return nil, fmt.Errorf("get clientclass4 of %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get clientclass4 of %s failed:%s", id, pg.Error(err).Error())
 	} else if len(clientClasses) == 0 {
 		return nil, fmt.Errorf("no found clientclass4 %s", id)
 	}
@@ -93,10 +92,12 @@ func (c *ClientClass4Service) Update(clientClass *resource.ClientClass4) error {
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableClientClass4,
+		if rows, err := tx.Update(resource.TableClientClass4,
 			map[string]interface{}{resource.SqlColumnClassRegexp: clientClass.Regexp},
 			map[string]interface{}{restdb.IDField: clientClass.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
+		} else if rows == 0 {
+			return fmt.Errorf("no found clientclass4 %s", clientClass.GetID())
 		}
 
 		return sendUpdateClientClass4CmdToDHCPAgent(clientClass)
@@ -121,14 +122,14 @@ func (c *ClientClass4Service) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exist, err := tx.Exists(resource.TableSubnet4,
 			map[string]interface{}{resource.SqlColumnClientClass: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if exist {
 			return fmt.Errorf("client class %s used by subnet4", id)
 		}
 
 		if rows, err := tx.Delete(resource.TableClientClass4,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found clientclass4 %s", id)
 		}

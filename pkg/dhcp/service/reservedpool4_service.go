@@ -5,6 +5,7 @@ import (
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -38,7 +39,7 @@ func (p *ReservedPool4Service) Create(subnet *resource.Subnet4, pool *resource.R
 
 		pool.Subnet4 = subnet.GetID()
 		if _, err := tx.Insert(pool); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
@@ -96,7 +97,7 @@ func getReservedPool4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, 
 		"select * from gr_reserved_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetID, end, begin); err != nil {
 		return nil, fmt.Errorf("get reserved pool4s with subnet4 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return reservedpools, nil
 	}
@@ -125,7 +126,7 @@ func updateSubnet4AndPoolsCapacityWithReservedPool4(tx restdb.Transaction, subne
 		"capacity": subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 		return fmt.Errorf("update subnet4 %s capacity to db failed: %s",
-			subnet.GetID(), err.Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
 	for affectPoolID, capacity := range affectPools {
@@ -133,7 +134,7 @@ func updateSubnet4AndPoolsCapacityWithReservedPool4(tx restdb.Transaction, subne
 			"capacity": capacity,
 		}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
 			return fmt.Errorf("update subnet4 %s pool4 %s capacity to db failed: %s",
-				subnet.GetID(), affectPoolID, err.Error())
+				subnet.GetID(), affectPoolID, pg.Error(err).Error())
 		}
 	}
 
@@ -212,7 +213,7 @@ func listReservedPool4s(subnetID string) ([]*resource.ReservedPool4, error) {
 			&pools)
 	}); err != nil {
 		return nil, fmt.Errorf("list reserved pool4s with subnet4 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	}
 
 	return pools, nil
@@ -224,7 +225,7 @@ func (p *ReservedPool4Service) Get(subnet *resource.Subnet4, poolID string) (*re
 		return tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 	}); err != nil {
 		return nil, fmt.Errorf("get reserved pool4 %s with subnet4 %s from db failed: %s",
-			poolID, subnet.GetID(), err.Error())
+			poolID, subnet.GetID(), pg.Error(err).Error())
 	} else if len(pools) != 1 {
 		return nil, fmt.Errorf("no found reserved pool4 %s with subnet4 %s", poolID, subnet.GetID())
 	}
@@ -249,7 +250,7 @@ func (p *ReservedPool4Service) Delete(subnet *resource.Subnet4, pool *resource.R
 
 		if _, err := tx.Delete(resource.TableReservedPool4, map[string]interface{}{
 			restdb.IDField: pool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeleteReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
@@ -265,7 +266,7 @@ func setReservedPool4FromDB(tx restdb.Transaction, pool *resource.ReservedPool4)
 	var pools []*resource.ReservedPool4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
 		&pools); err != nil {
-		return fmt.Errorf("get reserved pool4 from db failed: %s", err.Error())
+		return fmt.Errorf("get reserved pool4 from db failed: %s", pg.Error(err).Error())
 	} else if len(pools) == 0 {
 		return fmt.Errorf("no found reserved pool4 %s", pool.GetID())
 	}
@@ -297,7 +298,7 @@ func (p *ReservedPool4Service) Update(subnetId string, pool *resource.ReservedPo
 		if rows, err := tx.Update(resource.TableReservedPool4, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found reserved pool4 %s", pool.GetID())
 		}
@@ -363,7 +364,7 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 
 			pool.Subnet4 = subnet.GetID()
 			if _, err := tx.Insert(pool); err != nil {
-				return err
+				return pg.Error(err)
 			}
 
 			if err := sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool); err != nil {

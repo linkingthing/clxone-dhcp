@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -27,7 +28,7 @@ func (d *AdmitFingerprintService) Create(admitFingerprint *resource.AdmitFingerp
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitFingerprint); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint)
@@ -59,7 +60,7 @@ func (d *AdmitFingerprintService) List() ([]*resource.AdmitFingerprint, error) {
 		return tx.Fill(map[string]interface{}{
 			resource.SqlOrderBy: resource.SqlColumnClientType}, &fingerprints)
 	}); err != nil {
-		return nil, fmt.Errorf("list admit fingerprints from db failed: %s", err.Error())
+		return nil, fmt.Errorf("list admit fingerprints from db failed: %s", pg.Error(err).Error())
 	}
 
 	return fingerprints, nil
@@ -70,7 +71,7 @@ func (d *AdmitFingerprintService) Get(id string) (*resource.AdmitFingerprint, er
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &admitFingerprints)
 	}); err != nil {
-		return nil, fmt.Errorf("get admit fingerprint %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get admit fingerprint %s failed:%s", id, pg.Error(err).Error())
 	} else if len(admitFingerprints) == 0 {
 		return nil, fmt.Errorf("get admit fingerprint of %s failed: record not found", id)
 	}
@@ -82,7 +83,7 @@ func (d *AdmitFingerprintService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableAdmitFingerprint,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found admit fingerprint %s", id)
 		}

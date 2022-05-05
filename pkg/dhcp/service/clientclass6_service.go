@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -32,7 +33,7 @@ func (c *ClientClass6Service) Create(clientClass *resource.ClientClass6) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(clientClass); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateClientClass6CmdToAgent(clientClass)
@@ -66,7 +67,7 @@ func (c *ClientClass6Service) List() ([]*resource.ClientClass6, error) {
 		return tx.Fill(map[string]interface{}{
 			resource.SqlOrderBy: resource.SqlColumnName}, &clientClasses)
 	}); err != nil {
-		return nil, fmt.Errorf("list clientclass6 failed:%s", err.Error())
+		return nil, fmt.Errorf("list clientclass6 failed:%s", pg.Error(err).Error())
 	}
 
 	return clientClasses, nil
@@ -77,7 +78,7 @@ func (c *ClientClass6Service) Get(id string) (*resource.ClientClass6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &clientClasses)
 	}); err != nil {
-		return nil, fmt.Errorf("get clientclass6 %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get clientclass6 %s failed:%s", id, pg.Error(err).Error())
 	} else if len(clientClasses) == 0 {
 		return nil, fmt.Errorf("no found clientclass6 %s", id)
 	}
@@ -95,7 +96,7 @@ func (c *ClientClass6Service) Update(clientClass *resource.ClientClass6) error {
 		if rows, err := tx.Update(resource.TableClientClass6, map[string]interface{}{
 			resource.SqlColumnClassRegexp: clientClass.Regexp,
 		}, map[string]interface{}{restdb.IDField: clientClass.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found clientclass6 %s", clientClass.GetID())
 		}
@@ -122,14 +123,14 @@ func (c *ClientClass6Service) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exist, err := tx.Exists(resource.TableSubnet6,
 			map[string]interface{}{resource.SqlColumnClientClass: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if exist {
 			return fmt.Errorf("client class %s used by subnet6", id)
 		}
 
 		if rows, err := tx.Delete(resource.TableClientClass6,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found clientclass6 %s", id)
 		}

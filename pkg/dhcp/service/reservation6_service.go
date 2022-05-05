@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -41,7 +42,7 @@ func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *reso
 
 		reservation.Subnet6 = subnet.GetID()
 		if _, err := tx.Insert(reservation); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
@@ -103,7 +104,7 @@ func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation
 	var reservations []*resource.Reservation6
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnetId},
 		&reservations); err != nil {
-		return fmt.Errorf("get subnet6 %s reservation6 failed: %s", subnetId, err.Error())
+		return fmt.Errorf("get subnet6 %s reservation6 failed: %s", subnetId, pg.Error(err).Error())
 	}
 
 	for _, reservation_ := range reservations {
@@ -123,7 +124,7 @@ func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, 
 		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 			&reservedpools); err != nil {
 			return fmt.Errorf("get subnet6 %s reserved pool6 from db failed: %s",
-				subnetId, err.Error())
+				subnetId, pg.Error(err).Error())
 		}
 	}
 
@@ -132,7 +133,7 @@ func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, 
 		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 			&reservedpdpools); err != nil {
 			return fmt.Errorf("get subnet6 %s reserved pdpool from db failed: %s",
-				subnetId, err.Error())
+				subnetId, pg.Error(err).Error())
 		}
 	}
 
@@ -169,7 +170,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 		"capacity": subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
-			subnet.GetID(), err.Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
 	for affectedPoolId, capacity := range affectedPools {
@@ -177,7 +178,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 			"capacity": capacity,
 		}, map[string]interface{}{restdb.IDField: affectedPoolId}); err != nil {
 			return fmt.Errorf("update pool6 %s capacity to db failed: %s",
-				affectedPoolId, err.Error())
+				affectedPoolId, pg.Error(err).Error())
 		}
 	}
 
@@ -186,7 +187,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 			"capacity": capacity,
 		}, map[string]interface{}{restdb.IDField: affectedPdPoolId}); err != nil {
 			return fmt.Errorf("update pdpool %s capacity to db failed: %s",
-				affectedPdPoolId, err.Error())
+				affectedPdPoolId, pg.Error(err).Error())
 		}
 	}
 
@@ -215,7 +216,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnet.GetID()},
 		&pools); err != nil {
 		return nil, fmt.Errorf("get pool6s with subnet6 %s from db failed: %s",
-			subnet.GetID(), err.Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
 	affectedPool6s := make(map[string]string)
@@ -263,7 +264,7 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 	if err := tx.Fill(map[string]interface{}{"subnet6": subnet.GetID()},
 		&pdpools); err != nil {
 		return nil, fmt.Errorf("get pdpools with subnet6 %s from db failed: %s",
-			subnet.GetID(), err.Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
 	affectedPdPools := make(map[string]string)
@@ -350,7 +351,7 @@ func listReservation6s(subnetID string) ([]*resource.Reservation6, error) {
 			resource.SqlOrderBy:       "duid, hw_address"}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation6s with subnet6 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	}
 
 	leasesCount := getReservation6sLeasesCount(subnetIDStrToUint64(subnetID), reservations)
@@ -440,7 +441,7 @@ func (r *Reservation6Service) Get(subnet *resource.Subnet6, reservationID string
 		return tx.Fill(map[string]interface{}{restdb.IDField: reservationID}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("get reservation6 %s with subnet6 %s from db failed: %s",
-			reservationID, subnet.GetID(), err.Error())
+			reservationID, subnet.GetID(), pg.Error(err).Error())
 	} else if len(reservations) == 0 {
 		return nil, fmt.Errorf("no found reservation6 %s with subnet6 %s",
 			reservationID, subnet.GetID())
@@ -490,7 +491,7 @@ func (r *Reservation6Service) Delete(subnet *resource.Subnet6, reservation *reso
 
 		if _, err := tx.Delete(resource.TableReservation6,
 			map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
@@ -527,7 +528,7 @@ func setReservation6FromDB(tx restdb.Transaction, reservation *resource.Reservat
 	var reservations []*resource.Reservation6
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: reservation.GetID()},
 		&reservations); err != nil {
-		return err
+		return pg.Error(err)
 	} else if len(reservations) == 0 {
 		return fmt.Errorf("no found reservation6 %s", reservation.GetID())
 	}
@@ -560,7 +561,7 @@ func (r *Reservation6Service) Update(subnetId string, reservation *resource.Rese
 		if rows, err := tx.Update(resource.TableReservation6, map[string]interface{}{
 			resource.SqlColumnComment: reservation.Comment,
 		}, map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found reservation6 %s", reservation.GetID())
 		}
@@ -612,7 +613,7 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 
 			reservation.Subnet6 = subnet.GetID()
 			if _, err := tx.Insert(reservation); err != nil {
-				return err
+				return pg.Error(err)
 			}
 
 			if err := sendCreateReservation6CmdToDHCPAgent(

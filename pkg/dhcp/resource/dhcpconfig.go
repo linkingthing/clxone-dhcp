@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -63,7 +64,7 @@ func getDhcpConfig(isv4 bool) (*DhcpConfig, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &configs)
 	}); err != nil {
-		return nil, fmt.Errorf("get dhcp global config failed: %s", err.Error())
+		return nil, fmt.Errorf("get dhcp global config failed: %s", pg.Error(err).Error())
 	}
 
 	if len(configs) != 0 {

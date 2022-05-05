@@ -10,6 +10,7 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
 	"github.com/linkingthing/cement/slice"
@@ -58,7 +59,7 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 		}
 
 		if _, err := tx.Insert(subnet); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateSubnet4CmdToDHCPAgent(subnet)
@@ -71,7 +72,7 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 
 func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
 	if count, err := tx.Count(resource.TableSubnet4, nil); err != nil {
-		return fmt.Errorf("get subnet4s count failed: %s", err.Error())
+		return fmt.Errorf("get subnet4s count failed: %s", pg.Error(err).Error())
 	} else if count >= MaxSubnetsCount {
 		return fmt.Errorf("subnet4s count has reached maximum (1w)")
 	}
@@ -79,7 +80,7 @@ func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
 	var subnets []*resource.Subnet4
 	if err := tx.FillEx(&subnets,
 		"select * from gr_subnet4 where $1 && ipnet", subnet); err != nil {
-		return fmt.Errorf("check subnet4 conflict failed: %s", err.Error())
+		return fmt.Errorf("check subnet4 conflict failed: %s", pg.Error(err).Error())
 	} else if len(subnets) != 0 {
 		return fmt.Errorf("conflict with subnet4 %s", subnets[0].Subnet)
 	}
@@ -93,7 +94,7 @@ func setSubnet4ID(tx restdb.Transaction, subnet *resource.Subnet4) error {
 		resource.SqlOrderBy: "subnet_id desc",
 		"offset":            0, "limit": 1},
 		&subnets); err != nil {
-		return err
+		return pg.Error(err)
 	}
 
 	if len(subnets) != 0 {
@@ -196,7 +197,7 @@ func (s *Subnet4Service) List(ctx *restresource.Context) ([]*resource.Subnet4, e
 
 		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
 	}); err != nil {
-		return nil, fmt.Errorf("list subnet4s failed: %s", err.Error())
+		return nil, fmt.Errorf("list subnet4s failed: %s", pg.Error(err).Error())
 	}
 
 	if len(subnets) > 0 && listCtx.needSetSubnetsLeasesUsedInfo() {
@@ -389,7 +390,7 @@ func (s *Subnet4Service) Get(id string) (*resource.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &subnets)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet4 %s from db failed: %s", id, err.Error())
+		return nil, fmt.Errorf("get subnet4 %s from db failed: %s", id, pg.Error(err).Error())
 	} else if len(subnets) == 0 {
 		return nil, fmt.Errorf("no found subnet4 %s", id)
 	}
@@ -450,7 +451,7 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnBootfile:            subnet.Bootfile,
 			resource.SqlColumnTags:                subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendUpdateSubnet4CmdToDHCPAgent(subnet)
@@ -480,7 +481,7 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetId},
 		&subnets); err != nil {
 		return nil, fmt.Errorf("get subnet4 %s from db failed: %s",
-			subnetId, err.Error())
+			subnetId, pg.Error(err).Error())
 	} else if len(subnets) == 0 {
 		return nil, fmt.Errorf("no found subnet4 %s", subnetId)
 	}
@@ -518,7 +519,7 @@ func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
 
 		if _, err := tx.Delete(resource.TableSubnet4,
 			map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeleteSubnet4CmdToDHCPAgent(subnet, subnet.Nodes)
@@ -581,7 +582,7 @@ func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
 		for _, validSql := range validSqls {
 			if _, err := tx.Exec(validSql); err != nil {
 				return fmt.Errorf("batch insert subnet4s to db failed: %s",
-					err.Error())
+					pg.Error(err).Error())
 			}
 		}
 
@@ -1140,7 +1141,7 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 
 		return tx.Fill(nil, &reservations)
 	}); err != nil {
-		return nil, fmt.Errorf("export subnet4s failed: %s", err.Error())
+		return nil, fmt.Errorf("list subnet4s and pools from db failed: %s", pg.Error(err).Error())
 	}
 
 	subnetPools := make(map[string][]string)
@@ -1211,7 +1212,7 @@ func (s *Subnet4Service) UpdateNodes(subnetID string, subnetNode *resource.Subne
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
 			resource.SqlColumnNodes: subnetNode.Nodes},
 			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendUpdateSubnet4NodesCmdToDHCPAgent(tx, subnet4, subnetNode.Nodes)
@@ -1333,17 +1334,17 @@ func genCreateSubnets4AndPoolsRequestWithSubnet4(tx restdb.Transaction, subnet4 
 	var reservedPools []*resource.ReservedPool4
 	var reservations []*resource.Reservation4
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnet4.GetID()}, &pools); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnet4.GetID()},
 		&reservedPools); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnet4.GetID()},
 		&reservations); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if len(pools) == 0 && len(reservedPools) == 0 && len(reservations) == 0 {
@@ -1406,7 +1407,7 @@ func ListSubnet4sByPrefixes(prefixes []string) ([]*resource.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnet4s, "select * from gr_subnet4 where subnet = any ($1)", prefixes)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet4 from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet4 from db failed: %s", pg.Error(err).Error())
 	}
 
 	if err := SetSubnet4UsedInfo(subnet4s, true); err != nil {
@@ -1420,7 +1421,7 @@ func GetSubnet4ByIP(ip string) (*resource.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "select * from gr_subnet4 where ipnet >>= $1", ip)
 	}); err != nil {
-		return nil, err
+		return nil, pg.Error(err)
 	}
 
 	if len(subnets) == 0 {
@@ -1435,7 +1436,7 @@ func GetSubnet4ByPrefix(prefix string) (*resource.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "select * from gr_subnet4 where subnet = $1", prefix)
 	}); err != nil {
-		return nil, err
+		return nil, pg.Error(err)
 	}
 
 	if len(subnets) == 0 {

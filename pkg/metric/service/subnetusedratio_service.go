@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -85,7 +86,7 @@ func getSubnetsFromDB(version DHCPVersion) (map[string]struct{}, error) {
 		if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 			return tx.Fill(nil, &subnet4s)
 		}); err != nil {
-			return nil, err
+			return nil, pg.Error(err)
 		}
 
 		for _, subnet := range subnet4s {
@@ -96,7 +97,7 @@ func getSubnetsFromDB(version DHCPVersion) (map[string]struct{}, error) {
 		if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 			return tx.Fill(nil, &subnet6s)
 		}); err != nil {
-			return nil, err
+			return nil, pg.Error(err)
 		}
 
 		for _, subnet := range subnet6s {

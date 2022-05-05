@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -45,7 +46,7 @@ func (p *Pool4Service) Create(subnet *resource.Subnet4, pool *resource.Pool4) er
 
 		pool.Subnet4 = subnet.GetID()
 		if _, err := tx.Insert(pool); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreatePool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
@@ -100,7 +101,7 @@ func getPool4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, begin, e
 		"select * from gr_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetID, end, begin); err != nil {
 		return nil, fmt.Errorf("get pool4s with subnet4 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return pools, nil
 	}
@@ -110,7 +111,7 @@ func recalculatePool4Capacity(tx restdb.Transaction, subnetID string, pool *reso
 	if count, err := tx.CountEx(resource.TableReservation4,
 		"select count(*) from gr_reservation4 where subnet4 = $1 and ip >= $2 and ip <= $3",
 		subnetID, pool.BeginIp, pool.EndIp); err != nil {
-		return fmt.Errorf("get reservation4 from db failed: %s", err.Error())
+		return fmt.Errorf("get reservation4 from db failed: %s", pg.Error(err).Error())
 	} else {
 		pool.Capacity -= uint64(count)
 	}
@@ -133,7 +134,7 @@ func updateSubnet4CapacityWithPool4(tx restdb.Transaction, subnetID string, capa
 		"capacity": capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 		return fmt.Errorf("update subnet4 %s capacity to db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return nil
 	}
@@ -183,7 +184,7 @@ func listPool4s(subnetID string) ([]*resource.Pool4, error) {
 			)`, subnetID)
 	}); err != nil {
 		return nil, fmt.Errorf("list pool4s with subnet4 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	}
 
 	poolsLeases := loadPool4sLeases(subnetID, pools, reservations)
@@ -243,7 +244,7 @@ func (p *Pool4Service) Get(subnet *resource.Subnet4, poolID string) (*resource.P
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		err := tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 		if err != nil {
-			return err
+			return pg.Error(err)
 		} else if len(pools) != 1 {
 			return fmt.Errorf("no found pool4 %s with subnet4 %s", poolID, subnet.GetID())
 		}
@@ -271,7 +272,7 @@ func getReservation4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, b
 		"select * from gr_reservation4 where subnet4 = $1 and ip >= $2 and ip <= $3",
 		subnetID, begin, end); err != nil {
 		return nil, fmt.Errorf("get reservation4s with subnet4 %s failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return reservations, nil
 	}
@@ -331,7 +332,7 @@ func (p *Pool4Service) Delete(subnet *resource.Subnet4, pool *resource.Pool4) er
 
 		if _, err := tx.Delete(resource.TablePool4, map[string]interface{}{
 			restdb.IDField: pool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeletePool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
@@ -373,7 +374,7 @@ func setPool4FromDB(tx restdb.Transaction, pool *resource.Pool4) error {
 	var pools []*resource.Pool4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
 		&pools); err != nil {
-		return fmt.Errorf("get pool4 from db failed: %s", err.Error())
+		return fmt.Errorf("get pool4 from db failed: %s", pg.Error(err).Error())
 	} else if len(pools) == 0 {
 		return fmt.Errorf("no found pool4 %s", pool.GetID())
 	}
@@ -405,7 +406,7 @@ func (p *Pool4Service) Update(subnetId string, pool *resource.Pool4) error {
 		if rows, err := tx.Update(resource.TablePool4, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found pool4 %s", pool.GetID())
 		}
@@ -421,7 +422,6 @@ func (p *Pool4Service) Update(subnetId string, pool *resource.Pool4) error {
 
 func (p *Pool4Service) ActionValidTemplate(subnet *resource.Subnet4, pool *resource.Pool4, templateInfo *resource.TemplateInfo) (*resource.TemplatePool, error) {
 	pool.Template = templateInfo.Template
-
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkPool4CouldBeCreated(tx, subnet, pool)
 	}); err != nil {

@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -221,7 +222,7 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(tableName, map[string]interface{}{
 			"name": clientClass}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if exists == false {
 			return fmt.Errorf("no found client class %s in db", clientClass)
 		} else {

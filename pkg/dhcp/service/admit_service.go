@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -24,10 +25,10 @@ func NewAdmitService() (*AdmitService, error) {
 func createDefaultAdmit() error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableAdmit, nil); err != nil {
-			return fmt.Errorf("check dhcp admit failed: %s", err.Error())
+			return fmt.Errorf("check dhcp admit failed: %s", pg.Error(err).Error())
 		} else if exists == false {
 			if _, err := tx.Insert(resource.DefaultAdmit); err != nil {
-				return fmt.Errorf("insert default dhcp admit failed: %s", err.Error())
+				return fmt.Errorf("insert default dhcp admit failed: %s", pg.Error(err).Error())
 			}
 		}
 
@@ -40,7 +41,7 @@ func (d *AdmitService) List() ([]*resource.Admit, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &admits)
 	}); err != nil {
-		return nil, fmt.Errorf("list admit failed: %s", err.Error())
+		return nil, fmt.Errorf("list admit failed: %s", pg.Error(err).Error())
 	}
 
 	return admits, nil
@@ -51,7 +52,7 @@ func (d *AdmitService) Get(id string) (*resource.Admit, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &admits)
 	}); err != nil {
-		return nil, fmt.Errorf("get admit %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get admit %s failed:%s", id, pg.Error(err).Error())
 	} else if len(admits) == 0 {
 		return nil, fmt.Errorf("no found admit %s", id)
 	}
@@ -61,10 +62,12 @@ func (d *AdmitService) Get(id string) (*resource.Admit, error) {
 
 func (d *AdmitService) Update(admit *resource.Admit) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableAdmit,
+		if rows, err := tx.Update(resource.TableAdmit,
 			map[string]interface{}{resource.SqlColumnEnabled: admit.Enabled},
 			map[string]interface{}{restdb.IDField: admit.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
+		} else if rows == 0 {
+			return fmt.Errorf("no found admit %s", admit.GetID())
 		}
 
 		return sendUpdateAdmitCmdToDHCPAgent(admit)

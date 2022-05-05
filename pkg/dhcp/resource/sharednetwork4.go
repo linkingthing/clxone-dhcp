@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/set"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -36,10 +37,14 @@ func (s *SharedNetwork4) Validate() error {
 	var subnet4s []*Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := tx.FillEx(&subnet4s, genGetSubnetsSqlWithSubnetIds(s.SubnetIds)); err != nil {
-			return err
+			return fmt.Errorf("list subnets from db failed: %s", pg.Error(err).Error())
 		}
 
-		return tx.FillEx(&sharedNetworks, "select * from gr_shared_network4 where id != $1", s.GetID())
+		if err := tx.FillEx(&sharedNetworks, "select * from gr_shared_network4 where id != $1", s.GetID()); err != nil {
+			return fmt.Errorf("list shared network4 from db failed: %s", pg.Error(err).Error())
+		}
+
+		return nil
 	}); err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -25,7 +26,7 @@ func (s *SharedNetwork4Service) Create(sharedNetwork4 *resource.SharedNetwork4) 
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(sharedNetwork4); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4)
@@ -62,7 +63,7 @@ func (s *SharedNetwork4Service) List(condition map[string]interface{}) ([]*resou
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(condition, &sharedNetwork4s)
 	}); err != nil {
-		return nil, fmt.Errorf("list shared network4s from db failed: %s", err.Error())
+		return nil, fmt.Errorf("list shared network4s from db failed: %s", pg.Error(err).Error())
 	}
 
 	return sharedNetwork4s, nil
@@ -71,7 +72,7 @@ func (s *SharedNetwork4Service) List(condition map[string]interface{}) ([]*resou
 func (s *SharedNetwork4Service) Get(id string) (sharedNetwork4 *resource.SharedNetwork4, err error) {
 	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		sharedNetwork4, err = getOldSharedNetwork(tx, id)
-		return err
+		return pg.Error(err)
 	})
 	return
 }
@@ -94,7 +95,7 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 			resource.SqlColumnComment:    sharedNetwork4.Comment,
 		}, map[string]interface{}{
 			restdb.IDField: sharedNetwork4.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendUpdateSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name, sharedNetwork4)
@@ -123,7 +124,7 @@ func (s *SharedNetwork4Service) Delete(sharedNetwork4Id string) error {
 
 		if _, err := tx.Delete(resource.TableSharedNetwork4, map[string]interface{}{
 			restdb.IDField: sharedNetwork4Id}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeleteSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name)
@@ -138,9 +139,9 @@ func getOldSharedNetwork(tx restdb.Transaction, id string) (*resource.SharedNetw
 	var sharedNetworks []*resource.SharedNetwork4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
 		&sharedNetworks); err != nil {
-		return nil, err
+		return nil, pg.Error(err)
 	} else if len(sharedNetworks) == 0 {
-		return nil, fmt.Errorf("no found shared network4")
+		return nil, fmt.Errorf("no found shared network4 %s", id)
 	}
 
 	return sharedNetworks[0], nil
@@ -160,7 +161,7 @@ func checkUsedBySharedNetwork(tx restdb.Transaction, subnetId uint64) error {
 	if err := tx.FillEx(&sharedNetwork4s,
 		"select * from gr_shared_network4 where $1::numeric = any(subnet_ids)",
 		subnetId); err != nil {
-		return fmt.Errorf("check subnet4 is used by shared network4 failed: %s", err.Error())
+		return fmt.Errorf("check subnet4 is used by shared network4 failed: %s", pg.Error(err).Error())
 	} else if len(sharedNetwork4s) != 0 {
 		return fmt.Errorf("subnet4 used by shared network4 %s", sharedNetwork4s[0].Name)
 	} else {

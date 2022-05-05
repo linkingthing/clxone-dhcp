@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -25,10 +26,10 @@ func NewPingerService() (*PingerService, error) {
 func createDefaultPinger() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TablePinger, nil); err != nil {
-			return fmt.Errorf("check dhcp pinger failed: %s", err.Error())
+			return fmt.Errorf("check dhcp pinger failed: %s", pg.Error(err).Error())
 		} else if exists == false {
 			if _, err := tx.Insert(resource.DefaultPinger); err != nil {
-				return fmt.Errorf("insert default dhcp pinger failed: %s", err.Error())
+				return fmt.Errorf("insert default dhcp pinger failed: %s", pg.Error(err).Error())
 			}
 		}
 
@@ -44,7 +45,7 @@ func (p *PingerService) List() ([]*resource.Pinger, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &pingers)
 	}); err != nil {
-		return nil, fmt.Errorf("list pinger failed:%s", err.Error())
+		return nil, fmt.Errorf("list pinger failed:%s", pg.Error(err).Error())
 	}
 
 	return pingers, nil
@@ -55,7 +56,7 @@ func (p *PingerService) Get(id string) (*resource.Pinger, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &pingers)
 	}); err != nil {
-		return nil, fmt.Errorf("get pinger %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get pinger %s failed:%s", id, pg.Error(err).Error())
 	} else if len(pingers) == 0 {
 		return nil, fmt.Errorf("no found pinger %s", id)
 	}
@@ -65,11 +66,13 @@ func (p *PingerService) Get(id string) (*resource.Pinger, error) {
 
 func (p *PingerService) Update(pinger *resource.Pinger) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TablePinger, map[string]interface{}{
+		if rows, err := tx.Update(resource.TablePinger, map[string]interface{}{
 			resource.SqlColumnEnabled: pinger.Enabled,
 			resource.SqlColumnTimeout: pinger.Timeout,
 		}, map[string]interface{}{restdb.IDField: pinger.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
+		} else if rows == 0 {
+			return fmt.Errorf("no found ping %s", pinger.GetID())
 		}
 
 		return sendUpdatePingerCmdToDHCPAgent(pinger)

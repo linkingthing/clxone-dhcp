@@ -8,6 +8,7 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -81,14 +82,14 @@ func getReservation4sAndSubnetLease4sWithIp(tx restdb.Transaction, subnet4 *reso
 		resource.SqlColumnIpAddress: ip,
 		resource.SqlColumnSubnet4:   subnet4.GetID()},
 		&reservations); err != nil {
-		return nil, nil, fmt.Errorf("get reservation4 %s failed: %s", ip, err.Error())
+		return nil, nil, fmt.Errorf("get reservation4 %s failed: %s", ip, pg.Error(err).Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlColumnAddress: ip,
 		resource.SqlColumnSubnet4: subnet4.GetID()},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet4 lease4 %s failed: %s", ip, err.Error())
+		return nil, nil, fmt.Errorf("get subnet4 lease4 %s failed: %s", ip, pg.Error(err).Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -99,12 +100,12 @@ func getReservation4sAndSubnetLease4s(tx restdb.Transaction, subnetId string) ([
 	var subnetLeases []*resource.SubnetLease4
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnetId},
 		&reservations); err != nil {
-		return nil, nil, fmt.Errorf("get reservation4s failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("get reservation4s failed: %s", pg.Error(err).Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnetId},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet4 lease4s failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("get subnet4 lease4s failed: %s", pg.Error(err).Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -209,7 +210,7 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 			strings.Join(reclaimleasesForRetain, "','") + "')")
 		return err
 	}); err != nil {
-		log.Warnf("delete reclaim lease4s failed: %s", err.Error())
+		log.Warnf("delete reclaim lease4s failed: %s", pg.Error(err).Error())
 	}
 
 	return leases, nil
@@ -252,7 +253,7 @@ func (l *SubnetLease4Service) Delete(subnet *resource.Subnet4, leaseId string) e
 		lease4.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 		lease4.Subnet4 = subnet.GetID()
 		if _, err := tx.Insert(lease4); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

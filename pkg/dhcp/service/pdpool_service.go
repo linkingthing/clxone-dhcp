@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -45,7 +46,7 @@ func (p *PdPoolService) Create(subnet *resource.Subnet6, pdpool *resource.PdPool
 
 		pdpool.Subnet6 = subnet.GetID()
 		if _, err := tx.Insert(pdpool); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreatePdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
@@ -102,7 +103,7 @@ func getPdPoolsWithPrefix(tx restdb.Transaction, subnetID string, prefix net.IPN
 		"select * from gr_pd_pool where subnet6 = $1 and prefix_ipnet && $2",
 		subnetID, prefix); err != nil {
 		return nil, fmt.Errorf("get pdpools with subnet6 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return pdpools, nil
 	}
@@ -130,7 +131,7 @@ func getReservation6sWithPrefixesExists(tx restdb.Transaction, subnetID string) 
 		"select * from gr_reservation6 where subnet6 = $1 and prefixes != '{}'",
 		subnetID); err != nil {
 		return nil, fmt.Errorf("get reservation6s with subnet6 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return reservations, nil
 	}
@@ -142,7 +143,7 @@ func getReservedPdPoolsWithPrefix(tx restdb.Transaction, subnetID string, prefix
 		"select * from gr_reserved_pd_pool where subnet6 = $1 and prefix_ipnet && $2",
 		subnetID, prefix); err != nil {
 		return nil, fmt.Errorf("get reserved pdpools with subnet6 %s from db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return pdpools, nil
 	}
@@ -171,7 +172,7 @@ func updateSubnet6CapacityWithPdPool(tx restdb.Transaction, subnetID string, cap
 		"capacity": capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	} else {
 		return nil
 	}
@@ -211,7 +212,7 @@ func listPdPools(subnetID string) ([]*resource.PdPool, error) {
 			resource.SqlColumnSubnet6: subnetID,
 			resource.SqlOrderBy:       resource.SqlColumnPrefixIpNet}, &pdpools)
 		if err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		reservations, err = getReservation6sWithPrefixesExists(tx, subnetID)
@@ -278,7 +279,7 @@ func (p *PdPoolService) Get(subnet *resource.Subnet6, pdpoolId string) (*resourc
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		err := tx.Fill(map[string]interface{}{restdb.IDField: pdpoolId}, &pdpools)
 		if err != nil {
-			return err
+			return pg.Error(err)
 		} else if len(pdpools) != 1 {
 			return fmt.Errorf("no found pdpool %s with subnet6 %s", pdpoolId, subnet.GetID())
 		}
@@ -352,7 +353,7 @@ func (p *PdPoolService) Delete(subnet *resource.Subnet6, pdpool *resource.PdPool
 
 		if _, err := tx.Delete(resource.TablePdPool,
 			map[string]interface{}{restdb.IDField: pdpool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeletePdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
@@ -394,7 +395,7 @@ func setPdPoolFromDB(tx restdb.Transaction, pdpool *resource.PdPool) error {
 	var pdpools []*resource.PdPool
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pdpool.GetID()},
 		&pdpools); err != nil {
-		return fmt.Errorf("get pdpool from db failed: %s", err.Error())
+		return fmt.Errorf("get pdpool from db failed: %s", pg.Error(err).Error())
 	} else if len(pdpools) == 0 {
 		return fmt.Errorf("no found pdpool %s", pdpool.GetID())
 	}
@@ -431,7 +432,7 @@ func (p *PdPoolService) Update(subnetId string, pdpool *resource.PdPool) error {
 		if rows, err := tx.Update(resource.TablePdPool,
 			map[string]interface{}{resource.SqlColumnComment: pdpool.Comment},
 			map[string]interface{}{restdb.IDField: pdpool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found pdpool %s", pdpool.GetID())
 		}

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -77,14 +78,14 @@ func getReservation6sAndSubnetLease6sWithIp(tx restdb.Transaction, subnet6 *reso
 	if err := tx.FillEx(&reservations,
 		"select * from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",
 		subnet6.GetID(), ip); err != nil {
-		return nil, nil, fmt.Errorf("get reservation6 %s failed: %s", ip, err.Error())
+		return nil, nil, fmt.Errorf("get reservation6 %s failed: %s", ip, pg.Error(err).Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlColumnAddress: ip,
 		resource.SqlColumnSubnet6: subnet6.GetID()},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet6 lease6 %s failed: %s", ip, err.Error())
+		return nil, nil, fmt.Errorf("get subnet6 lease6 %s failed: %s", ip, pg.Error(err).Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -95,12 +96,12 @@ func getReservation6sAndSubnetLease6s(tx restdb.Transaction, subnetId string) ([
 	var subnetLeases []*resource.SubnetLease6
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 		&reservations); err != nil {
-		return nil, nil, fmt.Errorf("get reservation6s failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("get reservation6s failed: %s", pg.Error(err).Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet6 lease6s failed: %s", err.Error())
+		return nil, nil, fmt.Errorf("get subnet6 lease6s failed: %s", pg.Error(err).Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -193,7 +194,7 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 			strings.Join(reclaimleasesForRetain, "','") + "')")
 		return err
 	}); err != nil {
-		log.Warnf("delete reclaim lease6s failed: %s", err.Error())
+		log.Warnf("delete reclaim lease6s failed: %s", pg.Error(err).Error())
 	}
 
 	return leases, nil
@@ -265,7 +266,7 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 		lease6.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 		lease6.Subnet6 = subnetId
 		if _, err := tx.Insert(lease6); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

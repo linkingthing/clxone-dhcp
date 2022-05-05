@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -26,7 +27,7 @@ func (d *RateLimitMacService) Create(rateLimitMac *resource.RateLimitMac) error 
 	rateLimitMac.SetID(rateLimitMac.HwAddress)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(rateLimitMac); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac)
@@ -57,7 +58,7 @@ func (d *RateLimitMacService) List(condition map[string]interface{}) ([]*resourc
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(condition, &rateLimitMacs)
 	}); err != nil {
-		return nil, fmt.Errorf("list ratelimit macs from db failed: %s", err.Error())
+		return nil, fmt.Errorf("list ratelimit macs from db failed: %s", pg.Error(err).Error())
 	}
 
 	return rateLimitMacs, nil
@@ -68,7 +69,7 @@ func (d *RateLimitMacService) Get(id string) (*resource.RateLimitMac, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &rateLimitMacs)
 	}); err != nil {
-		return nil, fmt.Errorf("get ratelimit mac %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get ratelimit mac %s failed:%s", id, pg.Error(err).Error())
 	} else if len(rateLimitMacs) == 0 {
 		return nil, fmt.Errorf("no found ratelimit mac %s", id)
 	}
@@ -80,7 +81,7 @@ func (d *RateLimitMacService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableRateLimitMac, map[string]interface{}{
 			restdb.IDField: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found ratelimit mac %s", id)
 		}
@@ -103,7 +104,7 @@ func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error 
 		var rateLimits []*resource.RateLimitMac
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: rateLimitMac.GetID()},
 			&rateLimits); err != nil {
-			return err
+			return pg.Error(err)
 		} else if len(rateLimits) == 0 {
 			return fmt.Errorf("no found ratelimit mac %s", rateLimitMac.GetID())
 		}
@@ -112,7 +113,7 @@ func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error 
 			resource.SqlColumnRateLimit: rateLimitMac.RateLimit,
 			resource.SqlColumnComment:   rateLimitMac.Comment,
 		}, map[string]interface{}{restdb.IDField: rateLimitMac.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		if rateLimits[0].RateLimit != rateLimitMac.RateLimit {

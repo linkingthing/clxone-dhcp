@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -33,7 +34,7 @@ func (d *DhcpOuiService) Create(dhcpOui *resource.DhcpOui) error {
 	dhcpOui.SetID(dhcpOui.Oui)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(dhcpOui); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateDhcpOuiCmdToDHCPAgent(dhcpOui)
@@ -73,7 +74,7 @@ func (d *DhcpOuiService) List(ctx *restresource.Context) ([]*resource.DhcpOui, e
 
 		return tx.FillEx(&ouis, listCtx.sql, listCtx.params...)
 	}); err != nil {
-		return nil, fmt.Errorf("list dhcp oui failed:%s", err.Error())
+		return nil, fmt.Errorf("list dhcp oui failed:%s", pg.Error(err).Error())
 	}
 
 	setPagination(ctx, listCtx.hasPagination, ouiCount)
@@ -119,7 +120,7 @@ func (d *DhcpOuiService) Get(id string) (*resource.DhcpOui, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &dhcpOuis)
 	}); err != nil {
-		return nil, fmt.Errorf("get dhcp oui %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get dhcp oui %s failed:%s", id, pg.Error(err).Error())
 	} else if len(dhcpOuis) == 0 {
 		return nil, fmt.Errorf("no found dhcp oui %s", id)
 	}
@@ -140,7 +141,7 @@ func (d *DhcpOuiService) Update(dhcpOui *resource.DhcpOui) error {
 		if _, err := tx.Update(resource.TableDhcpOui, map[string]interface{}{
 			resource.SqlColumnOuiOrganization: dhcpOui.Organization,
 		}, map[string]interface{}{restdb.IDField: dhcpOui.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendUpdateDhcpOuiCmdToDHCPAgent(dhcpOui)
@@ -155,7 +156,7 @@ func (d *DhcpOuiService) checkOuiIsReadOnly(tx restdb.Transaction, id string) er
 	var dhcpOuis []*resource.DhcpOui
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
 		&dhcpOuis); err != nil {
-		return err
+		return pg.Error(err)
 	} else if len(dhcpOuis) == 0 {
 		return fmt.Errorf("no found dhcp oui %s", id)
 	} else if dhcpOuis[0].IsReadOnly {
@@ -180,7 +181,7 @@ func (d *DhcpOuiService) Delete(id string) error {
 
 		if _, err := tx.Delete(resource.TableDhcpOui, map[string]interface{}{
 			restdb.IDField: id}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeleteDhcpOuiCmdToDHCPAgent(id)

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
@@ -110,7 +111,7 @@ func (p *Pool6) setAddrAndCapacity(beginIp, endIp net.IP, capacity string) {
 func parsePool6FromTemplate(tx restdb.Transaction, template string, subnet *Subnet6) (net.IP, net.IP, string, error) {
 	var templates []*Pool6Template
 	if err := tx.Fill(map[string]interface{}{"name": template}, &templates); err != nil {
-		return nil, nil, "", err
+		return nil, nil, "", pg.Error(err)
 	}
 
 	if len(templates) != 1 {

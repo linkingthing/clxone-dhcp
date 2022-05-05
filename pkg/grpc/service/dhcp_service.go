@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -44,7 +45,7 @@ func getSubnet4WithIp(ip string) (map[string]*pbdhcp.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "select * from gr_subnet4 where ipnet >> $1", ip)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet4 from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet4 from db failed: %s", pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
@@ -98,7 +99,7 @@ func getSubnet6WithIp(ip string) (map[string]*pbdhcp.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "select * from gr_subnet6 where ipnet >> $1", ip)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet6 from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet6 from db failed: %s", pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
@@ -152,7 +153,7 @@ func getSubnets4WithIps(ips []string) (map[string]*pbdhcp.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &subnets)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet4s from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet4s from db failed: %s", pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
@@ -189,7 +190,7 @@ func getSubnets6WithIps(ips []string) (map[string]*pbdhcp.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &subnets)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet6s from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet6s from db failed: %s", pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
@@ -238,7 +239,7 @@ func (d *DHCPService) GetSubnet4AndLease4WithIp(ip string) (map[string]*pbdhcp.I
 			resource.SqlColumnSubnet4: subnet.Id}, &subnetLeases)
 	}); err != nil {
 		log.Warnf("get address type and reclaimed leases with subnet4 %s failed: %s",
-			subnet.Subnet, err.Error())
+			subnet.Subnet, pg.Error(err).Error())
 		return ipv4Info, nil
 	}
 
@@ -257,7 +258,7 @@ func getIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	addressType := resource.AddressTypeExclusion
 	if exists, err := tx.Exists(resource.TableReservation4,
 		map[string]interface{}{resource.SqlColumnIpAddress: ip, resource.SqlColumnSubnet4: subnetId}); err != nil {
-		return addressType, fmt.Errorf("check ip %s in reservation4 failed: %s", ip, err.Error())
+		return addressType, fmt.Errorf("check ip %s in reservation4 failed: %s", ip, pg.Error(err).Error())
 	} else if exists {
 		return resource.AddressTypeReservation, nil
 	}
@@ -265,7 +266,7 @@ func getIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TableReservedPool4,
 		"select count(*) from gr_reserved_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
-		return addressType, fmt.Errorf("check ip %s in reserved pool4 failed: %s", ip, err.Error())
+		return addressType, fmt.Errorf("check ip %s in reserved pool4 failed: %s", ip, pg.Error(err).Error())
 	} else if count != 0 {
 		return resource.AddressTypeReserve, nil
 	}
@@ -273,7 +274,7 @@ func getIPv4AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TablePool4,
 		"select count(*) from gr_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
-		return addressType, fmt.Errorf("check ip %s in pool4 failed: %s", ip, err.Error())
+		return addressType, fmt.Errorf("check ip %s in pool4 failed: %s", ip, pg.Error(err).Error())
 	} else if count != 0 {
 		return resource.AddressTypeDynamic, nil
 	}
@@ -306,7 +307,7 @@ func (d *DHCPService) GetSubnet6AndLease6WithIp(ip string) (map[string]*pbdhcp.I
 			resource.SqlColumnSubnet6: subnet.Id}, &subnetLeases)
 	}); err != nil {
 		log.Warnf("get address type and reclaimed leases with subnet6 %s failed: %s",
-			subnet.Subnet, err.Error())
+			subnet.Subnet, pg.Error(err).Error())
 		return ipv6Info, nil
 	}
 
@@ -326,7 +327,7 @@ func getIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TableReservation6,
 		"select count(*) from gr_reservation6 where subnet6 = $1 and $2::text = any(ip_addresses)",
 		subnetId, ip); err != nil {
-		return addressType, fmt.Errorf("check ip %s in reservation6 failed: %s", ip, err.Error())
+		return addressType, fmt.Errorf("check ip %s in reservation6 failed: %s", ip, pg.Error(err).Error())
 	} else if count != 0 {
 		return resource.AddressTypeReservation, nil
 	}
@@ -334,7 +335,7 @@ func getIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TableReservedPool6,
 		"select count(*) from gr_reserved_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
-		return addressType, fmt.Errorf("check ip %s in reserved pool6 failed: %s", ip, err.Error())
+		return addressType, fmt.Errorf("check ip %s in reserved pool6 failed: %s", ip, pg.Error(err).Error())
 	} else if count != 0 {
 		return resource.AddressTypeReserve, nil
 	}
@@ -342,7 +343,7 @@ func getIPv6AddressType(tx restdb.Transaction, subnetId, ip string) (resource.Ad
 	if count, err := tx.CountEx(resource.TablePool6,
 		"select count(*) from gr_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetId, ip, ip); err != nil {
-		return addressType, fmt.Errorf("check ip %s in pool6 failed: %s", ip, err.Error())
+		return addressType, fmt.Errorf("check ip %s in pool6 failed: %s", ip, pg.Error(err).Error())
 	} else if count != 0 {
 		return resource.AddressTypeDynamic, nil
 	}
@@ -380,7 +381,7 @@ func (d *DHCPService) GetSubnets4AndLeases4WithIps(ips []string) (map[string]*pb
 		subnetLeases, err = getReclaimedSubnetLease4s(tx, subnetIdsArgs, ipsArgs)
 		return
 	}); err != nil {
-		log.Warnf("get address type and reclaimed lease4s failed: %s", err.Error())
+		log.Warnf("get address type and reclaimed lease4s failed: %s", pg.Error(err).Error())
 		return ipv4Infos, nil
 	}
 
@@ -395,7 +396,7 @@ func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 	var reservations []*resource.Reservation4
 	if err := tx.FillEx(&reservations, "select * from gr_reservation4 where ip_address in ('"+
 		ipsArgs+"') and subnet4 in ('"+subnetIdsArgs+"')"); err != nil {
-		return fmt.Errorf("get reservation4s from db failed: %s", err.Error())
+		return fmt.Errorf("get reservation4s from db failed: %s", pg.Error(err).Error())
 	}
 
 	for _, reservation := range reservations {
@@ -412,7 +413,7 @@ func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 	var reservedPools []*resource.ReservedPool4
 	if err := tx.FillEx(reservedPools, "select * from gr_reserved_pool4 where subnet4 in ('"+
 		subnetIdsArgs+"')"); err != nil {
-		return fmt.Errorf("get reserved pool4s failed: %s", err.Error())
+		return fmt.Errorf("get reserved pool4s failed: %s", pg.Error(err).Error())
 	}
 
 	for ip := range unfoundIps {
@@ -432,7 +433,7 @@ func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 	var pools []*resource.Pool4
 	if err := tx.FillEx(pools, "select * from gr_pool4 where subnet4 in ('"+
 		subnetIdsArgs+"')"); err != nil {
-		return fmt.Errorf("get pool4s failed: %s", err.Error())
+		return fmt.Errorf("get pool4s failed: %s", pg.Error(err).Error())
 	}
 
 	for ip := range unfoundIps {
@@ -452,7 +453,7 @@ func getReclaimedSubnetLease4s(tx restdb.Transaction, subnetIdsArgs, ipsArgs str
 	var subnetLeases []*resource.SubnetLease4
 	if err := tx.FillEx(&subnetLeases, "select * from gr_subnet_lease4 where address in ('"+
 		ipsArgs+"') and subnet4 in ('"+subnetIdsArgs+"')"); err != nil {
-		return nil, fmt.Errorf("get subnet reclaimed lease4s failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet reclaimed lease4s failed: %s", pg.Error(err).Error())
 	}
 
 	subnetLeasesMap := make(map[string]*resource.SubnetLease4)
@@ -538,7 +539,7 @@ func (d *DHCPService) GetSubnets6AndLeases6WithIps(ips []string) (map[string]*pb
 		subnetLeases, err = getReclaimedSubnetLease6s(tx, subnetIdsArgs, strings.Join(ips, "','"))
 		return
 	}); err != nil {
-		log.Warnf("get address type and reclaimed lease6s failed: %s", err.Error())
+		log.Warnf("get address type and reclaimed lease6s failed: %s", pg.Error(err).Error())
 		return ipv6Infos, nil
 	}
 
@@ -553,7 +554,7 @@ func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoun
 	var reservations []*resource.Reservation6
 	if err := tx.FillEx(reservations, "select * from gr_reservation6 where subnet6 in ('"+
 		subnetIdsArgs+"')"); err != nil {
-		return fmt.Errorf("get reservations failed: %s", err.Error())
+		return fmt.Errorf("get reservations failed: %s", pg.Error(err).Error())
 	}
 
 	for _, reservation := range reservations {
@@ -572,7 +573,7 @@ func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoun
 	var reservedPools []*resource.ReservedPool6
 	if err := tx.FillEx(reservedPools, "select * from gr_reserved_pool6 where subnet6 in ('"+
 		subnetIdsArgs+"')"); err != nil {
-		return fmt.Errorf("get reserved pool6s failed: %s", err.Error())
+		return fmt.Errorf("get reserved pool6s failed: %s", pg.Error(err).Error())
 	}
 
 	for ip := range unfoundIps {
@@ -592,7 +593,7 @@ func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoun
 	var pools []*resource.Pool6
 	if err := tx.FillEx(pools, "select * from gr_pool6 where subnet6 in ('"+
 		subnetIdsArgs+"')"); err != nil {
-		return fmt.Errorf("get pool6s failed: %s", err.Error())
+		return fmt.Errorf("get pool6s failed: %s", pg.Error(err).Error())
 	}
 
 	for ip := range unfoundIps {
@@ -612,7 +613,7 @@ func getReclaimedSubnetLease6s(tx restdb.Transaction, subnetIdsArgs, ipsArgs str
 	var subnetLeases []*resource.SubnetLease6
 	if err := tx.FillEx(&subnetLeases, "select * from gr_subnet_lease6 where address in ('"+
 		ipsArgs+"') and subnet6 in ('"+subnetIdsArgs+"')"); err != nil {
-		return nil, fmt.Errorf("get subnet reclaimed lease6s failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet reclaimed lease6s failed: %s", pg.Error(err).Error())
 	}
 
 	subnetLeasesMap := make(map[string]*resource.SubnetLease6)
@@ -682,7 +683,7 @@ func (d *DHCPService) GetAllSubnet4s() ([]*pbdhcp.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &subnets)
 	}); err != nil {
-		return nil, fmt.Errorf("list subnet4 failed:%s", err.Error())
+		return nil, fmt.Errorf("list subnet4 failed:%s", pg.Error(err).Error())
 	}
 
 	if err := service.SetSubnet4UsedInfo(subnets, true); err != nil {
@@ -760,7 +761,7 @@ func (d *DHCPService) GetAllSubnet6s() ([]*pbdhcp.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &subnet6s)
 	}); err != nil {
-		return nil, fmt.Errorf("list subnet6 failed:%s", err.Error())
+		return nil, fmt.Errorf("list subnet6 failed:%s", pg.Error(err).Error())
 	}
 
 	if err := service.SetSubnet6sLeasesUsedInfo(subnet6s, true); err != nil {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
@@ -49,7 +50,7 @@ func (s *Subnet6Service) Create(subnet *resource.Subnet6) error {
 		}
 
 		if _, err := tx.Insert(subnet); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateSubnet6CmdToDHCPAgent(subnet)
@@ -62,7 +63,7 @@ func (s *Subnet6Service) Create(subnet *resource.Subnet6) error {
 
 func checkSubnet6CouldBeCreated(tx restdb.Transaction, subnet string) error {
 	if count, err := tx.Count(resource.TableSubnet6, nil); err != nil {
-		return fmt.Errorf("get subnet6s count failed: %s", err.Error())
+		return fmt.Errorf("get subnet6s count failed: %s", pg.Error(err).Error())
 	} else if count >= MaxSubnetsCount {
 		return fmt.Errorf("subnet6s count has reached maximum (1w)")
 	}
@@ -70,7 +71,7 @@ func checkSubnet6CouldBeCreated(tx restdb.Transaction, subnet string) error {
 	var subnets []*resource.Subnet6
 	if err := tx.FillEx(&subnets,
 		"select * from gr_subnet6 where $1 && ipnet", subnet); err != nil {
-		return fmt.Errorf("check subnet6 conflict failed: %s", err.Error())
+		return fmt.Errorf("check subnet6 conflict failed: %s", pg.Error(err).Error())
 	} else if len(subnets) != 0 {
 		return fmt.Errorf("subnet6 conflict with subnet6 %s", subnets[0].Subnet)
 	}
@@ -83,7 +84,7 @@ func setSubnet6ID(tx restdb.Transaction, subnet *resource.Subnet6) error {
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlOrderBy: "subnet_id desc", "offset": 0, "limit": 1},
 		&subnets); err != nil {
-		return err
+		return pg.Error(err)
 	}
 
 	if len(subnets) != 0 {
@@ -159,7 +160,7 @@ func (s *Subnet6Service) List(ctx *restresource.Context) ([]*resource.Subnet6, e
 
 		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
 	}); err != nil {
-		return nil, fmt.Errorf("list subnet6s failed:%s", err.Error())
+		return nil, fmt.Errorf("list subnet6s failed:%s", pg.Error(err).Error())
 	}
 
 	if err := SetSubnet6sLeasesUsedInfo(subnets, listCtx.isUseIds()); err != nil {
@@ -242,7 +243,7 @@ func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &subnets)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet6 %s failed: %s", id, err.Error())
+		return nil, fmt.Errorf("get subnet6 %s failed: %s", id, pg.Error(err).Error())
 	} else if len(subnets) == 0 {
 		return nil, fmt.Errorf("no found subnet6 %s", id)
 	}
@@ -308,7 +309,7 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 			resource.SqlColumnUseEui64:              subnet.UseEui64,
 			resource.SqlColumnCapacity:              subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendUpdateSubnet6CmdToDHCPAgent(subnet)
@@ -338,7 +339,7 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 	var subnets []*resource.Subnet6
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: subnetId},
 		&subnets); err != nil {
-		return nil, fmt.Errorf("get subnet6 %s from db failed: %s", subnetId, err.Error())
+		return nil, fmt.Errorf("get subnet6 %s from db failed: %s", subnetId, pg.Error(err).Error())
 	} else if len(subnets) == 0 {
 		return nil, fmt.Errorf("no found subnet6 %s", subnetId)
 	}
@@ -375,13 +376,17 @@ func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, erro
 
 	if exists, err := tx.Exists(resource.TableReservedPool6,
 		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
-		return false, err
+		return false, pg.Error(err)
 	} else if exists {
 		return true, nil
 	}
 
-	return tx.Exists(resource.TableReservedPdPool,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()})
+	if exists, err := tx.Exists(resource.TableReservedPdPool,
+		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
+		return false, pg.Error(err)
+	} else {
+		return exists, nil
+	}
 }
 
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
@@ -419,7 +424,7 @@ func (s *Subnet6Service) Delete(subnet *resource.Subnet6) error {
 
 		if _, err := tx.Delete(resource.TableSubnet6,
 			map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeleteSubnet6CmdToDHCPAgent(subnet, subnet.Nodes)
@@ -458,7 +463,7 @@ func (s *Subnet6Service) UpdateNodes(subnetID string, subnetNode *resource.Subne
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 			resource.SqlColumnNodes: subnetNode.Nodes},
 			map[string]interface{}{restdb.IDField: subnetID}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendUpdateSubnet6NodesCmdToDHCPAgent(tx, subnet6, subnetNode.Nodes)
@@ -500,7 +505,7 @@ func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) error {
 		for _, validSql := range validSqls {
 			if _, err := tx.Exec(validSql); err != nil {
 				return fmt.Errorf("batch insert subnet6s to db failed: %s",
-					err.Error())
+					pg.Error(err).Error())
 			}
 		}
 
@@ -1203,7 +1208,7 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 
 		return tx.Fill(nil, &pdpools)
 	}); err != nil {
-		return nil, fmt.Errorf("export subnet6s failed: %s", err.Error())
+		return nil, fmt.Errorf("list subnet6s and pools from db failed: %s", pg.Error(err).Error())
 	}
 
 	subnetPools := make(map[string][]string)
@@ -1335,27 +1340,27 @@ func genCreateSubnets6AndPoolsRequestWithSubnet6(tx restdb.Transaction, subnet6 
 	var reservedPdPools []*resource.ReservedPdPool
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()},
 		&pools); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()},
 		&reservedPools); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()},
 		&reservations); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()},
 		&pdpools); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()},
 		&reservedPdPools); err != nil {
-		return nil, "", err
+		return nil, "", pg.Error(err)
 	}
 
 	if len(pools) == 0 && len(reservedPools) == 0 && len(reservations) == 0 &&
@@ -1429,7 +1434,7 @@ func ListSubnet6sByPrefixes(prefixes []string) ([]*resource.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = any ($1)", prefixes)
 	}); err != nil {
-		return nil, fmt.Errorf("get subnet6s from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet6s from db failed: %s", pg.Error(err).Error())
 	}
 
 	if err := SetSubnet6sLeasesUsedInfo(subnets, true); err != nil {
@@ -1444,7 +1449,7 @@ func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "select * from gr_subnet6 where ipnet >>= $1", ip)
 	}); err != nil {
-		return nil, err
+		return nil, pg.Error(err)
 	}
 
 	if len(subnets) == 0 {
@@ -1459,7 +1464,7 @@ func GetSubnet6ByPrefix(prefix string) (*resource.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = $1", prefix)
 	}); err != nil {
-		return nil, err
+		return nil, pg.Error(err)
 	}
 
 	if len(subnets) == 0 {

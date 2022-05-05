@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -26,7 +27,7 @@ func (d *AdmitMacService) Create(admitMac *resource.AdmitMac) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitMac); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateAdmitMacCmdToDHCPAgent(admitMac)
@@ -56,7 +57,7 @@ func (d *AdmitMacService) List(conditions map[string]interface{}) ([]*resource.A
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &macs)
 	}); err != nil {
-		return nil, fmt.Errorf("list admit mac failed:%s", err.Error())
+		return nil, fmt.Errorf("list admit mac failed:%s", pg.Error(err).Error())
 	}
 
 	return macs, nil
@@ -67,7 +68,7 @@ func (d *AdmitMacService) Get(id string) (*resource.AdmitMac, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &admitMacs)
 	}); err != nil {
-		return nil, fmt.Errorf("get admit mac %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get admit mac %s failed:%s", id, pg.Error(err).Error())
 	} else if len(admitMacs) == 0 {
 		return nil, fmt.Errorf("no found admit mac %s", id)
 	}
@@ -79,7 +80,7 @@ func (d *AdmitMacService) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableAdmitMac,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found admit mac %s", id)
 		}
@@ -107,7 +108,7 @@ func (d *AdmitMacService) Update(admitMac *resource.AdmitMac) error {
 		if rows, err := tx.Update(resource.TableAdmitMac,
 			map[string]interface{}{resource.SqlColumnComment: admitMac.Comment},
 			map[string]interface{}{restdb.IDField: admitMac.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found admit mac %s", admitMac.GetID())
 		}

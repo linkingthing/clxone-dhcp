@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -25,10 +26,10 @@ func NewRateLimitService() (*RateLimitService, error) {
 func createDefaultRateLimit() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableRateLimit, nil); err != nil {
-			return fmt.Errorf("check dhcp ratelimit failed: %s", err.Error())
+			return fmt.Errorf("check dhcp ratelimit failed: %s", pg.Error(err).Error())
 		} else if exists == false {
 			if _, err := tx.Insert(resource.DefaultRateLimit); err != nil {
-				return fmt.Errorf("insert default dhcp ratelimit failed: %s", err.Error())
+				return fmt.Errorf("insert default dhcp ratelimit failed: %s", pg.Error(err).Error())
 			}
 		}
 
@@ -44,7 +45,7 @@ func (d *RateLimitService) List() ([]*resource.RateLimit, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &rateLimits)
 	}); err != nil {
-		return nil, fmt.Errorf("list dhcp ratelimit failed: %s", err.Error())
+		return nil, fmt.Errorf("list dhcp ratelimit failed: %s", pg.Error(err).Error())
 	}
 
 	return rateLimits, nil
@@ -55,7 +56,7 @@ func (d *RateLimitService) Get(id string) (*resource.RateLimit, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &rateLimits)
 	}); err != nil {
-		return nil, fmt.Errorf("get ratelimit %s failed:%s", id, err.Error())
+		return nil, fmt.Errorf("get ratelimit %s failed:%s", id, pg.Error(err).Error())
 	} else if len(rateLimits) == 0 {
 		return nil, fmt.Errorf("no found ratelimit %s", id)
 	}
@@ -65,10 +66,12 @@ func (d *RateLimitService) Get(id string) (*resource.RateLimit, error) {
 
 func (d *RateLimitService) Update(rateLimit *resource.RateLimit) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if _, err := tx.Update(resource.TableRateLimit, map[string]interface{}{
+		if rows, err := tx.Update(resource.TableRateLimit, map[string]interface{}{
 			resource.SqlColumnEnabled: rateLimit.Enabled,
 		}, map[string]interface{}{restdb.IDField: rateLimit.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
+		} else if rows == 0 {
+			return fmt.Errorf("no found ratelimit %s", rateLimit.GetID())
 		}
 
 		return sendUpdateRateLimitCmdToDHCPAgent(rateLimit)

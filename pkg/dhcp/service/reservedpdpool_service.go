@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
+	pg "github.com/cuityhj/gohelper/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -37,7 +38,7 @@ func (p *ReservedPdPoolService) Create(subnet *resource.Subnet6, pdpool *resourc
 
 		pdpool.Subnet6 = subnet.GetID()
 		if _, err := tx.Insert(pdpool); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendCreateReservedPdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
@@ -113,7 +114,7 @@ func updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, su
 		"capacity": subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
-			subnet.GetID(), err.Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
 	for affectPdPoolID, capacity := range affectPdPools {
@@ -121,7 +122,7 @@ func updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, su
 			"capacity": capacity,
 		}, map[string]interface{}{restdb.IDField: affectPdPoolID}); err != nil {
 			return fmt.Errorf("update subnet6 %s pdpool %s capacity to db failed: %s",
-				subnet.GetID(), affectPdPoolID, err.Error())
+				subnet.GetID(), affectPdPoolID, pg.Error(err).Error())
 		}
 	}
 
@@ -189,7 +190,7 @@ func (p *ReservedPdPoolService) List(subnetID string) ([]*resource.ReservedPdPoo
 			resource.SqlOrderBy:       resource.SqlColumnPrefixIpNet}, &pdpools)
 	}); err != nil {
 		return nil, fmt.Errorf("list reserved pdpools with subnet6 %s failed: %s",
-			subnetID, err.Error())
+			subnetID, pg.Error(err).Error())
 	}
 
 	return pdpools, nil
@@ -201,7 +202,7 @@ func (p *ReservedPdPoolService) Get(subnet *resource.Subnet6, pdpoolID string) (
 		return tx.Fill(map[string]interface{}{restdb.IDField: pdpoolID}, &pdpools)
 	}); err != nil {
 		return nil, fmt.Errorf("get reserved pdpool %s with subnet6 %s from db failed: %s",
-			pdpoolID, subnet.GetID(), err.Error())
+			pdpoolID, subnet.GetID(), pg.Error(err).Error())
 	} else if len(pdpools) == 0 {
 		return nil, fmt.Errorf("no found reserved pdpool %s with subnet6 %s", pdpoolID, subnet.GetID())
 	}
@@ -226,7 +227,7 @@ func (p *ReservedPdPoolService) Delete(subnet *resource.Subnet6, pdpool *resourc
 
 		if _, err := tx.Delete(resource.TableReservedPdPool,
 			map[string]interface{}{restdb.IDField: pdpool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		}
 
 		return sendDeleteReservedPdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
@@ -242,7 +243,7 @@ func setReservedPdPoolFromDB(tx restdb.Transaction, pdpool *resource.ReservedPdP
 	var pdpools []*resource.ReservedPdPool
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pdpool.GetID()},
 		&pdpools); err != nil {
-		return fmt.Errorf("get reserved pdpool from db failed: %s", err.Error())
+		return fmt.Errorf("get reserved pdpool from db failed: %s", pg.Error(err).Error())
 	} else if len(pdpools) == 0 {
 		return fmt.Errorf("no found reserved pdpool %s", pdpool.GetID())
 	}
@@ -275,7 +276,7 @@ func (p *ReservedPdPoolService) Update(subnetId string, pool *resource.ReservedP
 		if rows, err := tx.Update(resource.TableReservedPdPool, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
-			return err
+			return pg.Error(err)
 		} else if rows == 0 {
 			return fmt.Errorf("no found reserved pdpool %s", pool.GetID())
 		}
