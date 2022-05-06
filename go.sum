@@ -238,6 +238,8 @@ github.com/cuityhj/gohelper v1.0.5 h1:ZzccLOPQLEpuFI+MYcPCrU1L29i150RQI3OqLNBOaW
 github.com/cuityhj/gohelper v1.0.5/go.mod h1:hEPE91SIoiWdKnx8MbW3+gmvlXCHvC7B9iTiQ/bYnIc=
 github.com/cuityhj/gohelper v1.0.6 h1:synmSEwX8by5sQ0ikBgZ1vqCKGmDOQSKwGJn+QOh3WM=
 github.com/cuityhj/gohelper v1.0.6/go.mod h1:hEPE91SIoiWdKnx8MbW3+gmvlXCHvC7B9iTiQ/bYnIc=
+github.com/cuityhj/gohelper v1.0.7 h1:nkd/WnQF6qhE+SdLjxWpo1/snPhzvan5KgWG+LcO1eo=
+github.com/cuityhj/gohelper v1.0.7/go.mod h1:hEPE91SIoiWdKnx8MbW3+gmvlXCHvC7B9iTiQ/bYnIc=
 github.com/cuityhj/gorest v1.0.1 h1:5D18zrN4Lbreo44gsb/vvt8wxvyOBJTp1YPWUrr9ot4=
 github.com/cuityhj/gorest v1.0.1/go.mod h1:AKCGhBnE5JJ7jpmXaMxhYmWkf5jGs6sTRLZP75gDjoU=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
