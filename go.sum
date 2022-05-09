@@ -592,6 +592,8 @@ github.com/linkingthing/gorest v1.0.0 h1:zgzjD6dOoByt8tDTauAow3zVCAqODT+GW05sY95
 github.com/linkingthing/gorest v1.0.0/go.mod h1:+V0+9VnoIDjAPexyVQypkyYF/rfI/jL8b5H6/I4bzTA=
 github.com/linkingthing/gorest v1.0.1-0.20220124103358-b567dd310728 h1:5Ee/BInuV6LfR6pqwfQ9G18Qk8HFoKB6u0bZqf54klU=
 github.com/linkingthing/gorest v1.0.1-0.20220124103358-b567dd310728/go.mod h1:+V0+9VnoIDjAPexyVQypkyYF/rfI/jL8b5H6/I4bzTA=
+github.com/linkingthing/gorest v1.0.1 h1:aFgEnn28IQbl8DC8ESg34jla2u1JEzpmZEgbFk+35B8=
+github.com/linkingthing/gorest v1.0.1/go.mod h1:+V0+9VnoIDjAPexyVQypkyYF/rfI/jL8b5H6/I4bzTA=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
