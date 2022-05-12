@@ -1,6 +1,9 @@
 package config
 
 import (
+	"io/ioutil"
+	"strings"
+
 	"github.com/linkingthing/cement/configure"
 )
 
@@ -24,10 +27,15 @@ type DBConf struct {
 }
 
 type ServerConf struct {
-	IP       string `yaml:"ip"`
-	Port     int    `yaml:"port"`
-	GrpcPort int    `yaml:"grpc_port"`
-	Hostname string `yaml:"hostname"`
+	IP               string `yaml:"ip"`
+	Port             int    `yaml:"port"`
+	GrpcPort         int    `yaml:"grpc_port"`
+	Hostname         string `yaml:"hostname"`
+	KeyFactoryPath   string `yaml:"key_factory_path"`
+	WorkKeyPath      string `yaml:"work_key_path"`
+	DecryptIterator  int    `yaml:"decrypt_iterator"`
+	KeyFactoryBase64 string `yaml:"-"`
+	EncryptWorkKey   string `yaml:"-"`
 }
 
 type KafkaConf struct {
@@ -85,7 +93,16 @@ func LoadConfig(path string) (*DHCPConfig, error) {
 
 func (c *DHCPConfig) Reload() error {
 	var newConf DHCPConfig
-	if err := configure.Load(&newConf, c.Path); err != nil {
+	err := configure.Load(&newConf, c.Path)
+	if err != nil {
+		return err
+	}
+
+	if newConf.Server.KeyFactoryBase64, err = readConfFromFile(newConf.Server.KeyFactoryPath); err != nil {
+		return err
+	}
+
+	if newConf.Server.EncryptWorkKey, err = readConfFromFile(newConf.Server.WorkKeyPath); err != nil {
 		return err
 	}
 
@@ -93,6 +110,14 @@ func (c *DHCPConfig) Reload() error {
 	*c = newConf
 	gConf = &newConf
 	return nil
+}
+
+func readConfFromFile(path string) (string, error) {
+	if content, err := ioutil.ReadFile(path); err != nil {
+		return "", err
+	} else {
+		return strings.TrimRight(string(content), "\r\n"), nil
+	}
 }
 
 func GetConfig() *DHCPConfig {

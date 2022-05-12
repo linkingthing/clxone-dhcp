@@ -242,6 +242,10 @@ github.com/cuityhj/gohelper v1.0.7 h1:nkd/WnQF6qhE+SdLjxWpo1/snPhzvan5KgWG+LcO1e
 github.com/cuityhj/gohelper v1.0.7/go.mod h1:hEPE91SIoiWdKnx8MbW3+gmvlXCHvC7B9iTiQ/bYnIc=
 github.com/cuityhj/gohelper v1.1.0 h1:bvsOQ8bmFsBhZCoIcGUfYIgmxUhyrB9z7eDUE8i9SZM=
 github.com/cuityhj/gohelper v1.1.0/go.mod h1:37nthHLRXRs0I3VdUgXDDkLNsOu6oHi2LeXpPby3PcA=
+github.com/cuityhj/gohelper v1.1.1 h1:6ugyK8KPLs7yA2zcet0Xh6bsgrDpqt/R4RlRujbET7s=
+github.com/cuityhj/gohelper v1.1.1/go.mod h1:37nthHLRXRs0I3VdUgXDDkLNsOu6oHi2LeXpPby3PcA=
+github.com/cuityhj/gohelper v1.1.2 h1:ryzhXWEhiTYT22xdQyBkGIAnRWgDb60CJnTFIzXnur0=
+github.com/cuityhj/gohelper v1.1.2/go.mod h1:37nthHLRXRs0I3VdUgXDDkLNsOu6oHi2LeXpPby3PcA=
 github.com/cuityhj/gorest v1.0.1 h1:5D18zrN4Lbreo44gsb/vvt8wxvyOBJTp1YPWUrr9ot4=
 github.com/cuityhj/gorest v1.0.1/go.mod h1:AKCGhBnE5JJ7jpmXaMxhYmWkf5jGs6sTRLZP75gDjoU=
 github.com/cuityhj/gorest v1.0.2/go.mod h1:AKCGhBnE5JJ7jpmXaMxhYmWkf5jGs6sTRLZP75gDjoU=
@@ -593,6 +597,8 @@ github.com/linkingthing/clxone-utils v1.0.0 h1:NptQeZc6bzJKo6w9jttQmmachk/N458Yr
 github.com/linkingthing/clxone-utils v1.0.0/go.mod h1:fGoZlsRouTPysmBsBuy6MA7+2UDK0Y9Fxd4jjlriVmU=
 github.com/linkingthing/clxone-utils v1.0.2 h1:VWglRt0OmuMOL/RJuVgo336hVi6Ldi/ecYsI05oWYmk=
 github.com/linkingthing/clxone-utils v1.0.2/go.mod h1:fGoZlsRouTPysmBsBuy6MA7+2UDK0Y9Fxd4jjlriVmU=
+github.com/linkingthing/clxone-utils v1.0.3 h1:vqXuexhSK9aEFuGcFVSIvgr3PnBEFzaNGoOTFTBZmAs=
+github.com/linkingthing/clxone-utils v1.0.3/go.mod h1:fGoZlsRouTPysmBsBuy6MA7+2UDK0Y9Fxd4jjlriVmU=
 github.com/linkingthing/gorest v1.0.0 h1:zgzjD6dOoByt8tDTauAow3zVCAqODT+GW05sY95p5Rw=
 github.com/linkingthing/gorest v1.0.0/go.mod h1:+V0+9VnoIDjAPexyVQypkyYF/rfI/jL8b5H6/I4bzTA=
 github.com/linkingthing/gorest v1.0.1-0.20220124103358-b567dd310728 h1:5Ee/BInuV6LfR6pqwfQ9G18Qk8HFoKB6u0bZqf54klU=
