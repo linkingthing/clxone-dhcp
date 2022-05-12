@@ -6,7 +6,7 @@ import (
 	"net/url"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/cuityhj/gohelper/postgresql"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"

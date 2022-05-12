@@ -8,7 +8,7 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/cuityhj/gohelper/postgresql"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 

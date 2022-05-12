@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	pg "github.com/cuityhj/gohelper/postgresql"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/set"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"

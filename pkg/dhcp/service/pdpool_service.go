@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	pg "github.com/cuityhj/gohelper/postgresql"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
 

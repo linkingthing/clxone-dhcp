@@ -3,7 +3,7 @@ package service
 import (
 	"fmt"
 
-	pg "github.com/cuityhj/gohelper/postgresql"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"

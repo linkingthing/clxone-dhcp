@@ -10,7 +10,7 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/cuityhj/gohelper/postgresql"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
