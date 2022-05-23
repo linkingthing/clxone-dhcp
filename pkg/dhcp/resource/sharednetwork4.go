@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/set"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
+	"github.com/linkingthing/clxone-utils/validator"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -25,8 +26,8 @@ type SharedNetwork4 struct {
 }
 
 func (s *SharedNetwork4) Validate() error {
-	if len(s.Name) == 0 {
-		return fmt.Errorf("shared network4 name is required")
+	if len(s.Name) == 0 || validator.ValidateStrings(s.Name) != nil {
+		return fmt.Errorf("name %s is invalid", s.Name)
 	}
 
 	if len(s.SubnetIds) <= 1 {

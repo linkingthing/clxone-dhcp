@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 
+	"github.com/linkingthing/clxone-utils/validator"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
@@ -18,8 +19,8 @@ type Pool6Template struct {
 }
 
 func (p *Pool6Template) Validate() error {
-	if len(p.Name) == 0 {
-		return ErrPoolTemplateNameMissing
+	if len(p.Name) == 0 || validator.ValidateStrings(p.Name) != nil {
+		return fmt.Errorf("name %s is invalid", p.Name)
 	} else if p.BeginOffset <= 0 || p.BeginOffset >= 2147483647 || p.Capacity <= 0 || p.Capacity >= 2147483647 {
 		return fmt.Errorf("offset %v or capacity %v should in (0, 2147483647)", p.BeginOffset, p.Capacity)
 	} else {

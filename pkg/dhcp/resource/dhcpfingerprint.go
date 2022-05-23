@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/linkingthing/clxone-utils/validator"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
@@ -48,6 +49,10 @@ func (f *DhcpFingerprint) Validate() error {
 		} else if i <= 0 || i >= 255 {
 			return fmt.Errorf("fingerprint number %s not in [1,254]", v)
 		}
+	}
+
+	if err := validator.ValidateStrings(f.VendorId, f.OperatingSystem, f.ClientType); err != nil {
+		return err
 	}
 
 	f.MatchPattern = MatchPatternEqual
