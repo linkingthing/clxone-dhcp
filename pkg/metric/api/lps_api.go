@@ -23,7 +23,7 @@ func (h *LPSApi) List(ctx *restresource.Context) (interface{}, *resterror.APIErr
 	lpses, err := h.Service.List(ctx)
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError,
-			fmt.Sprintf("list lpses failed: %s"+err.Error()))
+			fmt.Sprintf("list lpses failed: %s", err.Error()))
 	}
 	return lpses, nil
 }
