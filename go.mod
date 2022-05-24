@@ -1,6 +1,6 @@
 module github.com/linkingthing/clxone-dhcp
 
-go 1.13
+go 1.16
 
 require (
 	github.com/Ullaakut/nmap/v2 v2.2.0
