@@ -588,6 +588,8 @@ github.com/linkingthing/clxone-utils v1.0.6 h1:WoHM2m4WIutbwaKNjWrrtnVa52SRMV53o
 github.com/linkingthing/clxone-utils v1.0.6/go.mod h1:ypeS1SPwhhqKKhsDr6RJLHQG8t2l/4M7NafxIKkFKII=
 github.com/linkingthing/clxone-utils v1.0.7 h1:oHtlhpw/yXvA5yf4nTNauGsBSyPkHIybkZ+07910DfI=
 github.com/linkingthing/clxone-utils v1.0.7/go.mod h1:ypeS1SPwhhqKKhsDr6RJLHQG8t2l/4M7NafxIKkFKII=
+github.com/linkingthing/clxone-utils v1.0.8 h1:T0miZVmIhwc5SDEN9t7h0LNelXN1VuLyCBbIk0vAFvk=
+github.com/linkingthing/clxone-utils v1.0.8/go.mod h1:W8XcHSa76zKkPnb4JUh0gJFaF9qDuXiyExscMKSWMAs=
 github.com/linkingthing/gorest v1.0.2/go.mod h1:+V0+9VnoIDjAPexyVQypkyYF/rfI/jL8b5H6/I4bzTA=
 github.com/linkingthing/gorest v1.0.5 h1:45/r3iKzZAeUePPh5K+grYL2VYWmgHKzH7wtF6SuWuk=
 github.com/linkingthing/gorest v1.0.5/go.mod h1:M+XaOBCFQAoqni5FcqKlmmTkQLhVMObhcLOBPrR57Jw=
