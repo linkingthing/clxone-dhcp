@@ -8,11 +8,11 @@ import (
 
 	"github.com/linkingthing/cement/set"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
-	"github.com/linkingthing/clxone-utils/validator"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableSharedNetwork4 = restdb.ResourceDBType(&SharedNetwork4{})
@@ -26,7 +26,7 @@ type SharedNetwork4 struct {
 }
 
 func (s *SharedNetwork4) Validate() error {
-	if len(s.Name) == 0 || validator.ValidateStrings(s.Name) != nil {
+	if len(s.Name) == 0 || util.ValidateStrings(s.Name) != nil {
 		return fmt.Errorf("name %s is invalid", s.Name)
 	}
 

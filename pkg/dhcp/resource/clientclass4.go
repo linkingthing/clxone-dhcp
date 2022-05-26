@@ -3,9 +3,10 @@ package resource
 import (
 	"fmt"
 
-	"github.com/linkingthing/clxone-utils/validator"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableClientClass4 = restdb.ResourceDBType(&ClientClass4{})
@@ -21,7 +22,7 @@ var ErrNameOrRegexpMissing = fmt.Errorf("clientclass name and regexp are require
 func (c *ClientClass4) Validate() error {
 	if len(c.Name) == 0 || len(c.Regexp) == 0 {
 		return ErrNameOrRegexpMissing
-	} else if err := validator.ValidateStrings(c.Name, c.Regexp); err != nil {
+	} else if err := util.ValidateStrings(c.Name, c.Regexp); err != nil {
 		return fmt.Errorf("name %s or regexp %s is invalid", c.Name, c.Regexp)
 	} else {
 		return nil

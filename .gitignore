@@ -6,3 +6,4 @@ clxone_dhcp
 generate.go
 *.sh
 .idea
+build

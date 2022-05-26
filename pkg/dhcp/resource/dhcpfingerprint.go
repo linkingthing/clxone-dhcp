@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/linkingthing/clxone-utils/validator"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type MatchPattern string
@@ -51,7 +52,7 @@ func (f *DhcpFingerprint) Validate() error {
 		}
 	}
 
-	if err := validator.ValidateStrings(f.VendorId, f.OperatingSystem, f.ClientType); err != nil {
+	if err := util.ValidateStrings(f.VendorId, f.OperatingSystem, f.ClientType); err != nil {
 		return err
 	}
 
