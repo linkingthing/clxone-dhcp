@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -169,7 +169,7 @@ func recalculatePdPoolCapacityWithReservedPdPools(pdpool *resource.PdPool, reser
 
 func updateSubnet6CapacityWithPdPool(tx restdb.Transaction, subnetID string, capacity string) error {
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-		"capacity": capacity,
+		resource.SqlColumnCapacity: capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
 			subnetID, pg.Error(err).Error())
@@ -265,11 +265,9 @@ func prefixFromAddressAndPrefixLen(address string, prefixLen uint32) string {
 }
 
 func setPdPoolLeasesUsedRatio(pdpool *resource.PdPool, leasesCount uint64) {
-	if resource.IsCapacityZero(pdpool.Capacity) == false {
-		if leasesCount != 0 {
-			pdpool.UsedCount = leasesCount
-			pdpool.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(pdpool.Capacity, leasesCount))
-		}
+	if resource.IsCapacityZero(pdpool.Capacity) == false && leasesCount != 0 {
+		pdpool.UsedCount = leasesCount
+		pdpool.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(pdpool.Capacity, leasesCount))
 	}
 }
 

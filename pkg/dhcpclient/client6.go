@@ -71,10 +71,9 @@ func (cli *Client6) Exchange() ([]*DHCPServer, error) {
 			continue
 		}
 
-		if recvMsg, ok := advertise.(*dhcpv6.Message); ok {
-			if packet.TransactionID != recvMsg.TransactionID {
-				continue
-			}
+		if recvMsg, ok := advertise.(*dhcpv6.Message); ok &&
+			packet.TransactionID != recvMsg.TransactionID {
+			continue
 		}
 
 		var mac string

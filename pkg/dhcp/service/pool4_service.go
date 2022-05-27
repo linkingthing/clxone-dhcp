@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -131,7 +131,7 @@ func recalculatePool4Capacity(tx restdb.Transaction, subnetID string, pool *reso
 
 func updateSubnet4CapacityWithPool4(tx restdb.Transaction, subnetID string, capacity uint64) error {
 	if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-		"capacity": capacity,
+		resource.SqlColumnCapacity: capacity,
 	}, map[string]interface{}{restdb.IDField: subnetID}); err != nil {
 		return fmt.Errorf("update subnet4 %s capacity to db failed: %s",
 			subnetID, pg.Error(err).Error())

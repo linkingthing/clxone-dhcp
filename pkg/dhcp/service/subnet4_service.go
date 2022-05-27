@@ -10,11 +10,11 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
 	"github.com/linkingthing/cement/slice"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -92,7 +92,8 @@ func setSubnet4ID(tx restdb.Transaction, subnet *resource.Subnet4) error {
 	var subnets []*resource.Subnet4
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlOrderBy: "subnet_id desc",
-		"offset":            0, "limit": 1},
+		resource.SqlOffset:  0,
+		resource.SqlLimit:   1},
 		&subnets); err != nil {
 		return pg.Error(err)
 	}
@@ -838,7 +839,7 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 }
 
 func checkSubnetNodesValid(subnetNodes, sentryNodes []string) error {
-	for _, subnetNode := range sentryNodes {
+	for _, subnetNode := range subnetNodes {
 		if slice.SliceIndex(sentryNodes, subnetNode) == -1 {
 			return fmt.Errorf("subnet node %s invalid", subnetNode)
 		}
@@ -1320,7 +1321,7 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 }
 
 func checkSubnetCouldBeUpdateNodes(isv4 bool) error {
-	if isHA, err := IsSentryHA(true); err != nil {
+	if isHA, err := IsSentryHA(isv4); err != nil {
 		return err
 	} else if isHA {
 		return fmt.Errorf("ha model can`t update subnet nodes")

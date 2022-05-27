@@ -2,6 +2,8 @@ package resource
 
 const (
 	SqlOrderBy                     = "orderby"
+	SqlLimit                       = "limit"
+	SqlOffset                      = "offset"
 	SqlColumnName                  = "name"
 	SqlColumnComment               = "comment"
 	SqlColumnClientType            = "client_type"

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"math/big"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -111,7 +111,7 @@ func updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, su
 	}
 
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-		"capacity": subnet.Capacity,
+		resource.SqlColumnCapacity: subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
 			subnet.GetID(), pg.Error(err).Error())
@@ -119,7 +119,7 @@ func updateSubnet6AndPdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, su
 
 	for affectPdPoolID, capacity := range affectPdPools {
 		if _, err := tx.Update(resource.TablePdPool, map[string]interface{}{
-			"capacity": capacity,
+			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectPdPoolID}); err != nil {
 			return fmt.Errorf("update subnet6 %s pdpool %s capacity to db failed: %s",
 				subnet.GetID(), affectPdPoolID, pg.Error(err).Error())

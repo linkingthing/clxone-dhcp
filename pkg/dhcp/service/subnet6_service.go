@@ -10,10 +10,10 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -82,7 +82,7 @@ func checkSubnet6CouldBeCreated(tx restdb.Transaction, subnet string) error {
 func setSubnet6ID(tx restdb.Transaction, subnet *resource.Subnet6) error {
 	var subnets []*resource.Subnet6
 	if err := tx.Fill(map[string]interface{}{
-		resource.SqlOrderBy: "subnet_id desc", "offset": 0, "limit": 1},
+		resource.SqlOrderBy: "subnet_id desc", resource.SqlOffset: 0, resource.SqlLimit: 1},
 		&subnets); err != nil {
 		return pg.Error(err)
 	}
@@ -218,11 +218,9 @@ func SetSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) (err er
 }
 
 func setSubnet6LeasesUsedRatio(subnet *resource.Subnet6, leasesCount uint64) {
-	if resource.IsCapacityZero(subnet.Capacity) == false {
-		if leasesCount != 0 {
-			subnet.UsedCount = leasesCount
-			subnet.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(subnet.Capacity, leasesCount))
-		}
+	if resource.IsCapacityZero(subnet.Capacity) == false && leasesCount != 0 {
+		subnet.UsedCount = leasesCount
+		subnet.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(subnet.Capacity, leasesCount))
 	}
 }
 
@@ -476,7 +474,7 @@ func (s *Subnet6Service) UpdateNodes(subnetID string, subnetNode *resource.Subne
 
 func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) error {
 	var oldSubnet6s []*resource.Subnet6
-	if err := db.GetResources(map[string]interface{}{"orderby": "subnet_id desc"},
+	if err := db.GetResources(map[string]interface{}{resource.SqlOrderBy: "subnet_id desc"},
 		&oldSubnet6s); err != nil {
 		return fmt.Errorf("get subnet6s from db failed: %s", err.Error())
 	}

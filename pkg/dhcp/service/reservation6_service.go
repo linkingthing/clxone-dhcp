@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -102,7 +102,7 @@ func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Rese
 
 func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation6) error {
 	var reservations []*resource.Reservation6
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnetId},
+	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 		&reservations); err != nil {
 		return fmt.Errorf("get subnet6 %s reservation6 failed: %s", subnetId, pg.Error(err).Error())
 	}
@@ -167,7 +167,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 	}
 
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-		"capacity": subnet.Capacity,
+		resource.SqlColumnCapacity: subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
 			subnet.GetID(), pg.Error(err).Error())
@@ -175,7 +175,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 
 	for affectedPoolId, capacity := range affectedPools {
 		if _, err := tx.Update(resource.TablePool6, map[string]interface{}{
-			"capacity": capacity,
+			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectedPoolId}); err != nil {
 			return fmt.Errorf("update pool6 %s capacity to db failed: %s",
 				affectedPoolId, pg.Error(err).Error())
@@ -184,7 +184,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 
 	for affectedPdPoolId, capacity := range affectedPdPools {
 		if _, err := tx.Update(resource.TablePdPool, map[string]interface{}{
-			"capacity": capacity,
+			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectedPdPoolId}); err != nil {
 			return fmt.Errorf("update pdpool %s capacity to db failed: %s",
 				affectedPdPoolId, pg.Error(err).Error())
@@ -213,7 +213,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 	}
 
 	var pools []*resource.Pool6
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnet.GetID()},
+	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()},
 		&pools); err != nil {
 		return nil, fmt.Errorf("get pool6s with subnet6 %s from db failed: %s",
 			subnet.GetID(), pg.Error(err).Error())
@@ -261,7 +261,7 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 	}
 
 	var pdpools []*resource.PdPool
-	if err := tx.Fill(map[string]interface{}{"subnet6": subnet.GetID()},
+	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()},
 		&pdpools); err != nil {
 		return nil, fmt.Errorf("get pdpools with subnet6 %s from db failed: %s",
 			subnet.GetID(), pg.Error(err).Error())

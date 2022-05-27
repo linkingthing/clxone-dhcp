@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -110,7 +110,7 @@ func updateSubnet4OrPool4CapacityWithReservation4(tx restdb.Transaction, subnet 
 		}
 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			"capacity": subnet.Capacity,
+			resource.SqlColumnCapacity: subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return fmt.Errorf("update subnet4 %s capacity to db failed: %s",
 				subnet.GetID(), pg.Error(err).Error())
@@ -123,7 +123,7 @@ func updateSubnet4OrPool4CapacityWithReservation4(tx restdb.Transaction, subnet 
 		}
 
 		if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
-			"capacity": conflictPools[0].Capacity,
+			resource.SqlColumnCapacity: conflictPools[0].Capacity,
 		}, map[string]interface{}{restdb.IDField: conflictPools[0].GetID()}); err != nil {
 			return fmt.Errorf("update pool4 %s capacity to db failed: %s",
 				conflictPools[0].String(), pg.Error(err).Error())

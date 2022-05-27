@@ -6,8 +6,8 @@ import (
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -135,7 +135,7 @@ func updateSubnet6AndPool6sCapacityWithReservedPool6(tx restdb.Transaction, subn
 	}
 
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-		"capacity": subnet.Capacity,
+		resource.SqlColumnCapacity: subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
 			subnet.GetID(), pg.Error(err).Error())
@@ -143,7 +143,7 @@ func updateSubnet6AndPool6sCapacityWithReservedPool6(tx restdb.Transaction, subn
 
 	for affectPoolID, capacity := range affectPools {
 		if _, err := tx.Update(resource.TablePool6, map[string]interface{}{
-			"capacity": capacity,
+			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
 			return fmt.Errorf("update subnet6 %s pool6 %s capacity to db failed: %s",
 				subnet.GetID(), affectPoolID, pg.Error(err).Error())

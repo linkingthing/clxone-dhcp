@@ -49,7 +49,7 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 		}
 	}()
 
-	recvfd, err := makeListeningSocketWithCustomPort(cli.iface.Index, dhcpv4.ClientPort)
+	recvfd, err := makeListeningSocketWithCustomPort(cli.iface.Index)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func makeBroadcastSocket(ifname string) (int, error) {
 	return fd, nil
 }
 
-func makeListeningSocketWithCustomPort(ifIndex, port int) (int, error) {
+func makeListeningSocketWithCustomPort(ifIndex int) (int, error) {
 	fd, err := unix.Socket(unix.AF_PACKET, unix.SOCK_DGRAM, int(htons(unix.ETH_P_IP)))
 	if err != nil {
 		return fd, err
