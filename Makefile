@@ -7,6 +7,9 @@ build: clxone_dhcp
 clxone_dhcp: $(GOSRC)
 	CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/dhcp/dhcp.go
 
+build-cgo: $(GOSRC)
+	CGO_ENABLED=1 CGO_CFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2" CGO_CPPFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2" CGO_LDFLAGS="-Wl,-z,relro,-z,now" go build -trimpath -buildmode=pie --ldflags '-linkmode=external -extldflags "-Wl,-z,now"' -o clxone_dhcp cmd/dhcp/dhcp.go && strip -s clxone_dhcp 
+
 build-image:
 	docker build -t linkingthing/clxone-dhcp:${VERSION} .
 	docker image prune -f
