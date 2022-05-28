@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -101,7 +101,7 @@ func genGetOUIContext(ctx *restresource.Context) listOUIContext {
 	}
 
 	listCtx.countSql = strings.Replace(listCtx.sql, "*", "count(*)", 1)
-	if listCtx.hasFilterOUI == false {
+	if !listCtx.hasFilterOUI {
 		listCtx.sql += " order by oui"
 		if pagination := ctx.GetPagination(); pagination.PageSize > 0 &&
 			pagination.PageNum > 0 {

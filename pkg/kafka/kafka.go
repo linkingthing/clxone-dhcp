@@ -60,7 +60,7 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 
 	sentryRole := AgentRoleSentry4
 	serverRole := AgentRoleServer4
-	if isv4 == false {
+	if !isv4 {
 		sentryRole = AgentRoleSentry6
 		serverRole = AgentRoleServer6
 	}
@@ -86,20 +86,20 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 
 		if IsAgentService(node.GetServiceTags(), serverRole) {
 			hasServer = true
-			if hasSentry == false {
+			if !hasSentry {
 				if node.GetVirtualIp() != "" {
 					hasVirtualIp = true
 					serverNodes = []string{node.GetIpv4()}
 				}
 
-				if hasVirtualIp == false {
+				if !hasVirtualIp {
 					serverNodes = append(serverNodes, node.GetIpv4())
 				}
 			}
 		}
 	}
 
-	if hasServer == false {
+	if !hasServer {
 		return nil, fmt.Errorf("no found valid dhcp server nodes")
 	}
 
@@ -107,7 +107,7 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 		return append(sentryNodes, serverNodes...), nil
 	} else {
 		for _, sentryNode := range selectedSentryNodes {
-			if _, ok := sentryNodeMap[sentryNode]; ok == false {
+			if _, ok := sentryNodeMap[sentryNode]; !ok {
 				return nil, fmt.Errorf("invalid sentry node %s", sentryNode)
 			}
 		}
@@ -174,27 +174,27 @@ func GetDHCPNodes(stack AgentStack) ([]string, []string, string, error) {
 				sentryNodes = []string{node.GetIpv4()}
 			}
 
-			if hasSentryVirtualIp == false {
+			if !hasSentryVirtualIp {
 				sentryNodes = append(sentryNodes, node.GetIpv4())
 			}
 		}
 
 		if IsAgentService(node.GetServiceTags(), serverRoles...) {
 			hasServer = true
-			if hasSentry == false {
+			if !hasSentry {
 				if node.GetVirtualIp() != "" {
 					hasServerVirtualIp = true
 					serverNodes = []string{node.GetIpv4()}
 				}
 
-				if hasServerVirtualIp == false {
+				if !hasServerVirtualIp {
 					serverNodes = append(serverNodes, node.GetIpv4())
 				}
 			}
 		}
 	}
 
-	if len(sentryNodes) == 0 || hasServer == false {
+	if len(sentryNodes) == 0 || !hasServer {
 		return nil, nil, "", fmt.Errorf("no found valid dhcp sentry or server nodes")
 	}
 

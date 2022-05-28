@@ -25,7 +25,7 @@ func createDefaultDhcpConfig() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableDhcpConfig, nil); err != nil {
 			return fmt.Errorf("check dhcp config failed: %s", pg.Error(err).Error())
-		} else if exists == false {
+		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultDhcpConfig); err != nil {
 				return fmt.Errorf("insert default dhcp config failed: %s", pg.Error(err).Error())
 			}

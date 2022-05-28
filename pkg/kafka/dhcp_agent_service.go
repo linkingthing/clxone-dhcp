@@ -127,7 +127,7 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 		return nil, fmt.Errorf("marshal %s failed: %s\n", cmd, err.Error())
 	}
 
-	var succeedNodes []string
+	succeedNodes := make([]string, 0, len(nodes))
 	for _, node := range nodes {
 		if err := a.dhcpWriter.WriteMessages(context.Background(), kg.Message{
 			Topic: TopicPrefix + node, Key: []byte(cmd), Value: data}); err != nil {

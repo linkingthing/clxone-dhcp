@@ -85,7 +85,7 @@ func (s *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 
 func (s *Subnet4Handler) actionImportCSV(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	file, ok := ctx.Resource.GetAction().Input.(*csvutil.ImportFile)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.ServerError, "action import subnet4s input invalid")
 	}
 
@@ -115,7 +115,7 @@ func (s *Subnet4Handler) actionExportCSVTemplate() (interface{}, *resterror.APIE
 func (s *Subnet4Handler) actionUpdateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetID()
 	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action update subnet4 %s nodes input invalid", subnetID))
 	}
@@ -129,9 +129,9 @@ func (s *Subnet4Handler) actionUpdateNodes(ctx *restresource.Context) (interface
 
 func (s *Subnet4Handler) actionCouldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action check subnet4 could be created input invalid"))
+			"action check subnet4 could be created input invalid")
 	}
 
 	if err := s.Service.CouldBeCreated(couldBeCreatedSubnet); err != nil {
@@ -143,9 +143,9 @@ func (s *Subnet4Handler) actionCouldBeCreated(ctx *restresource.Context) (interf
 
 func (s *Subnet4Handler) actionListWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action list subnet4s input invalid"))
+			"action list subnet4s input invalid")
 	}
 
 	ret, err := s.Service.ListWithSubnets(subnetListInput)

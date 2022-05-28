@@ -73,7 +73,7 @@ func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, p
 		}
 	}
 
-	if checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) == false {
+	if !checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) {
 		return fmt.Errorf("pool6 %s not belongs to subnet6 %s",
 			pool.String(), subnet.Subnet)
 	}
@@ -237,7 +237,7 @@ func loadPool6sLeases(subnetID string, pools []*resource.Pool6, reservations []*
 		}
 
 		for _, pool := range pools {
-			if resource.IsCapacityZero(pool.Capacity) == false && pool.Contains(lease.GetAddress()) {
+			if !resource.IsCapacityZero(pool.Capacity) && pool.Contains(lease.GetAddress()) {
 				leasesCount[pool.GetID()] += 1
 				break
 			}
@@ -255,7 +255,7 @@ func getSubnet6Leases(subnetId uint64) (*pbdhcpagent.GetLeases6Response, error) 
 }
 
 func setPool6LeasesUsedRatio(pool *resource.Pool6, leasesCount uint64) {
-	if resource.IsCapacityZero(pool.Capacity) == false && leasesCount != 0 {
+	if !resource.IsCapacityZero(pool.Capacity) && leasesCount != 0 {
 		pool.UsedCount = leasesCount
 		pool.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(pool.Capacity, leasesCount))
 	}
@@ -317,7 +317,7 @@ func getPool6LeasesCount(pool *resource.Pool6, reservations []*resource.Reservat
 	reservationMap := reservationIpMapFromReservation6s(reservations)
 	var leasesCount uint64
 	for _, lease := range resp.GetLeases() {
-		if _, ok := reservationMap[lease.GetAddress()]; ok == false {
+		if _, ok := reservationMap[lease.GetAddress()]; !ok {
 			leasesCount += 1
 		}
 	}

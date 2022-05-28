@@ -86,7 +86,7 @@ func (s *Subnet6Api) Action(ctx *restresource.Context) (interface{}, *resterror.
 func (s *Subnet6Api) actionUpdateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetID()
 	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
 			fmt.Sprintf("action update subnet6 %s nodes input invalid", subnetID))
 	}
@@ -100,9 +100,9 @@ func (s *Subnet6Api) actionUpdateNodes(ctx *restresource.Context) (interface{}, 
 
 func (s *Subnet6Api) actionCouldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action check subnet could be created input invalid"))
+			"action check subnet could be created input invalid")
 	}
 
 	if err := s.Service.CouldBeCreated(couldBeCreatedSubnet); err != nil {
@@ -114,9 +114,9 @@ func (s *Subnet6Api) actionCouldBeCreated(ctx *restresource.Context) (interface{
 
 func (s *Subnet6Api) actionListWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action list subnet input invalid"))
+			"action list subnet input invalid")
 	}
 
 	ret, err := s.Service.ListWithSubnets(subnetListInput)
@@ -129,9 +129,9 @@ func (s *Subnet6Api) actionListWithSubnets(ctx *restresource.Context) (interface
 
 func (s *Subnet6Api) importCSV(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	file, ok := ctx.Resource.GetAction().Input.(*csvutil.ImportFile)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action import subnet6s input invalid"))
+			"action import subnet6s input invalid")
 	}
 
 	if err := s.Service.ImportCSV(file); err != nil {

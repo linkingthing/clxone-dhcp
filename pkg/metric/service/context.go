@@ -65,7 +65,7 @@ func getTimePeriodFromFilter(filters []restresource.Filter) (*TimePeriod, error)
 func parseTimePeriod(from, to string) (*TimePeriod, error) {
 	timeTo := time.Now()
 	timeFrom := timeTo.AddDate(0, 0, -1)
-	if csvutil.IsSpaceField(from) == false {
+	if !csvutil.IsSpaceField(from) {
 		timeFrom_, err := time.Parse(util.TimeFormatYMD, from)
 		if err != nil {
 			return nil, err
@@ -74,7 +74,7 @@ func parseTimePeriod(from, to string) (*TimePeriod, error) {
 		timeFrom = timeFrom_
 	}
 
-	if csvutil.IsSpaceField(to) == false {
+	if !csvutil.IsSpaceField(to) {
 		timeTo_, err := time.Parse(util.TimeFormatYMD, to)
 		if err != nil {
 			return nil, err
@@ -109,7 +109,7 @@ func getDHCPVersionFromDHCPID(id string) (DHCPVersion, error) {
 	case DHCPVersion6:
 		return DHCPVersion6, nil
 	default:
-		return DHCPVersionNone, fmt.Errorf("unsupport dhcp verison with id %s", id)
+		return DHCPVersionNone, fmt.Errorf("unsupport dhcp version with id %s", id)
 	}
 }
 

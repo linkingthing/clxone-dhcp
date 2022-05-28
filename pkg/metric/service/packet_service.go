@@ -65,7 +65,7 @@ func (h *PacketStatService) List(ctx *restresource.Context) (interface{}, error)
 		log.Warnf("list agent nodes failed: %s", err.Error())
 	}
 
-	var stats []*resource.PacketStat
+	stats := make([]*resource.PacketStat, 0, len(nodeIpAndPackets))
 	for nodeIp, packets := range nodeIpAndPackets {
 		stat := &resource.PacketStat{Packets: packets, NodeName: nodeNames[nodeIp]}
 		stat.SetID(nodeIp)
@@ -131,7 +131,7 @@ func (h *PacketStatService) Export(ctx *restresource.Context) (interface{}, erro
 
 func exportMultiColunms(ctx *restresource.Context, metricCtx *MetricContext) (interface{}, error) {
 	filter, ok := ctx.Resource.GetAction().Input.(*resource.ExportFilter)
-	if ok == false {
+	if !ok {
 		return nil, fmt.Errorf("action input is not export filter")
 	}
 
@@ -182,14 +182,14 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 
 	var validResults []PrometheusDataResult
 	for _, r := range results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok == false || nodeIp != ctx.NodeIP {
+		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; !ok || nodeIp != ctx.NodeIP {
 			continue
 		}
 
 		if label, ok := r.MetricLabels[string(ctx.MetricLabel)]; ok {
 			switch ctx.MetricName {
 			case MetricNameDHCPSubnetUsage, MetricNameDHCPLeaseCount:
-				if _, ok := subnets[label]; ok == false {
+				if _, ok := subnets[label]; !ok {
 					continue
 				}
 			case MetricNameDHCPPacketStats:
@@ -219,7 +219,7 @@ func genMultiStrMatrix(ctx *MetricContext, results []PrometheusDataResult) [][]s
 
 	var matrix [][]string
 	for i := ctx.Period.Begin; i <= ctx.Period.End; i += ctx.Period.Step {
-		matrix = append(matrix, append([]string{time.Unix(int64(i), 0).Format(csvutil.TimeFormat)}, values...))
+		matrix = append(matrix, append([]string{time.Unix(i, 0).Format(csvutil.TimeFormat)}, values...))
 	}
 
 	for i, r := range results {

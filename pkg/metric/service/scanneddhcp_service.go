@@ -50,10 +50,9 @@ func (h *ScannedDHCPService) scanIllegalDHCPServer(searchInterval uint32) {
 	for {
 		select {
 		case <-ticker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
+			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 			if response, err := grpcclient.GetMonitorGrpcClient().IsNodeMaster(ctx,
-				&pbmonitor.IsNodeMasterRequest{Ip: h.localIp}); err == nil && response.GetIsMaster() == false {
+				&pbmonitor.IsNodeMasterRequest{Ip: h.localIp}); err == nil && !response.GetIsMaster() {
 				continue
 			}
 

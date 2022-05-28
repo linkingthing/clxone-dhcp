@@ -69,7 +69,7 @@ func checkPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, p
 		}
 	}
 
-	if checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) == false {
+	if !checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) {
 		return fmt.Errorf("pool4 %s not belongs to subnet4 %s",
 			pool.String(), subnet.Subnet)
 	}
@@ -87,7 +87,7 @@ func checkPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, p
 
 func checkIPsBelongsToIpnet(ipnet net.IPNet, ips ...net.IP) bool {
 	for _, ip := range ips {
-		if ipnet.Contains(ip) == false {
+		if !ipnet.Contains(ip) {
 			return false
 		}
 	}
@@ -306,7 +306,7 @@ func getPool4LeasesCount(pool *resource.Pool4, reservations []*resource.Reservat
 	reservationMap := reservationMapFromReservation4s(reservations)
 	var leasesCount uint64
 	for _, lease := range resp.GetLeases() {
-		if _, ok := reservationMap[lease.GetAddress()]; ok == false {
+		if _, ok := reservationMap[lease.GetAddress()]; !ok {
 			leasesCount += 1
 		}
 	}

@@ -26,7 +26,7 @@ func createDefaultAdmit() error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableAdmit, nil); err != nil {
 			return fmt.Errorf("check dhcp admit failed: %s", pg.Error(err).Error())
-		} else if exists == false {
+		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultAdmit); err != nil {
 				return fmt.Errorf("insert default dhcp admit failed: %s", pg.Error(err).Error())
 			}

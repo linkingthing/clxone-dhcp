@@ -27,7 +27,7 @@ func createDefaultRateLimit() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableRateLimit, nil); err != nil {
 			return fmt.Errorf("check dhcp ratelimit failed: %s", pg.Error(err).Error())
-		} else if exists == false {
+		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultRateLimit); err != nil {
 				return fmt.Errorf("insert default dhcp ratelimit failed: %s", pg.Error(err).Error())
 			}

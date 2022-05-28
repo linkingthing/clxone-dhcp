@@ -27,6 +27,9 @@ docker:
 clean:
 	rm -rf clxone_dhcp
 
+check-static:
+	GO111MODULE=on CGO_ENABLED=0 golangci-lint run -v -c .golangci.yml
+
 test:
 	go test -v -timeout 60s -race ./...
 

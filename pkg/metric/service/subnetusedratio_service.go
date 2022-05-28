@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -68,7 +68,7 @@ func (h *SubnetUsedRatioService) List(ctx *restresource.Context) (interface{}, e
 		log.Warnf("list agent nodes failed: %s", err.Error())
 	}
 
-	var subnetUsedRatios []*resource.SubnetUsedRatio
+	subnetUsedRatios := make([]*resource.SubnetUsedRatio, 0, len(nodeIpAndSubnetUsages))
 	for nodeIp, subnets := range nodeIpAndSubnetUsages {
 		sort.Sort(subnets)
 		subnetUsedRatio := &resource.SubnetUsedRatio{Subnets: subnets, NodeName: nodeNames[nodeIp]}

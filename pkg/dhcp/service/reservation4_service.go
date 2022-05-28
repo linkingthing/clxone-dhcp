@@ -57,7 +57,7 @@ func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 		return err
 	}
 
-	if subnet.Ipnet.Contains(reservation.Ip) == false {
+	if !subnet.Ipnet.Contains(reservation.Ip) {
 		return fmt.Errorf("reservation4 ipaddress %s not belongs to subnet4 %s",
 			reservation.IpAddress, subnet.Subnet)
 	}

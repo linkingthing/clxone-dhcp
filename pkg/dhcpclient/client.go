@@ -92,11 +92,11 @@ func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
 
 			for _, server := range servers {
 				if server.IPv4 != "" {
-					if isDHCPNodeIPv4(nodes, server.IPv4) == false {
+					if !isDHCPNodeIPv4(nodes, server.IPv4) {
 						dhcpServer4s[server.IPv4] = server
 					}
 				} else {
-					if isDHCPNodeIPv6(nodes, server.IPv6) == false {
+					if !isDHCPNodeIPv6(nodes, server.IPv6) {
 						dhcpServer6s[server.IPv6] = server
 					}
 				}
@@ -104,7 +104,7 @@ func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
 		}
 	}
 
-	var dhcpServers []*DHCPServer
+	dhcpServers := make([]*DHCPServer, 0, len(dhcpServer4s)+len(dhcpServer6s))
 	for _, server := range dhcpServer4s {
 		dhcpServers = append(dhcpServers, server)
 	}
@@ -160,26 +160,26 @@ func getClients() ([]Client, error) {
 
 		for _, addr := range addrs {
 			ipnet, ok := addr.(*net.IPNet)
-			if ok == false {
+			if !ok {
 				continue
 			}
 
 			if ip := ipnet.IP; ip.To4() != nil {
-				if clientV4 == false && ip.IsGlobalUnicast() {
+				if !clientV4 && ip.IsGlobalUnicast() {
 					if client, err := newClient4(iface); err == nil {
 						clientV4 = true
 						clients = append(clients, client)
 					}
 				}
 			} else {
-				if clientV6Linklocal == false && ip.IsLinkLocalUnicast() {
+				if !clientV6Linklocal && ip.IsLinkLocalUnicast() {
 					if client, err := newClient6(iface, ip); err == nil {
 						clientV6Linklocal = true
 						clients = append(clients, client)
 					}
 				}
 
-				if clientV6Global == false && ip.IsGlobalUnicast() {
+				if !clientV6Global && ip.IsGlobalUnicast() {
 					if client, err := newClient6(iface, ip); err == nil {
 						clientV6Global = true
 						clients = append(clients, client)

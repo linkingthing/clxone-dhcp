@@ -84,7 +84,7 @@ func (s *SharedNetwork4) setSharedNetworkSubnets(subnet4s []*Subnet4) error {
 	for _, subnet4 := range subnet4s {
 		if len(subnet4.Nodes) == 0 {
 			return fmt.Errorf("subnet4 %s no nodes info, can`t used by shared network4", subnet4.Subnet)
-		} else if isFullyContains(subnet4.Nodes, nodeSet) == false {
+		} else if !isFullyContains(subnet4.Nodes, nodeSet) {
 			return fmt.Errorf("subnet4 %s nodes %v should contains nodes %v",
 				subnet4.Subnet, subnet4.Nodes, nodeSet.ToSlice())
 		} else {
@@ -97,7 +97,7 @@ func (s *SharedNetwork4) setSharedNetworkSubnets(subnet4s []*Subnet4) error {
 }
 
 func getSubnetIds(subnets []*Subnet4) []string {
-	var ids []string
+	ids := make([]string, 0, len(subnets))
 	for _, subnet := range subnets {
 		ids = append(ids, subnet.GetID())
 	}

@@ -82,7 +82,7 @@ func GetNodeNames(isv4 bool) (map[string]string, error) {
 	}
 
 	sentryRole := kafka.AgentRoleSentry4
-	if isv4 == false {
+	if !isv4 {
 		sentryRole = kafka.AgentRoleSentry6
 	}
 
@@ -110,7 +110,7 @@ func IsSentryHA(isv4 bool) (bool, error) {
 	}
 
 	sentryRole := kafka.AgentRoleSentry4
-	if isv4 == false {
+	if !isv4 {
 		sentryRole = kafka.AgentRoleSentry6
 	}
 

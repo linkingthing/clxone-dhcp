@@ -78,7 +78,7 @@ func checkPrefixBelongsToIpnet(ipnet, prefixIpnet net.IPNet, prefixLen uint32) e
 			prefixIpnet.String(), prefixLen, ones)
 	}
 
-	if ipnet.Contains(prefixIpnet.IP) == false {
+	if !ipnet.Contains(prefixIpnet.IP) {
 		return fmt.Errorf("pdpool %s not belongs to subnet6 %s",
 			prefixIpnet.String(), ipnet.String())
 	}
@@ -250,7 +250,7 @@ func loadPdPoolsLeases(subnetID string, pdpools []*resource.PdPool, reservations
 		}
 
 		for _, pdpool := range pdpools {
-			if resource.IsCapacityZero(pdpool.Capacity) == false && pdpool.Contains(leasePrefix) {
+			if !resource.IsCapacityZero(pdpool.Capacity) && pdpool.Contains(leasePrefix) {
 				leasesCount[pdpool.GetID()] += 1
 				break
 			}
@@ -265,7 +265,7 @@ func prefixFromAddressAndPrefixLen(address string, prefixLen uint32) string {
 }
 
 func setPdPoolLeasesUsedRatio(pdpool *resource.PdPool, leasesCount uint64) {
-	if resource.IsCapacityZero(pdpool.Capacity) == false && leasesCount != 0 {
+	if !resource.IsCapacityZero(pdpool.Capacity) && leasesCount != 0 {
 		pdpool.UsedCount = leasesCount
 		pdpool.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(pdpool.Capacity, leasesCount))
 	}
@@ -330,7 +330,7 @@ func getPdPoolLeasesCount(pdpool *resource.PdPool, reservations []*resource.Rese
 	var leasesCount uint64
 	for _, lease := range resp.GetLeases() {
 		if _, ok := reservationMap[prefixFromAddressAndPrefixLen(lease.GetAddress(),
-			lease.GetPrefixLen())]; ok == false {
+			lease.GetPrefixLen())]; !ok {
 			leasesCount += 1
 		}
 	}
