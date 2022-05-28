@@ -3,10 +3,13 @@ package service
 import (
 	"fmt"
 
-	"github.com/cuityhj/gohelper/httpclient"
+	httputil "github.com/linkingthing/clxone-utils/http"
+	pbeutil "github.com/linkingthing/clxone-utils/pbe"
+
+	"github.com/linkingthing/clxone-dhcp/config"
 )
 
-const HttpScheme = "http://"
+const HttpScheme = "https://"
 
 type PromQuery string
 
@@ -31,12 +34,35 @@ type PrometheusDataResult struct {
 	Values       [][]interface{}   `json:"values"`
 }
 
+var prometheusClient *httputil.Client
+
+func getPrometheusClient() *httputil.Client {
+	return prometheusClient
+}
+
+func NewPrometheusClient(conf *config.DHCPConfig) error {
+	password, err := pbeutil.Decrypt(&pbeutil.DecryptContext{
+		KeyFactoryBase64: conf.Server.KeyFactoryBase64,
+		EncryptWorkKey:   conf.Server.EncryptWorkKey,
+		EncryptPassword:  conf.Prometheus.Password,
+		Iterator:         10000,
+	})
+	if err != nil {
+		return err
+	}
+
+	client, err := httputil.NewHttpsClientSkipVerify(conf.Prometheus.CertPem, conf.Prometheus.KeyPem)
+	if err != nil {
+		return err
+	}
+
+	prometheusClient = client.SetBaseAuth(conf.Prometheus.Username, password)
+	return nil
+}
+
 func prometheusRequest(ctx *MetricContext) (*PrometheusResponse, error) {
 	var resp PrometheusResponse
-	if err := httpclient.GetHttpClient().Get(&httpclient.HttpContext{
-		URL:      genPrometheusUrl(ctx),
-		Response: &resp,
-	}); err != nil {
+	if err := getPrometheusClient().Get(genPrometheusUrl(ctx), &resp); err != nil {
 		return nil, err
 	}
 

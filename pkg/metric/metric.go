@@ -18,6 +18,9 @@ var Version = restresource.APIVersion{
 
 func RegisterApi(apiServer *gorest.Server, router gin.IRoutes) error {
 	conf := config.GetConfig()
+	if err := service.NewPrometheusClient(conf); err != nil {
+		return err
+	}
 
 	if err := service.InitScannedDHCPService(conf); err != nil {
 		return err
