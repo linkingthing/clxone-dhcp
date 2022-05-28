@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -126,7 +126,7 @@ func subnet6sToPbDHCPSubnet6s(subnets map[string]*resource.Subnet6) map[string]*
 func getSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]uint64, error) {
 	var subnetIds []uint64
 	for _, subnet := range subnets {
-		if resource.IsCapacityZero(subnet.Capacity) == false {
+		if !resource.IsCapacityZero(subnet.Capacity) {
 			subnetIds = append(subnetIds, subnet.SubnetId)
 		}
 	}
@@ -357,7 +357,7 @@ func (d *DHCPService) GetSubnets4AndLeases4WithIps(ips []string) (map[string]*pb
 		return nil, err
 	}
 
-	var subnetIds []string
+	subnetIds := make([]string, 0, len(subnets))
 	unfoundIps := make(map[string]struct{})
 	ipv4Infos := make(map[string]*pbdhcp.Ipv4Information)
 	for ip, subnet := range subnets {
@@ -465,7 +465,7 @@ func getReclaimedSubnetLease4s(tx restdb.Transaction, subnetIdsArgs, ipsArgs str
 }
 
 func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Information, reclaimedSubnetLeases map[string]*resource.SubnetLease4) error {
-	var reqs []*pbdhcpagent.GetSubnet4LeaseRequest
+	reqs := make([]*pbdhcpagent.GetSubnet4LeaseRequest, 0, len(ipv4Infos))
 	for ip, info := range ipv4Infos {
 		reqs = append(reqs, &pbdhcpagent.GetSubnet4LeaseRequest{
 			Id:      info.Subnet.SubnetId,
@@ -516,7 +516,7 @@ func (d *DHCPService) GetSubnets6AndLeases6WithIps(ips []string) (map[string]*pb
 		return nil, err
 	}
 
-	var subnetIds []string
+	subnetIds := make([]string, 0, len(subnets))
 	unfoundIps := make(map[string]struct{})
 	ipv6Infos := make(map[string]*pbdhcp.Ipv6Information)
 	for ip, subnet := range subnets {
@@ -625,7 +625,7 @@ func getReclaimedSubnetLease6s(tx restdb.Transaction, subnetIdsArgs, ipsArgs str
 }
 
 func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Information, reclaimedSubnetLeases map[string]*resource.SubnetLease6) error {
-	var reqs []*pbdhcpagent.GetSubnet6LeaseRequest
+	reqs := make([]*pbdhcpagent.GetSubnet6LeaseRequest, 0, len(ipv6Infos))
 	for ip, info := range ipv6Infos {
 		reqs = append(reqs, &pbdhcpagent.GetSubnet6LeaseRequest{
 			Id:      info.Subnet.SubnetId,

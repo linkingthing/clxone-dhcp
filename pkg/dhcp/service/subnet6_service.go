@@ -189,7 +189,7 @@ func SetSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) (err er
 	if useIds {
 		var ids []uint64
 		for _, subnet := range subnets {
-			if resource.IsCapacityZero(subnet.Capacity) == false {
+			if !resource.IsCapacityZero(subnet.Capacity) {
 				ids = append(ids, subnet.SubnetId)
 			}
 		}
@@ -218,7 +218,7 @@ func SetSubnet6sLeasesUsedInfo(subnets []*resource.Subnet6, useIds bool) (err er
 }
 
 func setSubnet6LeasesUsedRatio(subnet *resource.Subnet6, leasesCount uint64) {
-	if resource.IsCapacityZero(subnet.Capacity) == false && leasesCount != 0 {
+	if !resource.IsCapacityZero(subnet.Capacity) && leasesCount != 0 {
 		subnet.UsedCount = leasesCount
 		subnet.UsedRatio = fmt.Sprintf("%.4f", calculateUsedRatio(subnet.Capacity, leasesCount))
 	}
@@ -351,7 +351,7 @@ func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 
 			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", ones)
 		}
 
-		if subnet.UseEui64 == false {
+		if !subnet.UseEui64 {
 			if exists, err := subnetHasPools(tx, subnet); err != nil {
 				return err
 			} else if exists {
@@ -368,7 +368,7 @@ func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 
 }
 
 func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
-	if resource.IsCapacityZero(subnet.Capacity) == false {
+	if !resource.IsCapacityZero(subnet.Capacity) {
 		return true, nil
 	}
 
@@ -897,8 +897,8 @@ func checkReservedPool6sValid(subnet *resource.Subnet6, reservedPools []*resourc
 			return err
 		}
 
-		if checkIPsBelongsToIpnet(subnet.Ipnet, reservedPools[i].BeginIp,
-			reservedPools[i].EndIp) == false {
+		if !checkIPsBelongsToIpnet(subnet.Ipnet, reservedPools[i].BeginIp,
+			reservedPools[i].EndIp) {
 			return fmt.Errorf("reserved pool6 %s not belongs to subnet6 %s",
 				reservedPools[i].String(), subnet.Subnet)
 		}
@@ -934,8 +934,8 @@ func checkPool6sValid(subnet *resource.Subnet6, pools []*resource.Pool6, reserve
 			return err
 		}
 
-		if checkIPsBelongsToIpnet(subnet.Ipnet,
-			pools[i].BeginIp, pools[i].EndIp) == false {
+		if !checkIPsBelongsToIpnet(subnet.Ipnet,
+			pools[i].BeginIp, pools[i].EndIp) {
 			return fmt.Errorf("pool6 %s not belongs to subnet6 %s",
 				pools[i].String(), subnet.Subnet)
 		}
@@ -1005,7 +1005,7 @@ func subnet6sToInsertSqlAndRequest(subnets []*resource.Subnet6, reqsForSentryCre
 		for _, node := range subnet.Nodes {
 			createReq, ok := reqsForSentryCreate[node]
 			deleteReq := reqsForSentryDelete[node]
-			if ok == false {
+			if !ok {
 				createReq = &pbdhcpagent.CreateSubnets6AndPoolsRequest{}
 				deleteReq = &pbdhcpagent.DeleteSubnets6Request{}
 			}
@@ -1130,7 +1130,7 @@ func sendCreateSubnet6sAndPoolsCmdToDHCPAgent(serverNodes []string, reqsForSentr
 		return nil
 	}
 
-	var succeedSentryNodes []string
+	succeedSentryNodes := make([]string, 0, len(reqsForSentryCreate))
 	for node, req := range reqsForSentryCreate {
 		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			[]string{node}, kafka.CreateSubnet6sAndPools,
@@ -1142,7 +1142,7 @@ func sendCreateSubnet6sAndPoolsCmdToDHCPAgent(serverNodes []string, reqsForSentr
 		succeedSentryNodes = append(succeedSentryNodes, node)
 	}
 
-	var succeedServerNodes []string
+	succeedServerNodes := make([]string, 0, len(serverNodes))
 	for _, node := range serverNodes {
 		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			[]string{node}, kafka.CreateSubnet6sAndPools,
@@ -1238,7 +1238,7 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 		subnetPdPools[pdpool.Subnet6] = pdpoolSlices
 	}
 
-	var strMatrix [][]string
+	strMatrix := make([][]string, 0, len(subnet6s))
 	for _, subnet6 := range subnet6s {
 		subnetSlices := localizationSubnet6ToStrSlice(subnet6)
 		slices := make([]string, TableHeaderSubnet6Len)

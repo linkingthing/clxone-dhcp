@@ -76,7 +76,7 @@ func (p *Pool4Api) Action(ctx *restresource.Context) (interface{}, *resterror.AP
 
 func (p *Pool4Api) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
-	if ok == false {
+	if !ok {
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			"parse action valid pool4 template input invalid")
 	}

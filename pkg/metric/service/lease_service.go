@@ -61,7 +61,7 @@ func (h *LeaseService) List(ctx *restresource.Context) (interface{}, error) {
 		log.Warnf("list agent nodes failed: %s", err.Error())
 	}
 
-	var leases []*resource.Lease
+	leases := make([]*resource.Lease, 0, len(nodeIpAndSubnetLeases))
 	for nodeIp, subnets := range nodeIpAndSubnetLeases {
 		lease := &resource.Lease{Subnets: subnets, NodeName: nodeNames[nodeIp]}
 		lease.SetID(nodeIp)

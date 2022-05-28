@@ -62,7 +62,7 @@ func checkReservedPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Su
 		}
 	}
 
-	if checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) == false {
+	if !checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) {
 		return fmt.Errorf("reserved pool4 %s not belongs to subnet4 %s",
 			pool.String(), subnet.Subnet)
 	}

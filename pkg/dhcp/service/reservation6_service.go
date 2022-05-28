@@ -81,14 +81,14 @@ func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Rese
 	}
 
 	for _, ip := range reservation.Ips {
-		if ipnet.Contains(ip) == false {
+		if !ipnet.Contains(ip) {
 			return fmt.Errorf("reservation6 %s ip %s not belong to subnet6 %s",
 				reservation.String(), ip.String(), ipnet.String())
 		}
 	}
 
 	for _, prefix := range reservation.Prefixes {
-		if ip, ipnet_, _ := net.ParseCIDR(prefix); ipnet.Contains(ip) == false {
+		if ip, ipnet_, _ := net.ParseCIDR(prefix); !ipnet.Contains(ip) {
 			return fmt.Errorf("reservation6 %s prefix %s not belong to subnet6 %s",
 				reservation.String(), prefix, ipnet.String())
 		} else if ones, _ := ipnet_.Mask.Size(); ones < subnetMaskLen {
@@ -227,7 +227,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 			if pool.Contains(ip) {
 				reserved = true
 				capacity, ok := affectedPool6s[pool.GetID()]
-				if ok == false {
+				if !ok {
 					capacity = pool.Capacity
 				}
 
@@ -241,7 +241,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 			}
 		}
 
-		if reserved == false {
+		if !reserved {
 			unreservedCount.Add(unreservedCount, big.NewInt(1))
 		}
 	}
@@ -274,7 +274,7 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 		for _, pdpool := range pdpools {
 			if pdpool.IntersectPrefix(prefix) {
 				capacity, ok := affectedPdPools[pdpool.GetID()]
-				if ok == false {
+				if !ok {
 					capacity = pdpool.Capacity
 				}
 

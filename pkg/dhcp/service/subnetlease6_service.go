@@ -8,8 +8,8 @@ import (
 	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
@@ -69,7 +69,7 @@ func ListSubnetLease6(subnet *resource.Subnet6, ip string) ([]*resource.SubnetLe
 }
 
 func getReservation6sAndSubnetLease6sWithIp(tx restdb.Transaction, subnet6 *resource.Subnet6, ip string) ([]*resource.Reservation6, []*resource.SubnetLease6, error) {
-	if subnet6.Ipnet.Contains(net.ParseIP(ip)) == false {
+	if !subnet6.Ipnet.Contains(net.ParseIP(ip)) {
 		return nil, nil, ErrorIpNotBelongToSubnet
 	}
 

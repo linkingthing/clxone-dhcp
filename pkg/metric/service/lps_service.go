@@ -21,7 +21,9 @@ type LPSService struct {
 }
 
 func NewLPSService(config *config.DHCPConfig) *LPSService {
-	return &LPSService{prometheusAddr: config.Prometheus.Addr}
+	s := &LPSService{prometheusAddr: config.Prometheus.Addr}
+	go s.monitor()
+	return s
 }
 
 func (h *LPSService) monitor() {
@@ -66,7 +68,7 @@ func (h *LPSService) collectLPS() error {
 		if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok {
 			if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
 				nodeAndValues, ok := lpsValues[version]
-				if ok == false {
+				if !ok {
 					nodeAndValues = make(map[string][]resource.ValueWithTimestamp)
 				}
 				nodeAndValues[nodeIp] = getValuesWithTimestamp(r.Values, ctx.Period)
@@ -114,7 +116,7 @@ func (h *LPSService) List(ctx *restresource.Context) (interface{}, error) {
 		log.Warnf("list agent nodes failed: %s", err.Error())
 	}
 
-	var lpses []*resource.Lps
+	lpses := make([]*resource.Lps, 0, len(nodeIpAndValues))
 	for nodeIp, values := range nodeIpAndValues {
 		lps := &resource.Lps{Values: values, NodeName: nodeNames[nodeIp]}
 		lps.SetID(nodeIp)
@@ -233,7 +235,7 @@ func (h *LPSService) Export(ctx *restresource.Context) (interface{}, error) {
 
 func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (interface{}, error) {
 	filter, ok := ctx.Resource.GetAction().Input.(*resource.ExportFilter)
-	if ok == false {
+	if !ok {
 		return nil, fmt.Errorf("action input is not export filter")
 	}
 
@@ -281,7 +283,7 @@ func genTwoStrMatrix(values [][]interface{}, ctx *MetricContext) [][]string {
 	var strMatrix [][]string
 	for i := ctx.Period.Begin; i <= ctx.Period.End; i += ctx.Period.Step {
 		strMatrix = append(strMatrix,
-			append([]string{time.Unix(int64(i), 0).Format(csvutil.TimeFormat)}, "0"))
+			append([]string{time.Unix(i, 0).Format(csvutil.TimeFormat)}, "0"))
 	}
 
 	for _, vs := range values {

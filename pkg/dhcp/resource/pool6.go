@@ -123,7 +123,7 @@ func parsePool6FromTemplate(tx restdb.Transaction, template string, subnet *Subn
 	endBigInt := new(big.Int).Add(beginBigInt, big.NewInt(int64(templates[0].Capacity-1)))
 	beginIp := net.IP(beginBigInt.Bytes())
 	endIp := net.IP(endBigInt.Bytes())
-	if subnet.Ipnet.Contains(beginIp) == false || subnet.Ipnet.Contains(endIp) == false {
+	if !subnet.Ipnet.Contains(beginIp) || !subnet.Ipnet.Contains(endIp) {
 		return nil, nil, "", fmt.Errorf("template6 %s pool6 %s-%s not belongs to subnet6 %s",
 			template, beginIp.String(), endIp.String(), subnet.Subnet)
 	}

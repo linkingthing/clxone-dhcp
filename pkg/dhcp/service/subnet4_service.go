@@ -232,7 +232,7 @@ func (l listSubnetContext) isUseIds() bool {
 }
 
 func (l listSubnetContext) needSetSubnetsLeasesUsedInfo() bool {
-	return l.hasExclude == false && l.hasShared == false
+	return !l.hasExclude && !l.hasShared
 }
 
 func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) listSubnetContext {
@@ -296,7 +296,7 @@ func genGetSubnetsContext(ctx *restresource.Context, table restdb.ResourceType) 
 	}
 
 	listCtx.countSql = strings.Replace(strings.Join(sqls, " "), "*", "count(*)", 1)
-	if listCtx.hasFilterSubnet == false {
+	if !listCtx.hasFilterSubnet {
 		sqls = append(sqls, "order by subnet_id")
 		if pagination := ctx.GetPagination(); pagination.PageSize > 0 &&
 			pagination.PageNum > 0 {
@@ -866,7 +866,7 @@ func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource
 			return err
 		}
 
-		if subnet4.Ipnet.Contains(reservation.Ip) == false {
+		if !subnet4.Ipnet.Contains(reservation.Ip) {
 			return fmt.Errorf("reservation4 %s not belongs to subnet4 %s",
 				reservation.IpAddress, subnet4.Subnet)
 		}
@@ -892,8 +892,8 @@ func checkReservedPool4sValid(subnet4 *resource.Subnet4, reservedPools []*resour
 			return err
 		}
 
-		if checkIPsBelongsToIpnet(subnet4.Ipnet, reservedPools[i].BeginIp,
-			reservedPools[i].EndIp) == false {
+		if !checkIPsBelongsToIpnet(subnet4.Ipnet, reservedPools[i].BeginIp,
+			reservedPools[i].EndIp) {
 			return fmt.Errorf("reserved pool4 %s not belongs to subnet4 %s",
 				reservedPools[i].String(), subnet4.Subnet)
 		}
@@ -923,8 +923,8 @@ func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reserv
 			return err
 		}
 
-		if checkIPsBelongsToIpnet(subnet4.Ipnet,
-			pools[i].BeginIp, pools[i].EndIp) == false {
+		if !checkIPsBelongsToIpnet(subnet4.Ipnet,
+			pools[i].BeginIp, pools[i].EndIp) {
 			return fmt.Errorf("pool4 %s not belongs to subnet4 %s",
 				pools[i].String(), subnet4.Subnet)
 		}
@@ -971,7 +971,7 @@ func subnet4sToInsertSqlAndRequest(subnets []*resource.Subnet4, reqsForSentryCre
 		for _, node := range subnet.Nodes {
 			createReq, ok := reqsForSentryCreate[node]
 			deleteReq := reqsForSentryDelete[node]
-			if ok == false {
+			if !ok {
 				createReq = &pbdhcpagent.CreateSubnets4AndPoolsRequest{}
 				deleteReq = &pbdhcpagent.DeleteSubnets4Request{}
 			}
@@ -1072,7 +1072,7 @@ func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(serverNodes []string, reqsForSentr
 		return nil
 	}
 
-	var succeedSentryNodes []string
+	succeedSentryNodes := make([]string, 0, len(reqsForSentryCreate))
 	for node, req := range reqsForSentryCreate {
 		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			[]string{node}, kafka.CreateSubnet4sAndPools, req); err != nil {
@@ -1083,7 +1083,7 @@ func sendCreateSubnet4sAndPoolsCmdToDHCPAgent(serverNodes []string, reqsForSentr
 		succeedSentryNodes = append(succeedSentryNodes, node)
 	}
 
-	var succeedServerNodes []string
+	succeedServerNodes := make([]string, 0, len(serverNodes))
 	for _, node := range serverNodes {
 		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 			[]string{node}, kafka.CreateSubnet4sAndPools,
@@ -1166,7 +1166,7 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 		subnetReservations[reservation.Subnet4] = reservationSlices
 	}
 
-	var strMatrix [][]string
+	strMatrix := make([][]string, 0, len(subnet4s))
 	for _, subnet4 := range subnet4s {
 		subnetSlices := localizationSubnet4ToStrSlice(subnet4)
 		slices := make([]string, TableHeaderSubnet4Len)

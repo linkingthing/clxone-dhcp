@@ -382,7 +382,7 @@ func reservation6ToInsertDBSqlString(subnetId uint64, reservation6 *resource.Res
 }
 
 func ipsToString(ips []net.IP) string {
-	var ipstrs []string
+	ipstrs := make([]string, 0, len(ips))
 	for _, ip := range ips {
 		ipstrs = append(ipstrs, ip.String())
 	}

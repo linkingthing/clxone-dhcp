@@ -27,7 +27,7 @@ func createDefaultPinger() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TablePinger, nil); err != nil {
 			return fmt.Errorf("check dhcp pinger failed: %s", pg.Error(err).Error())
-		} else if exists == false {
+		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultPinger); err != nil {
 				return fmt.Errorf("insert default dhcp pinger failed: %s", pg.Error(err).Error())
 			}

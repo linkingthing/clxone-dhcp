@@ -6,8 +6,8 @@ import (
 	"net/url"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -215,7 +215,7 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 	}
 
 	tableName := TableClientClass4
-	if isv4 == false {
+	if !isv4 {
 		tableName = TableClientClass6
 	}
 
@@ -223,7 +223,7 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 		if exists, err := tx.Exists(tableName, map[string]interface{}{
 			"name": clientClass}); err != nil {
 			return pg.Error(err)
-		} else if exists == false {
+		} else if !exists {
 			return fmt.Errorf("no found client class %s in db", clientClass)
 		} else {
 			return nil
