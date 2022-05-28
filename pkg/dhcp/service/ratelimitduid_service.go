@@ -3,9 +3,10 @@ package service
 import (
 	"fmt"
 
-	pg "github.com/linkingthing/clxone-utils/postgresql"
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
+
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
