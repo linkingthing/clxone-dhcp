@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -62,6 +63,12 @@ type DHCPScanConf struct {
 type PrometheusConf struct {
 	Addr       string `yaml:"addr"`
 	ExportPort int    `yaml:"export_port"`
+	Username   string `yaml:"username"`
+	Password   string `yaml:"password"`
+	CertFile   string `yaml:"cert_file"`
+	KeyFile    string `yaml:"key_file"`
+	CertPem    []byte `yaml:"-"`
+	KeyPem     []byte `yaml:"-"`
 }
 
 type ConsulConf struct {
@@ -106,6 +113,10 @@ func (c *DHCPConfig) Reload() error {
 		return err
 	}
 
+	if err := newConf.parsePrometheusTlsConfig(); err != nil {
+		return err
+	}
+
 	newConf.Path = c.Path
 	*c = newConf
 	gConf = &newConf
@@ -122,4 +133,20 @@ func readConfFromFile(path string) (string, error) {
 
 func GetConfig() *DHCPConfig {
 	return gConf
+}
+
+func (c *DHCPConfig) parsePrometheusTlsConfig() error {
+	if keyPem, err := ioutil.ReadFile(c.Prometheus.KeyFile); err != nil {
+		return fmt.Errorf("read prometheus key file failed:%s", err.Error())
+	} else {
+		c.Prometheus.KeyPem = keyPem
+	}
+
+	if certPem, err := ioutil.ReadFile(c.Prometheus.CertFile); err != nil {
+		return fmt.Errorf("read prometheus cert file failed:%s", err.Error())
+	} else {
+		c.Prometheus.CertPem = certPem
+	}
+
+	return nil
 }
