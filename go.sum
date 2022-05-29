@@ -717,8 +717,8 @@ github.com/lightstep/lightstep-tracer-common/golang/gogo v0.0.0-20190605223551-b
 github.com/lightstep/lightstep-tracer-go v0.18.1/go.mod h1:jlF1pusYV4pidLvZ+XD0UBX0ZE6WURAspgAczcDHrL4=
 github.com/linkingthing/cement v1.0.0 h1:WqL7evjsNEz8QQvfSoerNPjo5/z6Qe7hnuWx9aDNv+E=
 github.com/linkingthing/cement v1.0.0/go.mod h1:dWhD3/5KEdOnwaSFeQD3Vb6NVRshW2LLISM3AiJJp7s=
-github.com/linkingthing/clxone-utils v1.0.10 h1:39pWLd0RafnS1ci3Cku4hu6A4qKDUEeK1w4i/L7byjM=
-github.com/linkingthing/clxone-utils v1.0.10/go.mod h1:W8XcHSa76zKkPnb4JUh0gJFaF9qDuXiyExscMKSWMAs=
+github.com/linkingthing/clxone-utils v1.0.11 h1:Ips/Er67lJaM5bVBIdki6wGAift9Ibxx4KWNEAwvPtU=
+github.com/linkingthing/clxone-utils v1.0.11/go.mod h1:W8XcHSa76zKkPnb4JUh0gJFaF9qDuXiyExscMKSWMAs=
 github.com/linkingthing/gorest v1.0.6 h1:fuc85Ftn/Jq0FIXxt8ozxW46VsPGLWCb723y0L4t9fc=
 github.com/linkingthing/gorest v1.0.6/go.mod h1:M+XaOBCFQAoqni5FcqKlmmTkQLhVMObhcLOBPrR57Jw=
 github.com/linuxkit/virtsock v0.0.0-20201010232012-f8cee7dfc7a3/go.mod h1:3r6x7q95whyfWQpmGZTu3gk3v2YkMi05HEzl7Tf7YEo=

@@ -14,7 +14,6 @@ import (
 	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 	"github.com/linkingthing/clxone-dhcp/pkg/transport/service"
-	transervice "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 const (
@@ -56,7 +55,7 @@ func (h *ScannedDHCPService) scanIllegalDHCPServer(searchInterval uint32) {
 				continue
 			}
 
-			threshold := transervice.GetAlarmService().GetThreshold(pbutil.ThresholdName_illegalDhcp)
+			threshold := service.GetAlarmService().GetThreshold(pbutil.ThresholdName_illegalDhcp)
 			if threshold == nil {
 				continue
 			}

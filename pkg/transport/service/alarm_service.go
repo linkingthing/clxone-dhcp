@@ -39,6 +39,8 @@ func GetAlarmService() *alarm.Alarm {
 func NewAlarmService(conf *config.DHCPConfig) error {
 	tmpAlarm, err := alarm.RegisterAlarm(alarm.KafkaConf{
 		Addresses: conf.Kafka.Addrs,
+		Username:  conf.Kafka.Username,
+		Password:  conf.Kafka.Password,
 		Topic:     alarm.ThresholdDhcpTopic,
 		GroupId:   conf.Kafka.GroupUpdateThresholdEvent,
 	}, baseThreshold...)
