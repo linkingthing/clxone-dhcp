@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	httputil "github.com/linkingthing/clxone-utils/http"
-	pbeutil "github.com/linkingthing/clxone-utils/pbe"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 )
@@ -41,22 +40,12 @@ func getPrometheusClient() *httputil.Client {
 }
 
 func NewPrometheusClient(conf *config.DHCPConfig) error {
-	password, err := pbeutil.Decrypt(&pbeutil.DecryptContext{
-		KeyFactoryBase64: conf.Server.KeyFactoryBase64,
-		EncryptWorkKey:   conf.Server.EncryptWorkKey,
-		EncryptPassword:  conf.Prometheus.Password,
-		Iterator:         10000,
-	})
-	if err != nil {
-		return err
-	}
-
 	client, err := httputil.NewHttpsClientSkipVerify(conf.Prometheus.CertPem, conf.Prometheus.KeyPem)
 	if err != nil {
 		return err
 	}
 
-	prometheusClient = client.SetBaseAuth(conf.Prometheus.Username, password)
+	prometheusClient = client.SetBaseAuth(conf.Prometheus.Username, conf.Prometheus.Password)
 	return nil
 }
 

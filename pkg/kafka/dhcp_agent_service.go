@@ -2,12 +2,13 @@ package kafka
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	kg "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/plain"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 )
@@ -104,15 +105,22 @@ type DHCPAgentService struct {
 func GetDHCPAgentService() *DHCPAgentService {
 	onceDHCPAgentService.Do(func() {
 		globalDHCPAgentService = &DHCPAgentService{
-			dhcpWriter: kg.NewWriter(kg.WriterConfig{
-				Brokers:    config.GetConfig().Kafka.Addrs,
+			dhcpWriter: &kg.Writer{
+				Transport: &kg.Transport{
+					SASL: plain.Mechanism{
+						Username: config.GetConfig().Kafka.Username,
+						Password: config.GetConfig().Kafka.Password,
+					},
+					TLS: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
+				Addr:       kg.TCP(config.GetConfig().Kafka.Addrs...),
 				BatchSize:  1,
 				BatchBytes: 10e8,
-				Dialer: &kg.Dialer{
-					Timeout:   time.Second * 10,
-					DualStack: true,
-					KeepAlive: time.Second * 5},
-			})}
+				Balancer:   &kg.LeastBytes{},
+			},
+		}
 	})
 	return globalDHCPAgentService
 }

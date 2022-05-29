@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/linkingthing/cement/configure"
+	"github.com/linkingthing/clxone-utils/pbe"
 )
 
 type DHCPConfig struct {
@@ -28,20 +29,20 @@ type DBConf struct {
 }
 
 type ServerConf struct {
-	IP               string `yaml:"ip"`
-	Port             int    `yaml:"port"`
-	GrpcPort         int    `yaml:"grpc_port"`
-	Hostname         string `yaml:"hostname"`
-	KeyFactoryPath   string `yaml:"key_factory_path"`
-	WorkKeyPath      string `yaml:"work_key_path"`
-	DecryptIterator  int    `yaml:"decrypt_iterator"`
-	KeyFactoryBase64 string `yaml:"-"`
-	EncryptWorkKey   string `yaml:"-"`
+	IP              string `yaml:"ip"`
+	Port            int    `yaml:"port"`
+	GrpcPort        int    `yaml:"grpc_port"`
+	Hostname        string `yaml:"hostname"`
+	KeyFactoryPath  string `yaml:"key_factory_path"`
+	WorkKeyPath     string `yaml:"work_key_path"`
+	DecryptIterator int    `yaml:"decrypt_iterator"`
 }
 
 type KafkaConf struct {
 	Addrs                     []string `yaml:"kafka_addrs"`
 	GroupUpdateThresholdEvent string   `yaml:"group_id_update_threshold_event"`
+	Username                  string   `yaml:"username"`
+	Password                  string   `yaml:"password"`
 }
 
 type CallServiceConf struct {
@@ -100,16 +101,7 @@ func LoadConfig(path string) (*DHCPConfig, error) {
 
 func (c *DHCPConfig) Reload() error {
 	var newConf DHCPConfig
-	err := configure.Load(&newConf, c.Path)
-	if err != nil {
-		return err
-	}
-
-	if newConf.Server.KeyFactoryBase64, err = readConfFromFile(newConf.Server.KeyFactoryPath); err != nil {
-		return err
-	}
-
-	if newConf.Server.EncryptWorkKey, err = readConfFromFile(newConf.Server.WorkKeyPath); err != nil {
+	if err := configure.Load(&newConf, c.Path); err != nil {
 		return err
 	}
 
@@ -117,10 +109,52 @@ func (c *DHCPConfig) Reload() error {
 		return err
 	}
 
+	if password, err := decryptPassword(newConf.DB.Password, newConf.Server); err != nil {
+		return err
+	} else {
+		newConf.DB.Password = password
+	}
+
+	if password, err := decryptPassword(newConf.Kafka.Password, newConf.Server); err != nil {
+		return err
+	} else {
+		newConf.Kafka.Password = password
+	}
+
+	if password, err := decryptPassword(newConf.Prometheus.Password, newConf.Server); err != nil {
+		return err
+	} else {
+		newConf.Prometheus.Password = password
+	}
+
 	newConf.Path = c.Path
 	*c = newConf
 	gConf = &newConf
 	return nil
+}
+
+func decryptPassword(encryptPassword string, conf ServerConf) (string, error) {
+	keyFactoryBase64, err := readConfFromFile(conf.KeyFactoryPath)
+	if err != nil {
+		return "", err
+	}
+
+	encryptWorkKey, err := readConfFromFile(conf.WorkKeyPath)
+	if err != nil {
+		return "", err
+	}
+
+	iterator := conf.DecryptIterator
+	if iterator == 0 {
+		iterator = 10000
+	}
+
+	return pbe.Decrypt(&pbe.DecryptContext{
+		KeyFactoryBase64: keyFactoryBase64,
+		EncryptWorkKey:   encryptWorkKey,
+		EncryptPassword:  encryptPassword,
+		Iterator:         iterator,
+	})
 }
 
 func readConfFromFile(path string) (string, error) {
