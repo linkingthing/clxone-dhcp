@@ -101,30 +101,25 @@ func LoadConfig(path string) (*DHCPConfig, error) {
 
 func (c *DHCPConfig) Reload() error {
 	var newConf DHCPConfig
-	if err := configure.Load(&newConf, c.Path); err != nil {
+	err := configure.Load(&newConf, c.Path)
+	if err != nil {
 		return err
 	}
 
-	if err := newConf.parsePrometheusTlsConfig(); err != nil {
+	if err = newConf.parsePrometheusTlsConfig(); err != nil {
 		return err
 	}
 
-	if password, err := decryptPassword(newConf.DB.Password, newConf.Server); err != nil {
+	if newConf.DB.Password, err = decryptPassword(newConf.DB.Password, newConf.Server); err != nil {
 		return err
-	} else {
-		newConf.DB.Password = password
 	}
 
-	if password, err := decryptPassword(newConf.Kafka.Password, newConf.Server); err != nil {
+	if newConf.Kafka.Password, err = decryptPassword(newConf.Kafka.Password, newConf.Server); err != nil {
 		return err
-	} else {
-		newConf.Kafka.Password = password
 	}
 
-	if password, err := decryptPassword(newConf.Prometheus.Password, newConf.Server); err != nil {
+	if newConf.Prometheus.Password, err = decryptPassword(newConf.Prometheus.Password, newConf.Server); err != nil {
 		return err
-	} else {
-		newConf.Prometheus.Password = password
 	}
 
 	newConf.Path = c.Path
