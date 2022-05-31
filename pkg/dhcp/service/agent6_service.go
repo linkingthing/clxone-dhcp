@@ -27,24 +27,17 @@ func (h *Agent6Service) List() ([]*resource.Agent6, error) {
 		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
-	var agents []*resource.Agent6
-	for _, node := range dhcpNodes.GetNodes() {
-		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), kafka.AgentRoleSentry6) {
-			if vip := node.GetVirtualIp(); vip != "" {
-				agent6 := &resource.Agent6{
-					Name: vip,
-					Ip:   vip,
-				}
-				agent6.SetID(node.GetIpv4())
-				return []*resource.Agent6{agent6}, nil
-			} else {
-				agent6 := &resource.Agent6{
-					Name: node.GetName(),
-					Ip:   node.GetIpv4(),
-				}
-				agent6.SetID(node.GetIpv4())
-				agents = append(agents, agent6)
+	nameMap := mergeNodeIpOnName(dhcpNodes.GetNodes(), kafka.AgentRoleSentry6)
+
+	agents := make([]*resource.Agent6, 0, len(nameMap))
+	for name, ips := range nameMap {
+		if len(ips) > 0 {
+			agent := &resource.Agent6{
+				Name: name,
+				Ips:  ips,
 			}
+			agent.SetID(name)
+			agents = append(agents, agent)
 		}
 	}
 
@@ -60,13 +53,10 @@ func (h *Agent6Service) Get(agent *resource.Agent6) error {
 		return fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
-	for _, node := range dhcpNodes.GetNodes() {
-		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), kafka.AgentRoleSentry6) &&
-			node.Ipv4 == agent.GetID() {
-			agent.Name = node.GetName()
-			agent.Ip = node.GetIpv4()
-			return nil
-		}
+	nameMap := mergeNodeIpOnName(dhcpNodes.GetNodes(), kafka.AgentRoleSentry6)
+	if ips, ok := nameMap[agent.GetID()]; ok {
+		agent.Ips = ips
+		return nil
 	}
 
 	return fmt.Errorf("no found dhcp node %s", agent.GetID())

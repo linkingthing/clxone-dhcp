@@ -11,6 +11,13 @@ import (
 	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 )
 
+const (
+	DeployModelSingleton string = "singleton"
+	DeployModelCluster   string = "cluster"
+	DeployModelHa        string = "ha"
+	DeployModelAnycast   string = "anycast"
+)
+
 type Agent4Service struct {
 }
 
@@ -27,24 +34,17 @@ func (h *Agent4Service) List() ([]*resource.Agent4, error) {
 		return nil, fmt.Errorf("list dhcp nodes failed: %s", err.Error())
 	}
 
-	var agents []*resource.Agent4
-	for _, node := range dhcpNodes.GetNodes() {
-		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), kafka.AgentRoleSentry4) {
-			if vip := node.GetVirtualIp(); vip != "" {
-				agent4 := &resource.Agent4{
-					Name: vip,
-					Ip:   vip,
-				}
-				agent4.SetID(node.GetIpv4())
-				return []*resource.Agent4{agent4}, nil
-			} else {
-				agent4 := &resource.Agent4{
-					Name: node.GetName(),
-					Ip:   node.GetIpv4(),
-				}
-				agent4.SetID(node.GetIpv4())
-				agents = append(agents, agent4)
+	nameMap := mergeNodeIpOnName(dhcpNodes.GetNodes(), kafka.AgentRoleSentry4)
+
+	agents := make([]*resource.Agent4, 0, len(nameMap))
+	for name, ips := range nameMap {
+		if len(ips) > 0 {
+			agent := &resource.Agent4{
+				Name: name,
+				Ips:  ips,
 			}
+			agent.SetID(name)
+			agents = append(agents, agent)
 		}
 	}
 
@@ -60,13 +60,10 @@ func (h *Agent4Service) Get(agent *resource.Agent4) error {
 		return fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
 
-	for _, node := range dhcpNodes.GetNodes() {
-		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), kafka.AgentRoleSentry4) &&
-			node.Ipv4 == agent.GetID() {
-			agent.Name = node.GetName()
-			agent.Ip = node.GetIpv4()
-			return nil
-		}
+	nameMap := mergeNodeIpOnName(dhcpNodes.GetNodes(), kafka.AgentRoleSentry4)
+	if ips, ok := nameMap[agent.GetID()]; ok {
+		agent.Ips = ips
+		return nil
 	}
 
 	return fmt.Errorf("no found dhcp node %s", agent.GetID())
@@ -122,4 +119,17 @@ func IsSentryHA(isv4 bool) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func mergeNodeIpOnName(nodes []*pbmonitor.Node, role kafka.AgentRole) map[string][]string {
+	nameMap := make(map[string][]string, len(nodes))
+	for _, node := range nodes {
+		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), role) {
+			if node.Deploy == DeployModelHa && node.VirtualIp != "" {
+				return map[string][]string{node.Name: {node.VirtualIp}}
+			}
+			nameMap[node.Name] = append(nameMap[node.Name], node.Ipv4)
+		}
+	}
+	return nameMap
 }
