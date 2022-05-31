@@ -11,13 +11,6 @@ import (
 	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 )
 
-const (
-	DeployModelSingleton string = "singleton"
-	DeployModelCluster   string = "cluster"
-	DeployModelHa        string = "ha"
-	DeployModelAnycast   string = "anycast"
-)
-
 type Agent4Service struct {
 }
 
@@ -125,7 +118,7 @@ func mergeNodeIpOnName(nodes []*pbmonitor.Node, role kafka.AgentRole) map[string
 	nameMap := make(map[string][]string, len(nodes))
 	for _, node := range nodes {
 		if node.GetServiceAlive() && kafka.IsAgentService(node.GetServiceTags(), role) {
-			if node.Deploy == DeployModelHa && node.VirtualIp != "" {
+			if node.VirtualIp != "" {
 				return map[string][]string{node.Name: {node.VirtualIp}}
 			}
 			nameMap[node.Name] = append(nameMap[node.Name], node.Ipv4)
