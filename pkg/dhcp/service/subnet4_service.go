@@ -207,7 +207,7 @@ func (s *Subnet4Service) List(ctx *restresource.Context) ([]*resource.Subnet4, e
 		}
 	}
 
-	if nodeNames, err := GetNodeNames(true); err != nil {
+	if nodeNames, err := GetAgentInfo(false, kafka.AgentRoleSentry4); err != nil {
 		log.Warnf("get node names failed: %s", err.Error())
 	} else {
 		setSubnet4sNodeNames(subnets, nodeNames)
@@ -370,20 +370,29 @@ func setPagination(ctx *restresource.Context, hasPagination bool, pageTotal int)
 	}
 }
 
-func setSubnet4sNodeNames(subnets []*resource.Subnet4, nodeNames map[string]string) {
+func setSubnet4sNodeNames(subnets []*resource.Subnet4, nodeNames map[string]Agent) {
 	for _, subnet := range subnets {
-		subnet.NodeNames = getSubnetNodeNames(subnet.Nodes, nodeNames)
+		subnet.NodeNames, subnet.NodeIds = getSubnetNodeNamesAndIds(subnet.Nodes, nodeNames)
 	}
 }
 
-func getSubnetNodeNames(nodes []string, nodeNames map[string]string) []string {
-	var names []string
+func getSubnetNodeNamesAndIds(nodes []string, nodeNames map[string]Agent) ([]string, []string) {
+	names := make([]string, 0, len(nodes))
+	ids := make([]string, 0, len(nodes))
+	uniqueIds := make(map[string]bool, len(nodes))
 	for _, node := range nodes {
-		if name, ok := nodeNames[node]; ok {
-			names = append(names, name)
+		for _, agent := range nodeNames {
+			if agent.HasNode(node) {
+				if !uniqueIds[agent.Id] {
+					ids = append(ids, agent.Id)
+					names = append(names, agent.Name)
+					uniqueIds[agent.Id] = true
+				}
+				break
+			}
 		}
 	}
-	return names
+	return names, ids
 }
 
 func (s *Subnet4Service) Get(id string) (*resource.Subnet4, error) {
@@ -397,10 +406,10 @@ func (s *Subnet4Service) Get(id string) (*resource.Subnet4, error) {
 	}
 
 	setSubnet4LeasesUsedInfo(subnets[0])
-	if nodeNames, err := GetNodeNames(true); err != nil {
+	if nodeNames, err := GetAgentInfo(false, kafka.AgentRoleSentry4); err != nil {
 		log.Warnf("get node names failed: %s", err.Error())
 	} else {
-		subnets[0].NodeNames = getSubnetNodeNames(subnets[0].Nodes, nodeNames)
+		subnets[0].NodeNames, subnets[0].NodeIds = getSubnetNodeNamesAndIds(subnets[0].Nodes, nodeNames)
 	}
 
 	return subnets[0], nil

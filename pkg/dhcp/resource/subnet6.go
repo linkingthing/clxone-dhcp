@@ -30,6 +30,7 @@ type Subnet6 struct {
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
 	Tags                      string    `json:"tags"`
+	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Nodes                     []string  `json:"nodes"`
 	RapidCommit               bool      `json:"rapidCommit"`
