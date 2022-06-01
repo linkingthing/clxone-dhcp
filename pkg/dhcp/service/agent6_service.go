@@ -14,7 +14,7 @@ func NewAgent6Service() *Agent6Service {
 }
 
 func (h *Agent6Service) List() ([]*resource.Agent6, error) {
-	nodeMap, err := getAgentInfo(true, kafka.AgentRoleSentry6)
+	nodeMap, err := GetAgentInfo(true, kafka.AgentRoleSentry6)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (h *Agent6Service) List() ([]*resource.Agent6, error) {
 }
 
 func (h *Agent6Service) Get(agent *resource.Agent6) error {
-	nodeMap, err := getAgentInfo(true, kafka.AgentRoleSentry6)
+	nodeMap, err := GetAgentInfo(true, kafka.AgentRoleSentry6)
 	if err != nil {
 		return err
 	}
