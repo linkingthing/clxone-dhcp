@@ -12,6 +12,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableSubnet4 = restdb.ResourceDBType(&Subnet4{})
@@ -151,9 +152,19 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
+	if err := util.ValidateStrings(s.Bootfile, s.Tags, s.IfaceName); err != nil {
+		return err
+	}
+
 	if s.SubnetMask != "" {
 		if err := gohelperip.CheckIPv4sValid(s.SubnetMask); err != nil {
 			return fmt.Errorf("subnet4 mask invalid: %s", err.Error())
+		}
+	}
+
+	if s.NextServer != "" {
+		if err := gohelperip.CheckIPv4sValid(s.NextServer); err != nil {
+			return fmt.Errorf("subnet4 next server invalid: %s", err.Error())
 		}
 	}
 

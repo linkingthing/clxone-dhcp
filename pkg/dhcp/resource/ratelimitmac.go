@@ -5,6 +5,8 @@ import (
 
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableRateLimitMac = restdb.ResourceDBType(&RateLimitMac{})
@@ -21,6 +23,10 @@ func (r RateLimitMac) GetParents() []restresource.ResourceKind {
 }
 
 func (r *RateLimitMac) Validate() error {
-	_, err := net.ParseMAC(r.HwAddress)
-	return err
+	if err := util.ValidateStrings(r.Comment); err != nil {
+		return err
+	} else {
+		_, err = net.ParseMAC(r.HwAddress)
+		return err
+	}
 }

@@ -3,6 +3,8 @@ package resource
 import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableRateLimitDuid = restdb.ResourceDBType(&RateLimitDuid{})
@@ -22,6 +24,6 @@ func (r *RateLimitDuid) Validate() error {
 	if err := parseDUID(r.Duid); err != nil {
 		return err
 	} else {
-		return nil
+		return util.ValidateStrings(r.Comment)
 	}
 }

@@ -5,6 +5,8 @@ import (
 
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableAdmitMac = restdb.ResourceDBType(&AdmitMac{})
@@ -20,6 +22,10 @@ func (a AdmitMac) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AdmitMac) Validate() error {
-	_, err := net.ParseMAC(a.HwAddress)
-	return err
+	if err := util.ValidateStrings(a.Comment); err != nil {
+		return err
+	} else {
+		_, err = net.ParseMAC(a.HwAddress)
+		return err
+	}
 }

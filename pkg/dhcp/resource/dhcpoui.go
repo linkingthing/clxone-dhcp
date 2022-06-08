@@ -6,6 +6,8 @@ import (
 
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableDhcpOui = restdb.ResourceDBType(&DhcpOui{})
@@ -24,6 +26,6 @@ func (d *DhcpOui) Validate() error {
 		return fmt.Errorf("oui organization is required")
 	} else {
 		d.IsReadOnly = false
-		return nil
+		return util.ValidateStrings(d.Organization)
 	}
 }

@@ -25,6 +25,6 @@ func (p *Pool4Template) Validate() error {
 	} else if p.BeginOffset <= 0 || p.BeginOffset >= 65535 || p.Capacity <= 0 || p.Capacity >= 65535 {
 		return fmt.Errorf("offset %v or capacity %v should in (0, 65535)", p.BeginOffset, p.Capacity)
 	} else {
-		return nil
+		return util.ValidateStrings(p.Comment)
 	}
 }

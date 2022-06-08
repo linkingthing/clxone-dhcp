@@ -9,6 +9,8 @@ import (
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 const MaxUint64String = "18446744073709551615"
@@ -140,6 +142,10 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 }
 
 func (s *Subnet6) ValidateParams() error {
+	if err := util.ValidateStrings(s.Tags, s.IfaceName, s.RelayAgentInterfaceId); err != nil {
+		return err
+	}
+
 	if err := checkCommonOptions(false, s.ClientClass, s.DomainServers, s.RelayAgentAddresses); err != nil {
 		return err
 	}

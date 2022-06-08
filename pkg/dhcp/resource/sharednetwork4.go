@@ -34,6 +34,10 @@ func (s *SharedNetwork4) Validate() error {
 		return fmt.Errorf("shared network4 %s subnet ids length should excceed 1", s.Name)
 	}
 
+	if err := util.ValidateStrings(s.Comment); err != nil {
+		return err
+	}
+
 	var sharedNetworks []*SharedNetwork4
 	var subnet4s []*Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

@@ -9,6 +9,8 @@ import (
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TablePool4 = restdb.ResourceDBType(&Pool4{})
@@ -100,7 +102,7 @@ func checkCommentValid(comment string) error {
 	if strings.Contains(comment, ",") {
 		return fmt.Errorf("comment %s contains illegal character comma", comment)
 	} else {
-		return nil
+		return util.ValidateStrings(comment)
 	}
 }
 
