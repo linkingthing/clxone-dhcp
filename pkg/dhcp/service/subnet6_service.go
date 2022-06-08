@@ -167,7 +167,7 @@ func (s *Subnet6Service) List(ctx *restresource.Context) ([]*resource.Subnet6, e
 		log.Warnf("set subnet6s leases used info failed: %s", err.Error())
 	}
 
-	if nodeNames, err := GetNodeNames(false); err != nil {
+	if nodeNames, err := GetAgentInfo(false, kafka.AgentRoleSentry6); err != nil {
 		log.Warnf("get node names failed: %s", err.Error())
 	} else {
 		setSubnet6sNodeNames(subnets, nodeNames)
@@ -230,9 +230,9 @@ func calculateUsedRatio(capacity string, leasesCount uint64) float64 {
 	return ratio
 }
 
-func setSubnet6sNodeNames(subnets []*resource.Subnet6, nodeNames map[string]string) {
+func setSubnet6sNodeNames(subnets []*resource.Subnet6, nodeNames map[string]Agent) {
 	for _, subnet := range subnets {
-		subnet.NodeNames = getSubnetNodeNames(subnet.Nodes, nodeNames)
+		subnet.NodeNames, subnet.NodeIds = getSubnetNodeNamesAndIds(subnet.Nodes, nodeNames)
 	}
 }
 
@@ -247,10 +247,10 @@ func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
 	}
 
 	setSubnet6LeasesUsedInfo(subnets[0])
-	if nodeNames, err := GetNodeNames(false); err != nil {
+	if nodeNames, err := GetAgentInfo(false, kafka.AgentRoleSentry6); err != nil {
 		log.Warnf("get node names failed: %s", err.Error())
 	} else {
-		subnets[0].NodeNames = getSubnetNodeNames(subnets[0].Nodes, nodeNames)
+		subnets[0].NodeNames, subnets[0].NodeIds = getSubnetNodeNamesAndIds(subnets[0].Nodes, nodeNames)
 	}
 
 	return subnets[0], nil
