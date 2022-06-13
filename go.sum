@@ -302,8 +302,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.0/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsr
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/cuityhj/gohelper v1.1.4 h1:WWECN5Oh8UnLtIFc7dZzjdWn58i1asVnzwenowxGr9I=
-github.com/cuityhj/gohelper v1.1.4/go.mod h1:zKvp5E0IW99J6khFLKb0jYmyxs/KH5o2cfpFbyO/2Ss=
+github.com/cuityhj/gohelper v1.1.5 h1:7vvp6GnTDE4vyAEsSh3bso98gK0K4Lxlw/Fovse1ulQ=
+github.com/cuityhj/gohelper v1.1.5/go.mod h1:zKvp5E0IW99J6khFLKb0jYmyxs/KH5o2cfpFbyO/2Ss=
 github.com/cuityhj/gorest v1.0.3/go.mod h1:+rMf9O3nkiR88mvA6o7bIIB5AqaV7fSZWkK12yMEhOE=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
 github.com/cyphar/filepath-securejoin v0.2.3/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
