@@ -3,6 +3,7 @@ package dhcpclient
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 	"time"
 
@@ -40,7 +41,7 @@ func (cli *Client4) Close() {}
 func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 	sendfd, err := makeBroadcastSocket(cli.iface.Name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("make broadcast socket failed: %s", err.Error())
 	}
 
 	defer func() {
@@ -51,7 +52,7 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 
 	recvfd, err := makeListeningSocketWithCustomPort(cli.iface.Index)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("make listening socket with custom port failed: %s", err.Error())
 	}
 
 	defer func() {
@@ -63,13 +64,13 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 	packet := cli.discover
 	transId, err := dhcpv4.GenerateTransactionID()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("gen transaction id failed: %s", err.Error())
 	}
 
 	packet.TransactionID = transId
 	packetBytes, err := makeRawUDPPacket(packet.ToBytes())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("make raw udp packet failed: %s", err.Error())
 	}
 
 	var dhcpServers []*DHCPServer
@@ -77,6 +78,7 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 	go func(errch chan<- error) {
 		timeout := unix.NsecToTimeval(DefaultReadTimeout.Nanoseconds())
 		if err := unix.SetsockoptTimeval(recvfd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &timeout); err != nil {
+			log.Infof("set sockopt timeval failed: %s", err.Error())
 			errch <- err
 			return
 		}
@@ -85,6 +87,7 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 			buf := make([]byte, MaxUDPReceivedPacketSize)
 			n, _, err := unix.Recvfrom(recvfd, buf, 0)
 			if err != nil {
+				log.Infof("unix recvfrom failed: %s", err.Error())
 				errch <- err
 				return
 			}
@@ -103,6 +106,7 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 			payload := buf[ipHeader.Len+8 : ipHeader.Len+8+int(binary.BigEndian.Uint16(udpHeader[4:6]))]
 			offer, err := dhcpv4.FromBytes(payload)
 			if err != nil {
+				log.Infof("dhcpv4 from bytes failed: %s", err.Error())
 				errch <- err
 				return
 			}

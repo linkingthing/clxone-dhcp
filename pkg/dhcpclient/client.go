@@ -81,7 +81,7 @@ func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
 	dhcpServer6s := make(map[string]*DHCPServer)
 	for _, client := range cli.clients {
 		if servers, err := client.Exchange(); err != nil {
-			log.Debugf("exchange message with dhcp server failed: %s", err.Error())
+			log.Infof("exchange message with dhcp server failed: %s", err.Error())
 			continue
 		} else {
 			nodes, err := getDHCPNodeList()
