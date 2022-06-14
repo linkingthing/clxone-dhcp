@@ -564,37 +564,38 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 		if emptyLine {
 			continue
 		} else if missingMandatory {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, SubnetMandatoryFields)))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen,
+				localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, SubnetMandatoryFields))
 			continue
 		}
 
 		subnet, pools, reservedPools, reservations, pdpools, err := parseSubnet6sAndPools(
 			tableHeaderFields, fields)
 		if err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d parse subnet6 %s fields failed: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d parse subnet6 %s fields failed: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := subnet.Validate(); err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d subnet6 %s is invalid: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet6 %s is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d subnet6 %s nodes is invalid: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet6 %s nodes is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkSubnet6ConflictWithSubnet6s(subnet, append(oldSubnets, subnets...)); err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d subnet6 %s is invalid: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet6 %s is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkReservation6sValid(subnet, reservations); err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d subnet6 %s reservation6s is invalid: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet6 %s reservation6s is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkReservedPool6sValid(subnet, reservedPools, reservations); err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d subnet6 %s reserved pool6s is invalid: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet6 %s reserved pool6s is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkPool6sValid(subnet, pools, reservedPools, reservations); err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d subnet6 %s pool6s is invalid: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet6 %s pool6s is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkPdPoolsValid(subnet, pdpools, reservations); err != nil {
-			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
-				fmt.Sprintf("line %d subnet6 %s pdpools is invalid: %v", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet6 %s pdpools is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else {
 			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))

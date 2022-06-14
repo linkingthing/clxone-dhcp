@@ -660,34 +660,35 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		if emptyLine {
 			continue
 		} else if missingMandatory {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(&resource.Subnet4{}),
-				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, SubnetMandatoryFields)))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen,
+				localizationSubnet4ToStrSlice(&resource.Subnet4{}),
+				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, SubnetMandatoryFields))
 			continue
 		}
 
 		subnet, pools, reservedPools, reservations, err := parseSubnet4sAndPools(
 			tableHeaderFields, fields)
 		if err != nil {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d parse subnet4 %s fields failed: %s", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d parse subnet4 %s fields failed: %s", j+2, subnet.Subnet, err.Error()))
 		} else if err := subnet.Validate(); err != nil {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s nodes is invalid: %s", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s nodes is invalid: %s", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkSubnet4ConflictWithSubnet4s(subnet, append(oldSubnets, subnets...)); err != nil {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkReservation4sValid(subnet, reservations); err != nil {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s reservations is invalid: %s", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s reservations is invalid: %s", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkReservedPool4sValid(subnet, reservedPools, reservations); err != nil {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s reserved pool4s is invalid: %s", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s reserved pool4s is invalid: %s", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkPool4sValid(subnet, pools, reservedPools, reservations); err != nil {
-			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s pool4s is invalid: %s", j+2, subnet.Subnet, err.Error())))
+			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s pool4s is invalid: %s", j+2, subnet.Subnet, err.Error()))
 		} else {
 			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))
@@ -734,6 +735,13 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 	}
 
 	return sqls, reqsForSentryCreate, reqsForSentryDelete, reqForServerCreate, reqForServerDelete, nil
+}
+
+func addSubnetFailDataToResponse(response *csvutil.ImportResult, headerLen int, subnetSlices []string, errStr string) {
+	slices := make([]string, headerLen)
+	copy(slices, subnetSlices)
+	slices[headerLen-1] = errStr
+	response.AddFailedData(slices)
 }
 
 func parseUint32FromString(field string) (uint32, error) {

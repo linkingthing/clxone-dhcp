@@ -61,9 +61,11 @@ var (
 	TableHeaderSubnet4Fail = append(TableHeaderSubnet4, FailReasonLocalization)
 	TableHeaderSubnet6Fail = append(TableHeaderSubnet6, FailReasonLocalization)
 
-	SubnetMandatoryFields = []string{FieldNameSubnet}
-	TableHeaderSubnet4Len = len(TableHeaderSubnet4)
-	TableHeaderSubnet6Len = len(TableHeaderSubnet6)
+	SubnetMandatoryFields     = []string{FieldNameSubnet}
+	TableHeaderSubnet4Len     = len(TableHeaderSubnet4)
+	TableHeaderSubnet6Len     = len(TableHeaderSubnet6)
+	TableHeaderSubnet4FailLen = len(TableHeaderSubnet4Fail)
+	TableHeaderSubnet6FailLen = len(TableHeaderSubnet6Fail)
 
 	TemplateSubnet4 = [][]string{[]string{
 		"127.0.0.0/1", "template", "14400", "28800", "7200", "127.0.0.0", "127.0.0.1",
