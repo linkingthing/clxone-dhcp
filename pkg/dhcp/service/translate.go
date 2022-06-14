@@ -37,6 +37,8 @@ const (
 	FieldNameReservedPools = "保留地址池"
 	FieldNameReservations  = "固定地址池"
 	FieldNamePdPools       = "前缀委派地址池"
+
+	FailReasonLocalization = "失败原因"
 )
 
 var (
@@ -55,6 +57,9 @@ var (
 		FieldNameRelayAddresses, FieldNameOption16, FieldNameOption18, FieldNameNodes,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations, FieldNamePdPools,
 	}
+
+	TableHeaderSubnet4Fail = append(TableHeaderSubnet4, FailReasonLocalization)
+	TableHeaderSubnet6Fail = append(TableHeaderSubnet6, FailReasonLocalization)
 
 	SubnetMandatoryFields = []string{FieldNameSubnet}
 	TableHeaderSubnet4Len = len(TableHeaderSubnet4)

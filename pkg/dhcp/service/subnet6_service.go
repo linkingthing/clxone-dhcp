@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	Subnet6FileNamePrefix   = "subnet6-"
-	Subnet6TemplateFileName = "subnet6-template"
+	Subnet6FileNamePrefix       = "subnet6-"
+	Subnet6TemplateFileName     = "subnet6-template"
+	Subnet6ImportFileNamePrefix = "subnet6-import"
 )
 
 type Subnet6Service struct{}
@@ -472,31 +473,34 @@ func (s *Subnet6Service) UpdateNodes(subnetID string, subnetNode *resource.Subne
 	return nil
 }
 
-func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) error {
+func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error) {
 	var oldSubnet6s []*resource.Subnet6
 	if err := db.GetResources(map[string]interface{}{resource.SqlOrderBy: "subnet_id desc"},
 		&oldSubnet6s); err != nil {
-		return fmt.Errorf("get subnet6s from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet6s from db failed: %s", err.Error())
 	}
 
 	if len(oldSubnet6s) >= MaxSubnetsCount {
-		return fmt.Errorf("subnet6s count has reached maximum (1w)")
+		return nil, fmt.Errorf("subnet6s count has reached maximum (1w)")
 	}
 
 	sentryNodes, serverNodes, sentryVip, err := kafka.GetDHCPNodes(kafka.AgentStack6)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	response := &csvutil.ImportResult{}
+	defer sendImportFieldResponse(Subnet6ImportFileNamePrefix, TableHeaderSubnet6Fail, response)
 	validSqls, reqsForSentryCreate, reqsForSentryDelete,
-		reqForServerCreate, reqForServerDelete, err := parseSubnet6sFromFile(file.Name, oldSubnet6s, sentryNodes, sentryVip)
+		reqForServerCreate, reqForServerDelete, err := parseSubnet6sFromFile(file.Name, oldSubnet6s,
+		sentryNodes, sentryVip, response)
 	if err != nil {
-		return fmt.Errorf("parse subnet6s from file %s failed: %s",
+		return response, fmt.Errorf("parse subnet6s from file %s failed: %s",
 			file.Name, err.Error())
 	}
 
 	if len(validSqls) == 0 {
-		return nil
+		return response, nil
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -514,14 +518,14 @@ func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) error {
 				reqForServerCreate, reqForServerDelete)
 		}
 	}); err != nil {
-		return fmt.Errorf("import subnet6s from file %s failed: %s",
+		return response, fmt.Errorf("import subnet6s from file %s failed: %s",
 			file.Name, err.Error())
 	}
 
-	return nil
+	return response, nil
 }
 
-func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sentryNodes []string, sentryVip string) ([]string, map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets6Request, *pbdhcpagent.CreateSubnets6AndPoolsRequest, *pbdhcpagent.DeleteSubnets6Request, error) {
+func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sentryNodes []string, sentryVip string, response *csvutil.ImportResult) ([]string, map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets6Request, *pbdhcpagent.CreateSubnets6AndPoolsRequest, *pbdhcpagent.DeleteSubnets6Request, error) {
 	contents, err := csvutil.ReadCSVFile(fileName)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -537,6 +541,7 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 		return nil, nil, nil, nil, nil, err
 	}
 
+	response.InitData(len(contents) - 1)
 	var maxOldSubnetId uint64
 	if len(oldSubnets) != 0 {
 		maxOldSubnetId = oldSubnets[0].SubnetId
@@ -553,38 +558,43 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 	subnetReservations := make(map[uint64][]*resource.Reservation6)
 	subnetPdPools := make(map[uint64][]*resource.PdPool)
 	fieldcontents := contents[1:]
-	for _, fieldcontent := range fieldcontents {
+	for j, fieldcontent := range fieldcontents {
 		fields, missingMandatory, emptyLine := csvutil.ParseTableFields(fieldcontent,
 			tableHeaderFields, SubnetMandatoryFields)
 		if emptyLine {
 			continue
 		} else if missingMandatory {
-			log.Warnf("subnet6 missing mandatory fields subnet")
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, SubnetMandatoryFields)))
 			continue
 		}
 
 		subnet, pools, reservedPools, reservations, pdpools, err := parseSubnet6sAndPools(
 			tableHeaderFields, fields)
 		if err != nil {
-			log.Warnf("parse subnet6 %s fields failed: %s", subnet.Subnet, err.Error())
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d parse subnet6 %s fields failed: %v", j+2, subnet.Subnet, err.Error())))
 		} else if err := subnet.Validate(); err != nil {
-			log.Warnf("subnet6 %s is invalid: %s", subnet.Subnet, err.Error())
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d subnet6 %s is invalid: %v", j+2, subnet.Subnet, err.Error())))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
-			log.Warnf("subnet6 %s nodes invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkSubnet6ConflictWithSubnet6s(subnet,
-			append(oldSubnets, subnets...)); err != nil {
-			log.Warnf(err.Error())
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d subnet6 %s nodes is invalid: %v", j+2, subnet.Subnet, err.Error())))
+		} else if err := checkSubnet6ConflictWithSubnet6s(subnet, append(oldSubnets, subnets...)); err != nil {
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d subnet6 %s is invalid: %v", j+2, subnet.Subnet, err.Error())))
 		} else if err := checkReservation6sValid(subnet, reservations); err != nil {
-			log.Warnf("subnet6 %s reservation6s is invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkReservedPool6sValid(subnet, reservedPools,
-			reservations); err != nil {
-			log.Warnf("subnet6 %s reserved pool6s is invalid: %s",
-				subnet.Subnet, err.Error())
-		} else if err := checkPool6sValid(subnet, pools, reservedPools,
-			reservations); err != nil {
-			log.Warnf("subnet6 %s pool6s is invalid: %s", subnet.Subnet, err.Error())
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d subnet6 %s reservation6s is invalid: %v", j+2, subnet.Subnet, err.Error())))
+		} else if err := checkReservedPool6sValid(subnet, reservedPools, reservations); err != nil {
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d subnet6 %s reserved pool6s is invalid: %v", j+2, subnet.Subnet, err.Error())))
+		} else if err := checkPool6sValid(subnet, pools, reservedPools, reservations); err != nil {
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d subnet6 %s pool6s is invalid: %v", j+2, subnet.Subnet, err.Error())))
 		} else if err := checkPdPoolsValid(subnet, pdpools, reservations); err != nil {
-			log.Warnf("subnet6 %s pdpools is invalid: %s", subnet.Subnet, err.Error())
+			response.AddFailedData(append(localizationSubnet6ToStrSlice(&resource.Subnet6{}),
+				fmt.Sprintf("line %d subnet6 %s pdpools is invalid: %v", j+2, subnet.Subnet, err.Error())))
 		} else {
 			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))

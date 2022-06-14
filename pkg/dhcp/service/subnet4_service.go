@@ -30,8 +30,9 @@ import (
 const (
 	MaxSubnetsCount = 10000
 
-	Subnet4FileNamePrefix   = "subnet4-"
-	Subnet4TemplateFileName = "subnet4-template"
+	Subnet4FileNamePrefix       = "subnet4-"
+	Subnet4TemplateFileName     = "subnet4-template"
+	Subnet4ImportFileNamePrefix = "subnet4-import"
 
 	FilterNameExcludeShared  = "exclude_shared"
 	FilterNameSharedNetwork4 = "shared_network4"
@@ -561,31 +562,34 @@ func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4, nodes []string) e
 		&pbdhcpagent.DeleteSubnet4Request{Id: subnet.SubnetId}, nil)
 }
 
-func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
+func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error) {
 	var oldSubnet4s []*resource.Subnet4
 	if err := db.GetResources(map[string]interface{}{resource.SqlOrderBy: "subnet_id desc"},
 		&oldSubnet4s); err != nil {
-		return fmt.Errorf("get subnet4s from db failed: %s", err.Error())
+		return nil, fmt.Errorf("get subnet4s from db failed: %s", err.Error())
 	}
 
 	if len(oldSubnet4s) >= MaxSubnetsCount {
-		return fmt.Errorf("subnet4s count has reached maximum (1w)")
+		return nil, fmt.Errorf("subnet4s count has reached maximum (1w)")
 	}
 
 	sentryNodes, serverNodes, sentryVip, err := kafka.GetDHCPNodes(kafka.AgentStack4)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	response := &csvutil.ImportResult{}
+	defer sendImportFieldResponse(Subnet4ImportFileNamePrefix, TableHeaderSubnet4Fail, response)
 	validSqls, reqsForSentryCreate, reqsForSentryDelete,
-		reqForServerCreate, reqForServerDelete, err := parseSubnet4sFromFile(file.Name, oldSubnet4s, sentryNodes, sentryVip)
+		reqForServerCreate, reqForServerDelete, err := parseSubnet4sFromFile(file.Name, oldSubnet4s,
+		sentryNodes, sentryVip, response)
 	if err != nil {
-		return fmt.Errorf("parse subnet4s from file %s failed: %s",
+		return response, fmt.Errorf("parse subnet4s from file %s failed: %s",
 			file.Name, err.Error())
 	}
 
 	if len(validSqls) == 0 {
-		return nil
+		return response, nil
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -603,13 +607,22 @@ func (s *Subnet4Service) ImportCSV(file *csvutil.ImportFile) error {
 				reqForServerCreate, reqForServerDelete)
 		}
 	}); err != nil {
-		return fmt.Errorf("import subnet4s from file %s failed: %s", file.Name, err.Error())
+		return response, fmt.Errorf("import subnet4s from file %s failed: %s", file.Name, err.Error())
 	}
 
-	return nil
+	return response, nil
 }
 
-func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sentryNodes []string, sentryVip string) ([]string, map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets4Request, *pbdhcpagent.CreateSubnets4AndPoolsRequest, *pbdhcpagent.DeleteSubnets4Request, error) {
+func sendImportFieldResponse(fileName string, tableHeader []string, response *csvutil.ImportResult) {
+	if response.Failed != 0 {
+		if err := response.FlushResult(fmt.Sprintf("%s-error-%s", fileName, time.Now().Format(csvutil.TimeFormat)),
+			tableHeader); err != nil {
+			log.Warnf("write error csv file failed: %s", err.Error())
+		}
+	}
+}
+
+func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sentryNodes []string, sentryVip string, response *csvutil.ImportResult) ([]string, map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets4Request, *pbdhcpagent.CreateSubnets4AndPoolsRequest, *pbdhcpagent.DeleteSubnets4Request, error) {
 	contents, err := csvutil.ReadCSVFile(fileName)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -625,6 +638,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		return nil, nil, nil, nil, nil, err
 	}
 
+	response.InitData(len(contents) - 1)
 	var maxOldSubnetId uint64
 	if len(oldSubnets) != 0 {
 		maxOldSubnetId = oldSubnets[0].SubnetId
@@ -640,36 +654,40 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 	subnetReservedPools := make(map[uint64][]*resource.ReservedPool4)
 	subnetReservations := make(map[uint64][]*resource.Reservation4)
 	fieldcontents := contents[1:]
-	for _, fieldcontent := range fieldcontents {
+	for j, fieldcontent := range fieldcontents {
 		fields, missingMandatory, emptyLine := csvutil.ParseTableFields(fieldcontent,
 			tableHeaderFields, SubnetMandatoryFields)
 		if emptyLine {
 			continue
 		} else if missingMandatory {
-			log.Warnf("subnet4 missing mandatory fields subnet")
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(&resource.Subnet4{}),
+				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, SubnetMandatoryFields)))
 			continue
 		}
 
 		subnet, pools, reservedPools, reservations, err := parseSubnet4sAndPools(
 			tableHeaderFields, fields)
 		if err != nil {
-			log.Warnf("parse subnet4 %s fields failed: %s", subnet.Subnet, err.Error())
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d parse subnet4 %s fields failed: %s", j+2, subnet.Subnet, err.Error())))
 		} else if err := subnet.Validate(); err != nil {
-			log.Warnf("subnet4 %s is invalid: %s", subnet.Subnet, err.Error())
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error())))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
-			log.Warnf("subnet4 %s nodes invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkSubnet4ConflictWithSubnet4s(subnet,
-			append(oldSubnets, subnets...)); err != nil {
-			log.Warnf(err.Error())
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s nodes is invalid: %s", j+2, subnet.Subnet, err.Error())))
+		} else if err := checkSubnet4ConflictWithSubnet4s(subnet, append(oldSubnets, subnets...)); err != nil {
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error())))
 		} else if err := checkReservation4sValid(subnet, reservations); err != nil {
-			log.Warnf("subnet4 %s reservations is invalid: %s", subnet.Subnet, err.Error())
-		} else if err := checkReservedPool4sValid(subnet, reservedPools,
-			reservations); err != nil {
-			log.Warnf("subnet4 %s reserved pool4s is invalid: %s",
-				subnet.Subnet, err.Error())
-		} else if err := checkPool4sValid(subnet, pools, reservedPools,
-			reservations); err != nil {
-			log.Warnf("subnet4 %s pool4s is invalid: %s", subnet.Subnet, err.Error())
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s reservations is invalid: %s", j+2, subnet.Subnet, err.Error())))
+		} else if err := checkReservedPool4sValid(subnet, reservedPools, reservations); err != nil {
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s reserved pool4s is invalid: %s", j+2, subnet.Subnet, err.Error())))
+		} else if err := checkPool4sValid(subnet, pools, reservedPools, reservations); err != nil {
+			response.AddFailedData(append(localizationSubnet4ToStrSlice(subnet),
+				fmt.Sprintf("line %d subnet4 %s pool4s is invalid: %s", j+2, subnet.Subnet, err.Error())))
 		} else {
 			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))

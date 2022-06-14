@@ -134,11 +134,11 @@ func (s *Subnet6Api) importCSV(ctx *restresource.Context) (interface{}, *resterr
 			"action import subnet6s input invalid")
 	}
 
-	if err := s.Service.ImportCSV(file); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+	if resp, err := s.Service.ImportCSV(file); err != nil {
+		return resp, resterror.NewAPIError(resterror.ServerError, err.Error())
+	} else {
+		return resp, nil
 	}
-
-	return nil, nil
 }
 
 func (s *Subnet6Api) actionExportCSV() (interface{}, *resterror.APIError) {
