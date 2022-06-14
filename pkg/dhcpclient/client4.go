@@ -87,6 +87,10 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 			buf := make([]byte, MaxUDPReceivedPacketSize)
 			n, _, err := unix.Recvfrom(recvfd, buf, 0)
 			if err != nil {
+				if err == unix.EINTR {
+					continue
+				}
+
 				log.Infof("unix recvfrom failed: %s", err.Error())
 				errch <- err
 				return
@@ -131,9 +135,7 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 	case err := <-errCh:
 		if err == unix.EAGAIN {
 			return nil, errors.New("timed out while listening for replies")
-		}
-
-		if err != nil {
+		} else {
 			return nil, err
 		}
 	case <-time.After(DefaultReadTimeout):

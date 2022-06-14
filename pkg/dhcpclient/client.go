@@ -15,6 +15,11 @@ import (
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
+var (
+	LocalhostIPv4 = net.ParseIP("127.0.0.1")
+	LocalhostIPv6 = net.ParseIP("::1")
+)
+
 const (
 	DefaultWriteTimeout      = 10 * time.Second
 	DefaultReadTimeout       = 10 * time.Second
@@ -162,6 +167,10 @@ func getClients() ([]Client, error) {
 			ipnet, ok := addr.(*net.IPNet)
 			if !ok {
 				continue
+			}
+
+			if ipnet.IP.Equal(LocalhostIPv4) || ipnet.IP.Equal(LocalhostIPv6) {
+				break
 			}
 
 			if ip := ipnet.IP; ip.To4() != nil {
