@@ -153,7 +153,7 @@ func (s *Subnet4) ValidateParams() error {
 		return err
 	}
 
-	if err := util.ValidateStrings(s.Bootfile, s.Tags, s.IfaceName); err != nil {
+	if err := util.ValidateStrings(s.TftpServer, s.Bootfile, s.Tags, s.IfaceName); err != nil {
 		return err
 	}
 
