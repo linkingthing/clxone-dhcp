@@ -82,13 +82,12 @@ func getSubnet4sLeasesCount(subnets map[string]*resource.Subnet4) (map[uint64]ui
 	} else {
 		var err error
 		var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
-		if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			resp, err = client.GetSubnets4LeasesCountWithIds(ctx,
 				&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
 			return err
-		}); err != nil {
-			return nil, err
-		}
+		})
+
 		return resp.GetSubnetsLeasesCount(), err
 	}
 }
@@ -143,13 +142,12 @@ func getSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]ui
 	} else {
 		var err error
 		var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
-		if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			resp, err = client.GetSubnets6LeasesCountWithIds(ctx,
 				&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
 			return err
-		}); err != nil {
-			return nil, err
-		}
+		})
+
 		return resp.GetSubnetsLeasesCount(), err
 	}
 }

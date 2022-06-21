@@ -435,13 +435,11 @@ func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
 
 	var err error
 	var resp *pbdhcpagent.GetLeasesCountResponse
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4LeasesCount(ctx,
 			&pbdhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
 		return err
-	}); err != nil {
-		return 0, err
-	}
+	})
 
 	return resp.GetLeasesCount(), err
 }
