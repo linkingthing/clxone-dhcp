@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 )

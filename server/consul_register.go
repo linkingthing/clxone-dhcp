@@ -1,42 +1,45 @@
 package server
 
 import (
-	"fmt"
+	"net/http"
 
-	consulsd "github.com/go-kit/kit/sd/consul"
+	"github.com/gin-gonic/gin"
 	consulapi "github.com/hashicorp/consul/api"
+	consulutil "github.com/linkingthing/clxone-utils/consul"
+
 	"github.com/linkingthing/clxone-dhcp/config"
 )
 
-func NewHttpRegister(registration consulapi.AgentServiceRegistration) (*Registrar, error) {
-	return register(registration, consulapi.AgentServiceCheck{
-		HTTP:                           fmt.Sprintf("http://%v:%v/health", registration.Address, registration.Port),
-		Interval:                       config.GetConfig().Consul.Check.Interval,
-		Timeout:                        config.GetConfig().Consul.Check.Timeout,
-		DeregisterCriticalServiceAfter: config.GetConfig().Consul.Check.DeregisterCriticalServiceAfter,
-		TLSSkipVerify:                  config.GetConfig().Consul.Check.TLSSkipVerify,
+func RegisterHttp(conf *config.DHCPConfig, consulConfig *consulapi.Config) (*consulutil.Registrar, error) {
+	register, err := consulutil.RegisterHttp(consulConfig, consulapi.AgentServiceRegistration{
+		ID:   conf.Consul.HttpName + "-" + conf.Server.IP,
+		Name: conf.Consul.HttpName,
+		Port: conf.Server.Port,
+		Tags: conf.Consul.Tags,
 	})
-}
 
-func NewGrpcRegister(registration consulapi.AgentServiceRegistration) (*Registrar, error) {
-	return register(registration, consulapi.AgentServiceCheck{
-		GRPC:                           fmt.Sprintf("%v:%v", registration.Address, registration.Port),
-		Interval:                       config.GetConfig().Consul.Check.Interval,
-		Timeout:                        config.GetConfig().Consul.Check.Timeout,
-		DeregisterCriticalServiceAfter: config.GetConfig().Consul.Check.DeregisterCriticalServiceAfter,
-		TLSSkipVerify:                  config.GetConfig().Consul.Check.TLSSkipVerify,
-	})
-}
-
-func register(registration consulapi.AgentServiceRegistration, check consulapi.AgentServiceCheck) (*Registrar, error) {
-	conf := consulapi.DefaultConfig()
-	conf.Address = config.GetConfig().Consul.Address
-	consulClient, err := consulapi.NewClient(conf)
 	if err != nil {
-		return nil, fmt.Errorf("new consul client failed: %s", err.Error())
+		return register, err
 	}
 
-	registration.Tags = config.GetConfig().Consul.Tags
-	registration.Checks = consulapi.AgentServiceChecks{&check}
-	return NewRegistrar(consulsd.NewClient(consulClient), &registration), nil
+	return register, nil
+}
+
+func RegisterGrpc(conf *config.DHCPConfig, consulConfig *consulapi.Config) (*consulutil.Registrar, error) {
+	register, err := consulutil.RegisterGrpc(consulConfig, consulapi.AgentServiceRegistration{
+		ID:   conf.Consul.GrpcName + "-" + conf.Server.IP,
+		Name: conf.Consul.GrpcName,
+		Port: conf.Server.GrpcPort,
+		Tags: conf.Consul.Tags,
+	})
+
+	if err != nil {
+		return register, err
+	}
+
+	return register, nil
+}
+
+func HealthCheck(ctx *gin.Context) {
+	ctx.String(http.StatusOK, "health check ok")
 }

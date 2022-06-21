@@ -21,9 +21,9 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -319,9 +319,6 @@ func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
 	var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
 	if useIds {
 		var ids []uint64
@@ -332,14 +329,20 @@ func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 		}
 
 		if len(ids) != 0 {
-			resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(
-				ctx, &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+			err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+				resp, err = client.GetSubnets4LeasesCountWithIds(
+					ctx, &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
+				return err
+			})
 		} else {
 			return
 		}
 	} else {
-		resp, err = grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCount(
-			ctx, &pbdhcpagent.GetSubnetsLeasesCountRequest{})
+		err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			resp, err = client.GetSubnets4LeasesCount(
+				ctx, &pbdhcpagent.GetSubnetsLeasesCountRequest{})
+			return err
+		})
 	}
 
 	if err != nil {
@@ -430,10 +433,16 @@ func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
 		return 0, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4LeasesCount(ctx,
-		&pbdhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
+	var err error
+	var resp *pbdhcpagent.GetLeasesCountResponse
+	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet4LeasesCount(ctx,
+			&pbdhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
+		return err
+	}); err != nil {
+		return 0, err
+	}
+
 	return resp.GetLeasesCount(), err
 }
 

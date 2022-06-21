@@ -9,7 +9,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric"
-	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
 	"github.com/linkingthing/clxone-dhcp/pkg/transport"
 	restserver "github.com/linkingthing/clxone-dhcp/server"
 )
@@ -51,7 +50,6 @@ func main() {
 		log.Fatalf("register metric handler failed: %s", err.Error())
 	}
 
-	defer pb.CloseConns()
 	if err := server.Run(conf); err != nil {
 		log.Fatalf("server run failed: %s", err.Error())
 	}

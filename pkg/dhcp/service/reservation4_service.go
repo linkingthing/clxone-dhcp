@@ -3,17 +3,15 @@ package service
 import (
 	"context"
 	"fmt"
-	"time"
-
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 type Reservation4Service struct {
@@ -238,14 +236,20 @@ func setReservation4LeasesUsedRatio(reservation *resource.Reservation4, leasesCo
 }
 
 func getReservation4LeaseCount(reservation *resource.Reservation4) (uint64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetReservation4LeaseCount(
-		ctx, &pbdhcpagent.GetReservation4LeaseCountRequest{
-			SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
-			HwAddress: reservation.HwAddress,
-			IpAddress: reservation.IpAddress,
-		})
+	var resp *pbdhcpagent.GetLeasesCountResponse
+	var err error
+	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetReservation4LeaseCount(
+			ctx, &pbdhcpagent.GetReservation4LeaseCountRequest{
+				SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
+				HwAddress: reservation.HwAddress,
+				IpAddress: reservation.IpAddress,
+			})
+		return err
+	}); err != nil {
+		return 0, err
+	}
+
 	return resp.GetLeasesCount(), err
 }
 

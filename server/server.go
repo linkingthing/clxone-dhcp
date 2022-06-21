@@ -2,13 +2,11 @@ package server
 
 import (
 	"fmt"
-
 	"net"
-	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	consulapi "github.com/hashicorp/consul/api"
+	csvutil "github.com/linkingthing/clxone-utils/csv"
 	"github.com/linkingthing/gorest"
 	"github.com/linkingthing/gorest/adaptor"
 	"github.com/linkingthing/gorest/resource/schema"
@@ -20,7 +18,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpc/service"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
-	csvutil "github.com/linkingthing/clxone-utils/csv"
 )
 
 const (
@@ -67,10 +64,7 @@ func NewServer() (*Server, error) {
 		},
 	}))
 
-	router.GET(HealthPath, func(context *gin.Context) {
-		context.Writer.Header().Set("Content-Type", "Application/Json")
-		context.String(http.StatusOK, `{"status": "ok"}`)
-	})
+	router.GET(HealthPath, HealthCheck)
 	csvutil.RegisterFileApi(router, dhcp.Version.GetUrl())
 	group := router.Group("/")
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
@@ -88,34 +82,24 @@ func (s *Server) RegisterHandler(h WebHandler) error {
 func (s *Server) Run(conf *config.DHCPConfig) error {
 	errch := make(chan error)
 	adaptor.RegisterHandler(s.group, s.apiServer, s.apiServer.Schemas.GenerateResourceRoute())
-	if apiRegister, err := NewHttpRegister(consulapi.AgentServiceRegistration{
-		ID:      conf.Consul.Name + "-api-" + conf.Server.IP,
-		Name:    conf.Consul.Name + "-api",
-		Address: conf.Server.IP,
-		Port:    conf.Server.Port,
-	}); err != nil {
-		return err
+
+	if register, err := RegisterHttp(conf, config.ConsulConfig); err != nil {
+		return fmt.Errorf("register consul failed: %s", err.Error())
 	} else {
-		if err := apiRegister.Register(); err != nil {
-			return err
+		if err := register.Register(); err != nil {
+			return fmt.Errorf("register consul http service failed: %s", err.Error())
 		} else {
-			defer apiRegister.Deregister()
+			defer register.Deregister()
 		}
 	}
 
-	if grpcRegister, err := NewGrpcRegister(
-		consulapi.AgentServiceRegistration{
-			ID:      conf.Consul.Name + "-grpc-" + conf.Server.IP,
-			Name:    conf.Consul.Name + "-grpc",
-			Address: conf.Server.IP,
-			Port:    conf.Server.GrpcPort,
-		}); err != nil {
-		return err
+	if register, err := RegisterGrpc(conf, config.ConsulConfig); err != nil {
+		return fmt.Errorf("register consul failed: %s", err.Error())
 	} else {
-		if err := grpcRegister.Register(); err != nil {
-			return err
+		if err := register.Register(); err != nil {
+			return fmt.Errorf("register consul grpc service failed: %s", err.Error())
 		} else {
-			defer grpcRegister.Deregister()
+			defer register.Deregister()
 		}
 	}
 

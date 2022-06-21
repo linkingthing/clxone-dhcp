@@ -1,14 +1,11 @@
 package service
 
 import (
-	"context"
 	"fmt"
-	"time"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
-	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 const (
@@ -77,10 +74,7 @@ func GetNodeNames(isv4 bool) (map[string]string, error) {
 }
 
 func IsSentryHA(isv4 bool) (bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
-		&pbmonitor.GetDHCPNodesRequest{})
+	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
 		return false, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
@@ -116,10 +110,7 @@ func (a Agent) HasNode(node string) bool {
 }
 
 func GetAgentInfo(alive bool, role ...kafka.AgentRole) (map[string]Agent, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(ctx,
-		&pbmonitor.GetDHCPNodesRequest{})
+	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
 		return nil, fmt.Errorf("get dhcp nodes failed: %v", err)
 	}

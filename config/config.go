@@ -5,19 +5,21 @@ import (
 	"io/ioutil"
 	"strings"
 
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/linkingthing/cement/configure"
 	"github.com/linkingthing/clxone-utils/pbe"
 )
 
+var ConsulConfig *consulapi.Config
+
 type DHCPConfig struct {
-	Path         string          `yaml:"-"`
-	DB           DBConf          `yaml:"db"`
-	Server       ServerConf      `yaml:"server"`
-	Kafka        KafkaConf       `yaml:"kafka"`
-	Prometheus   PrometheusConf  `yaml:"prometheus"`
-	Consul       ConsulConf      `yaml:"consul"`
-	CallServices CallServiceConf `yaml:"call_services"`
-	DHCPScan     DHCPScanConf    `yaml:"dhcp_scan"`
+	Path       string         `yaml:"-"`
+	DB         DBConf         `yaml:"db"`
+	Server     ServerConf     `yaml:"server"`
+	Kafka      KafkaConf      `yaml:"kafka"`
+	Prometheus PrometheusConf `yaml:"prometheus"`
+	Consul     ConsulConf     `yaml:"consul"`
+	DHCPScan   DHCPScanConf   `yaml:"dhcp_scan"`
 }
 
 type DBConf struct {
@@ -73,18 +75,12 @@ type PrometheusConf struct {
 }
 
 type ConsulConf struct {
-	Address string    `yaml:"address"`
-	ID      string    `yaml:"id"`
-	Name    string    `yaml:"name"`
-	Tags    []string  `yaml:"tags"`
-	Check   CheckConf `yaml:"check"`
-}
-
-type CheckConf struct {
-	Interval                       string `yaml:"interval"`
-	Timeout                        string `yaml:"timeout"`
-	DeregisterCriticalServiceAfter string `yaml:"deregister_critical_service_after"`
-	TLSSkipVerify                  bool   `yaml:"tls_skip_verify"`
+	HttpName     string          `yaml:"http_name"`
+	GrpcName     string          `yaml:"grpc_name"`
+	AgentAddr    string          `yaml:"agent_addr"`
+	Token        string          `yaml:"token"`
+	Tags         []string        `yaml:"tags"`
+	CallServices CallServiceConf `yaml:"call_services"`
 }
 
 var gConf *DHCPConfig
@@ -120,6 +116,15 @@ func (c *DHCPConfig) Reload() error {
 
 	if newConf.Prometheus.Password, err = decryptPassword(newConf.Prometheus.Password, newConf.Server); err != nil {
 		return err
+	}
+
+	if newConf.Consul.Token, err = decryptPassword(newConf.Consul.Token, newConf.Server); err != nil {
+		return err
+	}
+	ConsulConfig = &consulapi.Config{
+		Address:   c.Consul.AgentAddr,
+		Token:     c.Consul.Token,
+		TLSConfig: consulapi.TLSConfig{InsecureSkipVerify: true},
 	}
 
 	newConf.Path = c.Path

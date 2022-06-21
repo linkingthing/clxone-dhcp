@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"time"
 
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -13,9 +12,9 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 type Pool6Service struct {
@@ -247,11 +246,13 @@ func loadPool6sLeases(subnetID string, pools []*resource.Pool6, reservations []*
 	return leasesCount
 }
 
-func getSubnet6Leases(subnetId uint64) (*pbdhcpagent.GetLeases6Response, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	return grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(ctx,
-		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
+func getSubnet6Leases(subnetId uint64) (resp *pbdhcpagent.GetLeases6Response, err error) {
+	err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet6Leases(ctx,
+			&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
+		return err
+	})
+	return
 }
 
 func setPool6LeasesUsedRatio(pool *resource.Pool6, leasesCount uint64) {
@@ -294,15 +295,16 @@ func getPool6LeasesCount(pool *resource.Pool6, reservations []*resource.Reservat
 		return 0, nil
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetPool6Leases(ctx,
-		&pbdhcpagent.GetPool6LeasesRequest{
-			SubnetId:     subnetIDStrToUint64(pool.Subnet6),
-			BeginAddress: pool.BeginAddress,
-			EndAddress:   pool.EndAddress})
-
-	if err != nil {
+	var resp *pbdhcpagent.GetLeases6Response
+	var err error
+	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetPool6Leases(ctx,
+			&pbdhcpagent.GetPool6LeasesRequest{
+				SubnetId:     subnetIDStrToUint64(pool.Subnet6),
+				BeginAddress: pool.BeginAddress,
+				EndAddress:   pool.EndAddress})
+		return err
+	}); err != nil {
 		return 0, err
 	}
 

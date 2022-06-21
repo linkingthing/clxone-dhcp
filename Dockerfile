@@ -13,6 +13,7 @@ RUN CGO_ENABLED=1 CGO_CFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 
 FROM alpine:3.16
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 RUN apk add nmap
+RUN apk add libcap
 
 RUN sed -i "/sync/d" /etc/passwd
 RUN sed -i "/sync/d" /etc/shadow
@@ -27,4 +28,5 @@ RUN rm -rf etc/ssl/certs/ca-certificates.crt
 COPY --from=build /go/src/github.com/linkingthing/clxone-dhcp/clxone-dhcp /
 RUN mkdir -p /opt/files
 
+RUN setcap CAP_NET_BIND_SERVICE=+eip /clxone-dhcp
 ENTRYPOINT ["/clxone-dhcp"]

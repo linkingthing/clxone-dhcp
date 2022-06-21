@@ -8,10 +8,10 @@ import (
 
 	"github.com/linkingthing/cement/log"
 	"github.com/linkingthing/cement/slice"
+	consulutil "github.com/linkingthing/clxone-utils/consul"
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/clxone-dhcp/config"
-	pb "github.com/linkingthing/clxone-dhcp/pkg/proto"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
@@ -51,7 +51,7 @@ func New() (*DHCPClient, error) {
 }
 
 func getDHCPNodeList() (nodes []*pbdhcpagent.GetDHCPNodesResponse, err error) {
-	endpoints, err := pb.GetEndpoints(config.GetConfig().CallServices.DhcpAgent)
+	endpoints, err := consulutil.GetEndpoints(config.ConsulConfig, config.GetConfig().Consul.CallServices.DhcpAgent)
 	if err != nil {
 		return nil, err
 	}

@@ -13,10 +13,10 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	"github.com/linkingthing/clxone-dhcp/pkg/grpc/parser"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 func init() {
@@ -80,8 +80,15 @@ func getSubnet4sLeasesCount(subnets map[string]*resource.Subnet4) (map[uint64]ui
 	if len(subnetIds) == 0 {
 		return nil, nil
 	} else {
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets4LeasesCountWithIds(context.TODO(),
-			&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+		var err error
+		var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
+		if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			resp, err = client.GetSubnets4LeasesCountWithIds(ctx,
+				&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+			return err
+		}); err != nil {
+			return nil, err
+		}
 		return resp.GetSubnetsLeasesCount(), err
 	}
 }
@@ -134,8 +141,15 @@ func getSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]ui
 	if len(subnetIds) == 0 {
 		return nil, nil
 	} else {
-		resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnets6LeasesCountWithIds(context.TODO(),
-			&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+		var err error
+		var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
+		if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			resp, err = client.GetSubnets6LeasesCountWithIds(ctx,
+				&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
+			return err
+		}); err != nil {
+			return nil, err
+		}
 		return resp.GetSubnetsLeasesCount(), err
 	}
 }
@@ -473,9 +487,13 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 		})
 	}
 
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet4LeasesWithIps(context.TODO(),
-		&pbdhcpagent.GetSubnet4LeasesWithIpsRequest{Addresses: reqs})
-	if err != nil {
+	var err error
+	var resp *pbdhcpagent.GetLeases4WithIpsResponse
+	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet4LeasesWithIps(ctx,
+			&pbdhcpagent.GetSubnet4LeasesWithIpsRequest{Addresses: reqs})
+		return err
+	}); err != nil {
 		return fmt.Errorf("get subnet4 leases failed: %s", err.Error())
 	}
 
@@ -633,9 +651,13 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 		})
 	}
 
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6LeasesWithIps(context.TODO(),
-		&pbdhcpagent.GetSubnet6LeasesWithIpsRequest{Addresses: reqs})
-	if err != nil {
+	var err error
+	var resp *pbdhcpagent.GetLeases6WithIpsResponse
+	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet6LeasesWithIps(ctx,
+			&pbdhcpagent.GetSubnet6LeasesWithIpsRequest{Addresses: reqs})
+		return err
+	}); err != nil {
 		return fmt.Errorf("get subnet6 leases failed: %s", err.Error())
 	}
 

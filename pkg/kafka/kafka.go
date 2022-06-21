@@ -1,13 +1,11 @@
 package kafka
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/golang/protobuf/proto"
 
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
-	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 type AgentRole string
@@ -52,8 +50,7 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 		return nil, nil
 	}
 
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
-		&pbmonitor.GetDHCPNodesRequest{})
+	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
 		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}
@@ -143,8 +140,7 @@ func SendDHCPCmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
 }
 
 func GetDHCPNodes(stack AgentStack) ([]string, []string, string, error) {
-	dhcpNodes, err := grpcclient.GetMonitorGrpcClient().GetDHCPNodes(context.TODO(),
-		&pbmonitor.GetDHCPNodesRequest{})
+	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("get dhcp nodes failed: %s", err.Error())
 	}

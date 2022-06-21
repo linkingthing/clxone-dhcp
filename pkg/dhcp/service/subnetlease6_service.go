@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
@@ -14,8 +13,8 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	grpcclient "github.com/linkingthing/clxone-dhcp/pkg/grpc/client"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 type SubnetLease6Service struct{}
@@ -143,11 +142,13 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 }
 
 func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease6) (*resource.SubnetLease6, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Lease(ctx,
-		&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
-	if err != nil {
+	var err error
+	var resp *pbdhcpagent.GetLease6Response
+	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet6Lease(ctx,
+			&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
+		return err
+	}); err != nil {
 		return nil, err
 	}
 
@@ -162,13 +163,16 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 }
 
 func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) ([]*resource.SubnetLease6, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	resp, err := grpcclient.GetDHCPAgentGrpcClient().GetSubnet6Leases(ctx,
-		&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
-	if err != nil {
+	var err error
+	var resp *pbdhcpagent.GetLeases6Response
+	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet6Leases(ctx,
+			&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
+		return err
+	}); err != nil {
 		log.Debugf("get subnet6 %d lease6s failed: %s", subnetId, err.Error())
 		return nil, nil
+
 	}
 
 	reservationMap := reservationMapFromReservation6s(reservations)
@@ -269,12 +273,12 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 			return pg.Error(err)
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_, err = grpcclient.GetDHCPAgentGrpcClient().DeleteLease6(ctx,
-			&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
-				LeaseType: lease6.LeaseType, Address: leaseId})
-		return err
+		return transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			_, err = client.DeleteLease6(ctx,
+				&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
+					LeaseType: lease6.LeaseType, Address: leaseId})
+			return err
+		})
 	}); err != nil {
 		return fmt.Errorf("delete lease6 %s with subnet6 %s failed: %s", leaseId, subnetId, err.Error())
 	}
