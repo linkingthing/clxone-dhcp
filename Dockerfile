@@ -1,4 +1,6 @@
-FROM golang:1.18.2-alpine3.16 AS build
+ARG go_image
+
+FROM $go_image AS build
 
 ENV GOPROXY=http://mirrors.aliyun.com/goproxy
 
