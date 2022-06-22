@@ -122,8 +122,8 @@ func (c *DHCPConfig) Reload() error {
 		return err
 	}
 	ConsulConfig = &consulapi.Config{
-		Address:   c.Consul.AgentAddr,
-		Token:     c.Consul.Token,
+		Address:   newConf.Consul.AgentAddr,
+		Token:     newConf.Consul.Token,
 		TLSConfig: consulapi.TLSConfig{InsecureSkipVerify: true},
 	}
 

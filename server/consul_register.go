@@ -12,10 +12,11 @@ import (
 
 func RegisterHttp(conf *config.DHCPConfig, consulConfig *consulapi.Config) (*consulutil.Registrar, error) {
 	register, err := consulutil.RegisterHttp(consulConfig, consulapi.AgentServiceRegistration{
-		ID:   conf.Consul.HttpName + "-" + conf.Server.IP,
-		Name: conf.Consul.HttpName,
-		Port: conf.Server.Port,
-		Tags: conf.Consul.Tags,
+		ID:      conf.Consul.HttpName + "-" + conf.Server.IP,
+		Address: conf.Server.IP,
+		Name:    conf.Consul.HttpName,
+		Port:    conf.Server.Port,
+		Tags:    conf.Consul.Tags,
 	})
 
 	if err != nil {
@@ -27,10 +28,11 @@ func RegisterHttp(conf *config.DHCPConfig, consulConfig *consulapi.Config) (*con
 
 func RegisterGrpc(conf *config.DHCPConfig, consulConfig *consulapi.Config) (*consulutil.Registrar, error) {
 	register, err := consulutil.RegisterGrpc(consulConfig, consulapi.AgentServiceRegistration{
-		ID:   conf.Consul.GrpcName + "-" + conf.Server.IP,
-		Name: conf.Consul.GrpcName,
-		Port: conf.Server.GrpcPort,
-		Tags: conf.Consul.Tags,
+		ID:      conf.Consul.GrpcName + "-" + conf.Server.IP,
+		Address: conf.Server.IP,
+		Name:    conf.Consul.GrpcName,
+		Port:    conf.Server.GrpcPort,
+		Tags:    conf.Consul.Tags,
 	})
 
 	if err != nil {
