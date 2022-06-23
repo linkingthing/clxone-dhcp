@@ -31,5 +31,4 @@ COPY --from=build /go/src/github.com/linkingthing/clxone-dhcp/clxone-dhcp /
 RUN mkdir -p /opt/files
 RUN setcap CAP_NET_BIND_SERVICE=+eip /clxone-dhcp
 
-RUN setcap CAP_NET_BIND_SERVICE=+eip /clxone-dhcp
 ENTRYPOINT ["/clxone-dhcp"]
