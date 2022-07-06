@@ -69,13 +69,13 @@ func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 
 func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
 	if count, err := tx.CountEx(resource.TableReservation4,
-		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 or ip_address = $3)",
-		subnetId, reservation.HwAddress, reservation.IpAddress); err != nil {
+		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 or ip_address = $3 or hostname = $4)",
+		subnetId, reservation.HwAddress, reservation.IpAddress, reservation.Hostname); err != nil {
 		return fmt.Errorf("check reservation4 %s with subnet4 %s exists in db failed: %s",
 			reservation.String(), subnetId, pg.Error(err).Error())
 	} else if count != 0 {
-		return fmt.Errorf("reservation4 exists with subnet4 %s and mac %s or ip %s",
-			subnetId, reservation.HwAddress, reservation.IpAddress)
+		return fmt.Errorf("reservation4 exists with subnet4 %s and mac %s or hostname %s or ip %s",
+			subnetId, reservation.HwAddress, reservation.Hostname, reservation.IpAddress)
 	} else {
 		return nil
 	}
@@ -148,6 +148,7 @@ func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resou
 	return &pbdhcpagent.CreateReservation4Request{
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
+		Hostname:  reservation.Hostname,
 		IpAddress: reservation.IpAddress,
 	}
 }
@@ -189,8 +190,9 @@ func getReservation4sLeasesCount(subnetId uint64, reservations []*resource.Reser
 	reservationMap := reservationMapFromReservation4s(reservations)
 	leasesCount := make(map[string]uint64)
 	for _, lease := range resp.GetLeases() {
-		if mac, ok := reservationMap[lease.GetAddress()]; ok &&
-			mac == lease.GetHwAddress() {
+		if reservation, ok := reservationMap[lease.GetAddress()]; ok &&
+			(reservation.HwAddress == "" || reservation.HwAddress == lease.GetHwAddress()) &&
+			(reservation.Hostname == "" || reservation.Hostname == lease.GetHostname()) {
 			leasesCount[lease.GetAddress()] = 1
 		}
 	}
@@ -198,10 +200,10 @@ func getReservation4sLeasesCount(subnetId uint64, reservations []*resource.Reser
 	return leasesCount
 }
 
-func reservationMapFromReservation4s(reservations []*resource.Reservation4) map[string]string {
-	reservationMap := make(map[string]string)
+func reservationMapFromReservation4s(reservations []*resource.Reservation4) map[string]*resource.Reservation4 {
+	reservationMap := make(map[string]*resource.Reservation4)
 	for _, reservation := range reservations {
-		reservationMap[reservation.IpAddress] = reservation.HwAddress
+		reservationMap[reservation.IpAddress] = reservation
 	}
 
 	return reservationMap
@@ -243,6 +245,7 @@ func getReservation4LeaseCount(reservation *resource.Reservation4) (uint64, erro
 			ctx, &pbdhcpagent.GetReservation4LeaseCountRequest{
 				SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
 				HwAddress: reservation.HwAddress,
+				Hostname:  reservation.Hostname,
 				IpAddress: reservation.IpAddress,
 			})
 		return err
@@ -310,6 +313,7 @@ func setReservation4FromDB(tx restdb.Transaction, reservation *resource.Reservat
 
 	reservation.Subnet4 = reservations[0].Subnet4
 	reservation.HwAddress = reservations[0].HwAddress
+	reservation.Hostname = reservations[0].Hostname
 	reservation.IpAddress = reservations[0].IpAddress
 	reservation.Ip = reservations[0].Ip
 	reservation.Capacity = reservations[0].Capacity
@@ -325,6 +329,7 @@ func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resou
 	return &pbdhcpagent.DeleteReservation4Request{
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
+		Hostname:  reservation.Hostname,
 		IpAddress: reservation.IpAddress,
 	}
 }

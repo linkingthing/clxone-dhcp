@@ -7,11 +7,21 @@ import (
 	"net"
 	"strings"
 
-	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
-
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
+)
+
+const (
+	ReservationIdDUID     = "duid"
+	ReservationIdMAC      = "mac"
+	ReservationIdHostname = "hostname"
+
+	ReservationTypeIps      = "ips"
+	ReservationTypePrefixes = "prefixes"
 )
 
 var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
@@ -21,6 +31,7 @@ type Reservation6 struct {
 	Subnet6                   string   `json:"-" db:"ownby"`
 	Duid                      string   `json:"duid"`
 	HwAddress                 string   `json:"hwAddress"`
+	Hostname                  string   `json:"hostname"`
 	IpAddresses               []string `json:"ipAddresses"`
 	Ips                       []net.IP `json:"-"`
 	Prefixes                  []string `json:"prefixes"`
@@ -35,10 +46,12 @@ func (r Reservation6) GetParents() []restresource.ResourceKind {
 }
 
 func (r *Reservation6) String() string {
-	if len(r.Duid) != 0 {
+	if r.Duid != "" {
 		return "duid-" + r.Duid
-	} else {
+	} else if r.HwAddress != "" {
 		return "mac-" + r.HwAddress
+	} else {
+		return "hostname-" + r.Hostname
 	}
 }
 
@@ -51,7 +64,7 @@ func (r *Reservation6) AddrString() string {
 }
 
 func (r *Reservation6) CheckConflictWithAnother(another *Reservation6) bool {
-	if r.Duid == another.Duid && r.HwAddress == another.HwAddress {
+	if r.Duid == another.Duid && r.HwAddress == another.HwAddress && r.Hostname == another.Hostname {
 		return true
 	}
 
@@ -89,29 +102,29 @@ func isPrefixesIntersect(onePrefix, anotherPrefix string) bool {
 }
 
 func (r *Reservation6) Validate() error {
-	if len(r.Duid) != 0 && len(r.HwAddress) != 0 {
-		return fmt.Errorf("duid and mac can not coexist")
+	if (r.Duid != "" && r.HwAddress != "") ||
+		(r.Duid != "" && r.Hostname != "") ||
+		(r.HwAddress != "" && r.Hostname != "") ||
+		(r.Duid == "" && r.HwAddress == "" && r.Hostname == "") {
+		return fmt.Errorf("duid and mac and hostname must have only one")
 	}
 
-	if len(r.Duid) == 0 && len(r.HwAddress) == 0 {
-		return fmt.Errorf("duid and mac has one at least")
+	if (len(r.IpAddresses) != 0 && len(r.Prefixes) != 0) ||
+		(len(r.IpAddresses) == 0 && len(r.Prefixes) == 0) {
+		return fmt.Errorf("ips and prefixes must have only one")
 	}
 
-	if len(r.IpAddresses) != 0 && len(r.Prefixes) != 0 {
-		return fmt.Errorf("ips and prefixes can not coexist")
-	}
-
-	if len(r.IpAddresses) == 0 && len(r.Prefixes) == 0 {
-		return fmt.Errorf("ips and prefixes has one at least")
-	}
-
-	if len(r.HwAddress) != 0 {
+	if r.HwAddress != "" {
 		if _, err := net.ParseMAC(r.HwAddress); err != nil {
 			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
 		}
-	} else {
+	} else if r.Duid != "" {
 		if err := parseDUID(r.Duid); err != nil {
 			return fmt.Errorf("duid %s is invalid", r.Duid)
+		}
+	} else if r.Hostname != "" {
+		if err := util.ValidateStrings(r.Hostname); err != nil {
+			return err
 		}
 	}
 

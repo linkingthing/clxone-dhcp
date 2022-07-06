@@ -220,7 +220,7 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 	return leases, nil
 }
 
-func subnetLease4FromPbLease4AndReservations(lease *pbdhcpagent.DHCPLease4, reservationMap map[string]string) *resource.SubnetLease4 {
+func subnetLease4FromPbLease4AndReservations(lease *pbdhcpagent.DHCPLease4, reservationMap map[string]*resource.Reservation4) *resource.SubnetLease4 {
 	subnetLease4 := SubnetLease4FromPbLease4(lease)
 	if _, ok := reservationMap[subnetLease4.Address]; ok {
 		subnetLease4.AddressType = resource.AddressTypeReservation

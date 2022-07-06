@@ -865,15 +865,26 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 	var reservations []*resource.Reservation4
 	for _, reservationStr := range strings.Split(field, ",") {
 		if reservationSlices := strings.SplitN(reservationStr,
-			"-", 3); len(reservationSlices) != 3 {
-			return nil, fmt.Errorf("parse subnet4 reservation4 %s failed with wrong regexp",
+			"-", 4); len(reservationSlices) != 4 {
+			return nil, fmt.Errorf("parse reservation4 %s failed with wrong regexp",
 				reservationStr)
 		} else {
-			reservations = append(reservations, &resource.Reservation4{
-				HwAddress: reservationSlices[0],
-				IpAddress: reservationSlices[1],
-				Comment:   reservationSlices[2],
-			})
+			reservation := &resource.Reservation4{
+				IpAddress: reservationSlices[2],
+				Comment:   reservationSlices[3],
+			}
+
+			switch reservationSlices[0] {
+			case resource.ReservationIdMAC:
+				reservation.HwAddress = reservationSlices[1]
+			case resource.ReservationIdHostname:
+				reservation.Hostname = reservationSlices[1]
+			default:
+				return nil, fmt.Errorf("parse reservation4 %s failed with wrong prefix %s not in [mac, hostname]",
+					reservationStr, reservationSlices[0])
+			}
+
+			reservations = append(reservations, reservation)
 		}
 	}
 
@@ -902,7 +913,7 @@ func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*reso
 }
 
 func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource.Reservation4) error {
-	ipMacs := make(map[string]struct{})
+	reservationParams := make(map[string]struct{})
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
 			return err
@@ -913,13 +924,24 @@ func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource
 				reservation.IpAddress, subnet4.Subnet)
 		}
 
-		if _, ok := ipMacs[reservation.IpAddress]; ok {
+		if _, ok := reservationParams[reservation.IpAddress]; ok {
 			return fmt.Errorf("duplicate reservation4 with ip %s", reservation.IpAddress)
-		} else if _, ok := ipMacs[reservation.HwAddress]; ok {
-			return fmt.Errorf("duplicate reservation4 with mac %s", reservation.HwAddress)
 		} else {
-			ipMacs[reservation.IpAddress] = struct{}{}
-			ipMacs[reservation.HwAddress] = struct{}{}
+			reservationParams[reservation.IpAddress] = struct{}{}
+		}
+
+		if reservation.HwAddress != "" {
+			if _, ok := reservationParams[reservation.HwAddress]; ok {
+				return fmt.Errorf("duplicate reservation4 with mac %s", reservation.HwAddress)
+			} else {
+				reservationParams[reservation.HwAddress] = struct{}{}
+			}
+		} else if reservation.Hostname != "" {
+			if _, ok := reservationParams[reservation.Hostname]; ok && reservation.Hostname != "" {
+				return fmt.Errorf("duplicate reservation4 with hostname %s", reservation.Hostname)
+			} else {
+				reservationParams[reservation.Hostname] = struct{}{}
+			}
 		}
 	}
 

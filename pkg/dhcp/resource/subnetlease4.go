@@ -33,5 +33,6 @@ func (l *SubnetLease4) Equal(another *SubnetLease4) bool {
 	return l.Address == another.Address &&
 		l.Expire == another.Expire &&
 		l.HwAddress == another.HwAddress &&
-		l.ClientId == another.ClientId
+		l.ClientId == another.ClientId &&
+		l.Hostname == another.Hostname
 }

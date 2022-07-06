@@ -782,16 +782,27 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 			reservation := &resource.Reservation6{
 				Comment: reservationSlices[4],
 			}
-			if reservationSlices[0] == "duid" {
+
+			switch reservationSlices[0] {
+			case resource.ReservationIdDUID:
 				reservation.Duid = reservationSlices[1]
-			} else {
+			case resource.ReservationIdMAC:
 				reservation.HwAddress = reservationSlices[1]
+			case resource.ReservationIdHostname:
+				reservation.Hostname = reservationSlices[1]
+			default:
+				return nil, fmt.Errorf("parse reservation6 %s failed with wrong prefix %s not in [duid, mac, hostname]",
+					reservationStr, reservationSlices[0])
 			}
 
-			if reservationSlices[2] == "ips" {
+			switch reservationSlices[2] {
+			case resource.ReservationTypeIps:
 				reservation.IpAddresses = strings.Split(reservationSlices[3], "_")
-			} else {
+			case resource.ReservationTypePrefixes:
 				reservation.Prefixes = strings.Split(reservationSlices[3], "_")
+			default:
+				return nil, fmt.Errorf("parse reservation6 %s failed with wrong type %s not in [ips, prefixes]",
+					reservationStr, reservationSlices[2])
 			}
 
 			reservations = append(reservations, reservation)
@@ -862,17 +873,23 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 			return err
 		}
 
-		if len(reservation.Duid) != 0 {
+		if reservation.Duid != "" {
 			if _, ok := reservationFieldMap[reservation.Duid]; ok {
 				return fmt.Errorf("duplicate reservation6 with duid %s", reservation.Duid)
 			} else {
 				reservationFieldMap[reservation.Duid] = struct{}{}
 			}
-		} else {
+		} else if reservation.HwAddress != "" {
 			if _, ok := reservationFieldMap[reservation.HwAddress]; ok {
 				return fmt.Errorf("duplicate reservation6 with mac %s", reservation.HwAddress)
 			} else {
 				reservationFieldMap[reservation.HwAddress] = struct{}{}
+			}
+		} else if reservation.Hostname != "" {
+			if _, ok := reservationFieldMap[reservation.Hostname]; ok {
+				return fmt.Errorf("duplicate reservation6 with hostname %s", reservation.Hostname)
+			} else {
+				reservationFieldMap[reservation.Hostname] = struct{}{}
 			}
 		}
 

@@ -333,6 +333,7 @@ func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resou
 		SubnetId:    subnetID,
 		HwAddress:   reservation.HwAddress,
 		Duid:        reservation.Duid,
+		Hostname:    reservation.Hostname,
 		IpAddresses: reservation.IpAddresses,
 		Prefixes:    reservation.Prefixes,
 	}
@@ -386,10 +387,10 @@ func getReservation6sLeasesCount(subnetId uint64, reservations []*resource.Reser
 	leasesCount := make(map[string]uint64)
 	for _, lease := range resp.GetLeases() {
 		if reservation, ok := reservationMap[prefixFromAddressAndPrefixLen(lease.GetAddress(),
-			lease.GetPrefixLen())]; ok && ((len(reservation.Duid) != 0 &&
-			reservation.Duid == lease.GetDuid()) ||
-			(len(reservation.HwAddress) != 0 &&
-				reservation.HwAddress == lease.GetHwAddress())) {
+			lease.GetPrefixLen())]; ok &&
+			(reservation.Duid == "" || reservation.Duid == lease.GetDuid()) &&
+			(reservation.HwAddress == "" || reservation.HwAddress == lease.GetHwAddress()) &&
+			(reservation.Hostname == "" || reservation.Hostname == lease.GetHostname()) {
 			leasesCount[reservation.GetID()] += 1
 		}
 	}
@@ -472,6 +473,7 @@ func getReservation6LeasesCount(reservation *resource.Reservation6) (uint64, err
 				SubnetId:    subnetIDStrToUint64(reservation.Subnet6),
 				HwAddress:   reservation.HwAddress,
 				Duid:        reservation.Duid,
+				Hostname:    reservation.Hostname,
 				IpAddresses: reservation.IpAddresses,
 				Prefixes:    reservation.Prefixes,
 			})
@@ -541,6 +543,7 @@ func setReservation6FromDB(tx restdb.Transaction, reservation *resource.Reservat
 	reservation.Subnet6 = reservations[0].Subnet6
 	reservation.HwAddress = reservations[0].HwAddress
 	reservation.Duid = reservations[0].Duid
+	reservation.Hostname = reservations[0].Hostname
 	reservation.IpAddresses = reservations[0].IpAddresses
 	reservation.Ips = reservations[0].Ips
 	reservation.Prefixes = reservations[0].Prefixes
@@ -558,6 +561,7 @@ func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resou
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
 		Duid:      reservation.Duid,
+		Hostname:  reservation.Hostname,
 	}
 }
 
