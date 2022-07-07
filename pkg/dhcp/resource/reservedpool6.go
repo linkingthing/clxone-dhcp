@@ -64,7 +64,7 @@ func (p *ReservedPool6) String() string {
 }
 
 func (p *ReservedPool6) Validate() error {
-	if err := checkCommentValid(p.Comment); err != nil {
+	if err := CheckCommentValid(p.Comment); err != nil {
 		return err
 	}
 

@@ -404,6 +404,10 @@ func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 }
 
 func (p *Pool4Service) Update(subnetId string, pool *resource.Pool4) error {
+	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TablePool4, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,

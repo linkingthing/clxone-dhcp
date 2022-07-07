@@ -422,8 +422,8 @@ func pdpoolToDeletePdPoolRequest(subnetID uint64, pdpool *resource.PdPool) *pbdh
 }
 
 func (p *PdPoolService) Update(subnetId string, pdpool *resource.PdPool) error {
-	if err := pdpool.Validate(); err != nil {
-		return fmt.Errorf("validate pdpool params invalid: %s", err.Error())
+	if err := resource.CheckCommentValid(pdpool.Comment); err != nil {
+		return err
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

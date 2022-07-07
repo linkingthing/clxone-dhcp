@@ -325,6 +325,10 @@ func (p *ReservedPool6Service) ActionValidTemplate(subnet *resource.Subnet6, poo
 }
 
 func (p *ReservedPool6Service) Update(subnetId string, pool *resource.ReservedPool6) error {
+	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPool6, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,

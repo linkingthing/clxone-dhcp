@@ -272,6 +272,10 @@ func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resour
 }
 
 func (p *ReservedPdPoolService) Update(subnetId string, pool *resource.ReservedPdPool) error {
+	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPdPool, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,

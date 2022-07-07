@@ -335,6 +335,10 @@ func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resou
 }
 
 func (r *Reservation4Service) Update(subnetId string, reservation *resource.Reservation4) error {
+	if err := resource.CheckCommentValid(reservation.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservation4, map[string]interface{}{
 			resource.SqlColumnComment: reservation.Comment,

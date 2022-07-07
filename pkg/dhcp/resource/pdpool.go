@@ -40,7 +40,7 @@ func (pdpool *PdPool) Validate() error {
 		return err
 	}
 
-	if err := checkCommentValid(pdpool.Comment); err != nil {
+	if err := CheckCommentValid(pdpool.Comment); err != nil {
 		return err
 	}
 

@@ -775,7 +775,7 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 	var reservations []*resource.Reservation6
 	for _, reservationStr := range strings.Split(field, ",") {
 		if reservationSlices := strings.SplitN(reservationStr,
-			"-", 5); len(reservationSlices) != 5 {
+			"$", 5); len(reservationSlices) != 5 {
 			return nil, fmt.Errorf("parse subnet6 reservation6 %s failed with wrong regexp",
 				reservationStr)
 		} else {
@@ -1262,7 +1262,7 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 	for _, reservation := range reservations {
 		reservationSlices := subnetReservations[reservation.Subnet6]
 		reservationSlices = append(reservationSlices,
-			reservation.String()+"-"+reservation.AddrString()+"-"+reservation.Comment)
+			reservation.String()+"$"+reservation.AddrString()+"$"+reservation.Comment)
 		subnetReservations[reservation.Subnet6] = reservationSlices
 	}
 

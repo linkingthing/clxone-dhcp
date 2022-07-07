@@ -31,7 +31,11 @@ func (r Reservation4) GetParents() []restresource.ResourceKind {
 }
 
 func (r *Reservation4) String() string {
-	return r.HwAddress + "-" + r.IpAddress
+	if r.HwAddress != "" {
+		return ReservationIdMAC + "$" + r.HwAddress + "$" + r.IpAddress
+	} else {
+		return ReservationIdHostname + "$" + r.Hostname + "$" + r.IpAddress
+	}
 }
 
 func (r *Reservation4) Validate() error {
@@ -55,7 +59,7 @@ func (r *Reservation4) Validate() error {
 		r.Ip = ipv4
 	}
 
-	if err := checkCommentValid(r.Comment); err != nil {
+	if err := CheckCommentValid(r.Comment); err != nil {
 		return err
 	}
 

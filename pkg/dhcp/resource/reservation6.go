@@ -47,19 +47,19 @@ func (r Reservation6) GetParents() []restresource.ResourceKind {
 
 func (r *Reservation6) String() string {
 	if r.Duid != "" {
-		return "duid-" + r.Duid
+		return "duid$" + r.Duid
 	} else if r.HwAddress != "" {
-		return "mac-" + r.HwAddress
+		return "mac$" + r.HwAddress
 	} else {
-		return "hostname-" + r.Hostname
+		return "hostname$" + r.Hostname
 	}
 }
 
 func (r *Reservation6) AddrString() string {
 	if len(r.IpAddresses) != 0 {
-		return "ips-" + strings.Join(r.IpAddresses, "_")
+		return "ips$" + strings.Join(r.IpAddresses, "_")
 	} else {
-		return "prefixes-" + strings.Join(r.Prefixes, "_")
+		return "prefixes$" + strings.Join(r.Prefixes, "_")
 	}
 }
 
@@ -148,7 +148,7 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
-	if err := checkCommentValid(r.Comment); err != nil {
+	if err := CheckCommentValid(r.Comment); err != nil {
 		return err
 	}
 
