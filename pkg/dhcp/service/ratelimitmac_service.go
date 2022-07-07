@@ -101,6 +101,10 @@ func sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId string) error {
 }
 
 func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error {
+	if err := rateLimitMac.Validate(); err != nil {
+		return fmt.Errorf("validate ratelimit mac %s failed: %s", rateLimitMac.GetID(), err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var rateLimits []*resource.RateLimitMac
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: rateLimitMac.GetID()},
