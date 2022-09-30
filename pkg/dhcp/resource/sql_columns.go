@@ -47,4 +47,5 @@ const (
 	SqlColumnRelayAgentInterfaceId = "relay_agent_interface_id"
 	SqlColumnRapidCommit           = "rapid_commit"
 	SqlColumnUseEui64              = "use_eui64"
+	SqlColumnIpv6OnlyPreferred     = "ipv6_only_preferred"
 )

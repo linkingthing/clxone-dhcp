@@ -34,6 +34,7 @@ type Subnet4 struct {
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	IfaceName                 string    `json:"ifaceName"`
 	NextServer                string    `json:"nextServer"`
+	Ipv6OnlyPreferred         uint32    `json:"ipv6OnlyPreferred"`
 	Tags                      string    `json:"tags"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
@@ -167,6 +168,10 @@ func (s *Subnet4) ValidateParams() error {
 		if err := gohelperip.CheckIPv4sValid(s.NextServer); err != nil {
 			return fmt.Errorf("subnet4 next server invalid: %s", err.Error())
 		}
+	}
+
+	if s.Ipv6OnlyPreferred != 0 && s.Ipv6OnlyPreferred < 300 {
+		return fmt.Errorf("subnet4 ipv6-only preferred must not be less than 300")
 	}
 
 	if err := checkCommonOptions(true, s.ClientClass, s.DomainServers, s.RelayAgentAddresses); err != nil {

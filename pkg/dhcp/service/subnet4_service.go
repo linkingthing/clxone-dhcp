@@ -180,6 +180,14 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 		})
 	}
 
+	if subnet.Ipv6OnlyPreferred != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "ipv6-only-perferred",
+			Code: 108,
+			Data: uint32ToString(subnet.Ipv6OnlyPreferred),
+		})
+	}
+
 	return subnetOptions
 }
 
@@ -467,6 +475,7 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnNextServer:          subnet.NextServer,
 			resource.SqlColumnTftpServer:          subnet.TftpServer,
 			resource.SqlColumnBootfile:            subnet.Bootfile,
+			resource.SqlColumnIpv6OnlyPreferred:   subnet.Ipv6OnlyPreferred,
 			resource.SqlColumnTags:                subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return pg.Error(err)
@@ -803,6 +812,11 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.TftpServer = strings.TrimSpace(field)
 		case FieldNameOption67:
 			subnet.Bootfile = field
+		case FieldNameOption108:
+			if subnet.Ipv6OnlyPreferred, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
+				break
+			}
 		case FieldNameNodes:
 			subnet.Nodes = strings.Split(strings.TrimSpace(field), ",")
 		case FieldNamePools:
