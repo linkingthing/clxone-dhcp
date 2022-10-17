@@ -69,8 +69,8 @@ func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 
 func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
 	if count, err := tx.CountEx(resource.TableReservation4,
-		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 or ip_address = $3 or hostname = $4)",
-		subnetId, reservation.HwAddress, reservation.IpAddress, reservation.Hostname); err != nil {
+		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 and hostname = $3 or ip_address = $4)",
+		subnetId, reservation.HwAddress, reservation.Hostname, reservation.IpAddress); err != nil {
 		return fmt.Errorf("check reservation4 %s with subnet4 %s exists in db failed: %s",
 			reservation.String(), subnetId, pg.Error(err).Error())
 	} else if count != 0 {
