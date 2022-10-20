@@ -77,8 +77,13 @@ func (r *Reservation6) CheckConflictWithAnother(another *Reservation6) bool {
 	}
 
 	for _, prefix := range r.Prefixes {
+		ipnet, err := gohelperip.ParseCIDRv6(prefix)
+		if err != nil {
+			continue
+		}
+
 		for _, prefix_ := range another.Prefixes {
-			if isPrefixesIntersect(prefix, prefix_) {
+			if isPrefixIntersectWithIpnet(prefix_, ipnet) {
 				return true
 			}
 		}
@@ -87,18 +92,13 @@ func (r *Reservation6) CheckConflictWithAnother(another *Reservation6) bool {
 	return false
 }
 
-func isPrefixesIntersect(onePrefix, anotherPrefix string) bool {
-	one, err := gohelperip.ParseCIDRv6(onePrefix)
+func isPrefixIntersectWithIpnet(prefix string, ipnet *net.IPNet) bool {
+	ipnet_, err := gohelperip.ParseCIDRv6(prefix)
 	if err != nil {
 		return false
 	}
 
-	another, err := gohelperip.ParseCIDRv6(anotherPrefix)
-	if err != nil {
-		return false
-	}
-
-	return one.Contains(another.IP) || another.Contains(one.IP)
+	return ipnet.Contains(ipnet_.IP) || ipnet_.Contains(ipnet.IP)
 }
 
 func (r *Reservation6) Validate() error {
@@ -128,21 +128,27 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
+	uniqueIps := make(map[string]struct{})
 	capacity := new(big.Int)
 	for _, ip := range r.IpAddresses {
 		if ipv6, err := gohelperip.ParseIPv6(ip); err != nil {
 			return err
+		} else if _, ok := uniqueIps[ip]; ok {
+			return fmt.Errorf("duplicate ip %s", ip)
 		} else {
+			uniqueIps[ip] = struct{}{}
 			r.Ips = append(r.Ips, ipv6)
 			capacity.Add(capacity, big.NewInt(1))
 		}
 	}
 
-	for _, prefix := range r.Prefixes {
+	for i, prefix := range r.Prefixes {
 		if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 			return err
 		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
 			return fmt.Errorf("prefix %s mask size %d must not bigger than 64", prefix, ones)
+		} else if prefix_, conflict := isIpnetIntersectPrefixes(r.Prefixes, ipnet, i); conflict {
+			return fmt.Errorf("prefix %s conflict with %s", prefix, prefix_)
 		} else {
 			capacity.Add(capacity, big.NewInt(1))
 		}
@@ -154,6 +160,16 @@ func (r *Reservation6) Validate() error {
 
 	r.Capacity = capacity.String()
 	return nil
+}
+
+func isIpnetIntersectPrefixes(prefixes []string, ipnet *net.IPNet, index int) (string, bool) {
+	for i := index + 1; i < len(prefixes); i++ {
+		if isPrefixIntersectWithIpnet(prefixes[i], ipnet) {
+			return prefixes[i], true
+		}
+	}
+
+	return "", false
 }
 
 func parseDUID(duid string) error {
