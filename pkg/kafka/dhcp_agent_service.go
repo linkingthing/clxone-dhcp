@@ -93,6 +93,10 @@ const (
 	CreateRateLimitDuid DHCPCmd = "create_ratelimitduid"
 	DeleteRateLimitDuid DHCPCmd = "delete_ratelimitduid"
 	UpdateRateLimitDuid DHCPCmd = "update_ratelimitduid"
+
+	CreateAddressCode DHCPCmd = "create_addresscode"
+	DeleteAddressCode DHCPCmd = "delete_addresscode"
+	UpdateAddressCode DHCPCmd = "update_addresscode"
 )
 
 var globalDHCPAgentService *DHCPAgentService

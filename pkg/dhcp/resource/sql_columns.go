@@ -48,4 +48,7 @@ const (
 	SqlColumnRapidCommit           = "rapid_commit"
 	SqlColumnUseEui64              = "use_eui64"
 	SqlColumnIpv6OnlyPreferred     = "ipv6_only_preferred"
+	SqlColumnCode                  = "code"
+	SqlColumnBegin                 = "begin"
+	SqlColumnEnd                   = "end"
 )

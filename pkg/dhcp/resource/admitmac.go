@@ -22,10 +22,9 @@ func (a AdmitMac) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AdmitMac) Validate() error {
-	if err := util.ValidateStrings(a.Comment); err != nil {
+	if _, err := net.ParseMAC(a.HwAddress); err != nil {
 		return err
 	} else {
-		_, err = net.ParseMAC(a.HwAddress)
-		return err
+		return util.ValidateStrings(a.Comment)
 	}
 }
