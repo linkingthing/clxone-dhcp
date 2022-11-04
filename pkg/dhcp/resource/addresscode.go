@@ -50,13 +50,13 @@ func (a *AddressCode) ValidateCode() error {
 		return fmt.Errorf("address code missing code")
 	}
 
-	if a.Begin < 65 || a.Begin > 125 ||
-		a.End < a.Begin+3 || a.End > 128 {
-		return fmt.Errorf("address code begin %d must in [65, 125] and end %d must in [%d+3, 128]",
-			a.Begin, a.End, a.Begin)
+	if a.Begin < 65 || a.Begin > 128 ||
+		a.End < a.Begin || a.End > 128 || a.End%4 != 0 {
+		return fmt.Errorf("address code begin %d must in [65, 128] and end %d must in [68 72 76 80 84 88 92 96 100 104 108 112 116 120 124 128]",
+			a.Begin, a.End)
 	}
 
-	if int(a.End-a.Begin+1) != len(a.Code)*4 {
+	if a.End-a.Begin+1 != uint32(len(a.Code))*4-(3-(a.End-a.Begin)%4) {
 		return fmt.Errorf("code %s length no match with begin %d and end %d",
 			a.Code, a.Begin, a.End)
 	}
