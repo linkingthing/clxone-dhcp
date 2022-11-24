@@ -128,6 +128,7 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *pbdhcpagent.Create
 		RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
 		RapidCommit:           subnet.RapidCommit,
 		UseEui64:              subnet.UseEui64,
+		UseAddressCode:        subnet.UseAddressCode,
 		SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 	}
 }
@@ -291,12 +292,13 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 	}
 
 	newUseEUI64 := subnet.UseEui64
+	newUseAddressCode := subnet.UseAddressCode
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet6FromDB(tx, subnet); err != nil {
 			return err
 		}
 
-		if err := checkUseEUI64(tx, subnet, newUseEUI64); err != nil {
+		if err := checkUseEUI64AndAddressCode(tx, subnet, newUseEUI64, newUseAddressCode); err != nil {
 			return err
 		}
 
@@ -313,6 +315,7 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 			resource.SqlColumnTags:                  subnet.Tags,
 			resource.SqlColumnRapidCommit:           subnet.RapidCommit,
 			resource.SqlColumnUseEui64:              subnet.UseEui64,
+			resource.SqlColumnUseAddressCode:        subnet.UseAddressCode,
 			resource.SqlColumnCapacity:              subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return pg.Error(err)
@@ -338,6 +341,7 @@ func setSubnet6FromDB(tx restdb.Transaction, subnet *resource.Subnet6) error {
 	subnet.Ipnet = oldSubnet.Ipnet
 	subnet.Nodes = oldSubnet.Nodes
 	subnet.UseEui64 = oldSubnet.UseEui64
+	subnet.UseAddressCode = oldSubnet.UseAddressCode
 	return nil
 }
 
@@ -353,25 +357,56 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 	return subnets[0], nil
 }
 
-func checkUseEUI64(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64 bool) error {
+func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64, newUseAddressCode bool) error {
+	maskSize, _ := subnet.Ipnet.Mask.Size()
 	if newUseEUI64 {
-		if ones, _ := subnet.Ipnet.Mask.Size(); ones != 64 {
-			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", ones)
+		if newUseAddressCode {
+			return fmt.Errorf("subnet use eui64 conflict with use address code")
 		}
 
 		if !subnet.UseEui64 {
+			if maskSize != 64 {
+				return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", maskSize)
+			}
+
 			if exists, err := subnetHasPools(tx, subnet); err != nil {
 				return err
 			} else if exists {
 				return fmt.Errorf("subnet6 has pools, can not enabled use eui64")
 			}
+
 			subnet.Capacity = resource.MaxUint64String
 		}
-	} else if subnet.UseEui64 {
-		subnet.Capacity = "0"
+	} else {
+		if subnet.UseEui64 {
+			subnet.Capacity = "0"
+		}
+
+		if newUseAddressCode {
+			if !subnet.UseAddressCode {
+				if maskSize < 64 {
+					fmt.Errorf("subnet use address code mask size %d must bigger than 63", maskSize)
+				}
+
+				if exists, err := subnetHasPdPools(tx, subnet); err != nil {
+					return err
+				} else if exists {
+					return fmt.Errorf("subnet6 has pdpools, can not enabled use address code")
+				}
+
+				if err := calculateSubnetCapacityWithUseAddressCode(tx, subnet, maskSize); err != nil {
+					return fmt.Errorf("calculate subnet6 capacity with address code failed: %s", err.Error())
+				}
+			}
+		} else if subnet.UseAddressCode {
+			if err := calculateSubnetCapacityWithoutUseAddressCode(tx, subnet); err != nil {
+				return fmt.Errorf("calculate subnet6 capacity without address code failed: %s", err.Error())
+			}
+		}
 	}
 
 	subnet.UseEui64 = newUseEUI64
+	subnet.UseAddressCode = newUseAddressCode
 	return nil
 }
 
@@ -395,6 +430,73 @@ func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, erro
 	}
 }
 
+func subnetHasPdPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
+	if exists, err := tx.Exists(resource.TablePdPool,
+		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
+		return false, pg.Error(err)
+	} else if exists {
+		return true, nil
+	}
+
+	if exists, err := tx.Exists(resource.TableReservedPdPool,
+		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
+		return false, pg.Error(err)
+	} else if exists {
+		return true, nil
+	}
+
+	if count, err := tx.CountEx(resource.TableReservation6,
+		"select count(*) from gr_reservation6 where prefixes != '{}'"); err != nil {
+		return false, pg.Error(err)
+	} else {
+		return count != 0, nil
+	}
+}
+
+func calculateSubnetCapacityWithUseAddressCode(tx restdb.Transaction, subnet *resource.Subnet6, maskSize int) error {
+	subnetCapacity := new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize))
+	if !subnet.UseEui64 {
+		var reservedPools []*resource.ReservedPool6
+		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}, &reservedPools); err != nil {
+			return pg.Error(err)
+		}
+
+		for _, reservedPool := range reservedPools {
+			reservedPoolCapacity, _ := new(big.Int).SetString(reservedPool.Capacity, 10)
+			subnetCapacity.Sub(subnetCapacity, reservedPoolCapacity)
+		}
+	}
+
+	subnet.Capacity = subnetCapacity.String()
+	return nil
+}
+
+func calculateSubnetCapacityWithoutUseAddressCode(tx restdb.Transaction, subnet *resource.Subnet6) error {
+	subnetCapacity := big.NewInt(0)
+	var pools []*resource.Pool6
+	var reservations []*resource.Reservation6
+	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}, &pools); err != nil {
+		return pg.Error(err)
+	}
+
+	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}, &reservations); err != nil {
+		return pg.Error(err)
+	}
+
+	for _, pool := range pools {
+		poolCapacity, _ := new(big.Int).SetString(pool.Capacity, 10)
+		subnetCapacity.Add(subnetCapacity, poolCapacity)
+	}
+
+	for _, reservation := range reservations {
+		reservationCapacity, _ := new(big.Int).SetString(reservation.Capacity, 10)
+		subnetCapacity.Add(subnetCapacity, reservationCapacity)
+	}
+
+	subnet.Capacity = subnetCapacity.String()
+	return nil
+}
+
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 	return kafka.SendDHCPCmdWithNodes(false, subnet.Nodes, kafka.UpdateSubnet6,
 		&pbdhcpagent.UpdateSubnet6Request{
@@ -414,6 +516,7 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
 			RapidCommit:           subnet.RapidCommit,
 			UseEui64:              subnet.UseEui64,
+			UseAddressCode:        subnet.UseAddressCode,
 			SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 		}, nil)
 }
@@ -679,7 +782,9 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameSubnetName:
 			subnet.Tags = field
 		case FieldNameEUI64:
-			subnet.UseEui64 = eui64FromString(strings.TrimSpace(field))
+			subnet.UseEui64 = internationalizationBoolSwitch(strings.TrimSpace(field))
+		case FieldNameUseAddressCode:
+			subnet.UseAddressCode = internationalizationBoolSwitch(strings.TrimSpace(field))
 		case FieldNameValidLifetime:
 			if subnet.ValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
@@ -865,6 +970,10 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 
 	reservationFieldMap := make(map[string]struct{})
 	for _, reservation := range reservations {
+		if subnet.UseAddressCode && len(reservation.Prefixes) != 0 {
+			return fmt.Errorf("subnet6 use address code, can not create reservation6 prefixes")
+		}
+
 		if err := reservation.Validate(); err != nil {
 			return err
 		}
@@ -911,7 +1020,9 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 			}
 		}
 
-		subnet.AddCapacityWithString(reservation.Capacity)
+		if !subnet.UseAddressCode {
+			subnet.AddCapacityWithString(reservation.Capacity)
+		}
 	}
 
 	return nil
@@ -949,6 +1060,10 @@ func checkReservedPool6sValid(subnet *resource.Subnet6, reservedPools []*resourc
 			reservations); err != nil {
 			return err
 		}
+
+		if subnet.UseAddressCode {
+			subnet.SubCapacityWithString(reservedPools[i].Capacity)
+		}
 	}
 
 	return nil
@@ -984,7 +1099,9 @@ func checkPool6sValid(subnet *resource.Subnet6, pools []*resource.Pool6, reserve
 
 		recalculatePool6CapacityWithReservations(pools[i], reservations)
 		recalculatePool6CapacityWithReservedPools(pools[i], reservedPools)
-		subnet.AddCapacityWithString(pools[i].Capacity)
+		if !subnet.UseAddressCode {
+			subnet.AddCapacityWithString(pools[i].Capacity)
+		}
 	}
 
 	return nil
@@ -996,8 +1113,8 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 		return nil
 	}
 
-	if subnet.UseEui64 {
-		return fmt.Errorf("subnet6 use EUI64, can not create pdpool")
+	if subnet.UseEui64 || subnet.UseAddressCode {
+		return fmt.Errorf("subnet6 use EUI64 or address code, can not create pdpool")
 	}
 
 	for i := 0; i < pdpoolsLen; i++ {

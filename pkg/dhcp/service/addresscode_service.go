@@ -45,8 +45,8 @@ func sendCreateAddressCodeCmdToDHCPAgent(addressCode *resource.AddressCode) erro
 			HwAddress: addressCode.HwAddress,
 			Duid:      addressCode.Duid,
 			Code:      addressCode.Code,
-			Begin:     addressCode.Begin,
-			End:       addressCode.End,
+			CodeBegin: addressCode.CodeBegin,
+			CodeEnd:   addressCode.CodeEnd,
 		},
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -130,17 +130,17 @@ func (d *AddressCodeService) Update(addressCode *resource.AddressCode) error {
 
 		if _, err := tx.Update(resource.TableAddressCode,
 			map[string]interface{}{
-				resource.SqlColumnCode:    addressCode.Code,
-				resource.SqlColumnBegin:   addressCode.Begin,
-				resource.SqlColumnEnd:     addressCode.End,
-				resource.SqlColumnComment: addressCode.Comment,
+				resource.SqlColumnCode:      addressCode.Code,
+				resource.SqlColumnCodeBegin: addressCode.CodeBegin,
+				resource.SqlColumnCodeEnd:   addressCode.CodeEnd,
+				resource.SqlColumnComment:   addressCode.Comment,
 			},
 			map[string]interface{}{restdb.IDField: addressCode.GetID()}); err != nil {
 			return pg.Error(err)
 		}
 
-		if addressCode.Code != addressCodes[0].Code || addressCode.Begin != addressCodes[0].Begin ||
-			addressCode.End != addressCodes[0].End {
+		if addressCode.Code != addressCodes[0].Code || addressCode.CodeBegin != addressCodes[0].CodeBegin ||
+			addressCode.CodeEnd != addressCodes[0].CodeEnd {
 			return sendUpdateAddressCodeCmdToDHCPAgent(addressCodes[0], addressCode)
 		} else {
 			return nil
@@ -158,7 +158,7 @@ func sendUpdateAddressCodeCmdToDHCPAgent(oldAddressCode, newAddressCode *resourc
 			HwAddress: oldAddressCode.HwAddress,
 			Duid:      oldAddressCode.Duid,
 			Code:      newAddressCode.Code,
-			Begin:     newAddressCode.Begin,
-			End:       newAddressCode.End,
+			CodeBegin: newAddressCode.CodeBegin,
+			CodeEnd:   newAddressCode.CodeEnd,
 		}, nil)
 }

@@ -59,6 +59,8 @@ func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 		return err
 	} else if subnet.UseEui64 {
 		return fmt.Errorf("subnet6 use EUI64, can not create reservation6")
+	} else if subnet.UseAddressCode && len(reservation.Prefixes) != 0 {
+		return fmt.Errorf("subnet6 use address code, can not create reservation6 prefixes")
 	}
 
 	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation); err != nil {
@@ -165,11 +167,13 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 		return err
 	}
 
-	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-		resource.SqlColumnCapacity: subnet.Capacity,
-	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
-			subnet.GetID(), pg.Error(err).Error())
+	if !subnet.UseAddressCode {
+		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
+			resource.SqlColumnCapacity: subnet.Capacity,
+		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+			return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
+				subnet.GetID(), pg.Error(err).Error())
+		}
 	}
 
 	for affectedPoolId, capacity := range affectedPools {
@@ -245,17 +249,19 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 		}
 	}
 
-	if isCreate {
-		subnet.AddCapacityWithBigInt(unreservedCount)
-	} else {
-		subnet.SubCapacityWithBigInt(unreservedCount)
+	if !subnet.UseAddressCode {
+		if isCreate {
+			subnet.AddCapacityWithBigInt(unreservedCount)
+		} else {
+			subnet.SubCapacityWithBigInt(unreservedCount)
+		}
 	}
 
 	return affectedPool6s, nil
 }
 
 func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resource.Subnet6, prefixes []string, isCreate bool) (map[string]string, error) {
-	if len(prefixes) == 0 {
+	if subnet.UseAddressCode || len(prefixes) == 0 {
 		return nil, nil
 	}
 

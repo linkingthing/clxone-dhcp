@@ -49,6 +49,7 @@ const (
 	SqlColumnUseEui64              = "use_eui64"
 	SqlColumnIpv6OnlyPreferred     = "ipv6_only_preferred"
 	SqlColumnCode                  = "code"
-	SqlColumnBegin                 = "begin"
-	SqlColumnEnd                   = "end"
+	SqlColumnCodeBegin             = "code_begin"
+	SqlColumnCodeEnd               = "code_end"
+	SqlColumnUseAddressCode        = "use_address_code"
 )

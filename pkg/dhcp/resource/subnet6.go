@@ -37,6 +37,7 @@ type Subnet6 struct {
 	Nodes                     []string  `json:"nodes"`
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
+	UseAddressCode            bool      `json:"useAddressCode"`
 	Capacity                  string    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
@@ -92,13 +93,26 @@ func (s *Subnet6) Validate() error {
 
 	s.Ipnet = *ipnet
 	s.Subnet = ipnet.String()
+	maskSize, _ := s.Ipnet.Mask.Size()
 	if s.UseEui64 {
-		if ones, _ := s.Ipnet.Mask.Size(); ones != 64 {
-			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", ones)
+		if s.UseAddressCode {
+			return fmt.Errorf("subnet use eui64 conflict with use address code")
+		}
+
+		if maskSize != 64 {
+			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", maskSize)
 		}
 		s.Capacity = MaxUint64String
 	} else {
-		s.Capacity = "0"
+		if s.UseAddressCode {
+			if maskSize < 64 {
+				fmt.Errorf("subnet use address code mask size %d must bigger than 63", maskSize)
+			}
+
+			s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
+		} else {
+			s.Capacity = "0"
+		}
 	}
 
 	if err := s.setSubnet6DefaultValue(); err != nil {
