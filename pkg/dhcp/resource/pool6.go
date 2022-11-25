@@ -177,8 +177,7 @@ func CalculateIpv6Pool6CapacityWithBigInt(beginBigInt, endBigInt *big.Int) (*big
 			beginBigInt.String(), endBigInt.String())
 	}
 
-	return new(big.Int).Add(new(big.Int).Sub(endBigInt, beginBigInt),
-		big.NewInt(1)), nil
+	return new(big.Int).Add(new(big.Int).Sub(endBigInt, beginBigInt), big.NewInt(1)), nil
 }
 
 func (p *Pool6) AddCapacityWithBigInt(capacityForAdd *big.Int) string {

@@ -109,7 +109,11 @@ func (s *Subnet6) Validate() error {
 				fmt.Errorf("subnet use address code mask size %d must bigger than 63", maskSize)
 			}
 
-			s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
+			if maskSize == 64 {
+				s.Capacity = MaxUint64String
+			} else {
+				s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
+			}
 		} else {
 			s.Capacity = "0"
 		}

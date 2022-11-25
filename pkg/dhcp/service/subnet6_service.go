@@ -455,6 +455,10 @@ func subnetHasPdPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, er
 
 func calculateSubnetCapacityWithUseAddressCode(tx restdb.Transaction, subnet *resource.Subnet6, maskSize int) error {
 	subnetCapacity := new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize))
+	if maskSize == 64 {
+		subnetCapacity.Sub(subnetCapacity, big.NewInt(1))
+	}
+
 	if !subnet.UseEui64 {
 		var reservedPools []*resource.ReservedPool6
 		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}, &reservedPools); err != nil {
@@ -472,7 +476,7 @@ func calculateSubnetCapacityWithUseAddressCode(tx restdb.Transaction, subnet *re
 }
 
 func calculateSubnetCapacityWithoutUseAddressCode(tx restdb.Transaction, subnet *resource.Subnet6) error {
-	subnetCapacity := big.NewInt(0)
+	subnetCapacity := new(big.Int)
 	var pools []*resource.Pool6
 	var reservations []*resource.Reservation6
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}, &pools); err != nil {
