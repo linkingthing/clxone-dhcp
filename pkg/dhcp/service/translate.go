@@ -53,7 +53,7 @@ var (
 	}
 
 	TableHeaderSubnet6 = []string{
-		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, FieldNameUseAddressCode,
+		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, //FieldNameUseAddressCode,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameDomainServers, FieldNameIfaceName,
 		FieldNameRelayAddresses, FieldNameOption16, FieldNameOption18, FieldNameNodes,
@@ -79,18 +79,18 @@ var (
 	}}
 
 	TemplateSubnet6 = [][]string{
-		[]string{"2001::/32", "template1", "关闭", "关闭", "14400", "28800", "7200", "14400",
+		[]string{"2001::/32", "template1", "关闭", "14400", "28800", "7200", "14400",
 			"2400:3200::1,2400:3200::baba:1", "ens33", "2001::255", "option16",
 			"Gi0/0/1", "127.0.0.2,127.0.0.3", "", "", "",
 			"2001:0:2001::-48-64-备注1,2001:0:2002::-48-64-备注2"},
-		[]string{"2002::/64", "template2", "关闭", "开启", "14400", "28800", "7200", "14400",
+		[]string{"2002::/64", "template2", "关闭", "14400", "28800", "7200", "14400",
 			"2400:3200::1", "eno1", "2002::255", "option16-1",
 			"Gi0/0/2", "127.0.0.3,127.0.0.4",
 			"2002::6-2002::1f-备注1,2002::26-2002::3f-备注2",
 			"2002::1-2002::5-备注3,2002::20-2002::25-备注4",
 			"duid$0102$ips$2002::11_2002::12$备注5, mac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6, hostname$linking$ips$2002::34_2002::35$备注7",
 			""},
-		[]string{"2003::/64", "template3", "开启", "关闭", "14400", "28800", "7200", "14400",
+		[]string{"2003::/64", "template3", "开启", "14400", "28800", "7200", "14400",
 			"2400:3200::baba:1", "eth0", "2003::255", "option16-2", "Gi0/0/3",
 			"127.0.0.4,127.0.0.5", "", "", "", ""},
 	}
@@ -113,7 +113,7 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 	return []string{
 		subnet6.Subnet, subnet6.Tags,
-		localizationBoolSwitch(subnet6.UseEui64), localizationBoolSwitch(subnet6.UseAddressCode),
+		localizationBoolSwitch(subnet6.UseEui64), //localizationBoolSwitch(subnet6.UseAddressCode),
 		uint32ToString(subnet6.ValidLifetime),
 		uint32ToString(subnet6.MaxValidLifetime),
 		uint32ToString(subnet6.MinValidLifetime),
