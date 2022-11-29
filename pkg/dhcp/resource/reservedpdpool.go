@@ -51,13 +51,18 @@ func (pdpool *ReservedPdPool) CheckConflictWithAnother(another *ReservedPdPool) 
 		another.PrefixIpnet.Contains(pdpool.PrefixIpnet.IP)
 }
 
-func (pdpool *ReservedPdPool) Intersect(prefix string) bool {
+func (pdpool *ReservedPdPool) IntersectIpnetString(prefix string) bool {
 	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 		return false
 	} else {
 		return pdpool.PrefixIpnet.Contains(ipnet.IP) ||
 			ipnet.Contains(pdpool.PrefixIpnet.IP)
 	}
+}
+
+func (pdpool *ReservedPdPool) IntersectIpnet(ipnet net.IPNet) bool {
+	return ipnet.IP != nil && (pdpool.PrefixIpnet.Contains(ipnet.IP) ||
+		ipnet.Contains(pdpool.PrefixIpnet.IP))
 }
 
 func (pdpool *ReservedPdPool) GetRange() (string, string) {

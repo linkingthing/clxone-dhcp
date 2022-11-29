@@ -41,12 +41,16 @@ func (p *ReservedPool6) CheckConflictWithAnother(another *ReservedPool6) bool {
 		gohelperip.IP(another.BeginIp).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
-func (p *ReservedPool6) Contains(ip string) bool {
+func (p *ReservedPool6) ContainsIpString(ip string) bool {
 	if ip_, err := gohelperip.ParseIPv6(ip); err != nil {
 		return false
 	} else {
 		return p.CheckConflictWithAnother(&ReservedPool6{BeginIp: ip_, EndIp: ip_})
 	}
+}
+
+func (p *ReservedPool6) ContainsIp(ip net.IP) bool {
+	return ip != nil && p.CheckConflictWithAnother(&ReservedPool6{BeginIp: ip, EndIp: ip})
 }
 
 func (p *ReservedPool6) Equals(another *ReservedPool6) bool {

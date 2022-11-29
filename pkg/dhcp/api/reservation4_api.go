@@ -26,7 +26,7 @@ func (r *Reservation4Api) Create(ctx *restresource.Context) (restresource.Resour
 }
 
 func (r *Reservation4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	reservations, err := r.Service.List(ctx.Resource.GetParent().GetID())
+	reservations, err := r.Service.List(ctx.Resource.GetParent().(*resource.Subnet4))
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

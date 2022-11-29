@@ -15,11 +15,18 @@ const (
 	DHCPTagServer6 = "server6"
 )
 
-func CallDhcpAgentGrpc(f func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error) error {
+func CallDhcpAgentGrpc4(f func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error) error {
+	return CallDhcpAgentGrpc(f, DHCPTagServer4)
+}
+
+func CallDhcpAgentGrpc6(f func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error) error {
+	return CallDhcpAgentGrpc(f, DHCPTagServer6)
+}
+
+func CallDhcpAgentGrpc(f func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error, serverTags ...string) error {
 	conn, err := consulutil.NewGrpcConn(
 		config.ConsulConfig, config.GetConfig().Consul.CallServices.DhcpAgent,
-		DHCPTagServer4,
-		DHCPTagServer6)
+		serverTags...)
 	if err != nil {
 		return err
 	}

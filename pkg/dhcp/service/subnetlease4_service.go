@@ -18,7 +18,10 @@ import (
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
-var ErrorIpNotBelongToSubnet = fmt.Errorf("ip not belongs to subnet")
+var (
+	ErrorIpNotBelongToSubnet = fmt.Errorf("ip not belongs to subnet")
+	ErrorSubnetNotInNodes    = fmt.Errorf("subnet is not in any nodes")
+)
 
 type SubnetLease4Service struct{}
 
@@ -45,6 +48,8 @@ func ListSubnetLease4(subnet *resource.Subnet4, ip string) ([]*resource.SubnetLe
 		subnet4, err := getSubnet4FromDB(tx, subnet.GetID())
 		if err != nil {
 			return err
+		} else if len(subnet4.Nodes) == 0 {
+			return ErrorSubnetNotInNodes
 		}
 
 		subnet4SubnetId = subnet4.SubnetId
@@ -57,7 +62,7 @@ func ListSubnetLease4(subnet *resource.Subnet4, ip string) ([]*resource.SubnetLe
 		}
 		return err
 	}); err != nil {
-		if err == ErrorIpNotBelongToSubnet {
+		if err == ErrorIpNotBelongToSubnet || err == ErrorSubnetNotInNodes {
 			return nil, nil
 		} else {
 			return nil, fmt.Errorf("get subnet4 %s from db failed: %s", subnet.GetID(), err.Error())
@@ -135,7 +140,7 @@ func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource
 func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease4) (*resource.SubnetLease4, error) {
 	var err error
 	var resp *pbdhcpagent.GetLease4Response
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4Lease(ctx,
 			&pbdhcpagent.GetSubnet4LeaseRequest{Id: subnetId, Address: ip})
 		return err
@@ -181,7 +186,7 @@ func TimeFromUinx(t int64) string {
 func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, subnetLeases []*resource.SubnetLease4) ([]*resource.SubnetLease4, error) {
 	var err error
 	var resp *pbdhcpagent.GetLeases4Response
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4Leases(ctx,
 			&pbdhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
 		return err
@@ -260,7 +265,7 @@ func (l *SubnetLease4Service) Delete(subnet *resource.Subnet4, leaseId string) e
 			return pg.Error(err)
 		}
 
-		return transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		return transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			_, err = client.DeleteLease4(ctx,
 				&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
 			return err

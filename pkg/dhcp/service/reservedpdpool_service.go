@@ -92,10 +92,10 @@ func checkReservedPdPoolConflictWithSubnet6Reservation6s(tx restdb.Transaction, 
 	}
 
 	for _, reservation := range reservations {
-		for _, prefix := range reservation.Prefixes {
-			if pdpool.Intersect(prefix) {
+		for _, ipnet := range reservation.Ipnets {
+			if pdpool.IntersectIpnet(ipnet) {
 				return fmt.Errorf("reserved pdpool %s conflict with reservation6 %s prefix %s",
-					pdpool.String(), reservation.String(), prefix)
+					pdpool.String(), reservation.String(), ipnet.String())
 			}
 		}
 	}

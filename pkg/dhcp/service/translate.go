@@ -394,6 +394,8 @@ func reservation6ToInsertDBSqlString(subnetId uint64, reservation6 *resource.Res
 	buf.WriteString(ipsToString(reservation6.Ips))
 	buf.WriteString("}','{")
 	buf.WriteString(strings.Join(reservation6.Prefixes, ","))
+	buf.WriteString("}','{")
+	buf.WriteString(ipnetsToString(reservation6.Ipnets))
 	buf.WriteString("}','")
 	buf.WriteString(reservation6.Capacity)
 	buf.WriteString("','")
@@ -411,6 +413,15 @@ func ipsToString(ips []net.IP) string {
 	}
 
 	return strings.Join(ipstrs, ",")
+}
+
+func ipnetsToString(ipnets []net.IPNet) string {
+	ipnetstrs := make([]string, 0, len(ipnets))
+	for _, ipnet := range ipnets {
+		ipnetstrs = append(ipnetstrs, ipnet.String())
+	}
+
+	return strings.Join(ipnetstrs, ",")
 }
 
 func pdpoolToInsertDBSqlString(subnetId uint64, pdpool *resource.PdPool) string {

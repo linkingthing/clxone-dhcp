@@ -331,13 +331,13 @@ func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 	if useIds {
 		var ids []uint64
 		for _, subnet := range subnets {
-			if subnet.Capacity != 0 {
+			if subnet.Capacity != 0 && len(subnet.Nodes) != 0 {
 				ids = append(ids, subnet.SubnetId)
 			}
 		}
 
 		if len(ids) != 0 {
-			err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 				resp, err = client.GetSubnets4LeasesCountWithIds(
 					ctx, &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
 				return err
@@ -346,7 +346,7 @@ func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 			return
 		}
 	} else {
-		err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			resp, err = client.GetSubnets4LeasesCount(
 				ctx, &pbdhcpagent.GetSubnetsLeasesCountRequest{})
 			return err
@@ -437,13 +437,13 @@ func setSubnet4LeasesUsedInfo(subnet *resource.Subnet4) {
 }
 
 func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
-	if subnet.Capacity == 0 {
+	if subnet.Capacity == 0 || len(subnet.Nodes) == 0 {
 		return 0, nil
 	}
 
 	var err error
 	var resp *pbdhcpagent.GetLeasesCountResponse
-	err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4LeasesCount(ctx,
 			&pbdhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
 		return err

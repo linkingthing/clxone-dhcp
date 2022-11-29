@@ -153,24 +153,30 @@ func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resou
 	}
 }
 
-func (r *Reservation4Service) List(subnetID string) ([]*resource.Reservation4, error) {
-	return listReservation4s(subnetID)
+func (r *Reservation4Service) List(subnet *resource.Subnet4) ([]*resource.Reservation4, error) {
+	return listReservation4s(subnet)
 }
 
-func listReservation4s(subnetID string) ([]*resource.Reservation4, error) {
+func listReservation4s(subnet *resource.Subnet4) ([]*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet4FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		return tx.Fill(map[string]interface{}{
-			resource.SqlColumnSubnet4: subnetID,
+			resource.SqlColumnSubnet4: subnet.GetID(),
 			resource.SqlOrderBy:       resource.SqlColumnsIp}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation4s with subnet4 %s from db failed: %s",
-			subnetID, pg.Error(err).Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
-	leasesCount := getReservation4sLeasesCount(subnetIDStrToUint64(subnetID), reservations)
-	for _, reservation := range reservations {
-		setReservation4LeasesUsedRatio(reservation, leasesCount[reservation.IpAddress])
+	if len(subnet.Nodes) != 0 {
+		leasesCount := getReservation4sLeasesCount(subnetIDStrToUint64(subnet.GetID()), reservations)
+		for _, reservation := range reservations {
+			setReservation4LeasesUsedRatio(reservation, leasesCount[reservation.IpAddress])
+		}
 	}
 
 	return reservations, nil
@@ -212,6 +218,10 @@ func reservationMapFromReservation4s(reservations []*resource.Reservation4) map[
 func (r *Reservation4Service) Get(subnet *resource.Subnet4, reservationID string) (*resource.Reservation4, error) {
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet4FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		return tx.Fill(map[string]interface{}{restdb.IDField: reservationID}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("get reservation4 %s with subnetID %s failed: %s",
@@ -220,7 +230,7 @@ func (r *Reservation4Service) Get(subnet *resource.Subnet4, reservationID string
 		return nil, fmt.Errorf("no found reservation4 %s with subnetID %s", reservationID, subnet.GetID())
 	}
 
-	if leasesCount, err := getReservation4LeaseCount(reservations[0]); err != nil {
+	if leasesCount, err := getReservation4LeaseCount(subnet, reservations[0]); err != nil {
 		log.Warnf("get reservation4 %s with subnet4 %s leases used ratio failed: %s",
 			reservations[0].String(), subnet.GetID(), err.Error())
 	} else {
@@ -237,10 +247,14 @@ func setReservation4LeasesUsedRatio(reservation *resource.Reservation4, leasesCo
 	}
 }
 
-func getReservation4LeaseCount(reservation *resource.Reservation4) (uint64, error) {
+func getReservation4LeaseCount(subnet *resource.Subnet4, reservation *resource.Reservation4) (uint64, error) {
+	if len(subnet.Nodes) == 0 {
+		return 0, nil
+	}
+
 	var resp *pbdhcpagent.GetLeasesCountResponse
 	var err error
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetReservation4LeaseCount(
 			ctx, &pbdhcpagent.GetReservation4LeaseCountRequest{
 				SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
@@ -291,7 +305,7 @@ func checkReservation4CouldBeDeleted(tx restdb.Transaction, subnet *resource.Sub
 		return err
 	}
 
-	if leasesCount, err := getReservation4LeaseCount(reservation); err != nil {
+	if leasesCount, err := getReservation4LeaseCount(subnet, reservation); err != nil {
 		return fmt.Errorf("get reservation4 %s leases count failed: %s",
 			reservation.String(), err.Error())
 	} else if leasesCount != 0 {
@@ -363,7 +377,7 @@ func GetReservationPool4sByPrefix(prefix string) ([]*resource.Reservation4, erro
 		return nil, err
 	}
 
-	if pools, err := listReservation4s(subnet4.GetID()); err != nil {
+	if pools, err := listReservation4s(subnet4); err != nil {
 		return nil, err
 	} else {
 		return pools, nil
