@@ -27,6 +27,9 @@ type SubnetLease6 struct {
 	ClientType                string      `json:"clientType"`
 	LeaseState                string      `json:"leaseState"`
 	RequestSourceAddr         string      `json:"requestSourceAddr"`
+	AddressCode               string      `json:"addressCode"`
+	AddressCodeBegin          uint32      `json:"addressCodeBegin"`
+	AddressCodeEnd            uint32      `json:"addressCodeEnd"`
 }
 
 func (l SubnetLease6) GetParents() []restresource.ResourceKind {

@@ -176,7 +176,11 @@ func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *r
 	}
 
 	if subnet.UseAddressCode {
-		subnet.SubCapacityWithString(reservedPool.Capacity)
+		if isCreate {
+			subnet.SubCapacityWithString(reservedPool.Capacity)
+		} else {
+			subnet.AddCapacityWithString(reservedPool.Capacity)
+		}
 	} else if isCreate {
 		subnet.SubCapacityWithBigInt(allReservedCount)
 	} else {

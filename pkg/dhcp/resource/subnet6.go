@@ -13,7 +13,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
-const MaxUint64String = "18446744073709551615"
+const MaxUint64String = "18446744073709551616"
 
 var TableSubnet6 = restdb.ResourceDBType(&Subnet6{})
 

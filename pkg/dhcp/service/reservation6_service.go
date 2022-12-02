@@ -249,7 +249,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 			}
 		}
 
-		if !reserved {
+		if !subnet.UseAddressCode && !reserved {
 			unreservedCount.Add(unreservedCount, big.NewInt(1))
 		}
 	}

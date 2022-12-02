@@ -385,7 +385,7 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 		if newUseAddressCode {
 			if !subnet.UseAddressCode {
 				if maskSize < 64 {
-					fmt.Errorf("subnet use address code mask size %d must bigger than 63", maskSize)
+					return fmt.Errorf("use address code, subnet mask size %d less than 64", maskSize)
 				}
 
 				if exists, err := subnetHasPdPools(tx, subnet); err != nil {
@@ -446,7 +446,8 @@ func subnetHasPdPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, er
 	}
 
 	if count, err := tx.CountEx(resource.TableReservation6,
-		"select count(*) from gr_reservation6 where prefixes != '{}'"); err != nil {
+		"select count(*) from gr_reservation6 where subnet6 = $1 and prefixes != '{}'",
+		subnet.GetID()); err != nil {
 		return false, pg.Error(err)
 	} else {
 		return count != 0, nil
@@ -455,10 +456,6 @@ func subnetHasPdPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, er
 
 func calculateSubnetCapacityWithUseAddressCode(tx restdb.Transaction, subnet *resource.Subnet6, maskSize int) error {
 	subnetCapacity := new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize))
-	if maskSize == 64 {
-		subnetCapacity.Sub(subnetCapacity, big.NewInt(1))
-	}
-
 	if !subnet.UseEui64 {
 		var reservedPools []*resource.ReservedPool6
 		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}, &reservedPools); err != nil {
@@ -488,8 +485,10 @@ func calculateSubnetCapacityWithoutUseAddressCode(tx restdb.Transaction, subnet 
 	}
 
 	for _, pool := range pools {
-		poolCapacity, _ := new(big.Int).SetString(pool.Capacity, 10)
-		subnetCapacity.Add(subnetCapacity, poolCapacity)
+		if !resource.IsCapacityZero(pool.Capacity) {
+			poolCapacity, _ := new(big.Int).SetString(pool.Capacity, 10)
+			subnetCapacity.Add(subnetCapacity, poolCapacity)
+		}
 	}
 
 	for _, reservation := range reservations {
