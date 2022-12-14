@@ -174,7 +174,6 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 	}); err != nil {
 		log.Debugf("get subnet6 %d lease6s failed: %s", subnetId, err.Error())
 		return nil, nil
-
 	}
 
 	reservationMap := reservationMapFromReservation6s(reservations)

@@ -7,9 +7,11 @@ import (
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	csvutil "github.com/linkingthing/clxone-utils/csv"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -27,7 +29,8 @@ type Subnet6 struct {
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
 	PreferredLifetime         uint32    `json:"preferredLifetime"`
 	DomainServers             []string  `json:"domainServers"`
-	ClientClass               string    `json:"clientClass"`
+	WhiteClientClasses        []string  `json:"whiteClientClasses"`
+	BlackClientClasses        []string  `json:"blackClientClasses"`
 	IfaceName                 string    `json:"ifaceName"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
@@ -85,7 +88,7 @@ func (s *Subnet6) Contains(ip string) bool {
 	}
 }
 
-func (s *Subnet6) Validate() error {
+func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6) error {
 	ipnet, err := gohelperip.ParseCIDRv6(s.Subnet)
 	if err != nil {
 		return fmt.Errorf("subnet %s invalid: %s", s.Subnet, err.Error())
@@ -119,22 +122,24 @@ func (s *Subnet6) Validate() error {
 		}
 	}
 
-	if err := s.setSubnet6DefaultValue(); err != nil {
+	if err := s.setSubnet6DefaultValue(dhcpConfig); err != nil {
 		return err
 	}
 
-	return s.ValidateParams()
+	return s.ValidateParams(clientClass6s)
 }
 
-func (s *Subnet6) setSubnet6DefaultValue() error {
+func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 &&
 		s.MaxValidLifetime != 0 && len(s.DomainServers) != 0 {
-		return nil
+		return
 	}
 
-	dhcpConfig, err := getDhcpConfig(false)
-	if err != nil {
-		return fmt.Errorf("get dhcp global config failed: %s", err.Error())
+	if dhcpConfig == nil {
+		dhcpConfig, err = GetDhcpConfig(false)
+		if err != nil {
+			return fmt.Errorf("get dhcp global config failed: %s", err.Error())
+		}
 	}
 
 	if s.ValidLifetime == 0 {
@@ -157,29 +162,63 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 		s.DomainServers = dhcpConfig.DomainServers
 	}
 
-	return nil
+	return
 }
 
-func (s *Subnet6) ValidateParams() error {
+func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6) error {
 	if err := util.ValidateStrings(s.Tags, s.IfaceName, s.RelayAgentInterfaceId); err != nil {
 		return err
 	}
 
-	if err := checkCommonOptions(false, s.ClientClass, s.DomainServers, s.RelayAgentAddresses); err != nil {
+	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses); err != nil {
 		return err
 	}
 
-	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime,
-		s.MaxValidLifetime); err != nil {
+	if err := checkClientClass6s(s.WhiteClientClasses, s.BlackClientClasses, clientClass6s); err != nil {
 		return err
 	}
 
-	if err := checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime,
-		s.MinValidLifetime); err != nil {
+	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
+		return err
+	}
+
+	if err := checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime, s.MinValidLifetime); err != nil {
 		return err
 	}
 
 	return checkNodesValid(s.Nodes)
+}
+
+func checkClientClass6s(whiteClientClasses, blackClientClasses []string, clientClass6s []*ClientClass6) (err error) {
+	if len(whiteClientClasses) == 0 && len(blackClientClasses) == 0 {
+		return
+	}
+
+	if len(clientClass6s) == 0 {
+		clientClass6s, err = GetClientClass6s()
+	}
+
+	clientClass6Set := make(map[string]struct{}, len(clientClass6s))
+	for _, clientClass6 := range clientClass6s {
+		clientClass6Set[clientClass6.Name] = struct{}{}
+	}
+
+	if err = checkClientClassesValid(whiteClientClasses, clientClass6Set); err != nil {
+		return
+	}
+
+	return checkClientClassesValid(blackClientClasses, clientClass6Set)
+}
+
+func GetClientClass6s() ([]*ClientClass6, error) {
+	var clientClass6s []*ClientClass6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(nil, &clientClass6s)
+	}); err != nil {
+		return nil, pg.Error(err)
+	} else {
+		return clientClass6s, nil
+	}
 }
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {

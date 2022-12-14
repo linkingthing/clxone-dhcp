@@ -15,7 +15,9 @@ import (
 )
 
 const (
-	ClientClass4Option60 = "option vendor-class-identifier == '%s'"
+	ClientClassOptionExists         = "option %s exists"
+	ClientClassOptionEqual          = "option %s == '%s'"
+	ClientClassOptionSubstringEqual = "substring(option[%d],%d,%d) == '%s'"
 )
 
 type ClientClass4Service struct {
@@ -50,8 +52,8 @@ func sendCreateClientClass4CmdToAgent(clientClass4 *resource.ClientClass4) error
 	return kafka.SendDHCPCmd(kafka.CreateClientClass4,
 		&pbdhcpagent.CreateClientClass4Request{
 			Name:   clientClass4.Name,
-			Code:   60,
-			Regexp: fmt.Sprintf(ClientClass4Option60, clientClass4.Regexp),
+			Code:   uint32(clientClass4.Code),
+			Regexp: genClientClass4Regexp(clientClass4),
 		}, func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				nodesForSucceed, kafka.DeleteClientClass4,
@@ -60,6 +62,18 @@ func sendCreateClientClass4CmdToAgent(clientClass4 *resource.ClientClass4) error
 					clientClass4.Name, nodesForSucceed, err.Error())
 			}
 		})
+}
+
+func genClientClass4Regexp(clientclass *resource.ClientClass4) string {
+	switch clientclass.Condition {
+	case resource.OptionConditionEqual:
+		return fmt.Sprintf(ClientClassOptionEqual, clientclass.Description, clientclass.Regexp)
+	case resource.OptionConditionSubstringEqual:
+		return fmt.Sprintf(ClientClassOptionSubstringEqual, clientclass.Code,
+			clientclass.BeginIndex, len(clientclass.Regexp), clientclass.Regexp)
+	default:
+		return fmt.Sprintf(ClientClassOptionExists, clientclass.Description)
+	}
 }
 
 func (c *ClientClass4Service) List() ([]*resource.ClientClass4, error) {
@@ -94,7 +108,11 @@ func (c *ClientClass4Service) Update(clientClass *resource.ClientClass4) error {
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableClientClass4,
-			map[string]interface{}{resource.SqlColumnClassRegexp: clientClass.Regexp},
+			map[string]interface{}{
+				resource.SqlColumnClassCondition:  clientClass.Condition,
+				resource.SqlColumnClassRegexp:     clientClass.Regexp,
+				resource.SqlColumnClassBeginIndex: clientClass.BeginIndex,
+			},
 			map[string]interface{}{restdb.IDField: clientClass.GetID()}); err != nil {
 			return pg.Error(err)
 		} else if rows == 0 {
@@ -114,17 +132,18 @@ func sendUpdateClientClass4CmdToDHCPAgent(clientClass *resource.ClientClass4) er
 	return kafka.SendDHCPCmd(kafka.UpdateClientClass4,
 		&pbdhcpagent.UpdateClientClass4Request{
 			Name:   clientClass.Name,
-			Code:   60,
-			Regexp: fmt.Sprintf(ClientClass4Option60, clientClass.Regexp),
+			Code:   uint32(clientClass.Code),
+			Regexp: genClientClass4Regexp(clientClass),
 		}, nil)
 }
 
 func (c *ClientClass4Service) Delete(id string) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if exist, err := tx.Exists(resource.TableSubnet4,
-			map[string]interface{}{resource.SqlColumnClientClass: id}); err != nil {
+		if count, err := tx.CountEx(resource.TableSubnet4,
+			"select count(*) from gr_subnet4 where $1::text = any(white_client_classes) or $1::text = any(black_client_classes)",
+			id); err != nil {
 			return pg.Error(err)
-		} else if exist {
+		} else if count != 0 {
 			return fmt.Errorf("client class %s used by subnet4", id)
 		}
 
