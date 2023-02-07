@@ -18,3 +18,5 @@ require (
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 )
+
+replace github.com/linkingthing/gorest v1.0.6 => github.com/linkingthing/gorest v1.1.1-0.20221110040733-39ddd70e4f58

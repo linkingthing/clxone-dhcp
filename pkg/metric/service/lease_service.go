@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/cement/log"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -27,17 +25,17 @@ func (h *LeaseService) List(ctx *restresource.Context) (interface{}, error) {
 	}
 
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
-		return nil, fmt.Errorf("get subnets leases count failed: %s", err.Error())
+		return nil, err
 	}
 
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get subnets leases count from prometheus failed: %s", err.Error())
+		return nil, err
 	}
 
 	subnets, err := getSubnetsFromDB(metricCtx.Version)
 	if err != nil {
-		return nil, fmt.Errorf("list subnets from db failed: %s", err.Error())
+		return nil, err
 	}
 
 	nodeIpAndSubnetLeases := make(map[string][]resource.SubnetLease)
@@ -81,17 +79,17 @@ func (h *LeaseService) Get(ctx *restresource.Context) (restresource.Resource, er
 	}
 
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
-		return nil, fmt.Errorf("get subnet leases count failed: %s", err.Error())
+		return nil, err
 	}
 
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get subnet used ratio from prometheus failed: %s", err.Error())
+		return nil, err
 	}
 
 	subnets, err := getSubnetsFromDB(metricCtx.Version)
 	if err != nil {
-		return nil, fmt.Errorf("list subnets from db failed: %s", err.Error())
+		return nil, err
 	}
 
 	for _, r := range resp.Data.Results {
@@ -117,15 +115,11 @@ func (h *LeaseService) Get(ctx *restresource.Context) (restresource.Resource, er
 }
 
 func (h *LeaseService) Export(ctx *restresource.Context) (interface{}, error) {
-	if result, err := exportMultiColunms(ctx, &MetricContext{
+	return exportMultiColunms(ctx, &MetricContext{
 		NodeIP:         ctx.Resource.GetID(),
 		PrometheusAddr: h.prometheusAddr,
 		PromQuery:      PromQueryVersionNode,
 		MetricName:     MetricNameDHCPLeaseCount,
 		MetricLabel:    MetricLabelSubnet,
-	}); err != nil {
-		return nil, fmt.Errorf("leases %s export ulticolunm failed: %s", ctx.Resource.GetID(), err.Error())
-	} else {
-		return result, nil
-	}
+	})
 }

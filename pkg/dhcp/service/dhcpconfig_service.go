@@ -8,6 +8,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type DhcpConfigService struct {
@@ -44,7 +45,7 @@ func (d *DhcpConfigService) List() ([]*resource.DhcpConfig, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &configs)
 	}); err != nil {
-		return nil, fmt.Errorf("list dhcp config failed:%s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameConfig), pg.Error(err).Error())
 	}
 
 	return configs, nil
@@ -55,9 +56,9 @@ func (d *DhcpConfigService) Get(id string) (*resource.DhcpConfig, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &configs)
 	}); err != nil {
-		return nil, fmt.Errorf("get dhcp config %s failed:%s", id, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(configs) == 0 {
-		return nil, fmt.Errorf("no found dhcp config %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameConfig, id)
 	}
 
 	return configs[0], nil
@@ -65,7 +66,7 @@ func (d *DhcpConfigService) Get(id string) (*resource.DhcpConfig, error) {
 
 func (d *DhcpConfigService) Update(config *resource.DhcpConfig) error {
 	if err := config.Validate(); err != nil {
-		return fmt.Errorf("validate config config params failed: %s", err.Error())
+		return err
 	}
 
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -82,7 +83,7 @@ func (d *DhcpConfigService) Update(config *resource.DhcpConfig) error {
 			return nil
 		}
 	}); err != nil {
-		return fmt.Errorf("update dhcp config %s failed:%s", config.GetID(), err.Error())
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, config.GetID(), pg.Error(err).Error())
 	}
 
 	return nil

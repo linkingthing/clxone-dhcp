@@ -2,7 +2,6 @@ package resource
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -27,26 +27,26 @@ type SharedNetwork4 struct {
 
 func (s *SharedNetwork4) Validate() error {
 	if len(s.Name) == 0 || util.ValidateStrings(s.Name) != nil {
-		return fmt.Errorf("name %s is invalid", s.Name)
+		return errorno.ErrInvalidParams(errorno.ErrNameName, s.Name)
 	}
 
 	if len(s.SubnetIds) <= 1 {
-		return fmt.Errorf("shared network4 %s subnet ids length should excceed 1", s.Name)
+		return errorno.ErrSharedNetSubnetIds(s.Name)
 	}
 
 	if err := util.ValidateStrings(s.Comment); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, s.Comment)
 	}
 
 	var sharedNetworks []*SharedNetwork4
 	var subnet4s []*Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := tx.FillEx(&subnet4s, genGetSubnetsSqlWithSubnetIds(s.SubnetIds)); err != nil {
-			return fmt.Errorf("list subnets from db failed: %s", pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 		}
 
 		if err := tx.FillEx(&sharedNetworks, "select * from gr_shared_network4 where id != $1", s.GetID()); err != nil {
-			return fmt.Errorf("list shared network4 from db failed: %s", pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameSharedNetwork), pg.Error(err).Error())
 		}
 
 		return nil
@@ -74,23 +74,22 @@ func genGetSubnetsSqlWithSubnetIds(subnetIds []uint64) string {
 
 func (s *SharedNetwork4) setSharedNetworkSubnets(subnet4s []*Subnet4) error {
 	if len(s.SubnetIds) != len(subnet4s) {
-		return fmt.Errorf("get subnet4s %v diff from shared subnet ids %v",
+		return errorno.ErrExpect(errorno.ErrNameSharedNetwork,
 			getSubnetIds(subnet4s), s.SubnetIds)
 	}
 
 	nodeSet := getIntersectionNodes(subnet4s[0].Nodes, subnet4s[1].Nodes)
 	if nodeSet == nil {
-		return fmt.Errorf("subnet4 %s nodes %v has no intersection with subnet4 %s nodes %v",
-			subnet4s[0].Subnet, subnet4s[0].Nodes, subnet4s[1].Subnet, subnet4s[1].Nodes)
+		return errorno.ErrNoIntersectionNodes(subnet4s[0].Subnet, subnet4s[1].Subnet)
 	}
 
 	var subnets []string
 	for _, subnet4 := range subnet4s {
 		if len(subnet4.Nodes) == 0 {
-			return fmt.Errorf("subnet4 %s no nodes info, can`t used by shared network4", subnet4.Subnet)
+			return errorno.ErrNoNode(errorno.ErrNameNetworkV4, subnet4.Subnet)
 		} else if !isFullyContains(subnet4.Nodes, nodeSet) {
-			return fmt.Errorf("subnet4 %s nodes %v should contains nodes %v",
-				subnet4.Subnet, subnet4.Nodes, nodeSet.ToSlice())
+			return errorno.ErrNotContainNode(errorno.ErrNameNetworkV4,
+				subnet4.Subnet, nodeSet.ToSlice())
 		} else {
 			subnets = append(subnets, subnet4.Subnet)
 		}
@@ -134,8 +133,8 @@ func (s *SharedNetwork4) checkConflictWithOthers(sharedNetworks []*SharedNetwork
 
 	for _, id := range s.SubnetIds {
 		if name, ok := sharedNetworksIds[id]; ok {
-			return fmt.Errorf("shared network4 %s subnet id %d exists in other shared network4 %s",
-				s.Name, id, name)
+			return errorno.ErrConflict(errorno.ErrNameSharedNetwork, errorno.ErrNameSharedNetwork,
+				s.Name, name)
 		}
 	}
 

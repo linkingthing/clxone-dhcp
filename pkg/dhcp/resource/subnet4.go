@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 
@@ -12,6 +11,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -107,7 +107,7 @@ func (s *Subnet4) Contains(ip string) bool {
 func (s *Subnet4) Validate() error {
 	ipnet, err := gohelperip.ParseCIDRv4(s.Subnet)
 	if err != nil {
-		return fmt.Errorf("subnet %s invalid: %s", s.Subnet, err.Error())
+		return errorno.ErrInvalidParams(errorno.ErrNamePrefix, s.Subnet)
 	}
 
 	s.Ipnet = *ipnet
@@ -127,7 +127,7 @@ func (s *Subnet4) setSubnetDefaultValue() error {
 
 	dhcpConfig, err := getDhcpConfig(true)
 	if err != nil {
-		return fmt.Errorf("get dhcp global config failed: %s", err.Error())
+		return err
 	}
 
 	if s.ValidLifetime == 0 {
@@ -160,18 +160,18 @@ func (s *Subnet4) ValidateParams() error {
 
 	if s.SubnetMask != "" {
 		if err := gohelperip.CheckIPv4sValid(s.SubnetMask); err != nil {
-			return fmt.Errorf("subnet4 mask invalid: %s", err.Error())
+			return errorno.ErrInvalidAddress(s.SubnetMask)
 		}
 	}
 
 	if s.NextServer != "" {
 		if err := gohelperip.CheckIPv4sValid(s.NextServer); err != nil {
-			return fmt.Errorf("subnet4 next server invalid: %s", err.Error())
+			return errorno.ErrInvalidAddress(s.SubnetMask)
 		}
 	}
 
 	if s.Ipv6OnlyPreferred != 0 && s.Ipv6OnlyPreferred < 300 {
-		return fmt.Errorf("subnet4 ipv6-only preferred must not be less than 300")
+		return errorno.ErrIpv6Preferred()
 	}
 
 	if err := checkCommonOptions(true, s.ClientClass, s.DomainServers, s.RelayAgentAddresses); err != nil {
@@ -193,7 +193,7 @@ func (s *Subnet4) ValidateParams() error {
 func checkTFTPServer(tftpServer string) error {
 	if tftpServer != "" {
 		if _, err := url.Parse(tftpServer); err != nil {
-			return fmt.Errorf("parse tftp server failed: %s", err.Error())
+			return errorno.ErrInvalidAddress(tftpServer)
 		}
 	}
 
@@ -209,17 +209,13 @@ func checkCommonOptions(isv4 bool, clientClass string, domainServers, relayAgent
 		return err
 	}
 
-	if err := checkClientClassValid(isv4, clientClass); err != nil {
-		return fmt.Errorf("client class %s invalid: %s", clientClass, err.Error())
-	}
-
-	return nil
+	return checkClientClassValid(isv4, clientClass)
 }
 
 func checkIpsValidWithVersion(isv4 bool, ips []string) error {
 	for _, ip := range ips {
 		if _, err := gohelperip.ParseIP(ip, isv4); err != nil {
-			return fmt.Errorf("ip %s invalid: %s", ip, err.Error())
+			return errorno.ErrInvalidAddress(ip)
 		}
 	}
 
@@ -239,9 +235,9 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(tableName, map[string]interface{}{
 			"name": clientClass}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, clientClass, pg.Error(err).Error())
 		} else if !exists {
-			return fmt.Errorf("no found client class %s in db", clientClass)
+			return errorno.ErrNotFound(errorno.ErrNameClientClass, clientClass)
 		} else {
 			return nil
 		}
@@ -251,7 +247,7 @@ func checkClientClassValid(isv4 bool, clientClass string) error {
 func checkNodesValid(nodes []string) error {
 	for _, node := range nodes {
 		if net.ParseIP(node) == nil {
-			return fmt.Errorf("invalid node %s", node)
+			return errorno.ErrInvalidAddress(node)
 		}
 	}
 

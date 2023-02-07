@@ -11,6 +11,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
@@ -35,12 +36,12 @@ func (h *PacketStatService) List(ctx *restresource.Context) (interface{}, error)
 	}
 
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
-		return nil, fmt.Errorf("get packet stats failed: %s", err.Error())
+		return nil, err
 	}
 
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get packet stats from prometheus failed: %s", err.Error())
+		return nil, err
 	}
 
 	nodeIpAndPackets := make(map[string][]resource.Packet)
@@ -84,12 +85,12 @@ func (h *PacketStatService) Get(ctx *restresource.Context) (restresource.Resourc
 	}
 
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
-		return nil, fmt.Errorf("get packet stats failed: %s", err.Error())
+		return nil, err
 	}
 
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get packet stats from prometheus failed: %s", err.Error())
+		return nil, err
 	}
 
 	for _, r := range resp.Data.Results {
@@ -116,23 +117,19 @@ func (h *PacketStatService) Get(ctx *restresource.Context) (restresource.Resourc
 }
 
 func (h *PacketStatService) Export(ctx *restresource.Context) (interface{}, error) {
-	if result, err := exportMultiColunms(ctx, &MetricContext{
+	return exportMultiColunms(ctx, &MetricContext{
 		NodeIP:         ctx.Resource.GetID(),
 		PrometheusAddr: h.prometheusAddr,
 		PromQuery:      PromQueryVersionNode,
 		MetricName:     MetricNameDHCPPacketStats,
 		MetricLabel:    MetricLabelType,
-	}); err != nil {
-		return nil, fmt.Errorf("packet stats %s export action failed: %s", ctx.Resource.GetID(), err.Error())
-	} else {
-		return result, nil
-	}
+	})
 }
 
 func exportMultiColunms(ctx *restresource.Context, metricCtx *MetricContext) (interface{}, error) {
 	filter, ok := ctx.Resource.GetAction().Input.(*resource.ExportFilter)
 	if !ok {
-		return nil, fmt.Errorf("action input is not export filter")
+		return nil, errorno.ErrInvalidFormat(errorno.ErrNameMetric, errorno.ErrNameExport)
 	}
 
 	timePeriod, err := parseTimePeriod(filter.From, filter.To)
@@ -149,20 +146,17 @@ func exportMultiColunms(ctx *restresource.Context, metricCtx *MetricContext) (in
 	metricCtx.Version = version
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get node %s %s from prometheus failed: %s",
-			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
+		return nil, err
 	}
 
 	strMatrix, err := genHeaderAndStrMatrix(metricCtx, resp.Data.Results)
 	if err != nil {
-		return nil, fmt.Errorf("gen node %s %s header failed: %s",
-			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
+		return nil, err
 	}
 
 	filepath, err := exportFile(metricCtx, strMatrix)
 	if err != nil {
-		return nil, fmt.Errorf("export node %s %s failed: %s",
-			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
+		return nil, err
 	}
 
 	return &resource.FileInfo{Path: filepath}, nil
@@ -174,7 +168,7 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 	if ctx.MetricLabel == MetricLabelSubnet {
 		ss, err := getSubnetsFromDB(ctx.Version)
 		if err != nil {
-			return nil, fmt.Errorf("list subnets failed: %s", err.Error())
+			return nil, err
 		}
 
 		subnets = ss

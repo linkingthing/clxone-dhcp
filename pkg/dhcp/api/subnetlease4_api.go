@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -23,7 +24,7 @@ func (h *SubnetLease4Api) List(ctx *restresource.Context) (interface{}, *resterr
 
 	subnetLease4s, err := h.Service.List(ctx.Resource.GetParent().(*resource.Subnet4), ip)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return subnetLease4s, nil
@@ -33,7 +34,7 @@ func (h *SubnetLease4Api) Delete(ctx *restresource.Context) *resterror.APIError 
 	if err := h.Service.Delete(
 		ctx.Resource.GetParent().(*resource.Subnet4),
 		ctx.Resource.GetID()); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil

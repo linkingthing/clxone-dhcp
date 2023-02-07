@@ -14,6 +14,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
@@ -65,7 +66,7 @@ func ListSubnetLease4(subnet *resource.Subnet4, ip string) ([]*resource.SubnetLe
 		if err == ErrorIpNotBelongToSubnet || err == ErrorSubnetNotInNodes {
 			return nil, nil
 		} else {
-			return nil, fmt.Errorf("get subnet4 %s from db failed: %s", subnet.GetID(), err.Error())
+			return nil, err
 		}
 	}
 
@@ -87,14 +88,14 @@ func getReservation4sAndSubnetLease4sWithIp(tx restdb.Transaction, subnet4 *reso
 		resource.SqlColumnIpAddress: ip,
 		resource.SqlColumnSubnet4:   subnet4.GetID()},
 		&reservations); err != nil {
-		return nil, nil, fmt.Errorf("get reservation4 %s failed: %s", ip, pg.Error(err).Error())
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlColumnAddress: ip,
 		resource.SqlColumnSubnet4: subnet4.GetID()},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet4 lease4 %s failed: %s", ip, pg.Error(err).Error())
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameLease), pg.Error(err).Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -105,12 +106,13 @@ func getReservation4sAndSubnetLease4s(tx restdb.Transaction, subnetId string) ([
 	var subnetLeases []*resource.SubnetLease4
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnetId},
 		&reservations); err != nil {
-		return nil, nil, fmt.Errorf("get reservation4s failed: %s", pg.Error(err).Error())
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnetId},
 		&subnetLeases); err != nil {
-		return nil, nil, fmt.Errorf("get subnet4 lease4s failed: %s", pg.Error(err).Error())
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameLease), pg.Error(err).Error())
 	}
 
 	return reservations, subnetLeases, nil
@@ -143,6 +145,9 @@ func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4Lease(ctx,
 			&pbdhcpagent.GetSubnet4LeaseRequest{Id: subnetId, Address: ip})
+		if err != nil {
+			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
+		}
 		return err
 	}); err != nil {
 		return nil, err
@@ -189,6 +194,9 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4Leases(ctx,
 			&pbdhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
+		if err != nil {
+			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
+		}
 		return err
 	}); err != nil {
 		log.Debugf("get subnet4 %d lease4s failed: %s", subnetId, err.Error())
@@ -235,11 +243,10 @@ func subnetLease4FromPbLease4AndReservations(lease *pbdhcpagent.DHCPLease4, rese
 
 func (l *SubnetLease4Service) Delete(subnet *resource.Subnet4, leaseId string) error {
 	if _, err := gohelperip.ParseIPv4(leaseId); err != nil {
-		return fmt.Errorf("subnet4 %s lease4 id %s is invalid: %v",
-			subnet.GetID(), leaseId, err.Error())
+		return errorno.ErrInvalidAddress(leaseId)
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		subnet4, err := getSubnet4FromDB(tx, subnet.GetID())
 		if err != nil {
 			return err
@@ -262,17 +269,16 @@ func (l *SubnetLease4Service) Delete(subnet *resource.Subnet4, leaseId string) e
 		lease4.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 		lease4.Subnet4 = subnet.GetID()
 		if _, err := tx.Insert(lease4); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 		}
 
 		return transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			_, err = client.DeleteLease4(ctx,
 				&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
+			if err != nil {
+				err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
+			}
 			return err
 		})
-	}); err != nil {
-		return fmt.Errorf("delete lease4 %s with subnet4 %s failed: %s", leaseId, subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }

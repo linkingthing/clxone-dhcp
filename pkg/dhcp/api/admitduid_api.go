@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -20,7 +21,7 @@ func NewAdmitDuidApi() *AdmitDuidApi {
 func (d *AdmitDuidApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitDuid := ctx.Resource.(*resource.AdmitDuid)
 	if err := d.Service.Create(admitDuid); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return admitDuid, nil
@@ -30,7 +31,7 @@ func (d *AdmitDuidApi) List(ctx *restresource.Context) (interface{}, *resterror.
 	duids, err := d.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
 		resource.SqlColumnDuid, resource.SqlColumnDuid))
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return duids, nil
@@ -39,7 +40,7 @@ func (d *AdmitDuidApi) List(ctx *restresource.Context) (interface{}, *resterror.
 func (d *AdmitDuidApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitDuid, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return admitDuid, nil
@@ -47,7 +48,7 @@ func (d *AdmitDuidApi) Get(ctx *restresource.Context) (restresource.Resource, *r
 
 func (d *AdmitDuidApi) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
@@ -56,7 +57,7 @@ func (d *AdmitDuidApi) Delete(ctx *restresource.Context) *resterror.APIError {
 func (d *AdmitDuidApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitDuid := ctx.Resource.(*resource.AdmitDuid)
 	if err := d.Service.Update(admitDuid); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return admitDuid, nil

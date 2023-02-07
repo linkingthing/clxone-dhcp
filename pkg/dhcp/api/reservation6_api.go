@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -19,7 +20,7 @@ func NewReservation6Api() *Reservation6Api {
 func (r *Reservation6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	reservation := ctx.Resource.(*resource.Reservation6)
 	if err := r.Service.Create(ctx.Resource.GetParent().(*resource.Subnet6), reservation); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return reservation, nil
@@ -28,7 +29,7 @@ func (r *Reservation6Api) Create(ctx *restresource.Context) (restresource.Resour
 func (r *Reservation6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	reservations, err := r.Service.List(ctx.Resource.GetParent().(*resource.Subnet6))
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return reservations, nil
@@ -37,7 +38,7 @@ func (r *Reservation6Api) List(ctx *restresource.Context) (interface{}, *resterr
 func (r *Reservation6Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	reservation, err := r.Service.Get(ctx.Resource.GetParent().(*resource.Subnet6), ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return reservation, nil
@@ -47,7 +48,7 @@ func (r *Reservation6Api) Delete(ctx *restresource.Context) *resterror.APIError 
 	if err := r.Service.Delete(
 		ctx.Resource.GetParent().(*resource.Subnet6),
 		ctx.Resource.(*resource.Reservation6)); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
@@ -56,7 +57,7 @@ func (r *Reservation6Api) Delete(ctx *restresource.Context) *resterror.APIError 
 func (r *Reservation6Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	reservation := ctx.Resource.(*resource.Reservation6)
 	if err := r.Service.Update(ctx.Resource.GetParent().GetID(), reservation); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return reservation, nil

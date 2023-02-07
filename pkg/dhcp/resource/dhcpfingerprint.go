@@ -1,13 +1,13 @@
 package resource
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -41,14 +41,14 @@ type DhcpFingerprint struct {
 
 func (f *DhcpFingerprint) Validate() error {
 	if len(f.Fingerprint) == 0 {
-		return fmt.Errorf("fingerprint is required")
+		return errorno.ErrEmpty(string(errorno.ErrNameFingerprint))
 	}
 
 	for _, v := range strings.Split(f.Fingerprint, ",") {
 		if i, err := strconv.Atoi(v); err != nil {
-			return fmt.Errorf("fingerprint must consist of numbers and commas, but get %s", f.Fingerprint)
+			return errorno.ErrInvalidParams(errorno.ErrNameFingerprint, f.Fingerprint)
 		} else if i <= 0 || i >= 255 {
-			return fmt.Errorf("fingerprint number %s not in [1,254]", v)
+			return errorno.ErrNotInScope(errorno.ErrNameFingerprint, 1, 254)
 		}
 	}
 

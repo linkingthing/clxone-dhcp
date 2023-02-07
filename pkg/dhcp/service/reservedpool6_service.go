@@ -12,6 +12,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
@@ -25,10 +26,10 @@ func NewReservedPool6Service() *ReservedPool6Service {
 
 func (p *ReservedPool6Service) Create(subnet *resource.Subnet6, pool *resource.ReservedPool6) error {
 	if err := pool.Validate(); err != nil {
-		return fmt.Errorf("validate reserved pool6 params invalid: %s", err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkReservedPool6CouldBeCreated(tx, subnet, pool); err != nil {
 			return err
 		}
@@ -40,16 +41,11 @@ func (p *ReservedPool6Service) Create(subnet *resource.Subnet6, pool *resource.R
 
 		pool.Subnet6 = subnet.GetID()
 		if _, err := tx.Insert(pool); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 		}
 
 		return sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
-	}); err != nil {
-		return fmt.Errorf("create reserved pool6 %s with subnet6 %s failed: %s",
-			pool.String(), subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func checkReservedPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, pool *resource.ReservedPool6) error {
@@ -68,7 +64,8 @@ func checkReservedPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Su
 	}
 
 	if !checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) {
-		return fmt.Errorf("reserved pool6 %s not belongs to subnet6 %s", pool.String(), subnet.Subnet)
+		return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool, errorno.ErrNameNetworkV6,
+			pool.String(), subnet.Subnet)
 	}
 
 	return checkReservedPool6ConflictWithSubnet6Pools(tx, subnet.GetID(), pool)
@@ -88,7 +85,7 @@ func checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx restdb.Transaction, 
 		pool.BeginIp, pool.EndIp); err != nil {
 		return err
 	} else if len(pools) != 0 {
-		return fmt.Errorf("reserved pool6 %s conflict with reserved pool6 %s",
+		return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservedPool,
 			pool.String(), pools[0].String())
 	} else {
 		return nil
@@ -100,7 +97,7 @@ func getReservedPool6sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, 
 	if err := tx.FillEx(&reservedpools,
 		"select * from gr_reserved_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetID, end, begin); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 	} else {
 		return reservedpools, nil
 	}
@@ -118,8 +115,8 @@ func checkReservedPool6ConflictWithReservation6s(pool *resource.ReservedPool6, r
 	for _, reservation := range reservations {
 		for _, ip := range reservation.Ips {
 			if pool.ContainsIp(ip) {
-				return fmt.Errorf("reserved pool6 %s conflict with reservation6 %s ip %s",
-					pool.String(), reservation.String(), ip.String())
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservation,
+					pool.String(), reservation.String())
 			}
 		}
 	}
@@ -131,22 +128,20 @@ func updateSubnet6AndPool6sCapacityWithReservedPool6(tx restdb.Transaction, subn
 	affectPools, err := recalculatePool6sCapacityWithReservedPool6(tx, subnet,
 		reservedPool, isCreate)
 	if err != nil {
-		return fmt.Errorf("recalculate pool6s capacity failed: %s", err.Error())
+		return err
 	}
 
 	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 		resource.SqlColumnCapacity: subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
-			subnet.GetID(), pg.Error(err).Error())
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 	}
 
 	for affectPoolID, capacity := range affectPools {
 		if _, err := tx.Update(resource.TablePool6, map[string]interface{}{
 			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
-			return fmt.Errorf("update subnet6 %s pool6 %s capacity to db failed: %s",
-				subnet.GetID(), affectPoolID, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
 		}
 	}
 
@@ -238,8 +233,7 @@ func listReservedPool6s(subnetId string) ([]*resource.ReservedPool6, error) {
 			resource.SqlColumnSubnet6: subnetId,
 			resource.SqlOrderBy:       resource.SqlColumnBeginIp}, &pools)
 	}); err != nil {
-		return nil, fmt.Errorf("list reserved pool6s with subnet6 %s from db failed: %s",
-			subnetId, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 	}
 
 	return pools, nil
@@ -250,17 +244,16 @@ func (p *ReservedPool6Service) Get(subnet *resource.Subnet6, poolID string) (*re
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 	}); err != nil {
-		return nil, fmt.Errorf("get reserved pool6 %s with subnet6 %s from db failed: %s",
-			poolID, subnet.GetID(), pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, poolID, pg.Error(err).Error())
 	} else if len(pools) != 1 {
-		return nil, fmt.Errorf("no found reserved pool6 %s with subnet6 %s", poolID, subnet.GetID())
+		return nil, errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, poolID)
 	}
 
 	return pools[0], nil
 }
 
 func (p *ReservedPool6Service) Delete(subnet *resource.Subnet6, pool *resource.ReservedPool6) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet6FromDB(tx, subnet); err != nil {
 			return err
 		}
@@ -276,25 +269,20 @@ func (p *ReservedPool6Service) Delete(subnet *resource.Subnet6, pool *resource.R
 
 		if _, err := tx.Delete(resource.TableReservedPool6, map[string]interface{}{
 			restdb.IDField: pool.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, pool.GetID(), pg.Error(err).Error())
 		}
 
 		return sendDeleteReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
-	}); err != nil {
-		return fmt.Errorf("delete reserved pool6 %s with subnet6 %s failed: %s",
-			pool.String(), subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6) error {
 	var pools []*resource.ReservedPool6
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
 		&pools); err != nil {
-		return fmt.Errorf("get reserved pool6 from db failed: %s", pg.Error(err).Error())
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, pool.GetID(), pg.Error(err).Error())
 	} else if len(pools) == 0 {
-		return fmt.Errorf("no found reserved pool6 %s", pool.GetID())
+		return errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, pool.GetID())
 	}
 
 	pool.Subnet6 = pools[0].Subnet6
@@ -325,7 +313,7 @@ func (p *ReservedPool6Service) ActionValidTemplate(subnet *resource.Subnet6, poo
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkReservedPool6CouldBeCreated(tx, subnet, pool)
 	}); err != nil {
-		return nil, fmt.Errorf("template6 %s invalid: %s", pool.Template, err.Error())
+		return nil, err
 	}
 
 	return &resource.TemplatePool{
@@ -338,22 +326,17 @@ func (p *ReservedPool6Service) Update(subnetId string, pool *resource.ReservedPo
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPool6, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, pool.GetID(), pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found reserved pool6 %s", pool.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, pool.GetID())
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("update reserved pool6 %s with subnet6 %s failed: %s",
-			pool.String(), subnetId, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func GetReservedPool6sByPrefix(prefix string) ([]*resource.ReservedPool6, error) {

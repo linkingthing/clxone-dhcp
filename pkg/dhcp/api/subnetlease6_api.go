@@ -1,12 +1,13 @@
 package api
 
 import (
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SubnetLease6Api struct {
@@ -23,7 +24,7 @@ func (h *SubnetLease6Api) List(ctx *restresource.Context) (interface{}, *resterr
 
 	subnetLease6s, err := h.Service.List(ctx.Resource.GetParent().(*resource.Subnet6), ip)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return subnetLease6s, nil
@@ -31,7 +32,7 @@ func (h *SubnetLease6Api) List(ctx *restresource.Context) (interface{}, *resterr
 
 func (h *SubnetLease6Api) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := h.Service.Delete(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID()); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil

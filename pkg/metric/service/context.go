@@ -1,12 +1,12 @@
 package service
 
 import (
-	"fmt"
 	"time"
 
 	csvutil "github.com/linkingthing/clxone-utils/csv"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -68,7 +68,7 @@ func parseTimePeriod(from, to string) (*TimePeriod, error) {
 	if !csvutil.IsSpaceField(from) {
 		timeFrom_, err := time.Parse(util.TimeFormatYMD, from)
 		if err != nil {
-			return nil, err
+			return nil, errorno.ErrInvalidParams(errorno.ErrNameTime, from)
 		}
 
 		timeFrom = timeFrom_
@@ -77,7 +77,7 @@ func parseTimePeriod(from, to string) (*TimePeriod, error) {
 	if !csvutil.IsSpaceField(to) {
 		timeTo_, err := time.Parse(util.TimeFormatYMD, to)
 		if err != nil {
-			return nil, err
+			return nil, errorno.ErrInvalidParams(errorno.ErrNameTime, to)
 		}
 
 		timeTo = timeTo_
@@ -88,7 +88,7 @@ func parseTimePeriod(from, to string) (*TimePeriod, error) {
 
 func genTimePeriod(from, to time.Time) (*TimePeriod, error) {
 	if to.Before(from) {
-		return nil, fmt.Errorf("time to %s before from %s",
+		return nil, errorno.ErrLessThan(errorno.ErrNameTime,
 			to.Format(csvutil.TimeFormat), from.Format(csvutil.TimeFormat))
 	} else if from.Equal(to) {
 		from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.Local)
@@ -109,7 +109,7 @@ func getDHCPVersionFromDHCPID(id string) (DHCPVersion, error) {
 	case DHCPVersion6:
 		return DHCPVersion6, nil
 	default:
-		return DHCPVersionNone, fmt.Errorf("unsupport dhcp version with id %s", id)
+		return DHCPVersionNone, errorno.ErrInvalidParams(errorno.ErrNameVersion, id)
 	}
 }
 

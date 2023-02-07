@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 
 	restdb "github.com/linkingthing/gorest/db"
 	"github.com/linkingthing/gorest/resource"
@@ -39,6 +40,6 @@ func Init(conf *config.DHCPConfig) error {
 
 func GetResources(conditions map[string]interface{}, resources interface{}) error {
 	return restdb.WithTx(globalDB, func(tx restdb.Transaction) error {
-		return tx.Fill(conditions, resources)
+		return pg.Error(tx.Fill(conditions, resources))
 	})
 }

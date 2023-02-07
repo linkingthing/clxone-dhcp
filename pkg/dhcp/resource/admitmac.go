@@ -6,6 +6,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -23,7 +24,7 @@ func (a AdmitMac) GetParents() []restresource.ResourceKind {
 
 func (a *AdmitMac) Validate() error {
 	if _, err := net.ParseMAC(a.HwAddress); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
 	} else {
 		return util.ValidateStrings(a.Comment)
 	}

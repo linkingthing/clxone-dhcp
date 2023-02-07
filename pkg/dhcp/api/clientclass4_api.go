@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type ClientClass4Api struct {
@@ -19,7 +20,7 @@ func NewClientClass4Api() *ClientClass4Api {
 func (c *ClientClass4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	clientClass := ctx.Resource.(*resource.ClientClass4)
 	if err := c.Service.Create(clientClass); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return clientClass, nil
@@ -28,7 +29,7 @@ func (c *ClientClass4Api) Create(ctx *restresource.Context) (restresource.Resour
 func (c *ClientClass4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	clientClasses, err := c.Service.List()
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return clientClasses, nil
@@ -37,7 +38,7 @@ func (c *ClientClass4Api) List(ctx *restresource.Context) (interface{}, *resterr
 func (c *ClientClass4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	clientClass, err := c.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return clientClass, nil
@@ -46,7 +47,7 @@ func (c *ClientClass4Api) Get(ctx *restresource.Context) (restresource.Resource,
 func (c *ClientClass4Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	clientClass := ctx.Resource.(*resource.ClientClass4)
 	if err := c.Service.Update(clientClass); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return clientClass, nil
@@ -54,7 +55,7 @@ func (c *ClientClass4Api) Update(ctx *restresource.Context) (restresource.Resour
 
 func (c *ClientClass4Api) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := c.Service.Delete(ctx.Resource.GetID()); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil

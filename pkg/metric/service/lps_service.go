@@ -12,6 +12,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 	service2 "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
@@ -108,7 +109,7 @@ func (h *LPSService) List(ctx *restresource.Context) (interface{}, error) {
 		PromQuery:      PromQueryVersion,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get lpses from prometheus failed: %s", err.Error())
+		return nil, err
 	}
 
 	nodeNames, err := service.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
@@ -185,7 +186,7 @@ func (h *LPSService) Get(ctx *restresource.Context) (restresource.Resource, erro
 		NodeIP:         lps.GetID(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get lps with node %s failed: %s", lps.GetID(), err.Error())
+		return nil, err
 	}
 
 	if nodeNames, err := service.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID())); err != nil {
@@ -236,7 +237,7 @@ func (h *LPSService) Export(ctx *restresource.Context) (interface{}, error) {
 func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (interface{}, error) {
 	filter, ok := ctx.Resource.GetAction().Input.(*resource.ExportFilter)
 	if !ok {
-		return nil, fmt.Errorf("action input is not export filter")
+		return nil, errorno.ErrInvalidFormat(errorno.ErrNameLPS, errorno.ErrNameExport)
 	}
 
 	timePeriod, err := parseTimePeriod(filter.From, filter.To)
@@ -253,8 +254,7 @@ func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (inte
 	metricCtx.Version = version
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get node %s %s from prometheus failed: %s",
-			metricCtx.NodeIP, metricCtx.MetricName, err.Error())
+		return nil, err
 	}
 
 	var result PrometheusDataResult
@@ -272,8 +272,7 @@ func exportTwoColumnsWithResult(ctx *MetricContext, result PrometheusDataResult)
 	strMatrix := genTwoStrMatrix(result.Values, ctx)
 	filepath, err := exportFile(ctx, strMatrix)
 	if err != nil {
-		return nil, fmt.Errorf("export node %s %s file failed: %s",
-			ctx.NodeIP, ctx.MetricName, err.Error())
+		return nil, err
 	}
 
 	return &resource.FileInfo{Path: filepath}, nil

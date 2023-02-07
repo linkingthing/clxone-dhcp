@@ -7,6 +7,7 @@ import (
 	consulutil "github.com/linkingthing/clxone-utils/consul"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 )
 
@@ -18,7 +19,7 @@ func GetDHCPNodes() (response *pbmonitor.GetDHCPNodesResponse, err error) {
 		response, err = client.GetDHCPNodes(ctx, &pbmonitor.GetDHCPNodesRequest{})
 		return err
 	}); err != nil {
-		return
+		err = errorno.ErrNetworkError(errorno.ErrNameDhcpNode, err.Error())
 	}
 	return
 }

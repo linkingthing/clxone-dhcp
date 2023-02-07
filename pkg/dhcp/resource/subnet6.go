@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"math/big"
 	"net"
 
@@ -10,6 +9,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -88,7 +88,7 @@ func (s *Subnet6) Contains(ip string) bool {
 func (s *Subnet6) Validate() error {
 	ipnet, err := gohelperip.ParseCIDRv6(s.Subnet)
 	if err != nil {
-		return fmt.Errorf("subnet %s invalid: %s", s.Subnet, err.Error())
+		return errorno.ErrParseCIDR(s.Subnet)
 	}
 
 	s.Ipnet = *ipnet
@@ -96,17 +96,17 @@ func (s *Subnet6) Validate() error {
 	maskSize, _ := s.Ipnet.Mask.Size()
 	if s.UseEui64 {
 		if s.UseAddressCode {
-			return fmt.Errorf("subnet use eui64 conflict with use address code")
+			return errorno.ErrEui64Conflict()
 		}
 
 		if maskSize != 64 {
-			return fmt.Errorf("subnet6 use EUI64, mask size %d is not 64", maskSize)
+			return errorno.ErrExpect("EUI64", 64, maskSize)
 		}
 		s.Capacity = MaxUint64String
 	} else {
 		if s.UseAddressCode {
 			if maskSize < 64 {
-				fmt.Errorf("subnet use address code mask size %d must bigger than 63", maskSize)
+				return errorno.ErrAddressCodeMask()
 			}
 
 			if maskSize == 64 {
@@ -134,7 +134,7 @@ func (s *Subnet6) setSubnet6DefaultValue() error {
 
 	dhcpConfig, err := getDhcpConfig(false)
 	if err != nil {
-		return fmt.Errorf("get dhcp global config failed: %s", err.Error())
+		return err
 	}
 
 	if s.ValidLifetime == 0 {
@@ -184,7 +184,7 @@ func (s *Subnet6) ValidateParams() error {
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {
 	if preferredLifetime > validLifetime || preferredLifetime < minValidLifetime {
-		return fmt.Errorf("preferred lifetime should in [%d, %d]",
+		return errorno.ErrNotInScope(errorno.ErrNamePreferredLifetime,
 			minValidLifetime, validLifetime)
 	}
 

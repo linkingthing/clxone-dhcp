@@ -1,8 +1,9 @@
 package util
 
 import (
-	"fmt"
 	"regexp"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type StringRegexp struct {
@@ -34,7 +35,7 @@ func ValidateStrings(ss ...string) error {
 		if s != "" {
 			for _, reg := range StringRegexps {
 				if ret := reg.Regexp.MatchString(s); ret != reg.ExpectResult {
-					return fmt.Errorf("%s %s", s, reg.ErrMsg)
+					return errorno.ErrInvalidParams("", s)
 				}
 			}
 		}

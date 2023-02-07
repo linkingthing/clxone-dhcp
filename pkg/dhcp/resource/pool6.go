@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"math/big"
 	"net"
 	"strconv"
@@ -10,6 +9,8 @@ import (
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 var TablePool6 = restdb.ResourceDBType(&Pool6{})
@@ -115,11 +116,11 @@ func (p *Pool6) setAddrAndCapacity(beginIp, endIp net.IP, capacity string) {
 func parsePool6FromTemplate(tx restdb.Transaction, template string, subnet *Subnet6) (net.IP, net.IP, string, error) {
 	var templates []*Pool6Template
 	if err := tx.Fill(map[string]interface{}{"name": template}, &templates); err != nil {
-		return nil, nil, "", pg.Error(err)
+		return nil, nil, "", errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameTemplate), pg.Error(err).Error())
 	}
 
 	if len(templates) != 1 {
-		return nil, nil, "", fmt.Errorf("no found pool6 template %s", template)
+		return nil, nil, "", errorno.ErrNotFound(errorno.ErrNameTemplate, template)
 	}
 
 	subnetIpBigInt := gohelperip.IPv6ToBigInt(subnet.Ipnet.IP)
@@ -128,8 +129,8 @@ func parsePool6FromTemplate(tx restdb.Transaction, template string, subnet *Subn
 	beginIp := gohelperip.IPv6FromBigInt(beginBigInt)
 	endIp := gohelperip.IPv6FromBigInt(endBigInt)
 	if !subnet.Ipnet.Contains(beginIp) || !subnet.Ipnet.Contains(endIp) {
-		return nil, nil, "", fmt.Errorf("template6 %s pool6 %s-%s not belongs to subnet6 %s",
-			template, beginIp.String(), endIp.String(), subnet.Subnet)
+		return nil, nil, "", errorno.ErrNotBelongTo(errorno.ErrNameTemplate, errorno.ErrNameNetworkV6,
+			template, subnet.Subnet)
 	}
 
 	return beginIp, endIp, strconv.FormatUint(templates[0].Capacity, 10), nil
@@ -148,14 +149,12 @@ func (p *Pool6) ValidateAddress() error {
 func validPool6(beginAddr, endAddr string) (net.IP, net.IP, string, error) {
 	beginIp, err := gohelperip.ParseIPv6(beginAddr)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("pool6 begin address %s is invalid: %s",
-			beginAddr, err.Error())
+		return nil, nil, "", errorno.ErrInvalidAddress(beginAddr)
 	}
 
 	endIp, err := gohelperip.ParseIPv6(endAddr)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("pool6 end address %s is invalid: %s",
-			beginAddr, err.Error())
+		return nil, nil, "", errorno.ErrInvalidAddress(beginAddr)
 	}
 
 	if capacity, err := calculateIpv6Pool6Capacity(beginIp, endIp); err != nil {
@@ -177,7 +176,7 @@ func calculateIpv6Pool6Capacity(begin, end net.IP) (string, error) {
 
 func CalculateIpv6Pool6CapacityWithBigInt(beginBigInt, endBigInt *big.Int) (*big.Int, error) {
 	if endBigInt.Cmp(beginBigInt) == -1 {
-		return nil, fmt.Errorf("begin address %s bigger than end address %s",
+		return nil, errorno.ErrBiggerThan(errorno.ErrNameIp,
 			beginBigInt.String(), endBigInt.String())
 	}
 

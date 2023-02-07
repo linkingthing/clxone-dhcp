@@ -1,11 +1,10 @@
 package resource
 
 import (
-	"fmt"
-
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -21,9 +20,11 @@ type Pool6Template struct {
 
 func (p *Pool6Template) Validate() error {
 	if len(p.Name) == 0 || util.ValidateStrings(p.Name) != nil {
-		return fmt.Errorf("name %s is invalid", p.Name)
-	} else if p.BeginOffset <= 0 || p.BeginOffset >= 2147483647 || p.Capacity <= 0 || p.Capacity >= 2147483647 {
-		return fmt.Errorf("offset %v or capacity %v should in (0, 2147483647)", p.BeginOffset, p.Capacity)
+		return errorno.ErrInvalidParams(errorno.ErrNameName, p.Name)
+	} else if p.BeginOffset <= 0 || p.BeginOffset >= 2147483647 {
+		return errorno.ErrNotInScope(errorno.ErrNameOffset, 0, 2147483647)
+	} else if p.Capacity <= 0 || p.Capacity >= 2147483647 {
+		return errorno.ErrNotInScope(errorno.ErrNameCapacity, 0, 2147483647)
 	} else {
 		return util.ValidateStrings(p.Comment)
 	}

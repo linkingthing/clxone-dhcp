@@ -12,6 +12,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
@@ -26,10 +27,10 @@ func NewReservation6Service() *Reservation6Service {
 
 func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *resource.Reservation6) error {
 	if err := reservation.Validate(); err != nil {
-		return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
 			return err
 		}
@@ -41,26 +42,21 @@ func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *reso
 
 		reservation.Subnet6 = subnet.GetID()
 		if _, err := tx.Insert(reservation); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 
 		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
 			reservation)
-	}); err != nil {
-		return fmt.Errorf("create reservation6 %s failed: %s",
-			reservation.String(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
 	if err := setSubnet6FromDB(tx, subnet); err != nil {
 		return err
 	} else if subnet.UseEui64 {
-		return fmt.Errorf("subnet6 use EUI64, can not create reservation6")
+		return errorno.ErrSubnetWithEui64(subnet.Subnet)
 	} else if subnet.UseAddressCode && len(reservation.Prefixes) != 0 {
-		return fmt.Errorf("subnet6 use address code, can not create reservation6 prefixes")
+		return errorno.ErrSubnetWithEui64(subnet.Subnet)
 	}
 
 	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation); err != nil {
@@ -77,29 +73,26 @@ func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Reservation6) error {
 	subnetMaskLen, _ := ipnet.Mask.Size()
 	if subnetMaskLen < 64 && len(reservation.Ips) != 0 {
-		return fmt.Errorf("subnet6 %s mask less than 64, can`t create reservation6 ips %v",
-			ipnet.String(), reservation.IpAddresses)
+		return errorno.ErrLessThan(errorno.ErrNamePrefix, ipnet.String(), 64)
 	}
 
 	if subnetMaskLen > 64 && len(reservation.Ipnets) != 0 {
-		return fmt.Errorf("subnet6 %s mask bigger than 64, can`t create reservation6 prefixes %v",
-			ipnet.String(), reservation.Prefixes)
+		return errorno.ErrBiggerThan(errorno.ErrNamePrefix, ipnet.String(), 64)
 	}
 
 	for _, ip := range reservation.Ips {
 		if !ipnet.Contains(ip) {
-			return fmt.Errorf("reservation6 %s ip %s not belong to subnet6 %s",
-				reservation.String(), ip.String(), ipnet.String())
+			return errorno.ErrNotBelongTo(errorno.ErrNameIp, errorno.ErrNamePrefix,
+				ip.String(), ipnet.String())
 		}
 	}
 
 	for _, ipnet_ := range reservation.Ipnets {
 		if !ipnet.Contains(ipnet_.IP) {
-			return fmt.Errorf("reservation6 %s prefix %s not belong to subnet6 %s",
-				reservation.String(), ipnet_.String(), ipnet.String())
+			return errorno.ErrNotBelongTo(errorno.ErrNameIp, errorno.ErrNamePrefix,
+				ipnet_.String(), ipnet.String())
 		} else if ones, _ := ipnet_.Mask.Size(); ones <= subnetMaskLen {
-			return fmt.Errorf("reservation6 %s prefix %s len %d is not bigger than subnet6 %d",
-				reservation.String(), ipnet_.String(), ones, subnetMaskLen)
+			return errorno.ErrLessThan(errorno.ErrNamePrefix, ipnet_.String(), subnetMaskLen)
 		}
 	}
 
@@ -110,14 +103,13 @@ func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation
 	var reservations []*resource.Reservation6
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 		&reservations); err != nil {
-		return fmt.Errorf("get subnet6 %s reservation6 failed: %s", subnetId, pg.Error(err).Error())
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
 	for _, reservation_ := range reservations {
 		if reservation_.CheckConflictWithAnother(reservation) {
-			return fmt.Errorf("reservation6 %s %s conflict with exists reservation6 %s %s",
-				reservation.String(), reservation.AddrString(),
-				reservation_.String(), reservation_.AddrString())
+			return errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
+				reservation.String(), reservation_.String())
 		}
 	}
 
@@ -129,8 +121,7 @@ func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, 
 	if len(reservation.IpAddresses) != 0 {
 		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 			&reservedpools); err != nil {
-			return fmt.Errorf("get subnet6 %s reserved pool6 from db failed: %s",
-				subnetId, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 		}
 	}
 
@@ -138,16 +129,15 @@ func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, 
 	if len(reservation.Prefixes) != 0 {
 		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 			&reservedpdpools); err != nil {
-			return fmt.Errorf("get subnet6 %s reserved pdpool from db failed: %s",
-				subnetId, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameReservedPdPool), pg.Error(err).Error())
 		}
 	}
 
 	for _, ip := range reservation.Ips {
 		for _, reservedpool := range reservedpools {
 			if reservedpool.ContainsIp(ip) {
-				return fmt.Errorf("reservation6 %s ip %s conflict with reserved pool6 %s",
-					reservation.String(), ip.String(), reservedpool.String())
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservedPool,
+					reservation.String(), reservedpool.String())
 			}
 		}
 	}
@@ -155,9 +145,8 @@ func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, 
 	for _, ipnet := range reservation.Ipnets {
 		for _, reservedpdpool := range reservedpdpools {
 			if reservedpdpool.IntersectIpnet(ipnet) {
-				return fmt.Errorf(
-					"reservation6 %s prefix %s conflict with reserved pdpool %s",
-					reservation.String(), ipnet.String(), reservedpdpool.String())
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameReservedPdPool,
+					reservation.String(), reservedpdpool.String())
 			}
 		}
 	}
@@ -176,8 +165,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
 			resource.SqlColumnCapacity: subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
-				subnet.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 		}
 	}
 
@@ -185,8 +173,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 		if _, err := tx.Update(resource.TablePool6, map[string]interface{}{
 			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectedPoolId}); err != nil {
-			return fmt.Errorf("update pool6 %s capacity to db failed: %s",
-				affectedPoolId, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
 		}
 	}
 
@@ -194,8 +181,7 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 		if _, err := tx.Update(resource.TablePdPool, map[string]interface{}{
 			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectedPdPoolId}); err != nil {
-			return fmt.Errorf("update pdpool %s capacity to db failed: %s",
-				affectedPdPoolId, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNamePdPool), pg.Error(err).Error())
 		}
 	}
 
@@ -223,8 +209,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 	var pools []*resource.Pool6
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()},
 		&pools); err != nil {
-		return nil, fmt.Errorf("get pool6s with subnet6 %s from db failed: %s",
-			subnet.GetID(), pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
 	}
 
 	affectedPool6s := make(map[string]string)
@@ -273,8 +258,7 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 	var pdpools []*resource.PdPool
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()},
 		&pdpools); err != nil {
-		return nil, fmt.Errorf("get pdpools with subnet6 %s from db failed: %s",
-			subnet.GetID(), pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
 	}
 
 	affectedPdPools := make(map[string]string)
@@ -360,12 +344,14 @@ func listReservation6s(subnet *resource.Subnet6) ([]*resource.Reservation6, erro
 			return err
 		}
 
-		return tx.Fill(map[string]interface{}{
+		if err := tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet6: subnet.GetID(),
-			resource.SqlOrderBy:       "duid, hw_address"}, &reservations)
+			resource.SqlOrderBy:       "duid, hw_address"}, &reservations); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+		}
+		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("list reservation6s with subnet6 %s from db failed: %s",
-			subnet.GetID(), pg.Error(err).Error())
+		return nil, err
 	}
 
 	if len(subnet.Nodes) != 0 {
@@ -458,13 +444,14 @@ func (r *Reservation6Service) Get(subnet *resource.Subnet6, reservationID string
 			return err
 		}
 
-		return tx.Fill(map[string]interface{}{restdb.IDField: reservationID}, &reservations)
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: reservationID}, &reservations); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, reservationID, pg.Error(err).Error())
+		}
+		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("get reservation6 %s with subnet6 %s from db failed: %s",
-			reservationID, subnet.GetID(), pg.Error(err).Error())
+		return nil, err
 	} else if len(reservations) == 0 {
-		return nil, fmt.Errorf("no found reservation6 %s with subnet6 %s",
-			reservationID, subnet.GetID())
+		return nil, errorno.ErrNotFound(errorno.ErrNameDhcpReservation, reservationID)
 	}
 
 	if leasesCount, err := getReservation6LeasesCount(subnet, reservations[0]); err != nil {
@@ -501,6 +488,9 @@ func getReservation6LeasesCount(subnet *resource.Subnet6, reservation *resource.
 				IpAddresses: reservation.IpAddresses,
 				Prefixes:    reservation.Prefixes,
 			})
+		if err != nil {
+			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
+		}
 		return err
 	}); err != nil {
 		return 0, err
@@ -510,7 +500,7 @@ func getReservation6LeasesCount(subnet *resource.Subnet6, reservation *resource.
 }
 
 func (r *Reservation6Service) Delete(subnet *resource.Subnet6, reservation *resource.Reservation6) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkReservation6CouldBeDeleted(tx, subnet, reservation); err != nil {
 			return err
 		}
@@ -522,17 +512,12 @@ func (r *Reservation6Service) Delete(subnet *resource.Subnet6, reservation *reso
 
 		if _, err := tx.Delete(resource.TableReservation6,
 			map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, reservation.GetID(), pg.Error(err).Error())
 		}
 
 		return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
 			reservation)
-	}); err != nil {
-		return fmt.Errorf("delete reservation6 %s with subnet6 %s failed: %s",
-			reservation.String(), subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func checkReservation6CouldBeDeleted(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
@@ -545,11 +530,9 @@ func checkReservation6CouldBeDeleted(tx restdb.Transaction, subnet *resource.Sub
 	}
 
 	if leasesCount, err := getReservation6LeasesCount(subnet, reservation); err != nil {
-		return fmt.Errorf("get reservation6 %s leases count failed: %s",
-			reservation.String(), err.Error())
+		return err
 	} else if leasesCount != 0 {
-		return fmt.Errorf("cannot delete reservation6 with %d ips had been allocated",
-			leasesCount)
+		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameDhcpReservation, reservation.String())
 	}
 
 	return nil
@@ -559,9 +542,9 @@ func setReservation6FromDB(tx restdb.Transaction, reservation *resource.Reservat
 	var reservations []*resource.Reservation6
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: reservation.GetID()},
 		&reservations); err != nil {
-		return pg.Error(err)
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, reservation.GetID(), pg.Error(err).Error())
 	} else if len(reservations) == 0 {
-		return fmt.Errorf("no found reservation6 %s", reservation.GetID())
+		return errorno.ErrNotFound(errorno.ErrNameDhcpReservation, reservation.GetID())
 	}
 
 	reservation.Subnet6 = reservations[0].Subnet6
@@ -595,22 +578,17 @@ func (r *Reservation6Service) Update(subnetId string, reservation *resource.Rese
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservation6, map[string]interface{}{
 			resource.SqlColumnComment: reservation.Comment,
 		}, map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, reservation.GetID(), pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found reservation6 %s", reservation.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameDhcpReservation, reservation.GetID())
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("update reservation6 %s with subnet6 %s failed: %s",
-			reservation.String(), subnetId, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func GetReservationPool6sByPrefix(prefix string) ([]*resource.Reservation6, error) {
