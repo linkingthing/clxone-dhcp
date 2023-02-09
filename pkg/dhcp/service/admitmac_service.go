@@ -19,11 +19,11 @@ func NewAdmitMacService() *AdmitMacService {
 }
 
 func (d *AdmitMacService) Create(admitMac *resource.AdmitMac) error {
-	admitMac.SetID(admitMac.HwAddress)
 	if err := admitMac.Validate(); err != nil {
 		return err
 	}
 
+	admitMac.SetID(admitMac.HwAddress)
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitMac); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAdmit), pg.Error(err).Error())

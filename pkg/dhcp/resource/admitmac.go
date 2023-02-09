@@ -2,6 +2,7 @@ package resource
 
 import (
 	"net"
+	"strings"
 
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -23,9 +24,10 @@ func (a AdmitMac) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AdmitMac) Validate() error {
-	if _, err := net.ParseMAC(a.HwAddress); err != nil {
+	if hw, err := net.ParseMAC(a.HwAddress); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
 	} else {
+		a.HwAddress = strings.ToUpper(hw.String())
 		return util.ValidateStrings(a.Comment)
 	}
 }

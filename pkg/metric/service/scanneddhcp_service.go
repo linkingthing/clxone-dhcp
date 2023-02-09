@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
-	"github.com/Ullaakut/nmap/v2"
+	nmap "github.com/Ullaakut/nmap/v2"
 	"github.com/linkingthing/cement/log"
 	pbutil "github.com/linkingthing/clxone-utils/alarm/proto"
 
@@ -61,6 +62,7 @@ func (h *ScannedDHCPService) scanIllegalDHCPServer(searchInterval uint32) {
 				log.Warnf("fill illegal dhcp servers mac failed:%s", err.Error())
 			}
 			for _, dhcpServer := range dhcpServers {
+				dhcpServer.Mac = strings.ToUpper(dhcpServer.Mac)
 				ip := dhcpServer.IPv4
 				if ip == "" {
 					ip = dhcpServer.IPv6
