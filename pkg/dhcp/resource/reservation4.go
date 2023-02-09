@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
@@ -44,8 +45,10 @@ func (r *Reservation4) Validate() error {
 	}
 
 	if r.HwAddress != "" {
-		if _, err := net.ParseMAC(r.HwAddress); err != nil {
+		if hw, err := net.ParseMAC(r.HwAddress); err != nil {
 			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
+		} else {
+			r.HwAddress = strings.ToUpper(hw.String())
 		}
 	} else if r.Hostname != "" {
 		if err := util.ValidateStrings(r.Hostname); err != nil {

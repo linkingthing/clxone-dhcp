@@ -4,9 +4,8 @@ import (
 	"fmt"
 
 	"github.com/linkingthing/cement/log"
-	restdb "github.com/linkingthing/gorest/db"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
+	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -21,11 +20,11 @@ func NewAdmitMacService() *AdmitMacService {
 }
 
 func (d *AdmitMacService) Create(admitMac *resource.AdmitMac) error {
-	admitMac.SetID(admitMac.HwAddress)
 	if err := admitMac.Validate(); err != nil {
 		return fmt.Errorf("validate admit mac %s failed: %s", admitMac.GetID(), err.Error())
 	}
 
+	admitMac.SetID(admitMac.HwAddress)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitMac); err != nil {
 			return pg.Error(err)
