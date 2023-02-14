@@ -11,6 +11,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type AdmitMacService struct{}
@@ -53,6 +54,12 @@ func sendCreateAdmitMacCmdToDHCPAgent(admitMac *resource.AdmitMac) error {
 }
 
 func (d *AdmitMacService) List(conditions map[string]interface{}) ([]*resource.AdmitMac, error) {
+	if mac, ok := conditions[resource.SqlColumnHwAddress].(string); ok {
+		if mac, _ = util.NormalizeMac(mac); mac != "" {
+			conditions[resource.SqlColumnHwAddress] = mac
+		}
+	}
+
 	var macs []*resource.AdmitMac
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &macs)
