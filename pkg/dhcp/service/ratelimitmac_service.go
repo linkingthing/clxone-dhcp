@@ -10,6 +10,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type RateLimitMacService struct{}
@@ -50,6 +51,12 @@ func sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac *resource.RateLimitMac) e
 
 func (d *RateLimitMacService) List(condition map[string]interface{}) ([]*resource.RateLimitMac, error) {
 	var rateLimitMacs []*resource.RateLimitMac
+	if mac, ok := condition[resource.SqlColumnHwAddress].(string); ok {
+		if mac, _ = util.NormalizeMac(mac); mac != "" {
+			condition[resource.SqlColumnHwAddress] = mac
+		}
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(condition, &rateLimitMacs)
 	}); err != nil {

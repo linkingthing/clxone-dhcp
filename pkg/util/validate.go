@@ -1,7 +1,9 @@
 package util
 
 import (
+	"net"
 	"regexp"
+	"strings"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
@@ -42,4 +44,12 @@ func ValidateStrings(ss ...string) error {
 	}
 
 	return nil
+}
+
+func NormalizeMac(mac string) (string, error) {
+	hw, err := net.ParseMAC(mac)
+	if err != nil {
+		return "", errorno.ErrInvalidParams(errorno.ErrNameMac, mac)
+	}
+	return strings.ToUpper(hw.String()), nil
 }
