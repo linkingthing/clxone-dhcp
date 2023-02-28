@@ -117,20 +117,27 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
-	uniqueIps := make(map[string]struct{})
+	uniqueIps := make(map[string]struct{}, len(r.IpAddresses))
+	ips := make([]string, 0, len(r.IpAddresses))
 	capacity := new(big.Int)
 	for _, ip := range r.IpAddresses {
-		if ipv6, err := gohelperip.ParseIPv6(ip); err != nil {
+		ipv6, err := gohelperip.ParseIPv6(ip)
+		if err != nil {
 			return errorno.ErrInvalidAddress(ip)
-		} else if _, ok := uniqueIps[ip]; ok {
+		}
+
+		ipstr := ipv6.String()
+		if _, ok := uniqueIps[ipstr]; ok {
 			return errorno.ErrDuplicate(errorno.ErrNameIp, ip)
 		} else {
-			uniqueIps[ip] = struct{}{}
+			uniqueIps[ipstr] = struct{}{}
 			r.Ips = append(r.Ips, ipv6)
+			ips = append(ips, ipstr)
 			capacity.Add(capacity, big.NewInt(1))
 		}
 	}
 
+	prefixes := make([]string, 0, len(r.Prefixes))
 	for i, prefix := range r.Prefixes {
 		if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 			return errorno.ErrParseCIDR(prefix)
@@ -140,6 +147,7 @@ func (r *Reservation6) Validate() error {
 			return errorno.ErrConflict(errorno.ErrNamePrefix, errorno.ErrNamePrefix, prefix, prefix_)
 		} else {
 			r.Ipnets = append(r.Ipnets, *ipnet)
+			prefixes = append(prefixes, ipnet.String())
 			capacity.Add(capacity, big.NewInt(1))
 		}
 	}
@@ -148,6 +156,8 @@ func (r *Reservation6) Validate() error {
 		return err
 	}
 
+	r.IpAddresses = ips
+	r.Prefixes = prefixes
 	r.Capacity = capacity.String()
 	return nil
 }
