@@ -44,8 +44,10 @@ func (r *Reservation4) Validate() error {
 	}
 
 	if r.HwAddress != "" {
-		if _, err := net.ParseMAC(r.HwAddress); err != nil {
+		if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
 			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
+		} else {
+			r.HwAddress = hw
 		}
 	} else if r.Hostname != "" {
 		if err := util.ValidateStrings(r.Hostname); err != nil {
