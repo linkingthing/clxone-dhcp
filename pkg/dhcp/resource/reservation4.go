@@ -2,7 +2,6 @@ package resource
 
 import (
 	"net"
-	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
@@ -45,10 +44,10 @@ func (r *Reservation4) Validate() error {
 	}
 
 	if r.HwAddress != "" {
-		if hw, err := net.ParseMAC(r.HwAddress); err != nil {
-			return errorno.ErrInvalidParams(errorno.ErrNameMac, r.HwAddress)
+		if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
+			return err
 		} else {
-			r.HwAddress = strings.ToUpper(hw.String())
+			r.HwAddress = hw
 		}
 	} else if r.Hostname != "" {
 		if err := util.ValidateStrings(r.Hostname); err != nil {

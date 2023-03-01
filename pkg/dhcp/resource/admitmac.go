@@ -1,13 +1,9 @@
 package resource
 
 import (
-	"net"
-	"strings"
-
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
-	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -24,10 +20,10 @@ func (a AdmitMac) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AdmitMac) Validate() error {
-	if hw, err := net.ParseMAC(a.HwAddress); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
+	if hw, err := util.NormalizeMac(a.HwAddress); err != nil {
+		return err
 	} else {
-		a.HwAddress = strings.ToUpper(hw.String())
+		a.HwAddress = hw
 		return util.ValidateStrings(a.Comment)
 	}
 }

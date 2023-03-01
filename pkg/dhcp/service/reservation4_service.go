@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -258,7 +259,7 @@ func getReservation4LeaseCount(subnet *resource.Subnet4, reservation *resource.R
 		resp, err = client.GetReservation4LeaseCount(
 			ctx, &pbdhcpagent.GetReservation4LeaseCountRequest{
 				SubnetId:  subnetIDStrToUint64(reservation.Subnet4),
-				HwAddress: reservation.HwAddress,
+				HwAddress: strings.ToLower(reservation.HwAddress),
 				Hostname:  reservation.Hostname,
 				IpAddress: reservation.IpAddress,
 			})
