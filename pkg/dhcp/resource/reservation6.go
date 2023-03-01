@@ -102,10 +102,10 @@ func (r *Reservation6) Validate() error {
 	}
 
 	if r.HwAddress != "" {
-		if hw, err := net.ParseMAC(r.HwAddress); err != nil {
+		if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
 			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
 		} else {
-			r.HwAddress = strings.ToUpper(hw.String())
+			r.HwAddress = hw
 		}
 	} else if r.Duid != "" {
 		if err := parseDUID(r.Duid); err != nil {
