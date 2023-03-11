@@ -76,10 +76,10 @@ func genClientClass4Regexp(clientclass *resource.ClientClass4) string {
 	}
 }
 
-func (c *ClientClass4Service) List() ([]*resource.ClientClass4, error) {
+func (c *ClientClass4Service) List(conditions map[string]interface{}) ([]*resource.ClientClass4, error) {
 	var clientClasses []*resource.ClientClass4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{resource.SqlOrderBy: resource.SqlColumnName}, &clientClasses)
+		return tx.Fill(conditions, &clientClasses)
 	}); err != nil {
 		return nil, fmt.Errorf("list clientclass4 failed:%s", pg.Error(err).Error())
 	}
@@ -109,9 +109,10 @@ func (c *ClientClass4Service) Update(clientClass *resource.ClientClass4) error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableClientClass4,
 			map[string]interface{}{
-				resource.SqlColumnClassCondition:  clientClass.Condition,
-				resource.SqlColumnClassRegexp:     clientClass.Regexp,
-				resource.SqlColumnClassBeginIndex: clientClass.BeginIndex,
+				resource.SqlColumnClassCondition:   clientClass.Condition,
+				resource.SqlColumnClassRegexp:      clientClass.Regexp,
+				resource.SqlColumnClassBeginIndex:  clientClass.BeginIndex,
+				resource.SqlColumnClassDescription: clientClass.Description,
 			},
 			map[string]interface{}{restdb.IDField: clientClass.GetID()}); err != nil {
 			return pg.Error(err)

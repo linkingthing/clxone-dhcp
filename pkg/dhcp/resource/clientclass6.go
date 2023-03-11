@@ -16,7 +16,7 @@ type ClientClass6 struct {
 	Name                      string          `json:"name" rest:"required=true,description=immutable" db:"uk"`
 	Code                      uint16          `json:"code" rest:"required=true,description=immutable"`
 	Condition                 OptionCondition `json:"condition" rest:"required=true,options=exists|equal|substring"`
-	Regexp                    string          `json:"regexp" rest:"required=true"`
+	Regexp                    string          `json:"regexp"`
 	BeginIndex                uint32          `json:"beginIndex"`
 	Description               string          `json:"description"`
 }

@@ -12,6 +12,7 @@ const (
 	SqlColumnClassCondition        = "condition"
 	SqlColumnClassBeginIndex       = "begin_index"
 	SqlColumnClientClass           = "client_class"
+	SqlColumnClassDescription      = "description"
 	SqlColumnSubnetMask            = "subnet_mask"
 	SqlColumnRouters               = "routers"
 	SqlColumnIfaceName             = "iface_name"
