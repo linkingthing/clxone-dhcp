@@ -34,8 +34,8 @@ var ErrNameOrRegexpMissing = fmt.Errorf("clientclass name and regexp are require
 func (c *ClientClass4) Validate() error {
 	if len(c.Name) == 0 || (c.Condition != OptionConditionExists && len(c.Regexp) == 0) {
 		return ErrNameOrRegexpMissing
-	} else if c.Code < 0 || c.Code > 255 {
-		return fmt.Errorf("code %d not in [0, 255]", c.Code)
+	} else if c.Code < 1 || c.Code > 254 {
+		return fmt.Errorf("code %d not in [1, 254]", c.Code)
 	} else if err := util.ValidateStrings(c.Name, c.Regexp, c.Description); err != nil {
 		return fmt.Errorf("name %s or regexp %s is invalid", c.Name, c.Regexp)
 	} else {

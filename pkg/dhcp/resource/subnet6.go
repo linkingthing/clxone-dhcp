@@ -109,7 +109,7 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 	} else {
 		if s.UseAddressCode {
 			if maskSize < 64 {
-				fmt.Errorf("subnet use address code mask size %d must bigger than 63", maskSize)
+				return fmt.Errorf("subnet use address code mask size %d must bigger than 63", maskSize)
 			}
 
 			if maskSize == 64 {
