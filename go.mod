@@ -11,7 +11,7 @@ require (
 	github.com/insomniacslk/dhcp v0.0.0-20210621130208-1cac67f12b1e
 	github.com/linkingthing/cement v1.0.0
 	github.com/linkingthing/clxone-utils v1.2.6
-	github.com/linkingthing/gorest v1.2.0
+	github.com/linkingthing/gorest v1.2.3
 	github.com/segmentio/kafka-go v0.4.31
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
@@ -37,7 +37,7 @@ require (
 	github.com/hashicorp/serf v0.9.6 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
-	github.com/jackc/pgx/v5 v5.1.1 // indirect
+	github.com/jackc/pgx/v5 v5.2.0 // indirect
 	github.com/jackc/puddle/v2 v2.1.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect
