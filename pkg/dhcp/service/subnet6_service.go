@@ -413,46 +413,22 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 }
 
 func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
-	if !resource.IsCapacityZero(subnet.Capacity) {
+	if !subnet.UseAddressCode && !resource.IsCapacityZero(subnet.Capacity) {
 		return true, nil
 	}
 
-	if exists, err := tx.Exists(resource.TableReservedPool6,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
-		return false, pg.Error(err)
-	} else if exists {
-		return true, nil
-	}
-
-	if exists, err := tx.Exists(resource.TableReservedPdPool,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
+	if counts, err := tx.CountEx(resource.TableSubnet6, "select count(*) from gr_pool6 p FULL JOIN gr_reservation6 r on p.subnet6 = r.subnet6 FULL JOIN gr_pd_pool pd on p.subnet6 = pd.subnet6 FULL JOIN gr_reserved_pool6 rp on p.subnet6 = rp.subnet6 FULL JOIN gr_reserved_pd_pool rpd on p.subnet6 = rpd.subnet6 where p.subnet6 = $1 or r.subnet6 = $1 or pd.subnet6 = $1 or rp.subnet6 = $1 or rpd.subnet6 = $1;", subnet.GetID()); err != nil {
 		return false, pg.Error(err)
 	} else {
-		return exists, nil
+		return counts != 0, nil
 	}
 }
 
 func subnetHasPdPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
-	if exists, err := tx.Exists(resource.TablePdPool,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
-		return false, pg.Error(err)
-	} else if exists {
-		return true, nil
-	}
-
-	if exists, err := tx.Exists(resource.TableReservedPdPool,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
-		return false, pg.Error(err)
-	} else if exists {
-		return true, nil
-	}
-
-	if count, err := tx.CountEx(resource.TableReservation6,
-		"select count(*) from gr_reservation6 where subnet6 = $1 and prefixes != '{}'",
-		subnet.GetID()); err != nil {
+	if counts, err := tx.CountEx(resource.TableSubnet6, "select count(*) from gr_pd_pool pd FULL JOIN gr_reserved_pd_pool rpd on pd.subnet6 = rpd.subnet6 FULL JOIN gr_reservation6 r on pd.subnet6 = r.subnet6 where pd.subnet6 = $1 or rpd.subnet6 = $1 or (r.subnet6 = $1 and r.prefixes != '{}');", subnet.GetID()); err != nil {
 		return false, pg.Error(err)
 	} else {
-		return count != 0, nil
+		return counts != 0, nil
 	}
 }
 

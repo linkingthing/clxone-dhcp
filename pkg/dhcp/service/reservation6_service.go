@@ -362,7 +362,7 @@ func listReservation6s(subnet *resource.Subnet6) ([]*resource.Reservation6, erro
 
 		return tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet6: subnet.GetID(),
-			resource.SqlOrderBy:       "duid, hw_address"}, &reservations)
+			resource.SqlOrderBy:       "ips, ipnets"}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation6s with subnet6 %s from db failed: %s",
 			subnet.GetID(), pg.Error(err).Error())
