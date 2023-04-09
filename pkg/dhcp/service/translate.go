@@ -27,11 +27,13 @@ const (
 	FieldNameOption82          = "option82"
 	FieldNameOption66          = "option66"
 	FieldNameOption67          = "option67"
+	FieldNameOption108         = "option108"
 	FieldNameRelayAddresses    = "中继路由地址"
 	FieldNameOption16          = "option16"
 	FieldNameOption18          = "option18"
 	FieldNameNodes             = "节点列表"
 	FieldNameEUI64             = "EUI64"
+	FieldNameUseAddressCode    = "编码分配地址"
 
 	FieldNamePools         = "动态地址池"
 	FieldNameReservedPools = "保留地址池"
@@ -46,12 +48,12 @@ var (
 		FieldNameSubnet, FieldNameSubnetName,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNameSubnetMask, FieldNameRouters, FieldNameDomainServers, FieldNameIfaceName,
-		FieldNameOption60, FieldNameOption82, FieldNameOption66, FieldNameOption67,
+		FieldNameOption60, FieldNameOption82, FieldNameOption66, FieldNameOption67, FieldNameOption108,
 		FieldNameNodes, FieldNamePools, FieldNameReservedPools, FieldNameReservations,
 	}
 
 	TableHeaderSubnet6 = []string{
-		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64,
+		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, //FieldNameUseAddressCode,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameDomainServers, FieldNameIfaceName,
 		FieldNameRelayAddresses, FieldNameOption16, FieldNameOption18, FieldNameNodes,
@@ -70,10 +72,10 @@ var (
 	TemplateSubnet4 = [][]string{[]string{
 		"127.0.0.0/1", "template", "14400", "28800", "7200", "127.0.0.0", "127.0.0.1",
 		"114.114.114.114,8.8.8.8", "ens33", "option60", "127.0.0.1",
-		"linkingthing", "tftp.bin", "127.0.0.2,127.0.0.3",
+		"linkingthing", "tftp.bin", "1800", "127.0.0.2,127.0.0.3",
 		"127.0.0.6-127.0.0.100-备注1,127.0.0.106-127.0.0.200-备注2",
 		"127.0.0.1-127.0.0.5-备注3,127.0.0.200-127.0.0.255-备注4",
-		"11:11:11:11:11:11-127.0.0.66-备注5,22:22:22:22:22:22-127.0.0.101-备注6",
+		"mac$11:11:11:11:11:11$127.0.0.66$备注5,hostname$linking$127.0.0.101$备注6",
 	}}
 
 	TemplateSubnet6 = [][]string{
@@ -86,7 +88,7 @@ var (
 			"Gi0/0/2", "127.0.0.3,127.0.0.4",
 			"2002::6-2002::1f-备注1,2002::26-2002::3f-备注2",
 			"2002::1-2002::5-备注3,2002::20-2002::25-备注4",
-			"duid-0102-ips-2002::11_2002::12-备注5, mac-33:33:33:33:33:33-ips-2002::32_2002::33-备注6",
+			"duid$0102$ips$2002::11_2002::12$备注5, mac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6, hostname$linking$ips$2002::34_2002::35$备注7",
 			""},
 		[]string{"2003::/64", "template3", "开启", "14400", "28800", "7200", "14400",
 			"2400:3200::baba:1", "eth0", "2003::255", "option16-2", "Gi0/0/3",
@@ -97,46 +99,48 @@ var (
 func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 	return []string{
 		subnet4.Subnet, subnet4.Tags,
-		lifetimeToString(subnet4.ValidLifetime),
-		lifetimeToString(subnet4.MaxValidLifetime),
-		lifetimeToString(subnet4.MinValidLifetime),
+		uint32ToString(subnet4.ValidLifetime),
+		uint32ToString(subnet4.MaxValidLifetime),
+		uint32ToString(subnet4.MinValidLifetime),
 		subnet4.SubnetMask, strings.Join(subnet4.Routers, ","),
 		strings.Join(subnet4.DomainServers, ","), subnet4.IfaceName,
 		subnet4.ClientClass, strings.Join(subnet4.RelayAgentAddresses, ","),
-		subnet4.TftpServer, subnet4.Bootfile, strings.Join(subnet4.Nodes, ","),
+		subnet4.TftpServer, subnet4.Bootfile, uint32ToString(subnet4.Ipv6OnlyPreferred),
+		strings.Join(subnet4.Nodes, ","),
 	}
 }
 
 func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 	return []string{
-		subnet6.Subnet, subnet6.Tags, eui64ToString(subnet6.UseEui64),
-		lifetimeToString(subnet6.ValidLifetime),
-		lifetimeToString(subnet6.MaxValidLifetime),
-		lifetimeToString(subnet6.MinValidLifetime),
-		lifetimeToString(subnet6.PreferredLifetime),
+		subnet6.Subnet, subnet6.Tags,
+		localizationBoolSwitch(subnet6.UseEui64), //localizationBoolSwitch(subnet6.UseAddressCode),
+		uint32ToString(subnet6.ValidLifetime),
+		uint32ToString(subnet6.MaxValidLifetime),
+		uint32ToString(subnet6.MinValidLifetime),
+		uint32ToString(subnet6.PreferredLifetime),
 		strings.Join(subnet6.DomainServers, ","), subnet6.IfaceName,
 		strings.Join(subnet6.RelayAgentAddresses, ","), subnet6.ClientClass,
 		subnet6.RelayAgentInterfaceId, strings.Join(subnet6.Nodes, ","),
 	}
 }
 
-func eui64ToString(eui64 bool) string {
-	if eui64 {
+func localizationBoolSwitch(b bool) string {
+	if b {
 		return "开启"
 	} else {
 		return "关闭"
 	}
 }
 
-func eui64FromString(eui64 string) bool {
-	if eui64 == "开启" {
+func internationalizationBoolSwitch(b string) bool {
+	if b == "开启" {
 		return true
 	} else {
 		return false
 	}
 }
 
-func lifetimeToString(lifetime uint32) string {
+func uint32ToString(lifetime uint32) string {
 	return strconv.FormatUint(uint64(lifetime), 10)
 }
 
@@ -153,11 +157,11 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString("','")
 	buf.WriteString(subnet4.GetID())
 	buf.WriteString("','")
-	buf.WriteString(lifetimeToString(subnet4.ValidLifetime))
+	buf.WriteString(uint32ToString(subnet4.ValidLifetime))
 	buf.WriteString("','")
-	buf.WriteString(lifetimeToString(subnet4.MaxValidLifetime))
+	buf.WriteString(uint32ToString(subnet4.MaxValidLifetime))
 	buf.WriteString("','")
-	buf.WriteString(lifetimeToString(subnet4.MinValidLifetime))
+	buf.WriteString(uint32ToString(subnet4.MinValidLifetime))
 	buf.WriteString("','")
 	buf.WriteString(subnet4.SubnetMask)
 	buf.WriteString("','{")
@@ -176,6 +180,8 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString(subnet4.IfaceName)
 	buf.WriteString("','")
 	buf.WriteString(subnet4.NextServer)
+	buf.WriteString("','")
+	buf.WriteString(uint32ToString(subnet4.Ipv6OnlyPreferred))
 	buf.WriteString("','")
 	buf.WriteString(subnet4.Tags)
 	buf.WriteString("','{")
@@ -246,6 +252,8 @@ func reservation4ToInsertDBSqlString(subnetId uint64, reservation4 *resource.Res
 	buf.WriteString("','")
 	buf.WriteString(reservation4.HwAddress)
 	buf.WriteString("','")
+	buf.WriteString(reservation4.Hostname)
+	buf.WriteString("','")
 	buf.WriteString(reservation4.IpAddress)
 	buf.WriteString("','")
 	buf.WriteString(reservation4.Ip.String())
@@ -272,13 +280,13 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	buf.WriteString("','")
 	buf.WriteString(subnet6.GetID())
 	buf.WriteString("','")
-	buf.WriteString(lifetimeToString(subnet6.ValidLifetime))
+	buf.WriteString(uint32ToString(subnet6.ValidLifetime))
 	buf.WriteString("','")
-	buf.WriteString(lifetimeToString(subnet6.MaxValidLifetime))
+	buf.WriteString(uint32ToString(subnet6.MaxValidLifetime))
 	buf.WriteString("','")
-	buf.WriteString(lifetimeToString(subnet6.MinValidLifetime))
+	buf.WriteString(uint32ToString(subnet6.MinValidLifetime))
 	buf.WriteString("','")
-	buf.WriteString(lifetimeToString(subnet6.PreferredLifetime))
+	buf.WriteString(uint32ToString(subnet6.PreferredLifetime))
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.DomainServers, ","))
 	buf.WriteString("}','")
@@ -301,6 +309,12 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	}
 	buf.WriteString("','")
 	if subnet6.UseEui64 {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString("','")
+	if subnet6.UseAddressCode {
 		buf.WriteString("true")
 	} else {
 		buf.WriteString("false")
@@ -372,12 +386,16 @@ func reservation6ToInsertDBSqlString(subnetId uint64, reservation6 *resource.Res
 	buf.WriteString(reservation6.Duid)
 	buf.WriteString("','")
 	buf.WriteString(reservation6.HwAddress)
+	buf.WriteString("','")
+	buf.WriteString(reservation6.Hostname)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(reservation6.IpAddresses, ","))
 	buf.WriteString("}','{")
 	buf.WriteString(ipsToString(reservation6.Ips))
 	buf.WriteString("}','{")
 	buf.WriteString(strings.Join(reservation6.Prefixes, ","))
+	buf.WriteString("}','{")
+	buf.WriteString(ipnetsToString(reservation6.Ipnets))
 	buf.WriteString("}','")
 	buf.WriteString(reservation6.Capacity)
 	buf.WriteString("','")
@@ -397,6 +415,15 @@ func ipsToString(ips []net.IP) string {
 	return strings.Join(ipstrs, ",")
 }
 
+func ipnetsToString(ipnets []net.IPNet) string {
+	ipnetstrs := make([]string, 0, len(ipnets))
+	for _, ipnet := range ipnets {
+		ipnetstrs = append(ipnetstrs, ipnet.String())
+	}
+
+	return strings.Join(ipnetstrs, ",")
+}
+
 func pdpoolToInsertDBSqlString(subnetId uint64, pdpool *resource.PdPool) string {
 	id, _ := uuid.Gen()
 	var buf bytes.Buffer
@@ -407,11 +434,11 @@ func pdpoolToInsertDBSqlString(subnetId uint64, pdpool *resource.PdPool) string 
 	buf.WriteString("','")
 	buf.WriteString(pdpool.Prefix)
 	buf.WriteString("','")
-	buf.WriteString(strconv.FormatUint(uint64(pdpool.PrefixLen), 10))
+	buf.WriteString(uint32ToString(pdpool.PrefixLen))
 	buf.WriteString("','")
 	buf.WriteString(pdpool.PrefixIpnet.String())
 	buf.WriteString("','")
-	buf.WriteString(strconv.FormatUint(uint64(pdpool.DelegatedLen), 10))
+	buf.WriteString(uint32ToString(pdpool.DelegatedLen))
 	buf.WriteString("','")
 	buf.WriteString(pdpool.Capacity)
 	buf.WriteString("','")

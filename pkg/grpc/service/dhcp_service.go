@@ -82,7 +82,7 @@ func getSubnet4sLeasesCount(subnets map[string]*resource.Subnet4) (map[uint64]ui
 	} else {
 		var err error
 		var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
-		err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			resp, err = client.GetSubnets4LeasesCountWithIds(ctx,
 				&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
 			return err
@@ -142,7 +142,7 @@ func getSubnet6sLeasesCount(subnets map[string]*resource.Subnet6) (map[uint64]ui
 	} else {
 		var err error
 		var resp *pbdhcpagent.GetSubnetsLeasesCountResponse
-		err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			resp, err = client.GetSubnets6LeasesCountWithIds(ctx,
 				&pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: subnetIds})
 			return err
@@ -487,7 +487,7 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 
 	var err error
 	var resp *pbdhcpagent.GetLeases4WithIpsResponse
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4LeasesWithIps(ctx,
 			&pbdhcpagent.GetSubnet4LeasesWithIpsRequest{Addresses: reqs})
 		return err
@@ -594,7 +594,7 @@ func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoun
 
 	for ip := range unfoundIps {
 		for _, reservedPool := range reservedPools {
-			if reservedPool.Contains(ip) {
+			if reservedPool.ContainsIpString(ip) {
 				ipv6Infos[ip].AddressType = resource.AddressTypeReserve.String()
 				delete(unfoundIps, ip)
 				break
@@ -614,7 +614,7 @@ func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoun
 
 	for ip := range unfoundIps {
 		for _, pool := range pools {
-			if pool.Contains(ip) {
+			if pool.ContainsIpString(ip) {
 				ipv6Infos[ip].AddressType = resource.AddressTypeDynamic.String()
 				delete(unfoundIps, ip)
 				break
@@ -651,7 +651,7 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 
 	var err error
 	var resp *pbdhcpagent.GetLeases6WithIpsResponse
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet6LeasesWithIps(ctx,
 			&pbdhcpagent.GetSubnet6LeasesWithIpsRequest{Addresses: reqs})
 		return err

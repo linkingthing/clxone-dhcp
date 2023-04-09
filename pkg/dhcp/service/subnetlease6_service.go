@@ -42,6 +42,8 @@ func ListSubnetLease6(subnet *resource.Subnet6, ip string) ([]*resource.SubnetLe
 		subnet6, err := getSubnet6FromDB(tx, subnet.GetID())
 		if err != nil {
 			return err
+		} else if len(subnet6.Nodes) == 0 {
+			return ErrorSubnetNotInNodes
 		}
 
 		subnet6SubnetId = subnet6.SubnetId
@@ -53,7 +55,7 @@ func ListSubnetLease6(subnet *resource.Subnet6, ip string) ([]*resource.SubnetLe
 		}
 		return err
 	}); err != nil {
-		if err == ErrorIpNotBelongToSubnet {
+		if err == ErrorIpNotBelongToSubnet || err == ErrorSubnetNotInNodes {
 			return nil, nil
 		} else {
 			return nil, fmt.Errorf("get subnet6 %s from db failed: %s", subnet.GetID(), err.Error())
@@ -144,7 +146,7 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []*resource.SubnetLease6) (*resource.SubnetLease6, error) {
 	var err error
 	var resp *pbdhcpagent.GetLease6Response
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet6Lease(ctx,
 			&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
 		return err
@@ -165,7 +167,7 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, subnetLeases []*resource.SubnetLease6) ([]*resource.SubnetLease6, error) {
 	var err error
 	var resp *pbdhcpagent.GetLeases6Response
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet6Leases(ctx,
 			&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 		return err
@@ -235,6 +237,9 @@ func SubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.SubnetLea
 		ClientType:            lease.GetClientType(),
 		LeaseState:            lease.GetLeaseState().String(),
 		RequestSourceAddr:     lease.GetRequestSourceAddr(),
+		AddressCode:           lease.GetAddressCode(),
+		AddressCodeBegin:      lease.GetAddressCodeBegin(),
+		AddressCodeEnd:        lease.GetAddressCodeEnd(),
 	}
 
 	lease6.SetID(lease.GetAddress())
@@ -273,7 +278,7 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 			return pg.Error(err)
 		}
 
-		return transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		return transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			_, err = client.DeleteLease6(ctx,
 				&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
 					LeaseType: lease6.LeaseType, Address: leaseId})

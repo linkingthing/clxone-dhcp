@@ -26,7 +26,7 @@ func (p *PdPoolApi) Create(ctx *restresource.Context) (restresource.Resource, *r
 }
 
 func (p *PdPoolApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pdPools, err := p.Service.List(ctx.Resource.GetParent().GetID())
+	pdPools, err := p.Service.List(ctx.Resource.GetParent().(*resource.Subnet6))
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

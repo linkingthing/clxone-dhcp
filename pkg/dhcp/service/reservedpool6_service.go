@@ -116,10 +116,10 @@ func checkReservedPool6ConflictWithSubnet6Reservation6s(tx restdb.Transaction, s
 
 func checkReservedPool6ConflictWithReservation6s(pool *resource.ReservedPool6, reservations []*resource.Reservation6) error {
 	for _, reservation := range reservations {
-		for _, ipAddress := range reservation.IpAddresses {
-			if pool.Contains(ipAddress) {
+		for _, ip := range reservation.Ips {
+			if pool.ContainsIp(ip) {
 				return fmt.Errorf("reserved pool6 %s conflict with reservation6 %s ip %s",
-					pool.String(), reservation.String(), ipAddress)
+					pool.String(), reservation.String(), ip.String())
 			}
 		}
 	}
@@ -164,7 +164,10 @@ func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *r
 	affectedPool6s := make(map[string]string)
 	for _, pool := range pools {
 		reservedCount := getPool6ReservedCountWithReservedPool6(pool, reservedPool)
-		allReservedCount.Add(allReservedCount, reservedCount)
+		if !subnet.UseAddressCode {
+			allReservedCount.Add(allReservedCount, reservedCount)
+		}
+
 		if isCreate {
 			affectedPool6s[pool.GetID()] = pool.SubCapacityWithBigInt(reservedCount)
 		} else {
@@ -172,7 +175,13 @@ func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *r
 		}
 	}
 
-	if isCreate {
+	if subnet.UseAddressCode {
+		if isCreate {
+			subnet.SubCapacityWithString(reservedPool.Capacity)
+		} else {
+			subnet.AddCapacityWithString(reservedPool.Capacity)
+		}
+	} else if isCreate {
 		subnet.SubCapacityWithBigInt(allReservedCount)
 	} else {
 		subnet.AddCapacityWithBigInt(allReservedCount)
@@ -325,6 +334,10 @@ func (p *ReservedPool6Service) ActionValidTemplate(subnet *resource.Subnet6, poo
 }
 
 func (p *ReservedPool6Service) Update(subnetId string, pool *resource.ReservedPool6) error {
+	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPool6, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,

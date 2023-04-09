@@ -180,6 +180,14 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 		})
 	}
 
+	if subnet.Ipv6OnlyPreferred != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "ipv6-only-perferred",
+			Code: 108,
+			Data: uint32ToString(subnet.Ipv6OnlyPreferred),
+		})
+	}
+
 	return subnetOptions
 }
 
@@ -323,13 +331,13 @@ func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 	if useIds {
 		var ids []uint64
 		for _, subnet := range subnets {
-			if subnet.Capacity != 0 {
+			if subnet.Capacity != 0 && len(subnet.Nodes) != 0 {
 				ids = append(ids, subnet.SubnetId)
 			}
 		}
 
 		if len(ids) != 0 {
-			err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 				resp, err = client.GetSubnets4LeasesCountWithIds(
 					ctx, &pbdhcpagent.GetSubnetsLeasesCountWithIdsRequest{Ids: ids})
 				return err
@@ -338,7 +346,7 @@ func SetSubnet4UsedInfo(subnets []*resource.Subnet4, useIds bool) (err error) {
 			return
 		}
 	} else {
-		err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			resp, err = client.GetSubnets4LeasesCount(
 				ctx, &pbdhcpagent.GetSubnetsLeasesCountRequest{})
 			return err
@@ -429,13 +437,13 @@ func setSubnet4LeasesUsedInfo(subnet *resource.Subnet4) {
 }
 
 func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
-	if subnet.Capacity == 0 {
+	if subnet.Capacity == 0 || len(subnet.Nodes) == 0 {
 		return 0, nil
 	}
 
 	var err error
 	var resp *pbdhcpagent.GetLeasesCountResponse
-	err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4LeasesCount(ctx,
 			&pbdhcpagent.GetSubnet4LeasesCountRequest{Id: subnet.SubnetId})
 		return err
@@ -467,6 +475,7 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnNextServer:          subnet.NextServer,
 			resource.SqlColumnTftpServer:          subnet.TftpServer,
 			resource.SqlColumnBootfile:            subnet.Bootfile,
+			resource.SqlColumnIpv6OnlyPreferred:   subnet.Ipv6OnlyPreferred,
 			resource.SqlColumnTags:                subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return pg.Error(err)
@@ -803,6 +812,11 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.TftpServer = strings.TrimSpace(field)
 		case FieldNameOption67:
 			subnet.Bootfile = field
+		case FieldNameOption108:
+			if subnet.Ipv6OnlyPreferred, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
+				break
+			}
 		case FieldNameNodes:
 			subnet.Nodes = strings.Split(strings.TrimSpace(field), ",")
 		case FieldNamePools:
@@ -865,15 +879,26 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 	var reservations []*resource.Reservation4
 	for _, reservationStr := range strings.Split(field, ",") {
 		if reservationSlices := strings.SplitN(reservationStr,
-			"-", 3); len(reservationSlices) != 3 {
-			return nil, fmt.Errorf("parse subnet4 reservation4 %s failed with wrong regexp",
+			"$", 4); len(reservationSlices) != 4 {
+			return nil, fmt.Errorf("parse reservation4 %s failed with wrong regexp",
 				reservationStr)
 		} else {
-			reservations = append(reservations, &resource.Reservation4{
-				HwAddress: reservationSlices[0],
-				IpAddress: reservationSlices[1],
-				Comment:   reservationSlices[2],
-			})
+			reservation := &resource.Reservation4{
+				IpAddress: reservationSlices[2],
+				Comment:   reservationSlices[3],
+			}
+
+			switch reservationSlices[0] {
+			case resource.ReservationIdMAC:
+				reservation.HwAddress = reservationSlices[1]
+			case resource.ReservationIdHostname:
+				reservation.Hostname = reservationSlices[1]
+			default:
+				return nil, fmt.Errorf("parse reservation4 %s failed with wrong prefix %s not in [mac, hostname]",
+					reservationStr, reservationSlices[0])
+			}
+
+			reservations = append(reservations, reservation)
 		}
 	}
 
@@ -902,7 +927,7 @@ func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*reso
 }
 
 func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource.Reservation4) error {
-	ipMacs := make(map[string]struct{})
+	reservationParams := make(map[string]struct{})
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
 			return err
@@ -913,13 +938,24 @@ func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource
 				reservation.IpAddress, subnet4.Subnet)
 		}
 
-		if _, ok := ipMacs[reservation.IpAddress]; ok {
+		if _, ok := reservationParams[reservation.IpAddress]; ok {
 			return fmt.Errorf("duplicate reservation4 with ip %s", reservation.IpAddress)
-		} else if _, ok := ipMacs[reservation.HwAddress]; ok {
-			return fmt.Errorf("duplicate reservation4 with mac %s", reservation.HwAddress)
 		} else {
-			ipMacs[reservation.IpAddress] = struct{}{}
-			ipMacs[reservation.HwAddress] = struct{}{}
+			reservationParams[reservation.IpAddress] = struct{}{}
+		}
+
+		if reservation.HwAddress != "" {
+			if _, ok := reservationParams[reservation.HwAddress]; ok {
+				return fmt.Errorf("duplicate reservation4 with mac %s", reservation.HwAddress)
+			} else {
+				reservationParams[reservation.HwAddress] = struct{}{}
+			}
+		} else if reservation.Hostname != "" {
+			if _, ok := reservationParams[reservation.Hostname]; ok && reservation.Hostname != "" {
+				return fmt.Errorf("duplicate reservation4 with hostname %s", reservation.Hostname)
+			} else {
+				reservationParams[reservation.Hostname] = struct{}{}
+			}
 		}
 	}
 
@@ -1204,7 +1240,7 @@ func (s *Subnet4Service) ExportCSV() (interface{}, error) {
 	subnetReservations := make(map[string][]string)
 	for _, reservation := range reservations {
 		reservationSlices := subnetReservations[reservation.Subnet4]
-		reservationSlices = append(reservationSlices, reservation.String()+"-"+reservation.Comment)
+		reservationSlices = append(reservationSlices, reservation.String()+"$"+reservation.Comment)
 		subnetReservations[reservation.Subnet4] = reservationSlices
 	}
 

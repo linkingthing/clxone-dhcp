@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/linkingthing/cement/log"
-	restdb "github.com/linkingthing/gorest/db"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
+	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type RateLimitMacService struct{}
@@ -56,6 +56,12 @@ func sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac *resource.RateLimitMac) e
 
 func (d *RateLimitMacService) List(condition map[string]interface{}) ([]*resource.RateLimitMac, error) {
 	var rateLimitMacs []*resource.RateLimitMac
+	if mac, ok := condition[resource.SqlColumnHwAddress].(string); ok {
+		if mac, _ = util.NormalizeMac(mac); mac != "" {
+			condition[resource.SqlColumnHwAddress] = mac
+		}
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(condition, &rateLimitMacs)
 	}); err != nil {
@@ -101,6 +107,10 @@ func sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId string) error {
 }
 
 func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error {
+	if err := rateLimitMac.Validate(); err != nil {
+		return fmt.Errorf("validate ratelimit mac %s failed: %s", rateLimitMac.GetID(), err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var rateLimits []*resource.RateLimitMac
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: rateLimitMac.GetID()},

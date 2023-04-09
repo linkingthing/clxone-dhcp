@@ -53,8 +53,8 @@ func (p *ReservedPdPoolService) Create(subnet *resource.Subnet6, pdpool *resourc
 func checkReservedPdPoolCouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, pdpool *resource.ReservedPdPool) error {
 	if err := setSubnet6FromDB(tx, subnet); err != nil {
 		return err
-	} else if subnet.UseEui64 {
-		return fmt.Errorf("subnet6 use EUI64, can not create reserved pdpool")
+	} else if subnet.UseEui64 || subnet.UseAddressCode {
+		return fmt.Errorf("subnet6 use EUI64 or address code, can not create reserved pdpool")
 	}
 
 	if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpool.PrefixIpnet,
@@ -92,10 +92,10 @@ func checkReservedPdPoolConflictWithSubnet6Reservation6s(tx restdb.Transaction, 
 	}
 
 	for _, reservation := range reservations {
-		for _, prefix := range reservation.Prefixes {
-			if pdpool.Intersect(prefix) {
+		for _, ipnet := range reservation.Ipnets {
+			if pdpool.IntersectIpnet(ipnet) {
 				return fmt.Errorf("reserved pdpool %s conflict with reservation6 %s prefix %s",
-					pdpool.String(), reservation.String(), prefix)
+					pdpool.String(), reservation.String(), ipnet.String())
 			}
 		}
 	}
@@ -272,6 +272,10 @@ func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resour
 }
 
 func (p *ReservedPdPoolService) Update(subnetId string, pool *resource.ReservedPdPool) error {
+	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPdPool, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,

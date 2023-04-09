@@ -7,6 +7,8 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
@@ -14,7 +16,8 @@ var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
 type Reservation4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet4                   string `json:"-" db:"ownby"`
-	HwAddress                 string `json:"hwAddress" rest:"required=true"`
+	HwAddress                 string `json:"hwAddress"`
+	Hostname                  string `json:"hostname"`
 	IpAddress                 string `json:"ipAddress" rest:"required=true"`
 	Ip                        net.IP `json:"-"`
 	UsedRatio                 string `json:"usedRatio" rest:"description=readonly" db:"-"`
@@ -28,12 +31,28 @@ func (r Reservation4) GetParents() []restresource.ResourceKind {
 }
 
 func (r *Reservation4) String() string {
-	return r.HwAddress + "-" + r.IpAddress
+	if r.HwAddress != "" {
+		return ReservationIdMAC + "$" + r.HwAddress + "$" + r.IpAddress
+	} else {
+		return ReservationIdHostname + "$" + r.Hostname + "$" + r.IpAddress
+	}
 }
 
 func (r *Reservation4) Validate() error {
-	if _, err := net.ParseMAC(r.HwAddress); err != nil {
-		return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
+	if (r.HwAddress != "" && r.Hostname != "") || (r.HwAddress == "" && r.Hostname == "") {
+		return fmt.Errorf("hwaddress and hostname must have only one")
+	}
+
+	if r.HwAddress != "" {
+		if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
+			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
+		} else {
+			r.HwAddress = hw
+		}
+	} else if r.Hostname != "" {
+		if err := util.ValidateStrings(r.Hostname); err != nil {
+			return err
+		}
 	}
 
 	if ipv4, err := gohelperip.ParseIPv4(r.IpAddress); err != nil {
@@ -42,7 +61,7 @@ func (r *Reservation4) Validate() error {
 		r.Ip = ipv4
 	}
 
-	if err := checkCommentValid(r.Comment); err != nil {
+	if err := CheckCommentValid(r.Comment); err != nil {
 		return err
 	}
 

@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"net"
-
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -22,10 +20,10 @@ func (a AdmitMac) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AdmitMac) Validate() error {
-	if err := util.ValidateStrings(a.Comment); err != nil {
+	if hw, err := util.NormalizeMac(a.HwAddress); err != nil {
 		return err
 	} else {
-		_, err = net.ParseMAC(a.HwAddress)
-		return err
+		a.HwAddress = hw
+		return util.ValidateStrings(a.Comment)
 	}
 }

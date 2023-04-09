@@ -38,9 +38,11 @@ func (p *Pool6Service) Create(subnet *resource.Subnet6, pool *resource.Pool6) er
 			return fmt.Errorf("recalculate pool6 capacity failed: %s", err.Error())
 		}
 
-		if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
-			subnet.AddCapacityWithString(pool.Capacity)); err != nil {
-			return err
+		if !subnet.UseAddressCode {
+			if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
+				subnet.AddCapacityWithString(pool.Capacity)); err != nil {
+				return err
+			}
 		}
 
 		pool.Subnet6 = subnet.GetID()
@@ -140,8 +142,8 @@ func getReservation6sWithIpsExists(tx restdb.Transaction, subnetID string) ([]*r
 
 func recalculatePool6CapacityWithReservations(pool *resource.Pool6, reservations []*resource.Reservation6) {
 	for _, reservation := range reservations {
-		for _, ipAddress := range reservation.IpAddresses {
-			if pool.Contains(ipAddress) {
+		for _, ip := range reservation.Ips {
+			if pool.ContainsIp(ip) {
 				pool.SubCapacityWithBigInt(big.NewInt(1))
 			}
 		}
@@ -187,31 +189,40 @@ func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 	}
 }
 
-func (p *Pool6Service) List(subnetId string) ([]*resource.Pool6, error) {
-	return listPool6s(subnetId)
+func (p *Pool6Service) List(subnet *resource.Subnet6) ([]*resource.Pool6, error) {
+	return listPool6s(subnet)
 }
 
-func listPool6s(subnetId string) ([]*resource.Pool6, error) {
+func listPool6s(subnet *resource.Subnet6) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet6FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		err := tx.Fill(map[string]interface{}{
-			resource.SqlColumnSubnet6: subnetId,
+			resource.SqlColumnSubnet6: subnet.GetID(),
 			resource.SqlOrderBy:       resource.SqlColumnBeginIp}, &pools)
 		if err != nil {
 			return err
 		}
 
-		reservations, err = getReservation6sWithIpsExists(tx, subnetId)
+		if len(subnet.Nodes) != 0 {
+			reservations, err = getReservation6sWithIpsExists(tx, subnet.GetID())
+		}
+
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("list pool6s with subnet6 %s from db failed: %s",
-			subnetId, pg.Error(err).Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
-	poolsLeases := loadPool6sLeases(subnetId, pools, reservations)
-	for _, pool := range pools {
-		setPool6LeasesUsedRatio(pool, poolsLeases[pool.GetID()])
+	if len(subnet.Nodes) != 0 {
+		poolsLeases := loadPool6sLeases(subnet.GetID(), pools, reservations)
+		for _, pool := range pools {
+			setPool6LeasesUsedRatio(pool, poolsLeases[pool.GetID()])
+		}
 	}
 
 	return pools, nil
@@ -236,7 +247,7 @@ func loadPool6sLeases(subnetID string, pools []*resource.Pool6, reservations []*
 		}
 
 		for _, pool := range pools {
-			if !resource.IsCapacityZero(pool.Capacity) && pool.Contains(lease.GetAddress()) {
+			if !resource.IsCapacityZero(pool.Capacity) && pool.ContainsIpString(lease.GetAddress()) {
 				leasesCount[pool.GetID()] += 1
 				break
 			}
@@ -247,7 +258,7 @@ func loadPool6sLeases(subnetID string, pools []*resource.Pool6, reservations []*
 }
 
 func getSubnet6Leases(subnetId uint64) (resp *pbdhcpagent.GetLeases6Response, err error) {
-	err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet6Leases(ctx,
 			&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 		return err
@@ -266,6 +277,10 @@ func (p *Pool6Service) Get(subnet *resource.Subnet6, poolID string) (*resource.P
 	var pools []*resource.Pool6
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet6FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		err := tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 		if err != nil {
 			return pg.Error(err)
@@ -273,14 +288,17 @@ func (p *Pool6Service) Get(subnet *resource.Subnet6, poolID string) (*resource.P
 			return fmt.Errorf("no found pool6 %s with subnet6 %s", poolID, subnet.GetID())
 		}
 
-		reservations, err = getReservation6sWithIpsExists(tx, subnet.GetID())
+		if len(subnet.Nodes) != 0 {
+			reservations, err = getReservation6sWithIpsExists(tx, subnet.GetID())
+		}
+
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("get pool6 %s with subnet6 %s from db failed: %s",
 			poolID, subnet.GetID(), err.Error())
 	}
 
-	leasesCount, err := getPool6LeasesCount(pools[0], reservations)
+	leasesCount, err := getPool6LeasesCount(subnet, pools[0], reservations)
 	if err != nil {
 		log.Warnf("get pool6 %s with subnet6 %s from db failed: %s",
 			poolID, subnet.GetID(), err.Error())
@@ -290,14 +308,14 @@ func (p *Pool6Service) Get(subnet *resource.Subnet6, poolID string) (*resource.P
 	return pools[0], nil
 }
 
-func getPool6LeasesCount(pool *resource.Pool6, reservations []*resource.Reservation6) (uint64, error) {
-	if resource.IsCapacityZero(pool.Capacity) {
+func getPool6LeasesCount(subnet *resource.Subnet6, pool *resource.Pool6, reservations []*resource.Reservation6) (uint64, error) {
+	if resource.IsCapacityZero(pool.Capacity) || len(subnet.Nodes) == 0 {
 		return 0, nil
 	}
 
 	var resp *pbdhcpagent.GetLeases6Response
 	var err error
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetPool6Leases(ctx,
 			&pbdhcpagent.GetPool6LeasesRequest{
 				SubnetId:     subnetIDStrToUint64(pool.Subnet6),
@@ -333,9 +351,11 @@ func (p *Pool6Service) Delete(subnet *resource.Subnet6, pool *resource.Pool6) er
 			return err
 		}
 
-		if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
-			subnet.SubCapacityWithString(pool.Capacity)); err != nil {
-			return err
+		if !subnet.UseAddressCode {
+			if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
+				subnet.SubCapacityWithString(pool.Capacity)); err != nil {
+				return err
+			}
 		}
 
 		if _, err := tx.Delete(resource.TablePool6, map[string]interface{}{
@@ -366,7 +386,7 @@ func checkPool6CouldBeDeleted(tx restdb.Transaction, subnet *resource.Subnet6, p
 		return err
 	}
 
-	if leasesCount, err := getPool6LeasesCount(pool, reservations); err != nil {
+	if leasesCount, err := getPool6LeasesCount(subnet, pool, reservations); err != nil {
 		return fmt.Errorf("get pool6 %s leases count failed: %s",
 			pool.String(), err.Error())
 	} else if leasesCount != 0 {
@@ -409,6 +429,10 @@ func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 }
 
 func (p *Pool6Service) Update(subnetId string, pool *resource.Pool6) error {
+	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TablePool6, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,
@@ -445,7 +469,7 @@ func GetPool6sByPrefix(prefix string) ([]*resource.Pool6, error) {
 		return nil, err
 	}
 
-	if pools, err := listPool6s(subnet6.GetID()); err != nil {
+	if pools, err := listPool6s(subnet6); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

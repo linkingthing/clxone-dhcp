@@ -28,7 +28,7 @@ func (p *Pool4Api) Create(ctx *restresource.Context) (restresource.Resource, *re
 }
 
 func (p *Pool4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pools, err := p.Service.List(ctx.Resource.GetParent().GetID())
+	pools, err := p.Service.List(ctx.Resource.GetParent().(*resource.Subnet4))
 	if err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	}

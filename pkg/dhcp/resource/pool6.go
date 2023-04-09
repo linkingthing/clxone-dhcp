@@ -52,12 +52,16 @@ func (p *Pool6) CheckConflictWithReservedPool6(reservedPool *ReservedPool6) bool
 		gohelperip.IP(reservedPool.BeginIp).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
-func (p *Pool6) Contains(ip string) bool {
+func (p *Pool6) ContainsIpString(ip string) bool {
 	if ip_, err := gohelperip.ParseIPv6(ip); err != nil {
 		return false
 	} else {
 		return p.CheckConflictWithAnother(&Pool6{BeginIp: ip_, EndIp: ip_})
 	}
+}
+
+func (p *Pool6) ContainsIp(ip net.IP) bool {
+	return ip != nil && p.CheckConflictWithAnother(&Pool6{BeginIp: ip, EndIp: ip})
 }
 
 func (p *Pool6) Equals(another *Pool6) bool {
@@ -75,7 +79,7 @@ func (p *Pool6) String() string {
 }
 
 func (p *Pool6) Validate() error {
-	if err := checkCommentValid(p.Comment); err != nil {
+	if err := CheckCommentValid(p.Comment); err != nil {
 		return err
 	}
 
@@ -177,8 +181,7 @@ func CalculateIpv6Pool6CapacityWithBigInt(beginBigInt, endBigInt *big.Int) (*big
 			beginBigInt.String(), endBigInt.String())
 	}
 
-	return new(big.Int).Add(new(big.Int).Sub(endBigInt, beginBigInt),
-		big.NewInt(1)), nil
+	return new(big.Int).Add(new(big.Int).Sub(endBigInt, beginBigInt), big.NewInt(1)), nil
 }
 
 func (p *Pool6) AddCapacityWithBigInt(capacityForAdd *big.Int) string {

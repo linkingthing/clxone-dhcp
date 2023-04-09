@@ -159,36 +159,46 @@ func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 	}
 }
 
-func (p *Pool4Service) List(subnetID string) ([]*resource.Pool4, error) {
-	return listPool4s(subnetID)
+func (p *Pool4Service) List(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
+	return listPool4s(subnet)
 }
 
-func listPool4s(subnetID string) ([]*resource.Pool4, error) {
+func listPool4s(subnet *resource.Subnet4) ([]*resource.Pool4, error) {
 	var pools []*resource.Pool4
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet4FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		if err := tx.Fill(map[string]interface{}{
-			resource.SqlColumnSubnet4: subnetID,
+			resource.SqlColumnSubnet4: subnet.GetID(),
 			resource.SqlOrderBy:       resource.SqlColumnBeginIp}, &pools); err != nil {
 			return err
 		}
 
+		if len(subnet.Nodes) == 0 {
+			return nil
+		}
+
 		return tx.FillEx(&reservations, `
-		select * from gr_reservation4 where id in 
-			(select distinct r4.id from gr_reservation4 r4, gr_pool4 p4 where 
-				r4.subnet4 = $1 and 
-				r4.subnet4 = p4.subnet4 and 
-				r4.ip_address >= p4.begin_address and 
-				r4.ip_address <= p4.end_address
-			)`, subnetID)
+		select * from gr_reservation4 where id in
+			(select distinct r4.id from gr_reservation4 r4, gr_pool4 p4 where
+				r4.subnet4 = $1 and
+				r4.subnet4 = p4.subnet4 and
+				r4.ip >= p4.begin_ip and
+				r4.ip <= p4.end_ip
+			)`, subnet.GetID())
 	}); err != nil {
 		return nil, fmt.Errorf("list pool4s with subnet4 %s from db failed: %s",
-			subnetID, pg.Error(err).Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
-	poolsLeases := loadPool4sLeases(subnetID, pools, reservations)
-	for _, pool := range pools {
-		setPool4LeasesUsedRatio(pool, poolsLeases[pool.GetID()])
+	if len(subnet.Nodes) != 0 {
+		poolsLeases := loadPool4sLeases(subnet.GetID(), pools, reservations)
+		for _, pool := range pools {
+			setPool4LeasesUsedRatio(pool, poolsLeases[pool.GetID()])
+		}
 	}
 
 	return pools, nil
@@ -224,7 +234,7 @@ func loadPool4sLeases(subnetID string, pools []*resource.Pool4, reservations []*
 }
 
 func getSubnet4Leases(subnetId uint64) (response *pbdhcpagent.GetLeases4Response, err error) {
-	err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		response, err = client.GetSubnet4Leases(ctx,
 			&pbdhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
 		return err
@@ -243,6 +253,10 @@ func (p *Pool4Service) Get(subnet *resource.Subnet4, poolID string) (*resource.P
 	var pools []*resource.Pool4
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet4FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		err := tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 		if err != nil {
 			return pg.Error(err)
@@ -250,14 +264,17 @@ func (p *Pool4Service) Get(subnet *resource.Subnet4, poolID string) (*resource.P
 			return fmt.Errorf("no found pool4 %s with subnet4 %s", poolID, subnet.GetID())
 		}
 
-		reservations, err = getReservation4sWithBeginAndEndIp(tx, subnet.GetID(), pools[0].BeginIp, pools[0].EndIp)
+		if len(subnet.Nodes) != 0 {
+			reservations, err = getReservation4sWithBeginAndEndIp(tx, subnet.GetID(), pools[0].BeginIp, pools[0].EndIp)
+		}
+
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("get pool4 %s with subnet4 %s failed: %s",
 			poolID, subnet.GetID(), err.Error())
 	}
 
-	leasesCount, err := getPool4LeasesCount(pools[0], reservations)
+	leasesCount, err := getPool4LeasesCount(subnet, pools[0], reservations)
 	if err != nil {
 		log.Warnf("get pool4 %s with subnet4 %s from db failed: %s",
 			poolID, subnet.GetID(), err.Error())
@@ -279,14 +296,14 @@ func getReservation4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, b
 	}
 }
 
-func getPool4LeasesCount(pool *resource.Pool4, reservations []*resource.Reservation4) (uint64, error) {
-	if pool.Capacity == 0 {
+func getPool4LeasesCount(subnet *resource.Subnet4, pool *resource.Pool4, reservations []*resource.Reservation4) (uint64, error) {
+	if pool.Capacity == 0 || len(subnet.Nodes) == 0 {
 		return 0, nil
 	}
 
 	var resp *pbdhcpagent.GetLeases4Response
 	var err error
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetPool4Leases(ctx,
 			&pbdhcpagent.GetPool4LeasesRequest{
 				SubnetId:     subnetIDStrToUint64(pool.Subnet4),
@@ -361,7 +378,7 @@ func checkPool4CouldBeDeleted(tx restdb.Transaction, subnet *resource.Subnet4, p
 		return err
 	}
 
-	if leasesCount, err := getPool4LeasesCount(pool, reservations); err != nil {
+	if leasesCount, err := getPool4LeasesCount(subnet, pool, reservations); err != nil {
 		return fmt.Errorf("get pool4 %s leases count failed: %s",
 			pool.String(), err.Error())
 	} else if leasesCount != 0 {
@@ -404,6 +421,10 @@ func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpage
 }
 
 func (p *Pool4Service) Update(subnetId string, pool *resource.Pool4) error {
+	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TablePool4, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,
@@ -441,7 +462,7 @@ func GetPool4sByPrefix(prefix string) ([]*resource.Pool4, error) {
 		return nil, err
 	}
 
-	if pools, err := listPool4s(subnet4.GetID()); err != nil {
+	if pools, err := listPool4s(subnet4); err != nil {
 		return nil, err
 	} else {
 		return pools, nil

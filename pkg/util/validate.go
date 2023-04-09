@@ -2,7 +2,9 @@ package util
 
 import (
 	"fmt"
+	"net"
 	"regexp"
+	"strings"
 )
 
 type StringRegexp struct {
@@ -41,4 +43,12 @@ func ValidateStrings(ss ...string) error {
 	}
 
 	return nil
+}
+
+func NormalizeMac(mac string) (string, error) {
+	hw, err := net.ParseMAC(mac)
+	if err != nil {
+		return "", err
+	}
+	return strings.ToUpper(hw.String()), nil
 }

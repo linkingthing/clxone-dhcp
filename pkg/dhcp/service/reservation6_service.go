@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strings"
 
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -59,6 +60,8 @@ func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 		return err
 	} else if subnet.UseEui64 {
 		return fmt.Errorf("subnet6 use EUI64, can not create reservation6")
+	} else if subnet.UseAddressCode && len(reservation.Prefixes) != 0 {
+		return fmt.Errorf("subnet6 use address code, can not create reservation6 prefixes")
 	}
 
 	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation); err != nil {
@@ -76,7 +79,12 @@ func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Rese
 	subnetMaskLen, _ := ipnet.Mask.Size()
 	if subnetMaskLen < 64 && len(reservation.Ips) != 0 {
 		return fmt.Errorf("subnet6 %s mask less than 64, can`t create reservation6 ips %v",
-			ipnet.String(), reservation.Ips)
+			ipnet.String(), reservation.IpAddresses)
+	}
+
+	if subnetMaskLen > 64 && len(reservation.Ipnets) != 0 {
+		return fmt.Errorf("subnet6 %s mask bigger than 64, can`t create reservation6 prefixes %v",
+			ipnet.String(), reservation.Prefixes)
 	}
 
 	for _, ip := range reservation.Ips {
@@ -86,13 +94,13 @@ func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Rese
 		}
 	}
 
-	for _, prefix := range reservation.Prefixes {
-		if ip, ipnet_, _ := net.ParseCIDR(prefix); !ipnet.Contains(ip) {
+	for _, ipnet_ := range reservation.Ipnets {
+		if !ipnet.Contains(ipnet_.IP) {
 			return fmt.Errorf("reservation6 %s prefix %s not belong to subnet6 %s",
-				reservation.String(), prefix, ipnet.String())
-		} else if ones, _ := ipnet_.Mask.Size(); ones < subnetMaskLen {
-			return fmt.Errorf("reservation6 %s prefix %s len %d less than subnet6 %d",
-				reservation.String(), prefix, ones, subnetMaskLen)
+				reservation.String(), ipnet_.String(), ipnet.String())
+		} else if ones, _ := ipnet_.Mask.Size(); ones <= subnetMaskLen {
+			return fmt.Errorf("reservation6 %s prefix %s len %d is not bigger than subnet6 %d",
+				reservation.String(), ipnet_.String(), ones, subnetMaskLen)
 		}
 	}
 
@@ -136,21 +144,21 @@ func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, 
 		}
 	}
 
-	for _, ipAddress := range reservation.IpAddresses {
+	for _, ip := range reservation.Ips {
 		for _, reservedpool := range reservedpools {
-			if reservedpool.Contains(ipAddress) {
+			if reservedpool.ContainsIp(ip) {
 				return fmt.Errorf("reservation6 %s ip %s conflict with reserved pool6 %s",
-					reservation.String(), ipAddress, reservedpool.String())
+					reservation.String(), ip.String(), reservedpool.String())
 			}
 		}
 	}
 
-	for _, prefix := range reservation.Prefixes {
+	for _, ipnet := range reservation.Ipnets {
 		for _, reservedpdpool := range reservedpdpools {
-			if reservedpdpool.Intersect(prefix) {
+			if reservedpdpool.IntersectIpnet(ipnet) {
 				return fmt.Errorf(
 					"reservation6 %s prefix %s conflict with reserved pdpool %s",
-					reservation.String(), prefix, reservedpdpool.String())
+					reservation.String(), ipnet.String(), reservedpdpool.String())
 			}
 		}
 	}
@@ -165,11 +173,13 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 		return err
 	}
 
-	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-		resource.SqlColumnCapacity: subnet.Capacity,
-	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-		return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
-			subnet.GetID(), pg.Error(err).Error())
+	if !subnet.UseAddressCode {
+		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
+			resource.SqlColumnCapacity: subnet.Capacity,
+		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+			return fmt.Errorf("update subnet6 %s capacity to db failed: %s",
+				subnet.GetID(), pg.Error(err).Error())
+		}
 	}
 
 	for affectedPoolId, capacity := range affectedPools {
@@ -195,18 +205,18 @@ func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet
 
 func recalculatePoolsCapacityWithReservation6(tx restdb.Transaction, subnet *resource.Subnet6, reservation6 *resource.Reservation6, isCreate bool) (map[string]string, map[string]string, error) {
 	if affectedPool6s, err := recalculatePool6sCapacityWithIps(tx, subnet,
-		reservation6.IpAddresses, isCreate); err != nil {
+		reservation6.Ips, isCreate); err != nil {
 		return nil, nil, err
 	} else if len(affectedPool6s) != 0 {
 		return affectedPool6s, nil, nil
 	}
 
 	affectedPdPools, err := recalculatePdPoolsCapacityWithPrefixes(tx,
-		subnet, reservation6.Prefixes, isCreate)
+		subnet, reservation6.Ipnets, isCreate)
 	return nil, affectedPdPools, err
 }
 
-func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Subnet6, ips []string, isCreate bool) (map[string]string, error) {
+func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Subnet6, ips []net.IP, isCreate bool) (map[string]string, error) {
 	if len(ips) == 0 {
 		return nil, nil
 	}
@@ -223,7 +233,7 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 	for _, ip := range ips {
 		reserved := false
 		for _, pool := range pools {
-			if pool.Contains(ip) {
+			if pool.ContainsIp(ip) {
 				reserved = true
 				capacity, ok := affectedPool6s[pool.GetID()]
 				if !ok {
@@ -240,22 +250,24 @@ func recalculatePool6sCapacityWithIps(tx restdb.Transaction, subnet *resource.Su
 			}
 		}
 
-		if !reserved {
+		if !subnet.UseAddressCode && !reserved {
 			unreservedCount.Add(unreservedCount, big.NewInt(1))
 		}
 	}
 
-	if isCreate {
-		subnet.AddCapacityWithBigInt(unreservedCount)
-	} else {
-		subnet.SubCapacityWithBigInt(unreservedCount)
+	if !subnet.UseAddressCode {
+		if isCreate {
+			subnet.AddCapacityWithBigInt(unreservedCount)
+		} else {
+			subnet.SubCapacityWithBigInt(unreservedCount)
+		}
 	}
 
 	return affectedPool6s, nil
 }
 
-func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resource.Subnet6, prefixes []string, isCreate bool) (map[string]string, error) {
-	if len(prefixes) == 0 {
+func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resource.Subnet6, ipnets []net.IPNet, isCreate bool) (map[string]string, error) {
+	if subnet.UseAddressCode || len(ipnets) == 0 {
 		return nil, nil
 	}
 
@@ -268,16 +280,16 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 
 	affectedPdPools := make(map[string]string)
 	unreservedCount := new(big.Int)
-	for _, prefix := range prefixes {
+	for _, ipnet := range ipnets {
 		unreservedCount.Add(unreservedCount, big.NewInt(1))
 		for _, pdpool := range pdpools {
-			if pdpool.IntersectPrefix(prefix) {
+			if pdpool.IntersectIpnet(ipnet) {
 				capacity, ok := affectedPdPools[pdpool.GetID()]
 				if !ok {
 					capacity = pdpool.Capacity
 				}
 
-				reservedCount := getPdPoolReservedCountWithPrefix(pdpool, prefix)
+				reservedCount := getPdPoolReservedCountWithPrefix(pdpool, ipnet)
 				unreservedCount.Sub(unreservedCount, reservedCount)
 				if isCreate {
 					affectedPdPools[pdpool.GetID()] = resource.SubCapacityWithBigInt(capacity, reservedCount)
@@ -299,8 +311,7 @@ func recalculatePdPoolsCapacityWithPrefixes(tx restdb.Transaction, subnet *resou
 	return affectedPdPools, nil
 }
 
-func getPdPoolReservedCountWithPrefix(pdpool *resource.PdPool, prefix string) *big.Int {
-	_, ipnet, _ := net.ParseCIDR(prefix)
+func getPdPoolReservedCountWithPrefix(pdpool *resource.PdPool, ipnet net.IPNet) *big.Int {
 	prefixLen, _ := ipnet.Mask.Size()
 	return getPdPoolReservedCount(pdpool, uint32(prefixLen))
 }
@@ -333,29 +344,36 @@ func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resou
 		SubnetId:    subnetID,
 		HwAddress:   reservation.HwAddress,
 		Duid:        reservation.Duid,
+		Hostname:    reservation.Hostname,
 		IpAddresses: reservation.IpAddresses,
 		Prefixes:    reservation.Prefixes,
 	}
 }
 
-func (r *Reservation6Service) List(subnetID string) ([]*resource.Reservation6, error) {
-	return listReservation6s(subnetID)
+func (r *Reservation6Service) List(subnet *resource.Subnet6) ([]*resource.Reservation6, error) {
+	return listReservation6s(subnet)
 }
 
-func listReservation6s(subnetID string) ([]*resource.Reservation6, error) {
+func listReservation6s(subnet *resource.Subnet6) ([]*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet6FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		return tx.Fill(map[string]interface{}{
-			resource.SqlColumnSubnet6: subnetID,
+			resource.SqlColumnSubnet6: subnet.GetID(),
 			resource.SqlOrderBy:       "duid, hw_address"}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation6s with subnet6 %s from db failed: %s",
-			subnetID, pg.Error(err).Error())
+			subnet.GetID(), pg.Error(err).Error())
 	}
 
-	leasesCount := getReservation6sLeasesCount(subnetIDStrToUint64(subnetID), reservations)
-	for _, reservation := range reservations {
-		setReservation6LeasesUsedRatio(reservation, leasesCount[reservation.GetID()])
+	if len(subnet.Nodes) != 0 {
+		leasesCount := getReservation6sLeasesCount(subnetIDStrToUint64(subnet.GetID()), reservations)
+		for _, reservation := range reservations {
+			setReservation6LeasesUsedRatio(reservation, leasesCount[reservation.GetID()])
+		}
 	}
 
 	return reservations, nil
@@ -386,10 +404,10 @@ func getReservation6sLeasesCount(subnetId uint64, reservations []*resource.Reser
 	leasesCount := make(map[string]uint64)
 	for _, lease := range resp.GetLeases() {
 		if reservation, ok := reservationMap[prefixFromAddressAndPrefixLen(lease.GetAddress(),
-			lease.GetPrefixLen())]; ok && ((len(reservation.Duid) != 0 &&
-			reservation.Duid == lease.GetDuid()) ||
-			(len(reservation.HwAddress) != 0 &&
-				reservation.HwAddress == lease.GetHwAddress())) {
+			lease.GetPrefixLen())]; ok &&
+			(reservation.Duid == "" || reservation.Duid == lease.GetDuid()) &&
+			(reservation.HwAddress == "" || reservation.HwAddress == lease.GetHwAddress()) &&
+			(reservation.Hostname == "" || reservation.Hostname == lease.GetHostname()) {
 			leasesCount[reservation.GetID()] += 1
 		}
 	}
@@ -437,6 +455,10 @@ func reservationPrefixMapFromReservation6s(reservations []*resource.Reservation6
 func (r *Reservation6Service) Get(subnet *resource.Subnet6, reservationID string) (*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet6FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		return tx.Fill(map[string]interface{}{restdb.IDField: reservationID}, &reservations)
 	}); err != nil {
 		return nil, fmt.Errorf("get reservation6 %s with subnet6 %s from db failed: %s",
@@ -446,7 +468,7 @@ func (r *Reservation6Service) Get(subnet *resource.Subnet6, reservationID string
 			reservationID, subnet.GetID())
 	}
 
-	if leasesCount, err := getReservation6LeasesCount(reservations[0]); err != nil {
+	if leasesCount, err := getReservation6LeasesCount(subnet, reservations[0]); err != nil {
 		log.Warnf("get reservation6 %s with subnet6 %s leases used ratio failed: %s",
 			reservations[0].String(), subnet.GetID(), err.Error())
 	} else {
@@ -463,15 +485,20 @@ func setReservation6LeasesUsedRatio(reservation *resource.Reservation6, leasesCo
 	}
 }
 
-func getReservation6LeasesCount(reservation *resource.Reservation6) (uint64, error) {
+func getReservation6LeasesCount(subnet *resource.Subnet6, reservation *resource.Reservation6) (uint64, error) {
+	if len(subnet.Nodes) == 0 {
+		return 0, nil
+	}
+
 	var err error
 	var resp *pbdhcpagent.GetLeasesCountResponse
-	if err = transport.CallDhcpAgentGrpc(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetReservation6LeasesCount(
 			ctx, &pbdhcpagent.GetReservation6LeasesCountRequest{
 				SubnetId:    subnetIDStrToUint64(reservation.Subnet6),
-				HwAddress:   reservation.HwAddress,
+				HwAddress:   strings.ToLower(reservation.HwAddress),
 				Duid:        reservation.Duid,
+				Hostname:    reservation.Hostname,
 				IpAddresses: reservation.IpAddresses,
 				Prefixes:    reservation.Prefixes,
 			})
@@ -518,7 +545,7 @@ func checkReservation6CouldBeDeleted(tx restdb.Transaction, subnet *resource.Sub
 		return err
 	}
 
-	if leasesCount, err := getReservation6LeasesCount(reservation); err != nil {
+	if leasesCount, err := getReservation6LeasesCount(subnet, reservation); err != nil {
 		return fmt.Errorf("get reservation6 %s leases count failed: %s",
 			reservation.String(), err.Error())
 	} else if leasesCount != 0 {
@@ -541,9 +568,11 @@ func setReservation6FromDB(tx restdb.Transaction, reservation *resource.Reservat
 	reservation.Subnet6 = reservations[0].Subnet6
 	reservation.HwAddress = reservations[0].HwAddress
 	reservation.Duid = reservations[0].Duid
+	reservation.Hostname = reservations[0].Hostname
 	reservation.IpAddresses = reservations[0].IpAddresses
 	reservation.Ips = reservations[0].Ips
 	reservation.Prefixes = reservations[0].Prefixes
+	reservation.Ipnets = reservations[0].Ipnets
 	reservation.Capacity = reservations[0].Capacity
 	return nil
 }
@@ -558,10 +587,15 @@ func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resou
 		SubnetId:  subnetID,
 		HwAddress: reservation.HwAddress,
 		Duid:      reservation.Duid,
+		Hostname:  reservation.Hostname,
 	}
 }
 
 func (r *Reservation6Service) Update(subnetId string, reservation *resource.Reservation6) error {
+	if err := resource.CheckCommentValid(reservation.Comment); err != nil {
+		return err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservation6, map[string]interface{}{
 			resource.SqlColumnComment: reservation.Comment,
@@ -586,7 +620,7 @@ func GetReservationPool6sByPrefix(prefix string) ([]*resource.Reservation6, erro
 		return nil, err
 	}
 
-	if pools, err := listReservation6s(subnet6.GetID()); err != nil {
+	if pools, err := listReservation6s(subnet6); err != nil {
 		return nil, err
 	} else {
 		return pools, nil
