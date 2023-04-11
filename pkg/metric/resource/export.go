@@ -4,7 +4,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
-const ActionNameExportCSV = "exportcsv"
+const ActionNameExportExcel = "export"
 
 type ExportFilter struct {
 	From string `json:"from"`
@@ -17,7 +17,7 @@ type FileInfo struct {
 
 var exportActions = []restresource.Action{
 	restresource.Action{
-		Name:   ActionNameExportCSV,
+		Name:   ActionNameExportExcel,
 		Input:  &ExportFilter{},
 		Output: &FileInfo{},
 	},

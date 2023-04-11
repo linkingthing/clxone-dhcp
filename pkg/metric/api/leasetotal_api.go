@@ -39,7 +39,7 @@ func (h *LeaseTotalApi) Get(ctx *restresource.Context) (restresource.Resource, *
 
 func (h *LeaseTotalApi) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
-	case resource.ActionNameExportCSV:
+	case resource.ActionNameExportExcel:
 		return h.ActionExport(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,

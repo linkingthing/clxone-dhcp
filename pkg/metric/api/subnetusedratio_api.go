@@ -41,7 +41,7 @@ func (h *SubnetUsedRatioApi) Get(ctx *restresource.Context) (restresource.Resour
 
 func (h *SubnetUsedRatioApi) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
-	case resource.ActionNameExportCSV:
+	case resource.ActionNameExportExcel:
 		return h.ActionExport(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,

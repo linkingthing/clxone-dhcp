@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/linkingthing/cement/log"
-	csvutil "github.com/linkingthing/clxone-utils/csv"
+	"github.com/linkingthing/clxone-utils/excel"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
@@ -219,7 +219,7 @@ func genMultiStrMatrix(ctx *MetricContext, results []PrometheusDataResult) [][]s
 
 	var matrix [][]string
 	for i := ctx.Period.Begin; i <= ctx.Period.End; i += ctx.Period.Step {
-		matrix = append(matrix, append([]string{time.Unix(i, 0).Format(csvutil.TimeFormat)}, values...))
+		matrix = append(matrix, append([]string{time.Unix(i, 0).Format(excel.TimeFormat)}, values...))
 	}
 
 	for i, r := range results {

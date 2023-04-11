@@ -7,7 +7,7 @@ import (
 
 	"github.com/linkingthing/cement/log"
 	pbutil "github.com/linkingthing/clxone-utils/alarm/proto"
-	csvutil "github.com/linkingthing/clxone-utils/csv"
+	"github.com/linkingthing/clxone-utils/excel"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/config"
@@ -283,7 +283,7 @@ func genTwoStrMatrix(values [][]interface{}, ctx *MetricContext) [][]string {
 	var strMatrix [][]string
 	for i := ctx.Period.Begin; i <= ctx.Period.End; i += ctx.Period.Step {
 		strMatrix = append(strMatrix,
-			append([]string{time.Unix(i, 0).Format(csvutil.TimeFormat)}, "0"))
+			append([]string{time.Unix(i, 0).Format(excel.TimeFormat)}, "0"))
 	}
 
 	for _, vs := range values {

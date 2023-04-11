@@ -12,7 +12,7 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
-	csvutil "github.com/linkingthing/clxone-utils/csv"
+	"github.com/linkingthing/clxone-utils/excel"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -71,7 +71,7 @@ func checkSubnet6CouldBeCreated(tx restdb.Transaction, subnet string) error {
 
 	var subnets []*resource.Subnet6
 	if err := tx.FillEx(&subnets,
-		"select * from gr_subnet6 where $1 && ipnet", subnet); err != nil {
+		"SELECT * FROM gr_subnet6 WHERE $1 && ipnet", subnet); err != nil {
 		return fmt.Errorf("check subnet6 conflict failed: %s", pg.Error(err).Error())
 	} else if len(subnets) != 0 {
 		return fmt.Errorf("subnet6 conflict with subnet6 %s", subnets[0].Subnet)
@@ -446,7 +446,7 @@ func subnetHasPdPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, er
 	}
 
 	if count, err := tx.CountEx(resource.TableReservation6,
-		"select count(*) from gr_reservation6 where subnet6 = $1 and prefixes != '{}'",
+		"SELECT COUNT(*) FROM gr_reservation6 WHERE subnet6 = $1 AND prefixes != '{}'",
 		subnet.GetID()); err != nil {
 		return false, pg.Error(err)
 	} else {
@@ -586,7 +586,7 @@ func (s *Subnet6Service) UpdateNodes(subnetID string, subnetNode *resource.Subne
 	return nil
 }
 
-func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error) {
+func (h *Subnet6Service) ImportExcel(file *excel.ImportFile) (interface{}, error) {
 	var oldSubnet6s []*resource.Subnet6
 	if err := db.GetResources(map[string]interface{}{resource.SqlOrderBy: "subnet_id desc"},
 		&oldSubnet6s); err != nil {
@@ -602,7 +602,7 @@ func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error
 		return nil, err
 	}
 
-	response := &csvutil.ImportResult{}
+	response := &excel.ImportResult{}
 	defer sendImportFieldResponse(Subnet6ImportFileNamePrefix, TableHeaderSubnet6Fail, response)
 	validSqls, reqsForSentryCreate, reqsForSentryDelete,
 		reqForServerCreate, reqForServerDelete, err := parseSubnet6sFromFile(file.Name, oldSubnet6s,
@@ -638,8 +638,8 @@ func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error
 	return response, nil
 }
 
-func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sentryNodes []string, sentryVip string, response *csvutil.ImportResult) ([]string, map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets6Request, *pbdhcpagent.CreateSubnets6AndPoolsRequest, *pbdhcpagent.DeleteSubnets6Request, error) {
-	contents, err := csvutil.ReadCSVFile(fileName)
+func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sentryNodes []string, sentryVip string, response *excel.ImportResult) ([]string, map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets6Request, *pbdhcpagent.CreateSubnets6AndPoolsRequest, *pbdhcpagent.DeleteSubnets6Request, error) {
+	contents, err := excel.ReadExcelFile(fileName)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
 	}
@@ -648,7 +648,7 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 		return nil, nil, nil, nil, nil, nil
 	}
 
-	tableHeaderFields, err := csvutil.ParseTableHeader(contents[0],
+	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderSubnet6, SubnetMandatoryFields)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err
@@ -671,8 +671,8 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 	subnetReservations := make(map[uint64][]*resource.Reservation6)
 	subnetPdPools := make(map[uint64][]*resource.PdPool)
 	fieldcontents := contents[1:]
-	for j, fieldcontent := range fieldcontents {
-		fields, missingMandatory, emptyLine := csvutil.ParseTableFields(fieldcontent,
+	for j, fields := range fieldcontents {
+		fields, missingMandatory, emptyLine := excel.ParseTableFields(fields,
 			tableHeaderFields, SubnetMandatoryFields)
 		if emptyLine {
 			continue
@@ -775,7 +775,7 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 	var pdpools []*resource.PdPool
 	var err error
 	for i, field := range fields {
-		if csvutil.IsSpaceField(field) {
+		if excel.IsSpaceField(field) {
 			continue
 		}
 
@@ -1146,7 +1146,7 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 
 func subnet6sToInsertSqlAndRequest(subnets []*resource.Subnet6, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryDelete map[string]*pbdhcpagent.DeleteSubnets6Request, reqForServerDelete *pbdhcpagent.DeleteSubnets6Request, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_subnet6 values ")
+	buf.WriteString("INSERT INTO gr_subnet6 VALUES ")
 	for _, subnet := range subnets {
 		buf.WriteString(subnet6ToInsertDBSqlString(subnet))
 		if len(subnet.Nodes) == 0 {
@@ -1176,7 +1176,7 @@ func subnet6sToInsertSqlAndRequest(subnets []*resource.Subnet6, reqsForSentryCre
 
 func pool6sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool6, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_pool6 values ")
+	buf.WriteString("INSERT INTO gr_pool6 VALUES ")
 	for subnetId, pools := range subnetPools {
 		for _, pool := range pools {
 			buf.WriteString(pool6ToInsertDBSqlString(subnetId, pool))
@@ -1200,7 +1200,7 @@ func pool6sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool6, reqFo
 
 func reservedPool6sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resource.ReservedPool6, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_reserved_pool6 values ")
+	buf.WriteString("INSERT INTO gr_reserved_pool6 VALUES ")
 	for subnetId, pools := range subnetReservedPools {
 		for _, pool := range pools {
 			buf.WriteString(reservedPool6ToInsertDBSqlString(subnetId, pool))
@@ -1224,7 +1224,7 @@ func reservedPool6sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resou
 
 func reservation6sToInsertSqlAndRequest(subnetReservations map[uint64][]*resource.Reservation6, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_reservation6 values ")
+	buf.WriteString("INSERT INTO gr_reservation6 VALUES ")
 	for subnetId, reservations := range subnetReservations {
 		for _, reservation := range reservations {
 			buf.WriteString(reservation6ToInsertDBSqlString(subnetId, reservation))
@@ -1248,7 +1248,7 @@ func reservation6sToInsertSqlAndRequest(subnetReservations map[uint64][]*resourc
 
 func pdpoolsToInsertSqlAndRequest(subnetPdPools map[uint64][]*resource.PdPool, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_pd_pool values ")
+	buf.WriteString("INSERT INTO gr_pd_pool VALUES ")
 	for subnetId, pdpools := range subnetPdPools {
 		for _, pdpool := range pdpools {
 			buf.WriteString(pdpoolToInsertDBSqlString(subnetId, pdpool))
@@ -1335,7 +1335,7 @@ func deleteServerSubnet6s(req *pbdhcpagent.DeleteSubnets6Request, nodes []string
 	}
 }
 
-func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
+func (s *Subnet6Service) ExportExcel() (*excel.ExportFile, error) {
 	var subnet6s []*resource.Subnet6
 	var pools []*resource.Pool6
 	var reservedPools []*resource.ReservedPool6
@@ -1417,20 +1417,20 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 		strMatrix = append(strMatrix, slices)
 	}
 
-	if filepath, err := csvutil.WriteCSVFile(Subnet6FileNamePrefix+
-		time.Now().Format(csvutil.TimeFormat), TableHeaderSubnet6, strMatrix); err != nil {
+	if filepath, err := excel.WriteExcelFile(Subnet6FileNamePrefix+
+		time.Now().Format(excel.TimeFormat), TableHeaderSubnet6, strMatrix); err != nil {
 		return nil, fmt.Errorf("export subnet6s failed: %s", err.Error())
 	} else {
-		return &csvutil.ExportFile{Path: filepath}, nil
+		return &excel.ExportFile{Path: filepath}, nil
 	}
 }
 
-func (s *Subnet6Service) ExportCSVTemplate() (*csvutil.ExportFile, error) {
-	if filepath, err := csvutil.WriteCSVFile(Subnet6TemplateFileName,
+func (s *Subnet6Service) ExportExcelTemplate() (*excel.ExportFile, error) {
+	if filepath, err := excel.WriteExcelFile(Subnet6TemplateFileName,
 		TableHeaderSubnet6, TemplateSubnet6); err != nil {
 		return nil, fmt.Errorf("export subnet6 template failed: %s", err.Error())
 	} else {
-		return &csvutil.ExportFile{Path: filepath}, nil
+		return &excel.ExportFile{Path: filepath}, nil
 	}
 }
 
@@ -1585,7 +1585,7 @@ func (s *Subnet6Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 func ListSubnet6sByPrefixes(prefixes []string) ([]*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = any ($1)", prefixes)
+		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE subnet = ANY ($1)", prefixes)
 	}); err != nil {
 		return nil, fmt.Errorf("get subnet6s from db failed: %s", pg.Error(err).Error())
 	}
@@ -1600,7 +1600,7 @@ func ListSubnet6sByPrefixes(prefixes []string) ([]*resource.Subnet6, error) {
 func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, "select * from gr_subnet6 where ipnet >>= $1", ip)
+		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE ipnet >>= $1", ip)
 	}); err != nil {
 		return nil, pg.Error(err)
 	}
@@ -1615,7 +1615,7 @@ func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
 func GetSubnet6ByPrefix(prefix string) (*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = $1", prefix)
+		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE subnet = $1", prefix)
 	}); err != nil {
 		return nil, pg.Error(err)
 	}
