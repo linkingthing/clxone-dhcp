@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
+	"strings"
 
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -495,7 +496,7 @@ func getReservation6LeasesCount(subnet *resource.Subnet6, reservation *resource.
 		resp, err = client.GetReservation6LeasesCount(
 			ctx, &pbdhcpagent.GetReservation6LeasesCountRequest{
 				SubnetId:    subnetIDStrToUint64(reservation.Subnet6),
-				HwAddress:   reservation.HwAddress,
+				HwAddress:   strings.ToLower(reservation.HwAddress),
 				Duid:        reservation.Duid,
 				Hostname:    reservation.Hostname,
 				IpAddresses: reservation.IpAddresses,
