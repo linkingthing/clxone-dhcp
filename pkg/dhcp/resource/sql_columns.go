@@ -9,7 +9,10 @@ const (
 	SqlColumnClientType            = "client_type"
 	SqlColumnHwAddress             = "hw_address"
 	SqlColumnClassRegexp           = "regexp"
+	SqlColumnClassCondition        = "condition"
+	SqlColumnClassBeginIndex       = "begin_index"
 	SqlColumnClientClass           = "client_class"
+	SqlColumnClassDescription      = "description"
 	SqlColumnSubnetMask            = "subnet_mask"
 	SqlColumnRouters               = "routers"
 	SqlColumnIfaceName             = "iface_name"
@@ -52,4 +55,6 @@ const (
 	SqlColumnCodeBegin             = "code_begin"
 	SqlColumnCodeEnd               = "code_end"
 	SqlColumnUseAddressCode        = "use_address_code"
+	SqlColumnWhiteClientClasses    = "white_client_classes"
+	SqlColumnBlackClientClasses    = "black_client_classes"
 )

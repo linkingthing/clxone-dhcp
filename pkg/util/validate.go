@@ -15,17 +15,17 @@ type StringRegexp struct {
 
 var StringRegexps = []*StringRegexp{
 	{
-		Regexp:       regexp.MustCompile(`^[0-9a-zA-Z-\.:/_\p{Han}]+$`),
+		Regexp:       regexp.MustCompile(`^[0-9a-zA-Z-,\.:/_\p{Han}]+$`),
 		ErrMsg:       "is illegal",
 		ExpectResult: true,
 	},
 	{
-		Regexp:       regexp.MustCompile(`(^-)|(^_)|(^:)|(^/)|(^\.)`),
+		Regexp:       regexp.MustCompile(`(^-)|(^_)|(^:)|(^/)|(^\.)|(^,)`),
 		ErrMsg:       "is illegal",
 		ExpectResult: false,
 	},
 	{
-		Regexp:       regexp.MustCompile(`-$|_$|:$|/$|\.$`),
+		Regexp:       regexp.MustCompile(`-$|_$|:$|/$|\.$|,$`),
 		ErrMsg:       "is illegal",
 		ExpectResult: false,
 	},

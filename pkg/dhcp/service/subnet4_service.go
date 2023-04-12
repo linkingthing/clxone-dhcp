@@ -46,7 +46,7 @@ func NewSubnet4Service() *Subnet4Service {
 }
 
 func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
-	if err := subnet.Validate(); err != nil {
+	if err := subnet.Validate(nil, nil); err != nil {
 		return fmt.Errorf("validate subnet4 params invalid: %s", err.Error())
 	}
 
@@ -130,7 +130,8 @@ func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *pbdhcpagent.Create
 		MinValidLifetime:    subnet.MinValidLifetime,
 		RenewTime:           subnet.ValidLifetime / 2,
 		RebindTime:          subnet.ValidLifetime * 3 / 4,
-		ClientClass:         subnet.ClientClass,
+		WhiteClientClasses:  subnet.WhiteClientClasses,
+		BlackClientClasses:  subnet.BlackClientClasses,
 		IfaceName:           subnet.IfaceName,
 		RelayAgentAddresses: subnet.RelayAgentAddresses,
 		NextServer:          subnet.NextServer,
@@ -453,7 +454,7 @@ func getSubnet4LeasesCount(subnet *resource.Subnet4) (uint64, error) {
 }
 
 func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
-	if err := subnet.ValidateParams(); err != nil {
+	if err := subnet.ValidateParams(nil); err != nil {
 		return fmt.Errorf("validate subnet4 params invalid: %s", err.Error())
 	}
 
@@ -469,7 +470,8 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnSubnetMask:          subnet.SubnetMask,
 			resource.SqlColumnDomainServers:       subnet.DomainServers,
 			resource.SqlColumnRouters:             subnet.Routers,
-			resource.SqlColumnClientClass:         subnet.ClientClass,
+			resource.SqlColumnWhiteClientClasses:  subnet.WhiteClientClasses,
+			resource.SqlColumnBlackClientClasses:  subnet.BlackClientClasses,
 			resource.SqlColumnIfaceName:           subnet.IfaceName,
 			resource.SqlColumnRelayAgentAddresses: subnet.RelayAgentAddresses,
 			resource.SqlColumnNextServer:          subnet.NextServer,
@@ -526,7 +528,8 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			MinValidLifetime:    subnet.MinValidLifetime,
 			RenewTime:           subnet.ValidLifetime / 2,
 			RebindTime:          subnet.ValidLifetime * 3 / 4,
-			ClientClass:         subnet.ClientClass,
+			WhiteClientClasses:  subnet.WhiteClientClasses,
+			BlackClientClasses:  subnet.BlackClientClasses,
 			IfaceName:           subnet.IfaceName,
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 			NextServer:          subnet.NextServer,
@@ -654,6 +657,16 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		return nil, nil, nil, nil, nil, err
 	}
 
+	dhcpConfig, err := resource.GetDhcpConfig(true)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+
+	clientClass4s, err := resource.GetClientClass4s()
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+
 	response.InitData(len(contents) - 1)
 	var maxOldSubnetId uint64
 	if len(oldSubnets) != 0 {
@@ -665,7 +678,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		sentryNodesForCheck = []string{sentryVip}
 	}
 
-	subnets := make([]*resource.Subnet4, 0)
+	subnets := make([]*resource.Subnet4, 0, len(contents)-1)
 	subnetPools := make(map[uint64][]*resource.Pool4)
 	subnetReservedPools := make(map[uint64][]*resource.ReservedPool4)
 	subnetReservations := make(map[uint64][]*resource.Reservation4)
@@ -687,7 +700,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		if err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				fmt.Sprintf("line %d parse subnet4 %s fields failed: %s", j+2, subnet.Subnet, err.Error()))
-		} else if err := subnet.Validate(); err != nil {
+		} else if err := subnet.Validate(dhcpConfig, clientClass4s); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
@@ -727,7 +740,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		return nil, nil, nil, nil, nil, nil
 	}
 
-	var sqls []string
+	sqls := make([]string, 0, 4)
 	reqsForSentryCreate := make(map[string]*pbdhcpagent.CreateSubnets4AndPoolsRequest)
 	reqForServerCreate := &pbdhcpagent.CreateSubnets4AndPoolsRequest{}
 	reqsForSentryDelete := make(map[string]*pbdhcpagent.DeleteSubnets4Request)
@@ -804,8 +817,10 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.DomainServers = strings.Split(strings.TrimSpace(field), ",")
 		case FieldNameIfaceName:
 			subnet.IfaceName = strings.TrimSpace(field)
-		case FieldNameOption60:
-			subnet.ClientClass = field
+		case FieldNameWhiteClientClasses:
+			subnet.WhiteClientClasses = strings.Split(strings.TrimSpace(field), ",")
+		case FieldNameBlackClientClasses:
+			subnet.BlackClientClasses = strings.Split(strings.TrimSpace(field), ",")
 		case FieldNameOption82:
 			subnet.RelayAgentAddresses = strings.Split(strings.TrimSpace(field), ",")
 		case FieldNameOption66:
