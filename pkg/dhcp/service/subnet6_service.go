@@ -360,12 +360,6 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 }
 
 func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64, newUseAddressCode bool) error {
-	if (subnet.UseEui64 && !newUseEUI64) || (subnet.UseAddressCode && !newUseAddressCode) {
-		if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
-			return fmt.Errorf("can not disable use EUI64 or use address code: %s", err.Error())
-		}
-	}
-
 	maskSize, _ := subnet.Ipnet.Mask.Size()
 	if newUseEUI64 {
 		if newUseAddressCode {
@@ -387,6 +381,10 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 		}
 	} else {
 		if subnet.UseEui64 {
+			if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
+				return fmt.Errorf("can not disable use EUI64: %s", err.Error())
+			}
+
 			subnet.Capacity = "0"
 		}
 
@@ -407,6 +405,10 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 				}
 			}
 		} else if subnet.UseAddressCode {
+			if err := checkSubnet6HasNoBeenAllocatedByAddressCode(subnet); err != nil {
+				return fmt.Errorf("can not disable use address code: %s", err.Error())
+			}
+
 			if err := calculateSubnetCapacityWithoutUseAddressCode(tx, subnet); err != nil {
 				return fmt.Errorf("calculate subnet6 capacity without address code failed: %s", err.Error())
 			}
@@ -415,6 +417,28 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 
 	subnet.UseEui64 = newUseEUI64
 	subnet.UseAddressCode = newUseAddressCode
+	return nil
+}
+
+func checkSubnet6HasNoBeenAllocatedByAddressCode(subnet6 *resource.Subnet6) error {
+	if resource.IsCapacityZero(subnet6.Capacity) || len(subnet6.Nodes) == 0 {
+		return nil
+	}
+
+	var err error
+	var resp *pbdhcpagent.GetLeasesCountResponse
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet6LeasesCountByAddressCode(ctx,
+			&pbdhcpagent.GetSubnet6LeasesCountRequest{Id: subnet6.SubnetId})
+		return err
+	}); err != nil {
+		return fmt.Errorf("get subnet6 leases count by address code failed: %s", err.Error())
+	}
+
+	if resp.GetLeasesCount() != 0 {
+		return fmt.Errorf("subnet6 with %d ips had been allocated", resp.GetLeasesCount())
+	}
+
 	return nil
 }
 
