@@ -360,6 +360,12 @@ func getSubnet6FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet6
 }
 
 func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6, newUseEUI64, newUseAddressCode bool) error {
+	if (subnet.UseEui64 && !newUseEUI64) || (subnet.UseAddressCode && !newUseAddressCode) {
+		if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
+			return fmt.Errorf("can not disable use EUI64 or use address code: %s", err.Error())
+		}
+	}
+
 	maskSize, _ := subnet.Ipnet.Mask.Size()
 	if newUseEUI64 {
 		if newUseAddressCode {
@@ -509,7 +515,7 @@ func (s *Subnet6Service) Delete(subnet *resource.Subnet6) error {
 			return err
 		}
 
-		if err := checkSubnet6CouldBeDelete(subnet); err != nil {
+		if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
 			return err
 		}
 
@@ -526,12 +532,12 @@ func (s *Subnet6Service) Delete(subnet *resource.Subnet6) error {
 	return nil
 }
 
-func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
+func checkSubnet6HasNoBeenAllocated(subnet6 *resource.Subnet6) error {
 	if leasesCount, err := getSubnet6LeasesCount(subnet6); err != nil {
 		return fmt.Errorf("get subnet6 %s leases count failed: %s",
 			subnet6.Subnet, err.Error())
 	} else if leasesCount != 0 {
-		return fmt.Errorf("can not delete subnet6 with %d ips had been allocated",
+		return fmt.Errorf("subnet6 with %d ips had been allocated",
 			leasesCount)
 	} else {
 		return nil
@@ -1431,7 +1437,7 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 	}
 
 	if len(subnet6.Nodes) != 0 && len(newNodes) == 0 {
-		if err := checkSubnet6CouldBeDelete(subnet6); err != nil {
+		if err := checkSubnet6HasNoBeenAllocated(subnet6); err != nil {
 			return err
 		}
 	}
