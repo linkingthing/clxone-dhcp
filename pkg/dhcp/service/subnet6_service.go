@@ -436,7 +436,7 @@ func checkSubnet6HasNoBeenAllocatedByAddressCode(subnet6 *resource.Subnet6) erro
 	}
 
 	if resp.GetLeasesCount() != 0 {
-		return fmt.Errorf("subnet6 with %d ips had been allocated", resp.GetLeasesCount())
+		return fmt.Errorf("subnet6 with %d ips had been allocated by address code", resp.GetLeasesCount())
 	}
 
 	return nil
