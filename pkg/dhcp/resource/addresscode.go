@@ -23,7 +23,7 @@ type AddressCode struct {
 }
 
 func (a *AddressCode) Validate() error {
-	if err := util.ValidateStrings(a.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, a.Comment); err != nil {
 		return err
 	}
 

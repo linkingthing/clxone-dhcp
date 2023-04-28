@@ -166,7 +166,11 @@ func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 }
 
 func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6) error {
-	if err := util.ValidateStrings(s.Tags, s.IfaceName, s.RelayAgentInterfaceId); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags, s.IfaceName); err != nil {
+		return err
+	}
+
+	if err := util.ValidateStrings(util.RegexpTypeSlash, s.RelayAgentInterfaceId); err != nil {
 		return err
 	}
 

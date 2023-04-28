@@ -13,7 +13,7 @@ var TableAdmitFingerprint = restdb.ResourceDBType(&AdmitFingerprint{})
 
 type AdmitFingerprint struct {
 	restresource.ResourceBase `json:",inline"`
-	ClientType                string `json:"clientType" rest:"required=true"`
+	ClientType                string `json:"clientType" rest:"required=true" db:"uk"`
 }
 
 func (a AdmitFingerprint) GetParents() []restresource.ResourceKind {
@@ -21,7 +21,7 @@ func (a AdmitFingerprint) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AdmitFingerprint) Validate() error {
-	if len(a.ClientType) == 0 || util.ValidateStrings(a.ClientType) != nil {
+	if len(a.ClientType) == 0 || util.ValidateStrings(util.RegexpTypeCommon, a.ClientType) != nil {
 		return fmt.Errorf("admit client type is required")
 	} else {
 		return nil

@@ -74,31 +74,38 @@ var (
 	TableHeaderSubnet6FailLen = len(TableHeaderSubnet6Fail)
 
 	TemplateSubnet4 = [][]string{[]string{
-		"127.0.0.0/1", "template", "14400", "28800", "7200", "127.0.0.0", "127.0.0.1",
-		"114.114.114.114,8.8.8.8", "ens33", "option60", "option61", "127.0.0.1",
-		"linkingthing", "tftp.bin", "1800", "127.0.0.2,127.0.0.3",
-		"127.0.0.6-127.0.0.100-备注1,127.0.0.106-127.0.0.200-备注2",
-		"127.0.0.1-127.0.0.5-备注3,127.0.0.200-127.0.0.255-备注4",
-		"mac$11:11:11:11:11:11$127.0.0.66$备注5,hostname$linking$127.0.0.101$备注6",
+		"127.0.0.0/8", "template", "14400", "28800", "7200", "127.0.0.0", "127.0.0.1",
+		"114.114.114.114\n8.8.8.8", "ens33", "option60\noption61", "option3\noption6", "127.0.0.1",
+		"linkingthing", "tftp.bin", "1800", "127.0.0.2\n127.0.0.3",
+		"127.0.0.6-127.0.0.100-备注1\n127.0.0.106-127.0.0.200-备注2",
+		"127.0.0.1-127.0.0.5-备注3\n127.0.0.200-127.0.0.255-备注4",
+		"mac$11:11:11:11:11:11$127.0.0.66$备注5\nhostname$linking$127.0.0.101$备注6",
 	}}
 
 	TemplateSubnet6 = [][]string{
 		[]string{"2001::/32", "template1", "关闭", "关闭", "14400", "28800", "7200", "14400",
-			"2400:3200::1,2400:3200::baba:1", "ens33", "2001::255", "option16", "option17",
-			"Gi0/0/1", "127.0.0.2,127.0.0.3", "", "", "",
-			"2001:0:2001::-48-64-备注1,2001:0:2002::-48-64-备注2"},
+			"2400:3200::1\n2400:3200::baba:1", "ens33", "2001::255", "option6\noption16", "option21\noption22",
+			"Gi0/0/1", "127.0.0.2\n127.0.0.3", "", "", "",
+			"2001:0:2001::-48-64-备注1\n2001:0:2002::-48-64-备注2"},
 		[]string{"2002::/64", "template2", "关闭", "关闭", "14400", "28800", "7200", "14400",
 			"2400:3200::1", "eno1", "2002::255", "option16-1", "option17-1",
-			"Gi0/0/2", "127.0.0.3,127.0.0.4",
-			"2002::6-2002::1f-备注1,2002::26-2002::3f-备注2",
-			"2002::1-2002::5-备注3,2002::20-2002::25-备注4",
-			"duid$0102$ips$2002::11_2002::12$备注5, mac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6, hostname$linking$ips$2002::34_2002::35$备注7",
+			"Gi0/0/2", "127.0.0.3\n127.0.0.4",
+			"2002::6-2002::1f-备注1\n2002::26-2002::3f-备注2",
+			"2002::1-2002::5-备注3\n2002::20-2002::25-备注4",
+			"duid$0102$ips$2002::11_2002::12$备注5\nmac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6\nhostname$linking$ips$2002::34_2002::35$备注7",
 			""},
 		[]string{"2003::/64", "template3", "开启", "关闭", "14400", "28800", "7200", "14400",
 			"2400:3200::baba:1", "eth0", "2003::255", "option16-2", "option17-2", "Gi0/0/3",
-			"127.0.0.4,127.0.0.5", "", "", "", ""},
+			"127.0.0.4\n127.0.0.5", "", "", "", ""},
+		[]string{"2004::/64", "template3", "关闭", "开启", "14400", "28800", "7200", "14400",
+			"2400:3200::baba:1", "eth0", "2003::255", "option16-2", "option17-2", "Gi0/0/3",
+			"127.0.0.4\n127.0.0.5", "", "", "", ""},
 	}
 )
+
+func splitFieldWithoutSpace(field string) []string {
+	return strings.Split(strings.Replace(strings.TrimSpace(field), " ", "", -1), resource.CommonDelimiter)
+}
 
 func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 	return []string{
@@ -106,13 +113,13 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 		uint32ToString(subnet4.ValidLifetime),
 		uint32ToString(subnet4.MaxValidLifetime),
 		uint32ToString(subnet4.MinValidLifetime),
-		subnet4.SubnetMask, strings.Join(subnet4.Routers, ","),
-		strings.Join(subnet4.DomainServers, ","), subnet4.IfaceName,
-		strings.Join(subnet4.WhiteClientClasses, ","),
-		strings.Join(subnet4.BlackClientClasses, ","),
-		strings.Join(subnet4.RelayAgentAddresses, ","),
+		subnet4.SubnetMask, strings.Join(subnet4.Routers, resource.CommonDelimiter),
+		strings.Join(subnet4.DomainServers, resource.CommonDelimiter), subnet4.IfaceName,
+		strings.Join(subnet4.WhiteClientClasses, resource.CommonDelimiter),
+		strings.Join(subnet4.BlackClientClasses, resource.CommonDelimiter),
+		strings.Join(subnet4.RelayAgentAddresses, resource.CommonDelimiter),
 		subnet4.TftpServer, subnet4.Bootfile, uint32ToString(subnet4.Ipv6OnlyPreferred),
-		strings.Join(subnet4.Nodes, ","),
+		strings.Join(subnet4.Nodes, resource.CommonDelimiter),
 	}
 }
 
@@ -124,11 +131,11 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 		uint32ToString(subnet6.MaxValidLifetime),
 		uint32ToString(subnet6.MinValidLifetime),
 		uint32ToString(subnet6.PreferredLifetime),
-		strings.Join(subnet6.DomainServers, ","), subnet6.IfaceName,
-		strings.Join(subnet6.RelayAgentAddresses, ","),
-		strings.Join(subnet6.WhiteClientClasses, ","),
-		strings.Join(subnet6.BlackClientClasses, ","),
-		subnet6.RelayAgentInterfaceId, strings.Join(subnet6.Nodes, ","),
+		strings.Join(subnet6.DomainServers, resource.CommonDelimiter), subnet6.IfaceName,
+		strings.Join(subnet6.RelayAgentAddresses, resource.CommonDelimiter),
+		strings.Join(subnet6.WhiteClientClasses, resource.CommonDelimiter),
+		strings.Join(subnet6.BlackClientClasses, resource.CommonDelimiter),
+		subnet6.RelayAgentInterfaceId, strings.Join(subnet6.Nodes, resource.CommonDelimiter),
 	}
 }
 

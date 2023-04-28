@@ -26,8 +26,10 @@ func (c *ClientClass6) Validate() error {
 		return ErrNameOrRegexpMissing
 	} else if c.Code < 1 || c.Code > 65535 {
 		return fmt.Errorf("code %d not in [1, 65535]", c.Code)
-	} else if err := util.ValidateStrings(c.Name, c.Regexp, c.Description); err != nil {
-		return fmt.Errorf("name %s or regexp %s is invalid", c.Name, c.Regexp)
+	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Name, c.Description); err != nil {
+		return fmt.Errorf("name %s or description %s is invalid", c.Name, c.Description)
+	} else if err := util.ValidateStrings(util.RegexpTypeSlash, c.Regexp); err != nil {
+		return fmt.Errorf("regexp %s is invalid", c.Regexp)
 	} else {
 		if c.Description == "" {
 			c.Description = code6ToDescription(c.Code)

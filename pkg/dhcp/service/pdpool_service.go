@@ -15,6 +15,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type PdPoolService struct {
@@ -50,7 +51,7 @@ func (p *PdPoolService) Create(subnet *resource.Subnet6, pdpool *resource.PdPool
 
 		return sendCreatePdPoolCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pdpool)
 	}); err != nil {
-		return fmt.Errorf("create pdpool %s failed:%s", pdpool.Prefix, err.Error())
+		return fmt.Errorf("create pdpool %s failed:%s", pdpool.String(), err.Error())
 	}
 
 	return nil
@@ -438,7 +439,7 @@ func pdpoolToDeletePdPoolRequest(subnetID uint64, pdpool *resource.PdPool) *pbdh
 }
 
 func (p *PdPoolService) Update(subnetId string, pdpool *resource.PdPool) error {
-	if err := resource.CheckCommentValid(pdpool.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, pdpool.Comment); err != nil {
 		return err
 	}
 

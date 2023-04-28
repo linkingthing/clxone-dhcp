@@ -10,6 +10,8 @@ import (
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TablePool6 = restdb.ResourceDBType(&Pool6{})
@@ -72,14 +74,14 @@ func (p *Pool6) Equals(another *Pool6) bool {
 
 func (p *Pool6) String() string {
 	if p.BeginAddress != "" {
-		return p.BeginAddress + "-" + p.EndAddress
+		return p.BeginAddress + PoolDelimiter + p.EndAddress
 	} else {
 		return ""
 	}
 }
 
 func (p *Pool6) Validate() error {
-	if err := CheckCommentValid(p.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, p.Comment); err != nil {
 		return err
 	}
 
