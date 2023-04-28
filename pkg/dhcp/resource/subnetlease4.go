@@ -10,7 +10,7 @@ var TableSubnetLease4 = restdb.ResourceDBType(&SubnetLease4{})
 type SubnetLease4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet4                   string      `json:"-" db:"ownby"`
-	Address                   string      `json:"address"`
+	Address                   string      `json:"address" db:"uk"`
 	AddressType               AddressType `json:"addressType"`
 	HwAddress                 string      `json:"hwAddress"`
 	HwAddressOrganization     string      `json:"hwAddressOrganization"`

@@ -153,11 +153,11 @@ func (s *Subnet4) setSubnetDefaultValue(dhcpConfig *DhcpConfig) (err error) {
 }
 
 func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
-	if err := checkTFTPServer(s.TftpServer); err != nil {
+	if err := checkTFTPValid(s.TftpServer, s.Bootfile); err != nil {
 		return err
 	}
 
-	if err := util.ValidateStrings(s.TftpServer, s.Bootfile, s.Tags, s.IfaceName); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags, s.IfaceName); err != nil {
 		return err
 	}
 
@@ -196,14 +196,22 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 	return checkNodesValid(s.Nodes)
 }
 
-func checkTFTPServer(tftpServer string) error {
+func checkTFTPValid(tftpServer, bootfile string) error {
+	if len(bootfile) > 128 {
+		return fmt.Errorf("bootfile must not bigger than 128")
+	}
+
 	if tftpServer != "" {
+		if len(tftpServer) > 64 {
+			return fmt.Errorf("tftp-server must not bigger than 64")
+		}
+
 		if _, err := url.Parse(tftpServer); err != nil {
 			return fmt.Errorf("parse tftp server failed: %s", err.Error())
 		}
 	}
 
-	return nil
+	return util.ValidateStrings(util.RegexpTypeSlash, tftpServer, bootfile)
 }
 
 func checkCommonOptions(isv4 bool, domainServers, relayAgents []string) error {

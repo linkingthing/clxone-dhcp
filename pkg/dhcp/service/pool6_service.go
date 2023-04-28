@@ -15,6 +15,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Pool6Service struct {
@@ -429,7 +430,7 @@ func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpage
 }
 
 func (p *Pool6Service) Update(subnetId string, pool *resource.Pool6) error {
-	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, pool.Comment); err != nil {
 		return err
 	}
 

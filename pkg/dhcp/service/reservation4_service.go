@@ -14,6 +14,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Reservation4Service struct {
@@ -351,7 +352,7 @@ func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resou
 }
 
 func (r *Reservation4Service) Update(subnetId string, reservation *resource.Reservation4) error {
-	if err := resource.CheckCommentValid(reservation.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, reservation.Comment); err != nil {
 		return err
 	}
 

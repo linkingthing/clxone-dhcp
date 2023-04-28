@@ -11,7 +11,7 @@ var TableAdmitMac = restdb.ResourceDBType(&AdmitMac{})
 
 type AdmitMac struct {
 	restresource.ResourceBase `json:",inline"`
-	HwAddress                 string `json:"hwAddress" rest:"required=true"`
+	HwAddress                 string `json:"hwAddress" rest:"required=true" db:"uk"`
 	Comment                   string `json:"comment"`
 }
 
@@ -24,6 +24,6 @@ func (a *AdmitMac) Validate() error {
 		return err
 	} else {
 		a.HwAddress = hw
-		return util.ValidateStrings(a.Comment)
+		return util.ValidateStrings(util.RegexpTypeComma, a.Comment)
 	}
 }

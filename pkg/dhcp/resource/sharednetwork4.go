@@ -26,7 +26,7 @@ type SharedNetwork4 struct {
 }
 
 func (s *SharedNetwork4) Validate() error {
-	if len(s.Name) == 0 || util.ValidateStrings(s.Name) != nil {
+	if len(s.Name) == 0 || util.ValidateStrings(util.RegexpTypeCommon, s.Name) != nil {
 		return fmt.Errorf("name %s is invalid", s.Name)
 	}
 
@@ -34,7 +34,7 @@ func (s *SharedNetwork4) Validate() error {
 		return fmt.Errorf("shared network4 %s subnet ids length should excceed 1", s.Name)
 	}
 
-	if err := util.ValidateStrings(s.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, s.Comment); err != nil {
 		return err
 	}
 

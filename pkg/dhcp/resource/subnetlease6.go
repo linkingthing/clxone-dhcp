@@ -7,7 +7,7 @@ import (
 type SubnetLease6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string      `json:"-" db:"ownby"`
-	Address                   string      `json:"address"`
+	Address                   string      `json:"address" db:"uk"`
 	AddressType               AddressType `json:"addressType"`
 	PrefixLen                 uint32      `json:"prefixLen"`
 	Duid                      string      `json:"duid"`

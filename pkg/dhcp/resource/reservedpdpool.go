@@ -7,6 +7,8 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableReservedPdPool = restdb.ResourceDBType(&ReservedPdPool{})
@@ -27,7 +29,7 @@ func (pdpool ReservedPdPool) GetParents() []restresource.ResourceKind {
 }
 
 func (pdpool *ReservedPdPool) String() string {
-	return pdpool.PrefixIpnet.String() + "-" + strconv.Itoa(int(pdpool.DelegatedLen))
+	return pdpool.Prefix + PoolDelimiter + strconv.Itoa(int(pdpool.PrefixLen)) + PoolDelimiter + strconv.Itoa(int(pdpool.DelegatedLen))
 }
 
 func (pdpool *ReservedPdPool) Validate() error {
@@ -36,7 +38,7 @@ func (pdpool *ReservedPdPool) Validate() error {
 		return err
 	}
 
-	if err := CheckCommentValid(pdpool.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, pdpool.Comment); err != nil {
 		return err
 	}
 

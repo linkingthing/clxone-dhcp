@@ -3,7 +3,6 @@ package resource
 import (
 	"fmt"
 	"net"
-	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -80,14 +79,14 @@ func (p *Pool4) Equals(another *Pool4) bool {
 
 func (p *Pool4) String() string {
 	if p.BeginAddress != "" {
-		return p.BeginAddress + "-" + p.EndAddress
+		return p.BeginAddress + PoolDelimiter + p.EndAddress
 	} else {
 		return ""
 	}
 }
 
 func (p *Pool4) Validate() error {
-	if err := CheckCommentValid(p.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, p.Comment); err != nil {
 		return err
 	}
 
@@ -96,14 +95,6 @@ func (p *Pool4) Validate() error {
 	}
 
 	return p.ValidateAddress()
-}
-
-func CheckCommentValid(comment string) error {
-	if strings.Contains(comment, ",") {
-		return fmt.Errorf("comment %s contains illegal character comma", comment)
-	} else {
-		return util.ValidateStrings(comment)
-	}
 }
 
 func (p *Pool4) ParseAddressWithTemplate(tx restdb.Transaction, subnet *Subnet4) error {

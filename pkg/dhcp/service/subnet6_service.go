@@ -802,7 +802,7 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameSubnet:
 			subnet.Subnet = strings.TrimSpace(field)
 		case FieldNameSubnetName:
-			subnet.Tags = field
+			subnet.Tags = strings.TrimSpace(field)
 		case FieldNameEUI64:
 			subnet.UseEui64 = internationalizationBoolSwitch(strings.TrimSpace(field))
 		case FieldNameUseAddressCode:
@@ -810,64 +810,69 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameValidLifetime:
 			if subnet.ValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("valid-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNameMaxValidLifetime:
 			if subnet.MaxValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("max-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNameMinValidLifetime:
 			if subnet.MinValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("min-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNamePreferredLifetime:
 			if subnet.PreferredLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("preferred-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNameDomainServers:
-			subnet.DomainServers = strings.Split(strings.TrimSpace(field), ",")
+			subnet.DomainServers = splitFieldWithoutSpace(field)
 		case FieldNameIfaceName:
 			subnet.IfaceName = strings.TrimSpace(field)
 		case FieldNameRelayAddresses:
-			subnet.RelayAgentAddresses = strings.Split(strings.TrimSpace(field), ",")
+			subnet.RelayAgentAddresses = splitFieldWithoutSpace(field)
 		case FieldNameWhiteClientClasses:
-			subnet.WhiteClientClasses = strings.Split(strings.TrimSpace(field), ",")
+			subnet.WhiteClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameBlackClientClasses:
-			subnet.BlackClientClasses = strings.Split(strings.TrimSpace(field), ",")
+			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameOption18:
-			subnet.RelayAgentInterfaceId = field
+			subnet.RelayAgentInterfaceId = strings.TrimSpace(field)
 		case FieldNameNodes:
-			subnet.Nodes = strings.Split(strings.TrimSpace(field), ",")
+			subnet.Nodes = splitFieldWithoutSpace(field)
 		case FieldNamePools:
 			if pools, err = parsePool6sFromString(strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		case FieldNameReservedPools:
 			if reservedPools, err = parseReservedPool6sFromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		case FieldNameReservations:
 			if reservations, err = parseReservation6sFromString(strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		case FieldNamePdPools:
 			if pdpools, err = parsePdPoolsFromString(strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		}
 	}
 
-	return subnet, pools, reservedPools, reservations, pdpools, err
+	return subnet, pools, reservedPools, reservations, pdpools, nil
 }
 
 func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
-	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
+	for _, poolStr := range strings.Split(field, resource.CommonDelimiter) {
+		poolStr = strings.TrimSpace(poolStr)
+		if poolSlices := strings.SplitN(poolStr, resource.PoolDelimiter, 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet6 pool6 %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -884,8 +889,9 @@ func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 
 func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, error) {
 	var pools []*resource.ReservedPool6
-	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
+	for _, poolStr := range strings.Split(field, resource.CommonDelimiter) {
+		poolStr = strings.TrimSpace(poolStr)
+		if poolSlices := strings.SplitN(poolStr, resource.PoolDelimiter, 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet6 reserved pool6 %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -902,9 +908,10 @@ func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, err
 
 func parseReservation6sFromString(field string) ([]*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
-	for _, reservationStr := range strings.Split(field, ",") {
+	for _, reservationStr := range strings.Split(field, resource.CommonDelimiter) {
+		reservationStr = strings.TrimSpace(reservationStr)
 		if reservationSlices := strings.SplitN(reservationStr,
-			"$", 5); len(reservationSlices) != 5 {
+			resource.ReservationDelimiter, 5); len(reservationSlices) != 5 {
 			return nil, fmt.Errorf("parse subnet6 reservation6 %s failed with wrong regexp",
 				reservationStr)
 		} else {
@@ -926,9 +933,9 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 
 			switch reservationSlices[2] {
 			case resource.ReservationTypeIps:
-				reservation.IpAddresses = strings.Split(reservationSlices[3], "_")
+				reservation.IpAddresses = strings.Split(reservationSlices[3], resource.ReservationAddrDelimiter)
 			case resource.ReservationTypePrefixes:
-				reservation.Prefixes = strings.Split(reservationSlices[3], "_")
+				reservation.Prefixes = strings.Split(reservationSlices[3], resource.ReservationAddrDelimiter)
 			default:
 				return nil, fmt.Errorf("parse reservation6 %s failed with wrong type %s not in [ips, prefixes]",
 					reservationStr, reservationSlices[2])
@@ -943,8 +950,9 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 
 func parsePdPoolsFromString(field string) ([]*resource.PdPool, error) {
 	var pdpools []*resource.PdPool
-	for _, pdpoolStr := range strings.Split(field, ",") {
-		if pdpoolSlices := strings.SplitN(pdpoolStr, "-", 4); len(pdpoolSlices) != 4 {
+	for _, pdpoolStr := range strings.Split(field, resource.CommonDelimiter) {
+		pdpoolStr = strings.TrimSpace(pdpoolStr)
+		if pdpoolSlices := strings.SplitN(pdpoolStr, resource.PoolDelimiter, 4); len(pdpoolSlices) != 4 {
 			return nil, fmt.Errorf("parse subnet6 pdpool %s failed with wrong regexp",
 				pdpoolStr)
 		} else {
@@ -1388,14 +1396,14 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 	subnetPools := make(map[string][]string)
 	for _, pool := range pools {
 		poolSlices := subnetPools[pool.Subnet6]
-		poolSlices = append(poolSlices, pool.String()+"-"+pool.Comment)
+		poolSlices = append(poolSlices, pool.String()+resource.PoolDelimiter+pool.Comment)
 		subnetPools[pool.Subnet6] = poolSlices
 	}
 
 	subnetReservedPools := make(map[string][]string)
 	for _, reservedPool := range reservedPools {
 		reservedPoolSlices := subnetReservedPools[reservedPool.Subnet6]
-		reservedPoolSlices = append(reservedPoolSlices, reservedPool.String()+"-"+reservedPool.Comment)
+		reservedPoolSlices = append(reservedPoolSlices, reservedPool.String()+resource.PoolDelimiter+reservedPool.Comment)
 		subnetReservedPools[reservedPool.Subnet6] = reservedPoolSlices
 	}
 
@@ -1403,14 +1411,15 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 	for _, reservation := range reservations {
 		reservationSlices := subnetReservations[reservation.Subnet6]
 		reservationSlices = append(reservationSlices,
-			reservation.String()+"$"+reservation.AddrString()+"$"+reservation.Comment)
+			reservation.String()+resource.ReservationDelimiter+reservation.AddrString()+
+				resource.ReservationDelimiter+reservation.Comment)
 		subnetReservations[reservation.Subnet6] = reservationSlices
 	}
 
 	subnetPdPools := make(map[string][]string)
 	for _, pdpool := range pdpools {
 		pdpoolSlices := subnetPdPools[pdpool.Subnet6]
-		pdpoolSlices = append(pdpoolSlices, pdpool.String()+"-"+pdpool.Comment)
+		pdpoolSlices = append(pdpoolSlices, pdpool.String()+resource.PoolDelimiter+pdpool.Comment)
 		subnetPdPools[pdpool.Subnet6] = pdpoolSlices
 	}
 
@@ -1420,19 +1429,19 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 		slices := make([]string, TableHeaderSubnet6Len)
 		copy(slices, subnetSlices)
 		if poolSlices, ok := subnetPools[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-4] = strings.Join(poolSlices, ",")
+			slices[TableHeaderSubnet6Len-4] = strings.Join(poolSlices, resource.CommonDelimiter)
 		}
 
 		if reservedPools, ok := subnetReservedPools[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-3] = strings.Join(reservedPools, ",")
+			slices[TableHeaderSubnet6Len-3] = strings.Join(reservedPools, resource.CommonDelimiter)
 		}
 
 		if reservations, ok := subnetReservations[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-2] = strings.Join(reservations, ",")
+			slices[TableHeaderSubnet6Len-2] = strings.Join(reservations, resource.CommonDelimiter)
 		}
 
 		if pdpools, ok := subnetPdPools[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-1] = strings.Join(pdpools, ",")
+			slices[TableHeaderSubnet6Len-1] = strings.Join(pdpools, resource.CommonDelimiter)
 		}
 
 		strMatrix = append(strMatrix, slices)
