@@ -12,7 +12,7 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
-	csvutil "github.com/linkingthing/clxone-utils/csv"
+	"github.com/linkingthing/clxone-utils/excel"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -38,7 +38,7 @@ func NewSubnet6Service() *Subnet6Service {
 }
 
 func (s *Subnet6Service) Create(subnet *resource.Subnet6) error {
-	if err := subnet.Validate(); err != nil {
+	if err := subnet.Validate(nil, nil); err != nil {
 		return err
 	}
 
@@ -68,7 +68,7 @@ func checkSubnet6CouldBeCreated(tx restdb.Transaction, subnet string) error {
 
 	var subnets []*resource.Subnet6
 	if err := tx.FillEx(&subnets,
-		"select * from gr_subnet6 where $1 && ipnet", subnet); err != nil {
+		"SELECT * FROM gr_subnet6 WHERE $1 && ipnet", subnet); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 	} else if len(subnets) != 0 {
 		return errorno.ErrConflict(errorno.ErrNameNetworkV6, errorno.ErrNameNetworkV6, subnet, subnets[0].Subnet)
@@ -119,7 +119,8 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *pbdhcpagent.Create
 		MaxPreferredLifetime:  subnet.PreferredLifetime,
 		RenewTime:             subnet.PreferredLifetime / 2,
 		RebindTime:            subnet.PreferredLifetime * 3 / 4,
-		ClientClass:           subnet.ClientClass,
+		WhiteClientClasses:    subnet.WhiteClientClasses,
+		BlackClientClasses:    subnet.BlackClientClasses,
 		IfaceName:             subnet.IfaceName,
 		RelayAgentAddresses:   subnet.RelayAgentAddresses,
 		RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
@@ -290,7 +291,7 @@ func getSubnet6LeasesCount(subnet *resource.Subnet6) (uint64, error) {
 }
 
 func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
-	if err := subnet.ValidateParams(); err != nil {
+	if err := subnet.ValidateParams(nil); err != nil {
 		return err
 	}
 
@@ -311,7 +312,8 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 			resource.SqlColumnMinValidLifetime:      subnet.MinValidLifetime,
 			resource.SqlColumnPreferredLifetime:     subnet.PreferredLifetime,
 			resource.SqlColumnDomainServers:         subnet.DomainServers,
-			resource.SqlColumnClientClass:           subnet.ClientClass,
+			resource.SqlColumnWhiteClientClasses:    subnet.WhiteClientClasses,
+			resource.SqlColumnBlackClientClasses:    subnet.BlackClientClasses,
 			resource.SqlColumnIfaceName:             subnet.IfaceName,
 			resource.SqlColumnRelayAgentAddresses:   subnet.RelayAgentAddresses,
 			resource.SqlColumnRelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
@@ -378,6 +380,10 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 		}
 	} else {
 		if subnet.UseEui64 {
+			if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
+				return fmt.Errorf("can not disable use EUI64: %s", err.Error())
+			}
+
 			subnet.Capacity = "0"
 		}
 
@@ -398,6 +404,10 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 				}
 			}
 		} else if subnet.UseAddressCode {
+			if err := checkSubnet6HasNoBeenAllocatedByAddressCode(subnet); err != nil {
+				return fmt.Errorf("can not disable use address code: %s", err.Error())
+			}
+
 			if err := calculateSubnetCapacityWithoutUseAddressCode(tx, subnet); err != nil {
 				return err
 			}
@@ -409,47 +419,45 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 	return nil
 }
 
+func checkSubnet6HasNoBeenAllocatedByAddressCode(subnet6 *resource.Subnet6) error {
+	if resource.IsCapacityZero(subnet6.Capacity) || len(subnet6.Nodes) == 0 {
+		return nil
+	}
+
+	var err error
+	var resp *pbdhcpagent.GetLeasesCountResponse
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnet6LeasesCountByAddressCode(ctx,
+			&pbdhcpagent.GetSubnet6LeasesCountRequest{Id: subnet6.SubnetId})
+		return err
+	}); err != nil {
+		return fmt.Errorf("get subnet6 leases count by address code failed: %s", err.Error())
+	}
+
+	if resp.GetLeasesCount() != 0 {
+		return fmt.Errorf("subnet6 with %d ips had been allocated by address code", resp.GetLeasesCount())
+	}
+
+	return nil
+}
+
 func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
-	if !resource.IsCapacityZero(subnet.Capacity) {
+	if !subnet.UseAddressCode && !resource.IsCapacityZero(subnet.Capacity) {
 		return true, nil
 	}
 
-	if exists, err := tx.Exists(resource.TableReservedPool6,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
+	if counts, err := tx.CountEx(resource.TableSubnet6, "select count(*) from gr_pool6 p FULL JOIN gr_reservation6 r on p.subnet6 = r.subnet6 FULL JOIN gr_pd_pool pd on p.subnet6 = pd.subnet6 FULL JOIN gr_reserved_pool6 rp on p.subnet6 = rp.subnet6 FULL JOIN gr_reserved_pd_pool rpd on p.subnet6 = rpd.subnet6 where p.subnet6 = $1 or r.subnet6 = $1 or pd.subnet6 = $1 or rp.subnet6 = $1 or rpd.subnet6 = $1;", subnet.GetID()); err != nil {
 		return false, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
-	} else if exists {
-		return true, nil
-	}
-
-	if exists, err := tx.Exists(resource.TableReservedPdPool,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
-		return false, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameReservedPdPool), pg.Error(err).Error())
 	} else {
-		return exists, nil
+		return counts != 0, nil
 	}
 }
 
 func subnetHasPdPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
-	if exists, err := tx.Exists(resource.TablePdPool,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
+	if counts, err := tx.CountEx(resource.TableSubnet6, "select count(*) from gr_pd_pool pd FULL JOIN gr_reserved_pd_pool rpd on pd.subnet6 = rpd.subnet6 FULL JOIN gr_reservation6 r on pd.subnet6 = r.subnet6 where pd.subnet6 = $1 or rpd.subnet6 = $1 or (r.subnet6 = $1 and r.prefixes != '{}');", subnet.GetID()); err != nil {
 		return false, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNamePdPool), pg.Error(err).Error())
-	} else if exists {
-		return true, nil
-	}
-
-	if exists, err := tx.Exists(resource.TableReservedPdPool,
-		map[string]interface{}{resource.SqlColumnSubnet6: subnet.GetID()}); err != nil {
-		return false, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameReservedPdPool), pg.Error(err).Error())
-	} else if exists {
-		return true, nil
-	}
-
-	if count, err := tx.CountEx(resource.TableReservation6,
-		"select count(*) from gr_reservation6 where subnet6 = $1 and prefixes != '{}'",
-		subnet.GetID()); err != nil {
-		return false, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	} else {
-		return count != 0, nil
+		return counts != 0, nil
 	}
 }
 
@@ -512,7 +520,8 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			MaxPreferredLifetime:  subnet.PreferredLifetime,
 			RenewTime:             subnet.PreferredLifetime / 2,
 			RebindTime:            subnet.PreferredLifetime * 3 / 4,
-			ClientClass:           subnet.ClientClass,
+			WhiteClientClasses:    subnet.WhiteClientClasses,
+			BlackClientClasses:    subnet.BlackClientClasses,
 			IfaceName:             subnet.IfaceName,
 			RelayAgentAddresses:   subnet.RelayAgentAddresses,
 			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
@@ -529,7 +538,7 @@ func (s *Subnet6Service) Delete(subnet *resource.Subnet6) error {
 			return err
 		}
 
-		if err := checkSubnet6CouldBeDelete(subnet); err != nil {
+		if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
 			return err
 		}
 
@@ -542,7 +551,7 @@ func (s *Subnet6Service) Delete(subnet *resource.Subnet6) error {
 	})
 }
 
-func checkSubnet6CouldBeDelete(subnet6 *resource.Subnet6) error {
+func checkSubnet6HasNoBeenAllocated(subnet6 *resource.Subnet6) error {
 	if leasesCount, err := getSubnet6LeasesCount(subnet6); err != nil {
 		return err
 	} else if leasesCount != 0 {
@@ -575,7 +584,7 @@ func (s *Subnet6Service) UpdateNodes(subnetID string, subnetNode *resource.Subne
 	})
 }
 
-func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error) {
+func (h *Subnet6Service) ImportExcel(file *excel.ImportFile) (interface{}, error) {
 	var oldSubnet6s []*resource.Subnet6
 	if err := db.GetResources(map[string]interface{}{resource.SqlOrderBy: "subnet_id desc"},
 		&oldSubnet6s); err != nil {
@@ -591,7 +600,7 @@ func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error
 		return nil, err
 	}
 
-	response := &csvutil.ImportResult{}
+	response := &excel.ImportResult{}
 	defer sendImportFieldResponse(Subnet6ImportFileNamePrefix, TableHeaderSubnet6Fail, response)
 	validSqls, reqsForSentryCreate, reqsForSentryDelete,
 		reqForServerCreate, reqForServerDelete, err := parseSubnet6sFromFile(file.Name, oldSubnet6s,
@@ -624,8 +633,8 @@ func (h *Subnet6Service) ImportCSV(file *csvutil.ImportFile) (interface{}, error
 	return response, nil
 }
 
-func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sentryNodes []string, sentryVip string, response *csvutil.ImportResult) ([]string, map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets6Request, *pbdhcpagent.CreateSubnets6AndPoolsRequest, *pbdhcpagent.DeleteSubnets6Request, error) {
-	contents, err := csvutil.ReadCSVFile(fileName)
+func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sentryNodes []string, sentryVip string, response *excel.ImportResult) ([]string, map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, map[string]*pbdhcpagent.DeleteSubnets6Request, *pbdhcpagent.CreateSubnets6AndPoolsRequest, *pbdhcpagent.DeleteSubnets6Request, error) {
+	contents, err := excel.ReadExcelFile(fileName)
 	if err != nil {
 		return nil, nil, nil, nil, nil, errorno.ErrReadFile(fileName, err.Error())
 	}
@@ -634,10 +643,20 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 		return nil, nil, nil, nil, nil, nil
 	}
 
-	tableHeaderFields, err := csvutil.ParseTableHeader(contents[0],
+	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderSubnet6, SubnetMandatoryFields)
 	if err != nil {
 		return nil, nil, nil, nil, nil, errorno.ErrParseHeader(fileName, err.Error())
+	}
+
+	dhcpConfig, err := resource.GetDhcpConfig(false)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+
+	clientClass6s, err := resource.GetClientClass6s()
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
 	}
 
 	response.InitData(len(contents) - 1)
@@ -651,14 +670,14 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 		sentryNodesForCheck = []string{sentryVip}
 	}
 
-	subnets := make([]*resource.Subnet6, 0)
+	subnets := make([]*resource.Subnet6, 0, len(contents)-1)
 	subnetPools := make(map[uint64][]*resource.Pool6)
 	subnetReservedPools := make(map[uint64][]*resource.ReservedPool6)
 	subnetReservations := make(map[uint64][]*resource.Reservation6)
 	subnetPdPools := make(map[uint64][]*resource.PdPool)
 	fieldcontents := contents[1:]
-	for j, fieldcontent := range fieldcontents {
-		fields, missingMandatory, emptyLine := csvutil.ParseTableFields(fieldcontent,
+	for j, fields := range fieldcontents {
+		fields, missingMandatory, emptyLine := excel.ParseTableFields(fields,
 			tableHeaderFields, SubnetMandatoryFields)
 		if emptyLine {
 			continue
@@ -674,7 +693,7 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 		if err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
 				fmt.Sprintf("line %d parse subnet6 %s fields failed: %v", j+2, subnet.Subnet, err.Error()))
-		} else if err := subnet.Validate(); err != nil {
+		} else if err := subnet.Validate(dhcpConfig, clientClass6s); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet6FailLen, localizationSubnet6ToStrSlice(subnet),
 				fmt.Sprintf("line %d subnet6 %s is invalid: %v", j+2, subnet.Subnet, err.Error()))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
@@ -721,7 +740,7 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 		return nil, nil, nil, nil, nil, nil
 	}
 
-	var sqls []string
+	sqls := make([]string, 0, 5)
 	reqsForSentryCreate := make(map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest)
 	reqForServerCreate := &pbdhcpagent.CreateSubnets6AndPoolsRequest{}
 	reqsForSentryDelete := make(map[string]*pbdhcpagent.DeleteSubnets6Request)
@@ -761,7 +780,7 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 	var pdpools []*resource.PdPool
 	var err error
 	for i, field := range fields {
-		if csvutil.IsSpaceField(field) {
+		if excel.IsSpaceField(field) {
 			continue
 		}
 
@@ -769,7 +788,7 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameSubnet:
 			subnet.Subnet = strings.TrimSpace(field)
 		case FieldNameSubnetName:
-			subnet.Tags = field
+			subnet.Tags = strings.TrimSpace(field)
 		case FieldNameEUI64:
 			subnet.UseEui64 = internationalizationBoolSwitch(strings.TrimSpace(field))
 		case FieldNameUseAddressCode:
@@ -777,62 +796,69 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameValidLifetime:
 			if subnet.ValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("valid-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNameMaxValidLifetime:
 			if subnet.MaxValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("max-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNameMinValidLifetime:
 			if subnet.MinValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("min-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNamePreferredLifetime:
 			if subnet.PreferredLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools,
+					fmt.Errorf("preferred-lifetime %s is invalid: %s", field, err.Error())
 			}
 		case FieldNameDomainServers:
-			subnet.DomainServers = strings.Split(strings.TrimSpace(field), ",")
+			subnet.DomainServers = splitFieldWithoutSpace(field)
 		case FieldNameIfaceName:
 			subnet.IfaceName = strings.TrimSpace(field)
 		case FieldNameRelayAddresses:
-			subnet.RelayAgentAddresses = strings.Split(strings.TrimSpace(field), ",")
-		case FieldNameOption16:
-			subnet.ClientClass = field
+			subnet.RelayAgentAddresses = splitFieldWithoutSpace(field)
+		case FieldNameWhiteClientClasses:
+			subnet.WhiteClientClasses = splitFieldWithoutSpace(field)
+		case FieldNameBlackClientClasses:
+			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameOption18:
-			subnet.RelayAgentInterfaceId = field
+			subnet.RelayAgentInterfaceId = strings.TrimSpace(field)
 		case FieldNameNodes:
-			subnet.Nodes = strings.Split(strings.TrimSpace(field), ",")
+			subnet.Nodes = splitFieldWithoutSpace(field)
 		case FieldNamePools:
 			if pools, err = parsePool6sFromString(strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		case FieldNameReservedPools:
 			if reservedPools, err = parseReservedPool6sFromString(
 				strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		case FieldNameReservations:
 			if reservations, err = parseReservation6sFromString(strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		case FieldNamePdPools:
 			if pdpools, err = parsePdPoolsFromString(strings.TrimSpace(field)); err != nil {
-				break
+				return subnet, pools, reservedPools, reservations, pdpools, err
 			}
 		}
 	}
 
-	return subnet, pools, reservedPools, reservations, pdpools, err
+	return subnet, pools, reservedPools, reservations, pdpools, nil
 }
 
 func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 	var pools []*resource.Pool6
-	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
+	for _, poolStr := range strings.Split(field, resource.CommonDelimiter) {
+		poolStr = strings.TrimSpace(poolStr)
+		if poolSlices := strings.SplitN(poolStr, resource.PoolDelimiter, 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet6 pool6 %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -849,8 +875,9 @@ func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 
 func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, error) {
 	var pools []*resource.ReservedPool6
-	for _, poolStr := range strings.Split(field, ",") {
-		if poolSlices := strings.SplitN(poolStr, "-", 3); len(poolSlices) != 3 {
+	for _, poolStr := range strings.Split(field, resource.CommonDelimiter) {
+		poolStr = strings.TrimSpace(poolStr)
+		if poolSlices := strings.SplitN(poolStr, resource.PoolDelimiter, 3); len(poolSlices) != 3 {
 			return nil, fmt.Errorf("parse subnet6 reserved pool6 %s failed with wrong regexp",
 				poolStr)
 		} else {
@@ -867,9 +894,10 @@ func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, err
 
 func parseReservation6sFromString(field string) ([]*resource.Reservation6, error) {
 	var reservations []*resource.Reservation6
-	for _, reservationStr := range strings.Split(field, ",") {
+	for _, reservationStr := range strings.Split(field, resource.CommonDelimiter) {
+		reservationStr = strings.TrimSpace(reservationStr)
 		if reservationSlices := strings.SplitN(reservationStr,
-			"$", 5); len(reservationSlices) != 5 {
+			resource.ReservationDelimiter, 5); len(reservationSlices) != 5 {
 			return nil, fmt.Errorf("parse subnet6 reservation6 %s failed with wrong regexp",
 				reservationStr)
 		} else {
@@ -891,9 +919,9 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 
 			switch reservationSlices[2] {
 			case resource.ReservationTypeIps:
-				reservation.IpAddresses = strings.Split(reservationSlices[3], "_")
+				reservation.IpAddresses = strings.Split(reservationSlices[3], resource.ReservationAddrDelimiter)
 			case resource.ReservationTypePrefixes:
-				reservation.Prefixes = strings.Split(reservationSlices[3], "_")
+				reservation.Prefixes = strings.Split(reservationSlices[3], resource.ReservationAddrDelimiter)
 			default:
 				return nil, fmt.Errorf("parse reservation6 %s failed with wrong type %s not in [ips, prefixes]",
 					reservationStr, reservationSlices[2])
@@ -908,8 +936,9 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 
 func parsePdPoolsFromString(field string) ([]*resource.PdPool, error) {
 	var pdpools []*resource.PdPool
-	for _, pdpoolStr := range strings.Split(field, ",") {
-		if pdpoolSlices := strings.SplitN(pdpoolStr, "-", 4); len(pdpoolSlices) != 4 {
+	for _, pdpoolStr := range strings.Split(field, resource.CommonDelimiter) {
+		pdpoolStr = strings.TrimSpace(pdpoolStr)
+		if pdpoolSlices := strings.SplitN(pdpoolStr, resource.PoolDelimiter, 4); len(pdpoolSlices) != 4 {
 			return nil, fmt.Errorf("parse subnet6 pdpool %s failed with wrong regexp",
 				pdpoolStr)
 		} else {
@@ -1132,7 +1161,7 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 
 func subnet6sToInsertSqlAndRequest(subnets []*resource.Subnet6, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryDelete map[string]*pbdhcpagent.DeleteSubnets6Request, reqForServerDelete *pbdhcpagent.DeleteSubnets6Request, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_subnet6 values ")
+	buf.WriteString("INSERT INTO gr_subnet6 VALUES ")
 	for _, subnet := range subnets {
 		buf.WriteString(subnet6ToInsertDBSqlString(subnet))
 		if len(subnet.Nodes) == 0 {
@@ -1162,7 +1191,7 @@ func subnet6sToInsertSqlAndRequest(subnets []*resource.Subnet6, reqsForSentryCre
 
 func pool6sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool6, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_pool6 values ")
+	buf.WriteString("INSERT INTO gr_pool6 VALUES ")
 	for subnetId, pools := range subnetPools {
 		for _, pool := range pools {
 			buf.WriteString(pool6ToInsertDBSqlString(subnetId, pool))
@@ -1186,7 +1215,7 @@ func pool6sToInsertSqlAndRequest(subnetPools map[uint64][]*resource.Pool6, reqFo
 
 func reservedPool6sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resource.ReservedPool6, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_reserved_pool6 values ")
+	buf.WriteString("INSERT INTO gr_reserved_pool6 VALUES ")
 	for subnetId, pools := range subnetReservedPools {
 		for _, pool := range pools {
 			buf.WriteString(reservedPool6ToInsertDBSqlString(subnetId, pool))
@@ -1210,7 +1239,7 @@ func reservedPool6sToInsertSqlAndRequest(subnetReservedPools map[uint64][]*resou
 
 func reservation6sToInsertSqlAndRequest(subnetReservations map[uint64][]*resource.Reservation6, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_reservation6 values ")
+	buf.WriteString("INSERT INTO gr_reservation6 VALUES ")
 	for subnetId, reservations := range subnetReservations {
 		for _, reservation := range reservations {
 			buf.WriteString(reservation6ToInsertDBSqlString(subnetId, reservation))
@@ -1234,7 +1263,7 @@ func reservation6sToInsertSqlAndRequest(subnetReservations map[uint64][]*resourc
 
 func pdpoolsToInsertSqlAndRequest(subnetPdPools map[uint64][]*resource.PdPool, reqForServerCreate *pbdhcpagent.CreateSubnets6AndPoolsRequest, reqsForSentryCreate map[string]*pbdhcpagent.CreateSubnets6AndPoolsRequest, subnetAndNodes map[uint64][]string) string {
 	var buf bytes.Buffer
-	buf.WriteString("insert into gr_pd_pool values ")
+	buf.WriteString("INSERT INTO gr_pd_pool VALUES ")
 	for subnetId, pdpools := range subnetPdPools {
 		for _, pdpool := range pdpools {
 			buf.WriteString(pdpoolToInsertDBSqlString(subnetId, pdpool))
@@ -1321,7 +1350,7 @@ func deleteServerSubnet6s(req *pbdhcpagent.DeleteSubnets6Request, nodes []string
 	}
 }
 
-func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
+func (s *Subnet6Service) ExportExcel() (*excel.ExportFile, error) {
 	var subnet6s []*resource.Subnet6
 	var pools []*resource.Pool6
 	var reservedPools []*resource.ReservedPool6
@@ -1357,14 +1386,14 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 	subnetPools := make(map[string][]string)
 	for _, pool := range pools {
 		poolSlices := subnetPools[pool.Subnet6]
-		poolSlices = append(poolSlices, pool.String()+"-"+pool.Comment)
+		poolSlices = append(poolSlices, pool.String()+resource.PoolDelimiter+pool.Comment)
 		subnetPools[pool.Subnet6] = poolSlices
 	}
 
 	subnetReservedPools := make(map[string][]string)
 	for _, reservedPool := range reservedPools {
 		reservedPoolSlices := subnetReservedPools[reservedPool.Subnet6]
-		reservedPoolSlices = append(reservedPoolSlices, reservedPool.String()+"-"+reservedPool.Comment)
+		reservedPoolSlices = append(reservedPoolSlices, reservedPool.String()+resource.PoolDelimiter+reservedPool.Comment)
 		subnetReservedPools[reservedPool.Subnet6] = reservedPoolSlices
 	}
 
@@ -1372,14 +1401,15 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 	for _, reservation := range reservations {
 		reservationSlices := subnetReservations[reservation.Subnet6]
 		reservationSlices = append(reservationSlices,
-			reservation.String()+"$"+reservation.AddrString()+"$"+reservation.Comment)
+			reservation.String()+resource.ReservationDelimiter+reservation.AddrString()+
+				resource.ReservationDelimiter+reservation.Comment)
 		subnetReservations[reservation.Subnet6] = reservationSlices
 	}
 
 	subnetPdPools := make(map[string][]string)
 	for _, pdpool := range pdpools {
 		pdpoolSlices := subnetPdPools[pdpool.Subnet6]
-		pdpoolSlices = append(pdpoolSlices, pdpool.String()+"-"+pdpool.Comment)
+		pdpoolSlices = append(pdpoolSlices, pdpool.String()+resource.PoolDelimiter+pdpool.Comment)
 		subnetPdPools[pdpool.Subnet6] = pdpoolSlices
 	}
 
@@ -1389,38 +1419,38 @@ func (s *Subnet6Service) ExportCSV() (*csvutil.ExportFile, error) {
 		slices := make([]string, TableHeaderSubnet6Len)
 		copy(slices, subnetSlices)
 		if poolSlices, ok := subnetPools[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-4] = strings.Join(poolSlices, ",")
+			slices[TableHeaderSubnet6Len-4] = strings.Join(poolSlices, resource.CommonDelimiter)
 		}
 
 		if reservedPools, ok := subnetReservedPools[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-3] = strings.Join(reservedPools, ",")
+			slices[TableHeaderSubnet6Len-3] = strings.Join(reservedPools, resource.CommonDelimiter)
 		}
 
 		if reservations, ok := subnetReservations[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-2] = strings.Join(reservations, ",")
+			slices[TableHeaderSubnet6Len-2] = strings.Join(reservations, resource.CommonDelimiter)
 		}
 
 		if pdpools, ok := subnetPdPools[subnet6.GetID()]; ok {
-			slices[TableHeaderSubnet6Len-1] = strings.Join(pdpools, ",")
+			slices[TableHeaderSubnet6Len-1] = strings.Join(pdpools, resource.CommonDelimiter)
 		}
 
 		strMatrix = append(strMatrix, slices)
 	}
 
-	if filepath, err := csvutil.WriteCSVFile(Subnet6FileNamePrefix+
-		time.Now().Format(csvutil.TimeFormat), TableHeaderSubnet6, strMatrix); err != nil {
+	if filepath, err := excel.WriteExcelFile(Subnet6FileNamePrefix+
+		time.Now().Format(excel.TimeFormat), TableHeaderSubnet6, strMatrix); err != nil {
 		return nil, errorno.ErrOperateResource(errorno.ErrNameExport, string(errorno.ErrNameNetworkV6), err.Error())
 	} else {
-		return &csvutil.ExportFile{Path: filepath}, nil
+		return &excel.ExportFile{Path: filepath}, nil
 	}
 }
 
-func (s *Subnet6Service) ExportCSVTemplate() (*csvutil.ExportFile, error) {
-	if filepath, err := csvutil.WriteCSVFile(Subnet6TemplateFileName,
+func (s *Subnet6Service) ExportExcelTemplate() (*excel.ExportFile, error) {
+	if filepath, err := excel.WriteExcelFile(Subnet6TemplateFileName,
 		TableHeaderSubnet6, TemplateSubnet6); err != nil {
 		return nil, errorno.ErrOperateResource(errorno.ErrNameExport, string(errorno.ErrNameTemplate), err.Error())
 	} else {
-		return &csvutil.ExportFile{Path: filepath}, nil
+		return &excel.ExportFile{Path: filepath}, nil
 	}
 }
 
@@ -1430,7 +1460,7 @@ func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resour
 	}
 
 	if len(subnet6.Nodes) != 0 && len(newNodes) == 0 {
-		if err := checkSubnet6CouldBeDelete(subnet6); err != nil {
+		if err := checkSubnet6HasNoBeenAllocated(subnet6); err != nil {
 			return err
 		}
 	}
@@ -1569,7 +1599,7 @@ func (s *Subnet6Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 func ListSubnet6sByPrefixes(prefixes []string) ([]*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = any ($1)", prefixes)
+		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE subnet = ANY ($1)", prefixes)
 	}); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 	}
@@ -1584,7 +1614,7 @@ func ListSubnet6sByPrefixes(prefixes []string) ([]*resource.Subnet6, error) {
 func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, "select * from gr_subnet6 where ipnet >>= $1", ip)
+		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE ipnet >>= $1", ip)
 	}); err != nil {
 		return nil, pg.Error(err)
 	}
@@ -1599,7 +1629,7 @@ func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
 func GetSubnet6ByPrefix(prefix string) (*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, "select * from gr_subnet6 where subnet = $1", prefix)
+		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE subnet = $1", prefix)
 	}); err != nil {
 		return nil, pg.Error(err)
 	}

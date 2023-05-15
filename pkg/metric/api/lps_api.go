@@ -36,7 +36,7 @@ func (h *LPSApi) Get(ctx *restresource.Context) (restresource.Resource, *resterr
 
 func (h *LPSApi) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
-	case resource.ActionNameExportCSV:
+	case resource.ActionNameExportExcel:
 		return h.ActionExport(ctx)
 	default:
 		return nil, errorno.HandleAPIError(resterror.InvalidAction,

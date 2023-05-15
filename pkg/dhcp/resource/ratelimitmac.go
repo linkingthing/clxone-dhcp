@@ -12,7 +12,7 @@ var TableRateLimitMac = restdb.ResourceDBType(&RateLimitMac{})
 
 type RateLimitMac struct {
 	restresource.ResourceBase `json:",inline"`
-	HwAddress                 string `json:"hwAddress" rest:"required=true"`
+	HwAddress                 string `json:"hwAddress" rest:"required=true" db:"uk"`
 	RateLimit                 uint32 `json:"rateLimit" rest:"required=true"`
 	Comment                   string `json:"comment"`
 }
@@ -22,7 +22,7 @@ func (r RateLimitMac) GetParents() []restresource.ResourceKind {
 }
 
 func (r *RateLimitMac) Validate() error {
-	if err := util.ValidateStrings(r.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameComment, r.Comment)
 	} else if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
 		return err

@@ -57,7 +57,7 @@ func checkLifetimeValid(validLifetime, minValidLifetime, maxValidLifetime uint32
 	return nil
 }
 
-func getDhcpConfig(isv4 bool) (*DhcpConfig, error) {
+func GetDhcpConfig(isv4 bool) (*DhcpConfig, error) {
 	var configs []*DhcpConfig
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &configs)

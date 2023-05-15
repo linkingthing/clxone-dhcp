@@ -11,7 +11,7 @@ var TableRateLimitDuid = restdb.ResourceDBType(&RateLimitDuid{})
 
 type RateLimitDuid struct {
 	restresource.ResourceBase `json:",inline"`
-	Duid                      string `json:"duid" rest:"required=true"`
+	Duid                      string `json:"duid" rest:"required=true" db:"uk"`
 	RateLimit                 uint32 `json:"rateLimit" rest:"required=true"`
 	Comment                   string `json:"comment"`
 }
@@ -24,6 +24,6 @@ func (r *RateLimitDuid) Validate() error {
 	if err := parseDUID(r.Duid); err != nil {
 		return err
 	} else {
-		return util.ValidateStrings(r.Comment)
+		return util.ValidateStrings(util.RegexpTypeComma, r.Comment)
 	}
 }

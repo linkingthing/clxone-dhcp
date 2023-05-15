@@ -26,7 +26,7 @@ type SharedNetwork4 struct {
 }
 
 func (s *SharedNetwork4) Validate() error {
-	if len(s.Name) == 0 || util.ValidateStrings(s.Name) != nil {
+	if len(s.Name) == 0 || util.ValidateStrings(util.RegexpTypeCommon, s.Name) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, s.Name)
 	}
 
@@ -34,7 +34,7 @@ func (s *SharedNetwork4) Validate() error {
 		return errorno.ErrSharedNetSubnetIds(s.Name)
 	}
 
-	if err := util.ValidateStrings(s.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, s.Comment); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameComment, s.Comment)
 	}
 

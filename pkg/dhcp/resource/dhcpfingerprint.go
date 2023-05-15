@@ -52,7 +52,7 @@ func (f *DhcpFingerprint) Validate() error {
 		}
 	}
 
-	if err := util.ValidateStrings(f.VendorId, f.OperatingSystem, f.ClientType); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeCommon, f.VendorId, f.OperatingSystem, f.ClientType); err != nil {
 		return err
 	}
 

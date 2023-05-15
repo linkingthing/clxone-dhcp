@@ -6,6 +6,8 @@ import (
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TableReservedPool6 = restdb.ResourceDBType(&ReservedPool6{})
@@ -61,14 +63,14 @@ func (p *ReservedPool6) Equals(another *ReservedPool6) bool {
 
 func (p *ReservedPool6) String() string {
 	if p.BeginAddress != "" {
-		return p.BeginAddress + "-" + p.EndAddress
+		return p.BeginAddress + PoolDelimiter + p.EndAddress
 	} else {
 		return ""
 	}
 }
 
 func (p *ReservedPool6) Validate() error {
-	if err := CheckCommentValid(p.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, p.Comment); err != nil {
 		return err
 	}
 

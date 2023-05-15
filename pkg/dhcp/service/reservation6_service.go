@@ -17,6 +17,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Reservation6Service struct {
@@ -347,7 +348,7 @@ func listReservation6s(subnet *resource.Subnet6) ([]*resource.Reservation6, erro
 
 		if err := tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet6: subnet.GetID(),
-			resource.SqlOrderBy:       "duid, hw_address"}, &reservations); err != nil {
+			resource.SqlOrderBy:       "ips, ipnets"}, &reservations); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 		return nil
@@ -575,7 +576,7 @@ func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resou
 }
 
 func (r *Reservation6Service) Update(subnetId string, reservation *resource.Reservation6) error {
-	if err := resource.CheckCommentValid(reservation.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, reservation.Comment); err != nil {
 		return err
 	}
 

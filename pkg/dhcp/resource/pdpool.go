@@ -10,6 +10,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 var TablePdPool = restdb.ResourceDBType(&PdPool{})
@@ -32,7 +33,7 @@ func (pdpool PdPool) GetParents() []restresource.ResourceKind {
 }
 
 func (pdpool *PdPool) String() string {
-	return pdpool.Prefix + "-" + strconv.Itoa(int(pdpool.PrefixLen)) + "-" + strconv.Itoa(int(pdpool.DelegatedLen))
+	return pdpool.Prefix + PoolDelimiter + strconv.Itoa(int(pdpool.PrefixLen)) + PoolDelimiter + strconv.Itoa(int(pdpool.DelegatedLen))
 }
 
 func (pdpool *PdPool) Validate() error {
@@ -41,7 +42,7 @@ func (pdpool *PdPool) Validate() error {
 		return err
 	}
 
-	if err := CheckCommentValid(pdpool.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, pdpool.Comment); err != nil {
 		return err
 	}
 

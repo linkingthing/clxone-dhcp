@@ -25,7 +25,6 @@ const (
 	ErrNameNetworkAllocationMethod ErrName = "allocationMethod"
 	ErrNameNetworkPurpose          ErrName = "purpose"
 	ErrNameNetworkParentId         ErrName = "parentId"
-	ErrNameWorkOrder               ErrName = "workOrder"
 	ErrNamePlanNetwork             ErrName = "planNetwork"
 	ErrNameUser                    ErrName = "user"
 
@@ -73,6 +72,8 @@ const (
 	ErrNameNumber            ErrName = "number"
 	ErrNameSpan              ErrName = "span"
 	ErrNameCmd               ErrName = "cmd"
+	ErrNameCode              ErrName = "code"
+	ErrNameDescription       ErrName = "description"
 
 	ErrNameMetric      ErrName = "metric"
 	ErrNameUsedRatio   ErrName = "usedRatio"
@@ -106,7 +107,7 @@ const (
 
 var ErrNameMap = map[ErrName]string{
 	ErrNameName:                    "名称",
-	ErrNameRegexp:                  "正则",
+	ErrNameRegexp:                  "匹配值",
 	ErrNameOffset:                  "起始位置",
 	ErrNameCapacity:                "数量",
 	ErrNameFingerprint:             "指纹",
@@ -126,7 +127,6 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameNetworkAllocationMethod: "子网分配方式",
 	ErrNameNetworkPurpose:          "用途",
 	ErrNameNetworkParentId:         "父级ID",
-	ErrNameWorkOrder:               "工单",
 	ErrNamePlanNetwork:             "规划子网",
 	ErrNameUser:                    "用户",
 	ErrNameNetworkPool:             "子网地址池",
@@ -151,7 +151,7 @@ var ErrNameMap = map[ErrName]string{
 
 	ErrNameSharedNetwork:     "共享网络",
 	ErrNameConfig:            "配置",
-	ErrNameClientClass:       "客户端类别",
+	ErrNameClientClass:       "OPTION",
 	ErrNameDhcpNode:          "DHCP节点",
 	ErrNameDhcpServerNode:    "服务器节点",
 	ErrNameDhcpSentryNode:    "哨兵节点",
@@ -197,6 +197,8 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameNumber:            "数值",
 	ErrNameSpan:              "跨度",
 	ErrNameCmd:               "cmd命令",
+	ErrNameCode:              "编码",
+	ErrNameDescription:       "描述",
 }
 
 func localizeErrName(name ErrName) string {

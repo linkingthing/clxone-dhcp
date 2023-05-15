@@ -14,7 +14,7 @@ var TableDhcpOui = restdb.ResourceDBType(&DhcpOui{})
 
 type DhcpOui struct {
 	restresource.ResourceBase `json:",inline"`
-	Oui                       string `json:"oui" rest:"required=true"`
+	Oui                       string `json:"oui" rest:"required=true" db:"uk"`
 	Organization              string `json:"organization" rest:"required=true"`
 	IsReadOnly                bool   `json:"isReadOnly"`
 }
@@ -26,6 +26,6 @@ func (d *DhcpOui) Validate() error {
 		return errorno.ErrEmpty(string(errorno.ErrNameOrganization))
 	} else {
 		d.IsReadOnly = false
-		return util.ValidateStrings(d.Organization)
+		return util.ValidateStrings(util.RegexpTypeCommon, d.Organization)
 	}
 }

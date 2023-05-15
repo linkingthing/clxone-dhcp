@@ -3,7 +3,7 @@ package service
 import (
 	"time"
 
-	csvutil "github.com/linkingthing/clxone-utils/csv"
+	"github.com/linkingthing/clxone-utils/excel"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
@@ -65,7 +65,7 @@ func getTimePeriodFromFilter(filters []restresource.Filter) (*TimePeriod, error)
 func parseTimePeriod(from, to string) (*TimePeriod, error) {
 	timeTo := time.Now()
 	timeFrom := timeTo.AddDate(0, 0, -1)
-	if !csvutil.IsSpaceField(from) {
+	if !excel.IsSpaceField(from) {
 		timeFrom_, err := time.Parse(util.TimeFormatYMD, from)
 		if err != nil {
 			return nil, errorno.ErrInvalidParams(errorno.ErrNameTime, from)
@@ -74,7 +74,7 @@ func parseTimePeriod(from, to string) (*TimePeriod, error) {
 		timeFrom = timeFrom_
 	}
 
-	if !csvutil.IsSpaceField(to) {
+	if !excel.IsSpaceField(to) {
 		timeTo_, err := time.Parse(util.TimeFormatYMD, to)
 		if err != nil {
 			return nil, errorno.ErrInvalidParams(errorno.ErrNameTime, to)
@@ -88,8 +88,13 @@ func parseTimePeriod(from, to string) (*TimePeriod, error) {
 
 func genTimePeriod(from, to time.Time) (*TimePeriod, error) {
 	if to.Before(from) {
+<<<<<<< HEAD
 		return nil, errorno.ErrLessThan(errorno.ErrNameTime,
 			to.Format(csvutil.TimeFormat), from.Format(csvutil.TimeFormat))
+=======
+		return nil, fmt.Errorf("time to %s before from %s",
+			to.Format(excel.TimeFormat), from.Format(excel.TimeFormat))
+>>>>>>> origin/dev-2.5
 	} else if from.Equal(to) {
 		from = time.Date(from.Year(), from.Month(), from.Day(), 0, 0, 0, 0, time.Local)
 		to = time.Date(to.Year(), to.Month(), to.Day(), 23, 59, 59, 0, time.Local)

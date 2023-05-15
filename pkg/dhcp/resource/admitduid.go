@@ -11,7 +11,7 @@ var TableAdmitDuid = restdb.ResourceDBType(&AdmitDuid{})
 
 type AdmitDuid struct {
 	restresource.ResourceBase `json:",inline"`
-	Duid                      string `json:"duid" rest:"required=true"`
+	Duid                      string `json:"duid" rest:"required=true" db:"uk"`
 	Comment                   string `json:"comment"`
 }
 
@@ -23,6 +23,6 @@ func (a *AdmitDuid) Validate() error {
 	if err := parseDUID(a.Duid); err != nil {
 		return err
 	} else {
-		return util.ValidateStrings(a.Comment)
+		return util.ValidateStrings(util.RegexpTypeComma, a.Comment)
 	}
 }

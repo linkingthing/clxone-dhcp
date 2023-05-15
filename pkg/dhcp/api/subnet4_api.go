@@ -1,7 +1,7 @@
 package api
 
 import (
-	csvutil "github.com/linkingthing/clxone-utils/csv"
+	"github.com/linkingthing/clxone-utils/excel"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -64,12 +64,12 @@ func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 
 func (s *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
-	case csvutil.ActionNameImportCSV:
-		return s.actionImportCSV(ctx)
-	case csvutil.ActionNameExportCSV:
-		return s.actionExportCSV()
-	case csvutil.ActionNameExportCSVTemplate:
-		return s.actionExportCSVTemplate()
+	case excel.ActionNameImport:
+		return s.actionImportExcel(ctx)
+	case excel.ActionNameExport:
+		return s.actionExportExcel()
+	case excel.ActionNameExportTemplate:
+		return s.actionExportExcelTemplate()
 	case resource.ActionNameUpdateNodes:
 		return s.actionUpdateNodes(ctx)
 	case resource.ActionNameCouldBeCreated:
@@ -82,30 +82,30 @@ func (s *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 	}
 }
 
-func (s *Subnet4Handler) actionImportCSV(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	file, ok := ctx.Resource.GetAction().Input.(*csvutil.ImportFile)
+func (s *Subnet4Handler) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	file, ok := ctx.Resource.GetAction().Input.(*excel.ImportFile)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
 			errorno.ErrInvalidFormat(errorno.ErrNameNetworkV4, errorno.ErrNameImport))
 	}
 
-	if resp, err := s.Service.ImportCSV(file); err != nil {
+	if resp, err := s.Service.ImportExcel(file); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return resp, nil
 	}
 }
 
-func (s *Subnet4Handler) actionExportCSV() (interface{}, *resterror.APIError) {
-	if exportFile, err := s.Service.ExportCSV(); err != nil {
+func (s *Subnet4Handler) actionExportExcel() (interface{}, *resterror.APIError) {
+	if exportFile, err := s.Service.ExportExcel(); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return exportFile, nil
 	}
 }
 
-func (s *Subnet4Handler) actionExportCSVTemplate() (interface{}, *resterror.APIError) {
-	if file, err := s.Service.ExportCSVTemplate(); err != nil {
+func (s *Subnet4Handler) actionExportExcelTemplate() (interface{}, *resterror.APIError) {
+	if file, err := s.Service.ExportExcelTemplate(); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return file, nil

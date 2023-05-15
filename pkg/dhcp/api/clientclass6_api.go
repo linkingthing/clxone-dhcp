@@ -7,6 +7,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type ClientClass6Api struct {
@@ -27,7 +28,8 @@ func (c *ClientClass6Api) Create(ctx *restresource.Context) (restresource.Resour
 }
 
 func (c *ClientClass6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	clientClasses, err := c.Service.List()
+	clientClasses, err := c.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+		resource.SqlColumnName, resource.SqlColumnName, resource.SqlColumnCode))
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}

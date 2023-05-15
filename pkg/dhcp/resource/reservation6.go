@@ -29,9 +29,9 @@ var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string      `json:"-" db:"ownby"`
-	Duid                      string      `json:"duid"`
-	HwAddress                 string      `json:"hwAddress"`
-	Hostname                  string      `json:"hostname"`
+	Duid                      string      `json:"duid" db:"uk"`
+	HwAddress                 string      `json:"hwAddress" db:"uk"`
+	Hostname                  string      `json:"hostname" db:"uk"`
 	IpAddresses               []string    `json:"ipAddresses"`
 	Ips                       []net.IP    `json:"-"`
 	Prefixes                  []string    `json:"prefixes"`
@@ -48,19 +48,19 @@ func (r Reservation6) GetParents() []restresource.ResourceKind {
 
 func (r *Reservation6) String() string {
 	if r.Duid != "" {
-		return "duid$" + r.Duid
+		return ReservationIdDUID + ReservationDelimiter + r.Duid
 	} else if r.HwAddress != "" {
-		return "mac$" + r.HwAddress
+		return ReservationIdMAC + ReservationDelimiter + r.HwAddress
 	} else {
-		return "hostname$" + r.Hostname
+		return ReservationIdHostname + ReservationDelimiter + r.Hostname
 	}
 }
 
 func (r *Reservation6) AddrString() string {
 	if len(r.IpAddresses) != 0 {
-		return "ips$" + strings.Join(r.IpAddresses, "_")
+		return ReservationTypeIps + ReservationDelimiter + strings.Join(r.IpAddresses, ReservationAddrDelimiter)
 	} else {
-		return "prefixes$" + strings.Join(r.Prefixes, "_")
+		return ReservationTypePrefixes + ReservationDelimiter + strings.Join(r.Prefixes, ReservationAddrDelimiter)
 	}
 }
 
@@ -112,7 +112,7 @@ func (r *Reservation6) Validate() error {
 			return errorno.ErrInvalidParams("DUID", r.Duid)
 		}
 	} else if r.Hostname != "" {
-		if err := util.ValidateStrings(r.Hostname); err != nil {
+		if err := util.ValidateStrings(util.RegexpTypeCommon, r.Hostname); err != nil {
 			return errorno.ErrInvalidParams(errorno.ErrNameHostname, r.Hostname)
 		}
 	}
@@ -152,7 +152,7 @@ func (r *Reservation6) Validate() error {
 		}
 	}
 
-	if err := CheckCommentValid(r.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
 		return err
 	}
 

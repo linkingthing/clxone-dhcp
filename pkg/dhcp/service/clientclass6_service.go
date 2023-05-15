@@ -14,10 +14,6 @@ import (
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
-const (
-	ClientClass6Option60 = "option vendor-class-identifier == '%s'"
-)
-
 type ClientClass6Service struct {
 }
 
@@ -44,8 +40,8 @@ func sendCreateClientClass6CmdToAgent(clientClass *resource.ClientClass6) error 
 	return kafka.SendDHCPCmd(kafka.CreateClientClass6,
 		&pbdhcpagent.CreateClientClass6Request{
 			Name:   clientClass.Name,
-			Code:   16,
-			Regexp: fmt.Sprintf(ClientClass6Option60, clientClass.Regexp),
+			Code:   uint32(clientClass.Code),
+			Regexp: genClientClass6Regexp(clientClass),
 		}, func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				nodesForSucceed, kafka.DeleteClientClass6,
@@ -56,11 +52,22 @@ func sendCreateClientClass6CmdToAgent(clientClass *resource.ClientClass6) error 
 		})
 }
 
-func (c *ClientClass6Service) List() ([]*resource.ClientClass6, error) {
+func genClientClass6Regexp(clientclass *resource.ClientClass6) string {
+	switch clientclass.Condition {
+	case resource.OptionConditionEqual:
+		return fmt.Sprintf(ClientClassOptionEqual, clientclass.Description, clientclass.Regexp)
+	case resource.OptionConditionSubstringEqual:
+		return fmt.Sprintf(ClientClassOptionSubstringEqual, clientclass.Code,
+			clientclass.BeginIndex, len(clientclass.Regexp), clientclass.Regexp)
+	default:
+		return fmt.Sprintf(ClientClassOptionExists, clientclass.Description)
+	}
+}
+
+func (c *ClientClass6Service) List(conditions map[string]interface{}) ([]*resource.ClientClass6, error) {
 	var clientClasses []*resource.ClientClass6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{
-			resource.SqlOrderBy: resource.SqlColumnName}, &clientClasses)
+		return tx.Fill(conditions, &clientClasses)
 	}); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameClientClass), pg.Error(err).Error())
 	}
@@ -88,7 +95,10 @@ func (c *ClientClass6Service) Update(clientClass *resource.ClientClass6) error {
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableClientClass6, map[string]interface{}{
-			resource.SqlColumnClassRegexp: clientClass.Regexp,
+			resource.SqlColumnClassCondition:   clientClass.Condition,
+			resource.SqlColumnClassRegexp:      clientClass.Regexp,
+			resource.SqlColumnClassBeginIndex:  clientClass.BeginIndex,
+			resource.SqlColumnClassDescription: clientClass.Description,
 		}, map[string]interface{}{restdb.IDField: clientClass.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, clientClass.GetID(), pg.Error(err).Error())
 		} else if rows == 0 {
@@ -103,18 +113,19 @@ func sendUpdateClientClass6CmdToDHCPAgent(clientClass *resource.ClientClass6) er
 	return kafka.SendDHCPCmd(kafka.UpdateClientClass6,
 		&pbdhcpagent.UpdateClientClass6Request{
 			Name:   clientClass.Name,
-			Code:   16,
-			Regexp: fmt.Sprintf(ClientClass6Option60, clientClass.Regexp),
+			Code:   uint32(clientClass.Code),
+			Regexp: genClientClass6Regexp(clientClass),
 		}, nil)
 }
 
 func (c *ClientClass6Service) Delete(id string) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if exist, err := tx.Exists(resource.TableSubnet6,
-			map[string]interface{}{resource.SqlColumnClientClass: id}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
-		} else if exist {
-			return errorno.ErrUsedBy(errorno.ErrNameClientClass, "", string(errorno.ErrNameNetworkV6))
+		if count, err := tx.CountEx(resource.TableSubnet6,
+			"select count(*) from gr_subnet6 where $1::text = any(white_client_classes) or $1::text = any(black_client_classes)",
+			id); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
+		} else if count != 0 {
+			return errorno.ErrBeenUsed(errorno.ErrNameClientClass, id)
 		}
 
 		if rows, err := tx.Delete(resource.TableClientClass6,

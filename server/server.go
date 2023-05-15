@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	csvutil "github.com/linkingthing/clxone-utils/csv"
+	"github.com/linkingthing/clxone-utils/excel"
 	"github.com/linkingthing/gorest"
 	"github.com/linkingthing/gorest/adaptor"
 	"github.com/linkingthing/gorest/resource/schema"
@@ -52,7 +52,7 @@ func NewServer() (*Server, error) {
 		SkipPaths: LoggerSkipPaths,
 		Formatter: func(param gin.LogFormatterParams) string {
 			return fmt.Sprintf("[%s] client:%s \"%s %s\" %s %d %s %s\n",
-				param.TimeStamp.Format(csvutil.TimeFormat),
+				param.TimeStamp.Format(excel.TimeFormat),
 				param.ClientIP,
 				param.Method,
 				param.Path,
@@ -65,7 +65,7 @@ func NewServer() (*Server, error) {
 	}))
 
 	router.GET(HealthPath, HealthCheck)
-	csvutil.RegisterFileApi(router, dhcp.Version.GetUrl())
+	excel.RegisterFileApi(router, dhcp.Version.GetUrl())
 	group := router.Group("/")
 	apiServer := gorest.NewAPIServer(schema.NewSchemaManager())
 	return &Server{

@@ -136,6 +136,7 @@ func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource
 		}
 	}
 
+	lease4.HwAddress = strings.ToUpper(lease4.HwAddress)
 	return []*resource.SubnetLease4{lease4}, nil
 }
 
@@ -218,6 +219,7 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 			reclaimleasesForRetain = append(reclaimleasesForRetain, reclaimedLease.GetID())
 			continue
 		} else {
+			lease4.HwAddress = strings.ToUpper(lease4.HwAddress)
 			leases = append(leases, lease4)
 		}
 	}

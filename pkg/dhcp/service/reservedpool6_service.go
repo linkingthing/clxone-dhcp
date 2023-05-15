@@ -15,6 +15,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type ReservedPool6Service struct {
@@ -322,7 +323,7 @@ func (p *ReservedPool6Service) ActionValidTemplate(subnet *resource.Subnet6, poo
 }
 
 func (p *ReservedPool6Service) Update(subnetId string, pool *resource.ReservedPool6) error {
-	if err := resource.CheckCommentValid(pool.Comment); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeComma, pool.Comment); err != nil {
 		return err
 	}
 

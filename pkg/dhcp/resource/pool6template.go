@@ -19,13 +19,14 @@ type Pool6Template struct {
 }
 
 func (p *Pool6Template) Validate() error {
-	if len(p.Name) == 0 || util.ValidateStrings(p.Name) != nil {
+	if len(p.Name) == 0 || util.ValidateStrings(util.RegexpTypeCommon, p.Name) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, p.Name)
 	} else if p.BeginOffset <= 0 || p.BeginOffset >= 2147483647 {
-		return errorno.ErrNotInScope(errorno.ErrNameOffset, 0, 2147483647)
+		return errorno.ErrNotInScope(errorno.ErrNameOffset, 1, 2147483646)
 	} else if p.Capacity <= 0 || p.Capacity >= 2147483647 {
-		return errorno.ErrNotInScope(errorno.ErrNameCapacity, 0, 2147483647)
-	} else {
-		return util.ValidateStrings(p.Comment)
+		return errorno.ErrNotInScope(errorno.ErrNameCapacity, 1, 2147483646)
+	} else if err := util.ValidateStrings(util.RegexpTypeComma, p.Comment); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, p.Comment)
 	}
+	return nil
 }
