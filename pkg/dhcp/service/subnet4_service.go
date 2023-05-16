@@ -796,19 +796,19 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			if subnet.ValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations,
-					fmt.Errorf("valid-lifetime %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(errorno.ErrNameLifetime, field)
 			}
 		case FieldNameMaxValidLifetime:
 			if subnet.MaxValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations,
-					fmt.Errorf("max-lifetime %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(errorno.ErrNameMaxLifetime, field)
 			}
 		case FieldNameMinValidLifetime:
 			if subnet.MinValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations,
-					fmt.Errorf("min-lifetime %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(errorno.ErrNameMinLifetime, field)
 			}
 		case FieldNameSubnetMask:
 			subnet.SubnetMask = strings.TrimSpace(field)
@@ -832,7 +832,7 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			if subnet.Ipv6OnlyPreferred, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations,
-					fmt.Errorf("ipv6-only %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(FieldNameOption108, field)
 			}
 		case FieldNameNodes:
 			subnet.Nodes = splitFieldWithoutSpace(field)
@@ -879,7 +879,7 @@ func parseReservedPool4sFromString(field string) ([]*resource.ReservedPool4, err
 	for _, poolStr := range strings.Split(field, resource.CommonDelimiter) {
 		poolStr = strings.TrimSpace(poolStr)
 		if poolSlices := strings.SplitN(poolStr, resource.PoolDelimiter, 3); len(poolSlices) != 3 {
-			return nil, errorno.ErrInvalidParams(errorno.ErrNameDhcpPool, poolStr)
+			return nil, errorno.ErrInvalidParams(errorno.ErrNameDhcpReservedPool, poolStr)
 		} else {
 			pools = append(pools, &resource.ReservedPool4{
 				BeginAddress: poolSlices[0],
@@ -925,7 +925,7 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 func checkSubnetNodesValid(subnetNodes, sentryNodes []string) error {
 	for _, subnetNode := range subnetNodes {
 		if slice.SliceIndex(sentryNodes, subnetNode) == -1 {
-			return fmt.Errorf("subnet node %s invalid", subnetNode)
+			errorno.ErrInvalidParams(errorno.ErrNameDhcpSentryNode, subnetNode)
 		}
 	}
 
@@ -935,7 +935,7 @@ func checkSubnetNodesValid(subnetNodes, sentryNodes []string) error {
 func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*resource.Subnet4) error {
 	for _, subnet := range subnets {
 		if subnet.CheckConflictWithAnother(subnet4) {
-			return fmt.Errorf("subnet4 %s conflict with subnet4 %s",
+			return errorno.ErrConflict(errorno.ErrNameNetworkV4, errorno.ErrNameNetworkV4,
 				subnet4.Subnet, subnet.Subnet)
 		}
 	}
@@ -951,25 +951,25 @@ func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource
 		}
 
 		if !subnet4.Ipnet.Contains(reservation.Ip) {
-			return fmt.Errorf("reservation4 %s not belongs to subnet4 %s",
+			return errorno.ErrNotBelongTo(errorno.ErrNameIp, errorno.ErrNameNetworkV4,
 				reservation.IpAddress, subnet4.Subnet)
 		}
 
 		if _, ok := reservationParams[reservation.IpAddress]; ok {
-			return fmt.Errorf("duplicate reservation4 with ip %s", reservation.IpAddress)
+			return errorno.ErrDuplicate(errorno.ErrNameIp, reservation.IpAddress)
 		} else {
 			reservationParams[reservation.IpAddress] = struct{}{}
 		}
 
 		if reservation.HwAddress != "" {
 			if _, ok := reservationParams[reservation.HwAddress]; ok {
-				return fmt.Errorf("duplicate reservation4 with mac %s", reservation.HwAddress)
+				return errorno.ErrDuplicate(errorno.ErrNameMac, reservation.HwAddress)
 			} else {
 				reservationParams[reservation.HwAddress] = struct{}{}
 			}
 		} else if reservation.Hostname != "" {
 			if _, ok := reservationParams[reservation.Hostname]; ok && reservation.Hostname != "" {
-				return fmt.Errorf("duplicate reservation4 with hostname %s", reservation.Hostname)
+				return errorno.ErrDuplicate(errorno.ErrNameHostname, reservation.Hostname)
 			} else {
 				reservationParams[reservation.Hostname] = struct{}{}
 			}
@@ -989,20 +989,20 @@ func checkReservedPool4sValid(subnet4 *resource.Subnet4, reservedPools []*resour
 
 		if !checkIPsBelongsToIpnet(subnet4.Ipnet, reservedPools[i].BeginIp,
 			reservedPools[i].EndIp) {
-			return fmt.Errorf("reserved pool4 %s not belongs to subnet4 %s",
+			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool, errorno.ErrNameNetworkV4,
 				reservedPools[i].String(), subnet4.Subnet)
 		}
 
 		for j := i + 1; j < reservedPoolsLen; j++ {
 			if reservedPools[i].CheckConflictWithAnother(reservedPools[j]) {
-				return fmt.Errorf("reserved pool4 %s conflict with another %s",
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservedPool,
 					reservedPools[i].String(), reservedPools[j].String())
 			}
 		}
 
 		for _, reservation := range reservations {
 			if reservedPools[i].Contains(reservation.IpAddress) {
-				return fmt.Errorf("reserved pool4 %s conflict with reservation4 %s",
+				return errorno.ErrConflict(errorno.ErrNameReservedPdPool, errorno.ErrNameDhcpReservation,
 					reservedPools[i].String(), reservation.String())
 			}
 		}
@@ -1020,13 +1020,13 @@ func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reserv
 
 		if !checkIPsBelongsToIpnet(subnet4.Ipnet,
 			pools[i].BeginIp, pools[i].EndIp) {
-			return fmt.Errorf("pool4 %s not belongs to subnet4 %s",
+			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpPool, errorno.ErrNameNetworkV4,
 				pools[i].String(), subnet4.Subnet)
 		}
 
 		for j := i + 1; j < poolsLen; j++ {
 			if pools[i].CheckConflictWithAnother(pools[j]) {
-				return fmt.Errorf("pool4 %s conflict with another %s",
+				return errorno.ErrConflict(errorno.ErrNameDhcpPool, errorno.ErrNameDhcpPool,
 					pools[i].String(), pools[j].String())
 			}
 		}
@@ -1510,11 +1510,11 @@ func GetSubnet4ByIP(ip string) (*resource.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet4 WHERE ipnet >>= $1", ip)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("not found subnet4 with ip %s", ip)
+		return nil, errorno.ErrNotFound(errorno.ErrNameNetworkV4, ip)
 	} else {
 		return subnets[0], nil
 	}
@@ -1525,11 +1525,11 @@ func GetSubnet4ByPrefix(prefix string) (*resource.Subnet4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet4 WHERE subnet = $1", prefix)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("not found subnet4 with prefix %s", prefix)
+		return nil, errorno.ErrNotFound(errorno.ErrNameNetworkV4, prefix)
 	} else {
 		return subnets[0], nil
 	}

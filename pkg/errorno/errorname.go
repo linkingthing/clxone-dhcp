@@ -39,7 +39,10 @@ const (
 	ErrNameDhcpReservedPool  ErrName = "dhcpReservedPool"
 	ErrNameReservedPdPool    ErrName = "reservedPdPool"
 	ErrNamePdPool            ErrName = "pdPool"
-	ErrNamePreferredLifetime ErrName = "preferredLifetime"
+	ErrNameLifetime          ErrName = "validLifetime"
+	ErrNameMinLifetime       ErrName = "minValidLifetime"
+	ErrNameMaxLifetime       ErrName = "maxValidLifetime"
+	ErrNamePreferLifetime    ErrName = "preferredLifetime"
 	ErrNamePinger            ErrName = "pinger"
 	ErrNameAdmit             ErrName = "admit"
 	ErrNameRateLimit         ErrName = "rateLimit"
@@ -160,7 +163,10 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameDhcpReservedPool:  "保留地址池",
 	ErrNameReservedPdPool:    "保留前缀委派地址池",
 	ErrNamePdPool:            "前缀委派地址池",
-	ErrNamePreferredLifetime: "首选租约时长",
+	ErrNameLifetime:          "租约时长",
+	ErrNameMinLifetime:       "最短租约时长",
+	ErrNameMaxLifetime:       "最长租约时长",
+	ErrNamePreferLifetime:    "首选租约时长",
 	ErrNamePinger:            "Ping检测器",
 	ErrNameAdmit:             "接入配置",
 	ErrNameRateLimit:         "限速配置",

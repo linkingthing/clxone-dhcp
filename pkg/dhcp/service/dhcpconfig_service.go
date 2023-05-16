@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -25,10 +23,10 @@ func NewDhcpConfigService() (*DhcpConfigService, error) {
 func createDefaultDhcpConfig() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableDhcpConfig, nil); err != nil {
-			return fmt.Errorf("check dhcp config failed: %s", pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameConfig), pg.Error(err).Error())
 		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultDhcpConfig); err != nil {
-				return fmt.Errorf("insert default dhcp config failed: %s", pg.Error(err).Error())
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameConfig), pg.Error(err).Error())
 			}
 		}
 
@@ -69,22 +67,18 @@ func (d *DhcpConfigService) Update(config *resource.DhcpConfig) error {
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableDhcpConfig, map[string]interface{}{
 			resource.SqlColumnValidLifetime:    config.ValidLifetime,
 			resource.SqlColumnMaxValidLifetime: config.MaxValidLifetime,
 			resource.SqlColumnMinValidLifetime: config.MinValidLifetime,
 			resource.SqlColumnDomainServers:    config.DomainServers,
 		}, map[string]interface{}{restdb.IDField: config.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameConfig), pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found dhcp config %s", config.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameConfig, config.GetID())
 		} else {
 			return nil
 		}
-	}); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameQuery, config.GetID(), pg.Error(err).Error())
-	}
-
-	return nil
+	})
 }

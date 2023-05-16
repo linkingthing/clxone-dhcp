@@ -1,7 +1,6 @@
 package util
 
 import (
-	"fmt"
 	"net"
 	"regexp"
 	"strings"
@@ -110,7 +109,7 @@ func ValidateStrings(typ RegexpType, ss ...string) error {
 	case RegexpTypeComma:
 		regexps = StringRegexpsWithComma
 	default:
-		return fmt.Errorf("no found regexp type %s", typ)
+		return errorno.ErrInvalidParams(errorno.ErrNameRegexp, string(typ))
 	}
 
 	for _, s := range ss {

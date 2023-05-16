@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -27,10 +25,10 @@ func NewPingerService() (*PingerService, error) {
 func createDefaultPinger() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TablePinger, nil); err != nil {
-			return fmt.Errorf("check dhcp pinger failed: %s", pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNamePinger), pg.Error(err).Error())
 		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultPinger); err != nil {
-				return fmt.Errorf("insert default dhcp pinger failed: %s", pg.Error(err).Error())
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNamePinger), pg.Error(err).Error())
 			}
 		}
 
@@ -71,7 +69,6 @@ func (p *PingerService) Update(pinger *resource.Pinger) error {
 			resource.SqlColumnEnabled: pinger.Enabled,
 			resource.SqlColumnTimeout: pinger.Timeout,
 		}, map[string]interface{}{restdb.IDField: pinger.GetID()}); err != nil {
-			return pg.Error(err)
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, pinger.GetID(), pg.Error(err).Error())
 		} else if rows == 0 {
 			return errorno.ErrNotFound(errorno.ErrNamePinger, pinger.GetID())

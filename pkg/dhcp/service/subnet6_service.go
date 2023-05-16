@@ -381,7 +381,7 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 	} else {
 		if subnet.UseEui64 {
 			if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
-				return fmt.Errorf("can not disable use EUI64: %s", err.Error())
+				return err
 			}
 
 			subnet.Capacity = "0"
@@ -405,7 +405,7 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 			}
 		} else if subnet.UseAddressCode {
 			if err := checkSubnet6HasNoBeenAllocatedByAddressCode(subnet); err != nil {
-				return fmt.Errorf("can not disable use address code: %s", err.Error())
+				return err
 			}
 
 			if err := calculateSubnetCapacityWithoutUseAddressCode(tx, subnet); err != nil {
@@ -431,11 +431,11 @@ func checkSubnet6HasNoBeenAllocatedByAddressCode(subnet6 *resource.Subnet6) erro
 			&pbdhcpagent.GetSubnet6LeasesCountRequest{Id: subnet6.SubnetId})
 		return err
 	}); err != nil {
-		return fmt.Errorf("get subnet6 leases count by address code failed: %s", err.Error())
+		return errorno.ErrNetworkError(errorno.ErrNameNetworkLease, err.Error())
 	}
 
 	if resp.GetLeasesCount() != 0 {
-		return fmt.Errorf("subnet6 with %d ips had been allocated by address code", resp.GetLeasesCount())
+		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameNetworkV6, subnet6.GetID())
 	}
 
 	return nil
@@ -797,25 +797,25 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			if subnet.ValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations, pdpools,
-					fmt.Errorf("valid-lifetime %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(errorno.ErrNameLifetime, field)
 			}
 		case FieldNameMaxValidLifetime:
 			if subnet.MaxValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations, pdpools,
-					fmt.Errorf("max-lifetime %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(errorno.ErrNameMaxLifetime, field)
 			}
 		case FieldNameMinValidLifetime:
 			if subnet.MinValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations, pdpools,
-					fmt.Errorf("min-lifetime %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(errorno.ErrNameMinLifetime, field)
 			}
 		case FieldNamePreferredLifetime:
 			if subnet.PreferredLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations, pdpools,
-					fmt.Errorf("preferred-lifetime %s is invalid: %s", field, err.Error())
+					errorno.ErrInvalidParams(errorno.ErrNamePreferLifetime, field)
 			}
 		case FieldNameDomainServers:
 			subnet.DomainServers = splitFieldWithoutSpace(field)
@@ -859,8 +859,7 @@ func parsePool6sFromString(field string) ([]*resource.Pool6, error) {
 	for _, poolStr := range strings.Split(field, resource.CommonDelimiter) {
 		poolStr = strings.TrimSpace(poolStr)
 		if poolSlices := strings.SplitN(poolStr, resource.PoolDelimiter, 3); len(poolSlices) != 3 {
-			return nil, fmt.Errorf("parse subnet6 pool6 %s failed with wrong regexp",
-				poolStr)
+			return nil, errorno.ErrInvalidParams(errorno.ErrNameDhcpPool, poolStr)
 		} else {
 			pools = append(pools, &resource.Pool6{
 				BeginAddress: poolSlices[0],
@@ -878,8 +877,7 @@ func parseReservedPool6sFromString(field string) ([]*resource.ReservedPool6, err
 	for _, poolStr := range strings.Split(field, resource.CommonDelimiter) {
 		poolStr = strings.TrimSpace(poolStr)
 		if poolSlices := strings.SplitN(poolStr, resource.PoolDelimiter, 3); len(poolSlices) != 3 {
-			return nil, fmt.Errorf("parse subnet6 reserved pool6 %s failed with wrong regexp",
-				poolStr)
+			return nil, errorno.ErrInvalidParams(errorno.ErrNameDhcpReservedPool, poolStr)
 		} else {
 			pools = append(pools, &resource.ReservedPool6{
 				BeginAddress: poolSlices[0],
@@ -898,8 +896,7 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 		reservationStr = strings.TrimSpace(reservationStr)
 		if reservationSlices := strings.SplitN(reservationStr,
 			resource.ReservationDelimiter, 5); len(reservationSlices) != 5 {
-			return nil, fmt.Errorf("parse subnet6 reservation6 %s failed with wrong regexp",
-				reservationStr)
+			return nil, errorno.ErrInvalidParams(errorno.ErrNameDhcpReservation, reservationStr)
 		} else {
 			reservation := &resource.Reservation6{
 				Comment: reservationSlices[4],
@@ -913,8 +910,8 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 			case resource.ReservationIdHostname:
 				reservation.Hostname = reservationSlices[1]
 			default:
-				return nil, fmt.Errorf("parse reservation6 %s failed with wrong prefix %s not in [duid, mac, hostname]",
-					reservationStr, reservationSlices[0])
+				return nil, errorno.ErrOnlySupport(errorno.ErrName(reservationSlices[0]),
+					[]string{resource.ReservationIdDUID, resource.ReservationIdMAC, resource.ReservationIdHostname})
 			}
 
 			switch reservationSlices[2] {
@@ -923,8 +920,8 @@ func parseReservation6sFromString(field string) ([]*resource.Reservation6, error
 			case resource.ReservationTypePrefixes:
 				reservation.Prefixes = strings.Split(reservationSlices[3], resource.ReservationAddrDelimiter)
 			default:
-				return nil, fmt.Errorf("parse reservation6 %s failed with wrong type %s not in [ips, prefixes]",
-					reservationStr, reservationSlices[2])
+				return nil, errorno.ErrOnlySupport(errorno.ErrName(reservationSlices[2]),
+					[]string{resource.ReservationTypeIps, resource.ReservationTypePrefixes})
 			}
 
 			reservations = append(reservations, reservation)
@@ -939,19 +936,16 @@ func parsePdPoolsFromString(field string) ([]*resource.PdPool, error) {
 	for _, pdpoolStr := range strings.Split(field, resource.CommonDelimiter) {
 		pdpoolStr = strings.TrimSpace(pdpoolStr)
 		if pdpoolSlices := strings.SplitN(pdpoolStr, resource.PoolDelimiter, 4); len(pdpoolSlices) != 4 {
-			return nil, fmt.Errorf("parse subnet6 pdpool %s failed with wrong regexp",
-				pdpoolStr)
+			return nil, errorno.ErrInvalidParams(errorno.ErrNamePdPool, pdpoolStr)
 		} else {
 			prefixLen, err := strconv.Atoi(pdpoolSlices[1])
 			if err != nil {
-				return nil, fmt.Errorf("parse subnet6 pdpool prefixlen %s failed: %s",
-					pdpoolSlices[1], err.Error())
+				return nil, errorno.ErrInvalidParams(errorno.ErrNamePrefix, pdpoolSlices[1])
 			}
 
 			delegatedLen, err := strconv.Atoi(pdpoolSlices[2])
 			if err != nil {
-				return nil, fmt.Errorf("parse subnet6 pdpool delegatedlen %s failed: %s",
-					pdpoolSlices[2], err.Error())
+				return nil, errorno.ErrInvalidParams(errorno.ErrNameDelegatedLen, pdpoolSlices[2])
 			}
 
 			pdpools = append(pdpools, &resource.PdPool{
@@ -969,7 +963,7 @@ func parsePdPoolsFromString(field string) ([]*resource.PdPool, error) {
 func checkSubnet6ConflictWithSubnet6s(subnet6 *resource.Subnet6, subnets []*resource.Subnet6) error {
 	for _, subnet := range subnets {
 		if subnet.CheckConflictWithAnother(subnet6) {
-			return fmt.Errorf("subnet6 %s conflict with subnet6 %s",
+			return errorno.ErrConflict(errorno.ErrNameNetworkV6, errorno.ErrNameNetworkV6,
 				subnet6.Subnet, subnet.Subnet)
 		}
 	}
@@ -983,13 +977,13 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 	}
 
 	if subnet.UseEui64 {
-		return fmt.Errorf("subnet6 use EUI64, can not create reservation6")
+		return errorno.ErrSubnetWithEui64(subnet.Subnet)
 	}
 
 	reservationFieldMap := make(map[string]struct{})
 	for _, reservation := range reservations {
 		if subnet.UseAddressCode && len(reservation.Prefixes) != 0 {
-			return fmt.Errorf("subnet6 use address code, can not create reservation6 prefixes")
+			return errorno.ErrSubnetWithEui64(subnet.Subnet)
 		}
 
 		if err := reservation.Validate(); err != nil {
@@ -1002,19 +996,19 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 
 		if reservation.Duid != "" {
 			if _, ok := reservationFieldMap[reservation.Duid]; ok {
-				return fmt.Errorf("duplicate reservation6 with duid %s", reservation.Duid)
+				return errorno.ErrDuplicate(errorno.ErrNameDuid, reservation.Duid)
 			} else {
 				reservationFieldMap[reservation.Duid] = struct{}{}
 			}
 		} else if reservation.HwAddress != "" {
 			if _, ok := reservationFieldMap[reservation.HwAddress]; ok {
-				return fmt.Errorf("duplicate reservation6 with mac %s", reservation.HwAddress)
+				return errorno.ErrDuplicate(errorno.ErrNameMac, reservation.HwAddress)
 			} else {
 				reservationFieldMap[reservation.HwAddress] = struct{}{}
 			}
 		} else if reservation.Hostname != "" {
 			if _, ok := reservationFieldMap[reservation.Hostname]; ok {
-				return fmt.Errorf("duplicate reservation6 with hostname %s", reservation.Hostname)
+				return errorno.ErrDuplicate(errorno.ErrNameHostname, reservation.Hostname)
 			} else {
 				reservationFieldMap[reservation.Hostname] = struct{}{}
 			}
@@ -1023,7 +1017,7 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 		if len(reservation.IpAddresses) != 0 {
 			for _, ip := range reservation.IpAddresses {
 				if _, ok := reservationFieldMap[ip]; ok {
-					return fmt.Errorf("duplicate reservation6 with ip %s", ip)
+					return errorno.ErrDuplicate(errorno.ErrNameIp, ip)
 				} else {
 					reservationFieldMap[ip] = struct{}{}
 				}
@@ -1031,7 +1025,7 @@ func checkReservation6sValid(subnet *resource.Subnet6, reservations []*resource.
 		} else {
 			for _, prefix := range reservation.Prefixes {
 				if _, ok := reservationFieldMap[prefix]; ok {
-					return fmt.Errorf("duplicate reservation6 with prefix %s", prefix)
+					return errorno.ErrDuplicate(errorno.ErrNamePrefix, prefix)
 				} else {
 					reservationFieldMap[prefix] = struct{}{}
 				}
@@ -1063,13 +1057,13 @@ func checkReservedPool6sValid(subnet *resource.Subnet6, reservedPools []*resourc
 
 		if !checkIPsBelongsToIpnet(subnet.Ipnet, reservedPools[i].BeginIp,
 			reservedPools[i].EndIp) {
-			return fmt.Errorf("reserved pool6 %s not belongs to subnet6 %s",
+			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool, errorno.ErrNameNetworkV6,
 				reservedPools[i].String(), subnet.Subnet)
 		}
 
 		for j := i + 1; j < reservedPoolsLen; j++ {
 			if reservedPools[i].CheckConflictWithAnother(reservedPools[j]) {
-				return fmt.Errorf("reserved pool6 %s conflict with another %s",
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservedPool,
 					reservedPools[i].String(), reservedPools[j].String())
 			}
 		}
@@ -1104,13 +1098,13 @@ func checkPool6sValid(subnet *resource.Subnet6, pools []*resource.Pool6, reserve
 
 		if !checkIPsBelongsToIpnet(subnet.Ipnet,
 			pools[i].BeginIp, pools[i].EndIp) {
-			return fmt.Errorf("pool6 %s not belongs to subnet6 %s",
+			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpPool, errorno.ErrNameNetworkV6,
 				pools[i].String(), subnet.Subnet)
 		}
 
 		for j := i + 1; j < poolsLen; j++ {
 			if pools[i].CheckConflictWithAnother(pools[j]) {
-				return fmt.Errorf("pool6 %s conflict with another %s",
+				return errorno.ErrConflict(errorno.ErrNameDhcpPool, errorno.ErrNameDhcpPool,
 					pools[i].String(), pools[j].String())
 			}
 		}
@@ -1132,7 +1126,7 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 	}
 
 	if subnet.UseEui64 || subnet.UseAddressCode {
-		return fmt.Errorf("subnet6 use EUI64 or address code, can not create pdpool")
+		return errorno.ErrSubnetWithEui64(subnet.Subnet)
 	}
 
 	for i := 0; i < pdpoolsLen; i++ {
@@ -1147,7 +1141,7 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 
 		for j := i + 1; j < pdpoolsLen; j++ {
 			if pdpools[i].CheckConflictWithAnother(pdpools[j]) {
-				return fmt.Errorf("pdpool %s conflict with another %s",
+				return errorno.ErrConflict(errorno.ErrNamePdPool, errorno.ErrNamePdPool,
 					pdpools[i].String(), pdpools[j].String())
 			}
 		}
@@ -1616,11 +1610,11 @@ func GetSubnet6ByIP(ip string) (*resource.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE ipnet >>= $1", ip)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("not found subnet6 with ip %s", ip)
+		return nil, errorno.ErrNotFound(errorno.ErrNameNetworkV6, ip)
 	} else {
 		return subnets[0], nil
 	}
@@ -1631,11 +1625,11 @@ func GetSubnet6ByPrefix(prefix string) (*resource.Subnet6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE subnet = $1", prefix)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 	}
 
 	if len(subnets) == 0 {
-		return nil, fmt.Errorf("not found subnet6 with prefix %s", prefix)
+		return nil, errorno.ErrNotFound(errorno.ErrNameNetworkV6, prefix)
 	} else {
 		return subnets[0], nil
 	}

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"strconv"
 	"time"
 
@@ -221,17 +220,13 @@ func getValuesFromPrometheus(ctx *restresource.Context, metricCtx *MetricContext
 var TableHeaderLPS = []string{"日期", "LPS"}
 
 func (h *LPSService) Export(ctx *restresource.Context) (interface{}, error) {
-	if result, err := exportTwoColumns(ctx, &MetricContext{
+	return exportTwoColumns(ctx, &MetricContext{
 		NodeIP:         ctx.Resource.GetID(),
 		PrometheusAddr: h.prometheusAddr,
 		PromQuery:      PromQueryVersionNode,
 		MetricName:     MetricNameDHCPLPS,
 		TableHeader:    TableHeaderLPS,
-	}); err != nil {
-		return nil, fmt.Errorf("lps %s export action failed: %s", ctx.Resource.GetID(), err.Error())
-	} else {
-		return result, nil
-	}
+	})
 }
 
 func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (interface{}, error) {

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
@@ -333,11 +332,11 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 
 	for _, pool := range pools {
 		if err := pool.Validate(); err != nil {
-			return fmt.Errorf("validate reserved pool4 params invalid: %s", err.Error())
+			return err
 		}
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, pool := range pools {
 			if err := checkReservedPool4CouldBeCreated(tx, subnet, pool); err != nil {
 				return err
@@ -350,7 +349,7 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 
 			pool.Subnet4 = subnet.GetID()
 			if _, err := tx.Insert(pool); err != nil {
-				return pg.Error(err)
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 			}
 
 			if err := sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool); err != nil {
@@ -359,10 +358,5 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("batch create reserved pool4s with subnet4 %s failed: %s",
-			subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }

@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	nmap "github.com/Ullaakut/nmap/v2"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcpclient"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -118,12 +118,12 @@ func nmapScanIpv4(scanIps []string) (map[string]string, error) {
 		nmap.WithContext(ctx),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create network scanner: %v", err)
+		return nil, errorno.ErrOperateResource(errorno.ErrMethodCreate, "nmap", err.Error())
 	}
 
 	result, warnings, err := scanner.Run()
 	if err != nil {
-		return nil, fmt.Errorf("unable to run network scan: %v", err)
+		return nil, errorno.ErrOperateResource(errorno.ErrMethodAction, "nmap", err.Error())
 	}
 	if warnings != nil {
 		log.Warnf("network scan warnings:%v\n", warnings)

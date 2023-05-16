@@ -614,11 +614,11 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
-			return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
+			return err
 		}
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, reservation := range reservations {
 			if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
 				return err
@@ -631,7 +631,7 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 
 			reservation.Subnet6 = subnet.GetID()
 			if _, err := tx.Insert(reservation); err != nil {
-				return pg.Error(err)
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 			}
 
 			if err := sendCreateReservation6CmdToDHCPAgent(
@@ -640,9 +640,5 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 			}
 		}
 		return nil
-	}); err != nil {
-		return fmt.Errorf("create reservation6s failed: %s", err.Error())
-	}
-
-	return nil
+	})
 }

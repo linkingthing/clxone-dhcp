@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -27,10 +25,10 @@ func NewRateLimitService() (*RateLimitService, error) {
 func createDefaultRateLimit() error {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableRateLimit, nil); err != nil {
-			return fmt.Errorf("check dhcp ratelimit failed: %s", pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameRateLimit), pg.Error(err).Error())
 		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultRateLimit); err != nil {
-				return fmt.Errorf("insert default dhcp ratelimit failed: %s", pg.Error(err).Error())
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameRateLimit), pg.Error(err).Error())
 			}
 		}
 

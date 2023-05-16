@@ -227,7 +227,7 @@ func GetClientClass6s() ([]*ClientClass6, error) {
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {
 	if preferredLifetime > validLifetime || preferredLifetime < minValidLifetime {
-		return errorno.ErrNotInScope(errorno.ErrNamePreferredLifetime,
+		return errorno.ErrNotInScope(errorno.ErrNameLifetime,
 			minValidLifetime, validLifetime)
 	}
 

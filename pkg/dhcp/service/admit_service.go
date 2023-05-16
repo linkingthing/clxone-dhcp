@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -26,10 +24,10 @@ func NewAdmitService() (*AdmitService, error) {
 func createDefaultAdmit() error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableAdmit, nil); err != nil {
-			return fmt.Errorf("check dhcp admit failed: %s", pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameAdmit), pg.Error(err).Error())
 		} else if !exists {
 			if _, err := tx.Insert(resource.DefaultAdmit); err != nil {
-				return fmt.Errorf("insert default dhcp admit failed: %s", pg.Error(err).Error())
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAdmit), pg.Error(err).Error())
 			}
 		}
 
@@ -55,7 +53,7 @@ func (d *AdmitService) Get(id string) (*resource.Admit, error) {
 	}); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(admits) == 0 {
-		return nil, fmt.Errorf("no found admit %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameAdmit, id)
 	}
 
 	return admits[0], nil

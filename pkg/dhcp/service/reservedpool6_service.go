@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"math/big"
 	"net"
 
@@ -361,11 +360,11 @@ func BatchCreateReservedPool6s(prefix string, pools []*resource.ReservedPool6) e
 
 	for _, pool := range pools {
 		if err := pool.Validate(); err != nil {
-			return fmt.Errorf("validate reserved pool6 params invalid: %s", err.Error())
+			return err
 		}
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, pool := range pools {
 			if err := checkReservedPool6CouldBeCreated(tx, subnet, pool); err != nil {
 				return err
@@ -378,7 +377,7 @@ func BatchCreateReservedPool6s(prefix string, pools []*resource.ReservedPool6) e
 
 			pool.Subnet6 = subnet.GetID()
 			if _, err := tx.Insert(pool); err != nil {
-				return pg.Error(err)
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 			}
 
 			if err := sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool); err != nil {
@@ -387,10 +386,5 @@ func BatchCreateReservedPool6s(prefix string, pools []*resource.ReservedPool6) e
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("batch create reserved pool6s with subnet6 %s failed: %s",
-			subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
