@@ -20,6 +20,11 @@ var (
 			fmt.Sprintf("subnet %s has no intersection nodes with subnet %s", subnet1, subnet2),
 			fmt.Sprintf("子网 %s 与 %s 之间无交集节点", subnet1, subnet2))
 	}
+	ErrExistIntersection = func(target1, target2 interface{}) *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("%v has intersection with %s", target1, target2),
+			fmt.Sprintf("%v 与 %v 之间存在交集", target1, target2))
+	}
 	ErrNoNode = func(target ErrName, name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s[%s] no nodes info", target, name),

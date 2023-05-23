@@ -50,7 +50,7 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkSubnet4CouldBeCreated(tx, subnet.Subnet); err != nil {
 			return err
 		}
@@ -64,11 +64,7 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 		}
 
 		return sendCreateSubnet4CmdToDHCPAgent(subnet)
-	}); err != nil {
-		return errorno.ErrOperateResource(errorno.ErrMethodCreate, subnet.Subnet, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
@@ -83,7 +79,7 @@ func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
 		"SELECT * FROM gr_subnet4 WHERE $1 && ipnet", subnet); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameQuery, subnet, pg.Error(err).Error())
 	} else if len(subnets) != 0 {
-		return errorno.ErrDuplicate(errorno.ErrNameNetworkV4, subnets[0].Subnet)
+		return errorno.ErrExistIntersection(subnet, subnets[0].Subnet)
 	}
 
 	return nil
