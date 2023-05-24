@@ -202,9 +202,12 @@ func (s *Subnet4Service) List(ctx *restresource.Context) ([]*resource.Subnet4, e
 			}
 		}
 
-		return tx.FillEx(&subnets, listCtx.sql, listCtx.params...)
+		if err := tx.FillEx(&subnets, listCtx.sql, listCtx.params...); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
+		}
+		return nil
 	}); err != nil {
-		return nil, errorno.ErrOperateResource(errorno.ErrMethodList, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
+		return nil, err
 	}
 
 	if len(subnets) > 0 && listCtx.needSetSubnetsLeasesUsedInfo() {
@@ -454,7 +457,7 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet4FromDB(tx, subnet); err != nil {
 			return err
 		}
@@ -480,11 +483,7 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 		}
 
 		return sendUpdateSubnet4CmdToDHCPAgent(subnet)
-	}); err != nil {
-		return errorno.ErrOperateResource(errorno.ErrMethodUpdate, subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func setSubnet4FromDB(tx restdb.Transaction, subnet *resource.Subnet4) error {
@@ -533,7 +532,7 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 }
 
 func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet4FromDB(tx, subnet); err != nil {
 			return err
 		}
@@ -548,11 +547,7 @@ func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
 		}
 
 		return sendDeleteSubnet4CmdToDHCPAgent(subnet, subnet.Nodes)
-	}); err != nil {
-		return errorno.ErrOperateResource(errorno.ErrMethodDelete, subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4) error {
@@ -617,7 +612,7 @@ func (s *Subnet4Service) ImportExcel(file *excel.ImportFile) (interface{}, error
 				reqForServerCreate, reqForServerDelete)
 		}
 	}); err != nil {
-		return response, errorno.ErrOperateResource(errorno.ErrNameImport, file.Name, err.Error())
+		return response, err
 	}
 
 	return response, nil
@@ -690,25 +685,25 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 			tableHeaderFields, fields)
 		if err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d parse subnet4 %s fields failed: %s", j+2, subnet.Subnet, err.Error()))
+				errorno.TryGetErrorCNMsg(err))
 		} else if err := subnet.Validate(dhcpConfig, clientClass4s); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error()))
+				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s nodes is invalid: %s", j+2, subnet.Subnet, err.Error()))
+				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkSubnet4ConflictWithSubnet4s(subnet, append(oldSubnets, subnets...)); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s is invalid: %s", j+2, subnet.Subnet, err.Error()))
+				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkReservation4sValid(subnet, reservations); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s reservations is invalid: %s", j+2, subnet.Subnet, err.Error()))
+				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkReservedPool4sValid(subnet, reservedPools, reservations); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s reserved pool4s is invalid: %s", j+2, subnet.Subnet, err.Error()))
+				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkPool4sValid(subnet, pools, reservedPools, reservations); err != nil {
 			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
-				fmt.Sprintf("line %d subnet4 %s pool4s is invalid: %s", j+2, subnet.Subnet, err.Error()))
+				errorno.TryGetErrorCNMsg(err))
 		} else {
 			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
 			subnet.SetID(strconv.FormatUint(subnet.SubnetId, 10))

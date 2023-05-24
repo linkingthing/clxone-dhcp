@@ -278,22 +278,22 @@ var (
 	}
 	ErrHasBeenAllocated = func(target ErrName, resource string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s [%s] has been allocated", localizeErrName(target), resource),
+			fmt.Sprintf("%s[%s] has been allocated", target, resource),
 			fmt.Sprintf("%s[%s]已分配", localizeErrName(target), resource))
 	}
 	ErrIPHasBeenAllocated = func(target ErrName, resource string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s [%s] has been allocate IP", localizeErrName(target), resource),
+			fmt.Sprintf("%s[%s] has been allocate IP", target, resource),
 			fmt.Sprintf("%s[%s]已分配IP", localizeErrName(target), resource))
 	}
 	ErrUsed = func(src, dct ErrName, srcValue, dctValue interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] is used by %s[%s]", localizeErrName(src), srcValue, localizeErrName(dct), dctValue),
+			fmt.Sprintf("%s[%s] is used by %s[%s]", src, srcValue, dct, dctValue),
 			fmt.Sprintf("%s[%v]已被%s[%v]使用", localizeErrName(src), srcValue, localizeErrName(dct), dctValue))
 	}
 	ErrUsedBy = func(src, dct ErrName, dctValue string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s is used by %s[%s]", localizeErrName(src), localizeErrName(dct), dctValue),
+			fmt.Sprintf("%s is used by %s[%s]", src, dct, dctValue),
 			fmt.Sprintf("%s已被%s[%s]使用", localizeErrName(src), localizeErrName(dct), dctValue))
 	}
 	ErrUnsupported = func(opt string) *goresterr.ErrorMessage {
@@ -304,7 +304,7 @@ var (
 	}
 	ErrExpect = func(target ErrName, want, got interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%v: expected is %v, but got %v", localizeErrName(target), want, got),
+			fmt.Sprintf("%v: expected is %v, but got %v", target, want, got),
 			fmt.Sprintf("%v: 期待的值是 %v, 但输入的是 %v", localizeErrName(target), want, got),
 		)
 	}
