@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"strings"
+
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
@@ -35,7 +37,7 @@ type DhcpConfig struct {
 
 func (config *DhcpConfig) Validate() error {
 	if err := gohelperip.CheckIPsValid(config.DomainServers...); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameIp, strings.Join(config.DomainServers, ","))
 	}
 
 	return checkLifetimeValid(config.ValidLifetime, config.MinValidLifetime, config.MaxValidLifetime)
