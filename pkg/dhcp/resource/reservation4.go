@@ -16,8 +16,8 @@ var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
 type Reservation4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet4                   string `json:"-" db:"ownby"`
-	HwAddress                 string `json:"hwAddress" db:"uk"`
-	Hostname                  string `json:"hostname" db:"uk"`
+	HwAddress                 string `json:"hwAddress"`
+	Hostname                  string `json:"hostname"`
 	IpAddress                 string `json:"ipAddress" rest:"required=true"`
 	Ip                        net.IP `json:"-"`
 	UsedRatio                 string `json:"usedRatio" rest:"description=readonly" db:"-"`
