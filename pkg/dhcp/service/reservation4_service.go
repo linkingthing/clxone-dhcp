@@ -571,13 +571,13 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 		reservation4, err := s.parseReservation4sFromFields(fields, tableHeaderFields)
 		if err != nil {
 			addFailDataToResponse(response, TableHeaderReservation4FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), err.Error())
+				localizationReservation4ToStrSlice(reservation4), err.Error())
 			continue
 		}
 
 		if err = reservation4.Validate(); err != nil {
 			addFailDataToResponse(response, TableHeaderReservation4FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), err.Error())
+				localizationReservation4ToStrSlice(reservation4), err.Error())
 			continue
 		}
 
@@ -592,13 +592,13 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 
 		if !contains {
 			addFailDataToResponse(response, TableHeaderReservation4FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), fmt.Sprintf("not found subnet"))
+				localizationReservation4ToStrSlice(reservation4), fmt.Sprintf("not found subnet"))
 			continue
 		}
 
 		if _, ok := reservationMap[reservation4.HwAddress]; ok {
 			addFailDataToResponse(response, TableHeaderReservation4FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), fmt.Sprintf("duplicate ip"))
+				localizationReservation4ToStrSlice(reservation4), fmt.Sprintf("duplicate ip"))
 			continue
 		}
 
@@ -612,9 +612,9 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 func (s *Reservation4Service) parseReservation4sFromFields(fields, tableHeaderFields []string) (*resource.Reservation4, error) {
 	reservation4 := &resource.Reservation4{}
 
-	var hasHwAddress bool
+	var deviceFlag string
 	for i, field := range fields {
-		hasHwAddress = false
+		deviceFlag = ""
 		if excel.IsSpaceField(field) {
 			continue
 		}
@@ -626,17 +626,17 @@ func (s *Reservation4Service) parseReservation4sFromFields(fields, tableHeaderFi
 				return nil, fmt.Errorf("invalid ip: %s", field)
 			}
 			reservation4.Ip = ip
-		case FieldNameDeviceType:
-			if field == "hwAddress" {
-				hasHwAddress = true
-			}
-		case FieldNameReservation4Flag:
-			if hasHwAddress {
+		case FieldNameReservation4DeviceFlag:
+			deviceFlag = field
+		case FieldNameReservation4DeviceFlagValue:
+			if deviceFlag == ReservationFlagMac {
 				reservation4.HwAddress = field
 				continue
+			} else if deviceFlag == ReservationFlagHostName {
+				reservation4.Hostname = field
+				continue
 			}
-
-			reservation4.Hostname = field
+			return nil, fmt.Errorf("invalid device flag: %s", field)
 		case FieldNameComment:
 			reservation4.Comment = field
 		}

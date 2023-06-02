@@ -734,10 +734,10 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile) (interface{}, 
 	}
 
 	response := &excel.ImportResult{}
-	defer sendImportFieldResponse(Reservation6ImportFileNamePrefix, TableHeaderReservation4Fail, response)
+	defer sendImportFieldResponse(Reservation6ImportFileNamePrefix, TableHeaderReservation6Fail, response)
 	subnetReservationsMap, subnetMap, err := s.parseReservation6sFromFile(file.Name, subnet6s, response)
 	if err != nil {
-		return response, fmt.Errorf("parse subnet4s from file %s failed: %s",
+		return response, fmt.Errorf("parse subnet6s from file %s failed: %s",
 			file.Name, err.Error())
 	}
 
@@ -754,19 +754,10 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile) (interface{}, 
 
 		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("batch create reservation4s failed: %s", err.Error())
+		return nil, fmt.Errorf("batch create reservation6s failed: %s", err.Error())
 	}
 
 	return response, nil
-}
-
-func (s *Reservation6Service) sendImportFieldResponse(fileName string, tableHeader []string, response *excel.ImportResult) {
-	if response.Failed != 0 {
-		if err := response.FlushResult(fmt.Sprintf("%s-error-%s", fileName, time.Now().Format(excel.TimeFormat)),
-			tableHeader); err != nil {
-			log.Warnf("write error excel file failed: %s", err.Error())
-		}
-	}
 }
 
 func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet6s []*resource.Subnet6,
@@ -781,7 +772,7 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 	}
 
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
-		TableHeaderSubnet4, SubnetMandatoryFields)
+		TableHeaderSubnet6, SubnetMandatoryFields)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -801,7 +792,7 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 			continue
 		} else if missingMandatory {
 			addFailDataToResponse(response, TableHeaderReservation6FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}),
+				localizationReservation6ToStrSlice(&resource.Reservation6{}),
 				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, ReservationMandatoryFields))
 			continue
 		}
@@ -809,13 +800,13 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 		reservation6, err := s.parseReservation6FromFields(fields, tableHeaderFields)
 		if err != nil {
 			addFailDataToResponse(response, TableHeaderReservation6FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), err.Error())
+				localizationReservation6ToStrSlice(reservation6), err.Error())
 			continue
 		}
 
 		if err = reservation6.Validate(); err != nil {
 			addFailDataToResponse(response, TableHeaderReservation6FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), err.Error())
+				localizationReservation6ToStrSlice(reservation6), err.Error())
 			continue
 		}
 
@@ -830,13 +821,13 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 
 		if !contains {
 			addFailDataToResponse(response, TableHeaderReservation6FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), fmt.Sprintf("not found subnet"))
+				localizationReservation6ToStrSlice(reservation6), fmt.Sprintf("not found subnet"))
 			continue
 		}
 
 		if _, ok := reservationMap[reservation6.HwAddress]; ok {
 			addFailDataToResponse(response, TableHeaderReservation6FailLen,
-				localizationReservation4ToStrSlice(&resource.Reservation4{}), fmt.Sprintf("duplicate ip"))
+				localizationReservation6ToStrSlice(reservation6), fmt.Sprintf("duplicate ip"))
 			continue
 		}
 
@@ -850,32 +841,31 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 func (s *Reservation6Service) parseReservation6FromFields(fields, tableHeaderFields []string) (*resource.Reservation6, error) {
 	reservation6 := &resource.Reservation6{}
 
-	var hasHwAddress bool
+	var deviceFlag string
 	for i, field := range fields {
-		hasHwAddress = false
+		deviceFlag = ""
 		if excel.IsSpaceField(field) {
 			continue
 		}
 		field = strings.TrimSpace(field)
 		switch tableHeaderFields[i] {
 		case FieldNameIpAddress:
-			ip := net.ParseIP(strings.TrimSpace(field))
-			if ip == nil {
-				return nil, fmt.Errorf("invalid ip: %s", field)
-			}
-			reservation6.IpAddresses = []string{ip.String()}
-			reservation6.Ips = []net.IP{ip}
-		case FieldNameDeviceType:
-			if field == "hwAddress" {
-				hasHwAddress = true
-			}
-		case FieldNameReservation4Flag:
-			if hasHwAddress {
+			addresses := strings.Split(strings.TrimSpace(field), ",")
+			reservation6.IpAddresses = addresses
+		case FieldNameReservation6DeviceFlag:
+			deviceFlag = field
+		case FieldNameReservation6DeviceFlagValue:
+			if deviceFlag == ReservationFlagMac {
 				reservation6.HwAddress = field
 				continue
+			} else if deviceFlag == ReservationFlagHostName {
+				reservation6.Hostname = field
+				continue
+			} else if deviceFlag == ReservationFlagDUID {
+				reservation6.Duid = field
+				continue
 			}
-
-			reservation6.Hostname = field
+			return nil, fmt.Errorf("invalid device flag: %s", field)
 		case FieldNameComment:
 			reservation6.Comment = field
 		}
@@ -889,7 +879,7 @@ func (s *Reservation6Service) ExportExcel() (*excel.ExportFile, error) {
 		err := tx.Fill(nil, &reservation6s)
 		return err
 	}); err != nil {
-		return nil, fmt.Errorf("list reservation4s from db failed: %s", pg.Error(err).Error())
+		return nil, fmt.Errorf("list reservation6s from db failed: %s", pg.Error(err).Error())
 	}
 
 	strMatrix := make([][]string, 0, len(reservation6s))
@@ -908,7 +898,7 @@ func (s *Reservation6Service) ExportExcel() (*excel.ExportFile, error) {
 func (s *Reservation6Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 	if filepath, err := excel.WriteExcelFile(Reservation6TemplateFileName,
 		TableHeaderReservation6, TemplateReservation6); err != nil {
-		return nil, fmt.Errorf("export reservation4 template failed: %s", err.Error())
+		return nil, fmt.Errorf("export reservation6 template failed: %s", err.Error())
 	} else {
 		return &excel.ExportFile{Path: filepath}, nil
 	}
