@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -30,11 +31,34 @@ func (h *SubnetLease4Api) List(ctx *restresource.Context) (interface{}, *resterr
 }
 
 func (h *SubnetLease4Api) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := h.Service.Delete(
-		ctx.Resource.GetParent().(*resource.Subnet4),
-		ctx.Resource.GetID()); err != nil {
+	if err := h.Service.BatchDeleteLease4s(
+		(ctx.Resource.GetParent().(*resource.Subnet4)).GetID(),
+		[]string{ctx.Resource.GetID()}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
 
 	return nil
+}
+
+func (s *SubnetLease4Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case resource.ActionBatchDelete:
+		return s.actionBatchDelete(ctx)
+	default:
+		return nil, resterror.NewAPIError(resterror.InvalidAction,
+			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
+	}
+}
+
+func (s *SubnetLease4Api) actionBatchDelete(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	input, ok := ctx.Resource.GetAction().Input.(*resource.BatchDeleteInput)
+	if !ok {
+		return nil, resterror.NewAPIError(resterror.ServerError, "action batch delete input invalid")
+	}
+
+	if err := s.Service.BatchDeleteLease4s(input.Subnet, input.Ids); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+	} else {
+		return nil, nil
+	}
 }
