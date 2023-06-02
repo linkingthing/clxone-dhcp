@@ -30,9 +30,9 @@ var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string      `json:"-" db:"ownby"`
-	Duid                      string      `json:"duid" db:"uk"`
-	HwAddress                 string      `json:"hwAddress" db:"uk"`
-	Hostname                  string      `json:"hostname" db:"uk"`
+	Duid                      string      `json:"duid"`
+	HwAddress                 string      `json:"hwAddress"`
+	Hostname                  string      `json:"hostname"`
 	IpAddresses               []string    `json:"ipAddresses"`
 	Ips                       []net.IP    `json:"-"`
 	Prefixes                  []string    `json:"prefixes"`
