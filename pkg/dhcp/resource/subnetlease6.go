@@ -45,3 +45,12 @@ func (l *SubnetLease6) Equal(another *SubnetLease6) bool {
 		l.Iaid == another.Iaid &&
 		l.Hostname == another.Hostname
 }
+
+func (s SubnetLease6) GetActions() []restresource.Action {
+	return []restresource.Action{
+		{
+			Name:  ActionBatchDelete,
+			Input: &BatchDeleteInput{},
+		},
+	}
+}

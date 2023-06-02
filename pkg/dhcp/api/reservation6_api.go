@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+
 	"github.com/linkingthing/clxone-utils/excel"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -86,7 +87,7 @@ func (s *Reservation6Api) actionBatchDelete(ctx *restresource.Context) (interfac
 		return nil, resterror.NewAPIError(resterror.ServerError, "action batch delete input invalid")
 	}
 
-	if err := s.Service.BatchDeleteReservation6s(input.Subnet, input.Ids); err != nil {
+	if err := s.Service.BatchDeleteReservation6s(ctx.Resource.GetParent().GetID(), input.Ids); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return nil, nil

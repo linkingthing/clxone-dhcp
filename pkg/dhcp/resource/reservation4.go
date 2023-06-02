@@ -57,8 +57,7 @@ func (s Reservation4) GetActions() []restresource.Action {
 }
 
 type BatchDeleteInput struct {
-	Ids    []string `json:"ids"`
-	Subnet string   `json:"subnet"`
+	Ids []string `json:"ids"`
 }
 
 func (r *Reservation4) String() string {

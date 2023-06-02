@@ -87,7 +87,7 @@ func (s *Reservation4Api) actionBatchDelete(ctx *restresource.Context) (interfac
 		return nil, resterror.NewAPIError(resterror.ServerError, "action batch delete input invalid")
 	}
 
-	if err := s.Service.BatchDeleteReservation4s(input.Subnet, input.Ids); err != nil {
+	if err := s.Service.BatchDeleteReservation4s(ctx.Resource.GetParent().GetID(), input.Ids); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return nil, nil

@@ -2,12 +2,13 @@ package api
 
 import (
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
+
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SubnetLease6Api struct {
@@ -38,6 +39,10 @@ func (h *SubnetLease6Api) Delete(ctx *restresource.Context) *resterror.APIError 
 	return nil
 }
 
+func (r *SubnetLease6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	return nil, nil
+}
+
 func (s *SubnetLease6Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionBatchDelete:
@@ -54,7 +59,7 @@ func (s *SubnetLease6Api) actionBatchDelete(ctx *restresource.Context) (interfac
 		return nil, resterror.NewAPIError(resterror.ServerError, "action batch delete input invalid")
 	}
 
-	if err := s.Service.BatchDeleteLease6s(input.Subnet, input.Ids); err != nil {
+	if err := s.Service.BatchDeleteLease6s(ctx.Resource.GetParent().GetID(), input.Ids); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return nil, nil

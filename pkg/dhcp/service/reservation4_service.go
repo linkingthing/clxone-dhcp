@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/linkingthing/clxone-utils/excel"
-	"net"
 	"strings"
 	"time"
 
 	"github.com/linkingthing/cement/log"
+	"github.com/linkingthing/clxone-utils/excel"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -438,18 +437,18 @@ func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.R
 	return nil
 }
 
-func (s *Reservation4Service) BatchDeleteReservation4s(prefix string, ids []string) error {
+func (s *Reservation4Service) BatchDeleteReservation4s(subnetId string, ids []string) error {
 	if len(ids) == 0 {
 		return nil
 	}
 
-	subnet, err := GetSubnet4ByPrefix(prefix)
-	if err != nil {
-		return err
-	}
-
 	var reservations []*resource.Reservation4
-	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet, err := getSubnet4FromDB(tx, subnetId)
+		if err != nil {
+			return err
+		}
+
 		if err = tx.Fill(map[string]interface{}{restdb.IDField: restdb.FillValue{
 			Operator: restdb.OperatorAny, Value: ids}},
 			&reservations); err != nil {
@@ -499,7 +498,7 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile) (interface{}, 
 	defer sendImportFieldResponse(Reservation4ImportFileNamePrefix, TableHeaderReservation4Fail, response)
 	subnetReservationsMap, subnetMap, err := s.parseReservation4sFromFile(file.Name, subnet4s, response)
 	if err != nil {
-		return response, fmt.Errorf("parse subnet4s from file %s failed: %s",
+		return response, fmt.Errorf("parse reservation4s from file %s failed: %s",
 			file.Name, err.Error())
 	}
 
@@ -543,7 +542,7 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 	}
 
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
-		TableHeaderSubnet4, SubnetMandatoryFields)
+		TableHeaderReservation4, Reservation4MandatoryFields)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -558,13 +557,13 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 	for j, fields := range fieldcontents {
 		contains = false
 		fields, missingMandatory, emptyLine := excel.ParseTableFields(fields,
-			tableHeaderFields, ReservationMandatoryFields)
+			tableHeaderFields, Reservation4MandatoryFields)
 		if emptyLine {
 			continue
 		} else if missingMandatory {
 			addFailDataToResponse(response, TableHeaderReservation4FailLen,
 				localizationReservation4ToStrSlice(&resource.Reservation4{}),
-				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, ReservationMandatoryFields))
+				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, Reservation4MandatoryFields))
 			continue
 		}
 
@@ -613,35 +612,30 @@ func (s *Reservation4Service) parseReservation4sFromFields(fields, tableHeaderFi
 	reservation4 := &resource.Reservation4{}
 
 	var deviceFlag string
+	var err error
 	for i, field := range fields {
-		deviceFlag = ""
 		if excel.IsSpaceField(field) {
 			continue
 		}
 		field = strings.TrimSpace(field)
 		switch tableHeaderFields[i] {
 		case FieldNameIpAddress:
-			ip := net.ParseIP(strings.TrimSpace(field))
-			if ip == nil {
-				return nil, fmt.Errorf("invalid ip: %s", field)
-			}
-			reservation4.Ip = ip
+			reservation4.IpAddress = field
 		case FieldNameReservation4DeviceFlag:
 			deviceFlag = field
 		case FieldNameReservation4DeviceFlagValue:
 			if deviceFlag == ReservationFlagMac {
 				reservation4.HwAddress = field
-				continue
 			} else if deviceFlag == ReservationFlagHostName {
 				reservation4.Hostname = field
-				continue
+			} else {
+				err = fmt.Errorf("invalid device flag: %s", field)
 			}
-			return nil, fmt.Errorf("invalid device flag: %s", field)
 		case FieldNameComment:
 			reservation4.Comment = field
 		}
 	}
-	return reservation4, nil
+	return reservation4, err
 }
 
 func addFailDataToResponse(response *excel.ImportResult,

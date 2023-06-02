@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -40,6 +41,10 @@ func (h *SubnetLease4Api) Delete(ctx *restresource.Context) *resterror.APIError 
 	return nil
 }
 
+func (r *SubnetLease4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	return nil, nil
+}
+
 func (s *SubnetLease4Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionBatchDelete:
@@ -56,7 +61,7 @@ func (s *SubnetLease4Api) actionBatchDelete(ctx *restresource.Context) (interfac
 		return nil, resterror.NewAPIError(resterror.ServerError, "action batch delete input invalid")
 	}
 
-	if err := s.Service.BatchDeleteLease4s(input.Subnet, input.Ids); err != nil {
+	if err := s.Service.BatchDeleteLease4s(ctx.Resource.GetParent().GetID(), input.Ids); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return nil, nil

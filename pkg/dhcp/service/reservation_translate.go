@@ -17,15 +17,16 @@ const (
 
 const (
 	FieldNameIpAddress                   = "IP地址*"
-	FieldNameReservation4DeviceFlag      = "设备标识(MAC/主机名)"
-	FieldNameReservation6DeviceFlag      = "设备标识(MAC/主机名/DUID)"
+	FieldNameIpV6Address                 = "IPv6地址(多个IP逗号隔开)*"
+	FieldNameReservation4DeviceFlag      = "设备标识（MAC/主机名）"
+	FieldNameReservation6DeviceFlag      = "设备标识（MAC/主机名/DUID）"
 	FieldNameReservation4DeviceFlagValue = "MAC地址/主机名*"
 	FieldNameReservation6DeviceFlagValue = "MAC地址/主机名/DUID*"
 	FieldNameComment                     = "备注"
 )
 
 const (
-	ReservationFlagMac      = "MAC地址"
+	ReservationFlagMac      = "MAC"
 	ReservationFlagHostName = "主机名"
 	ReservationFlagDUID     = "DUID"
 )
@@ -36,20 +37,20 @@ var (
 	}
 
 	TableHeaderReservation6 = []string{
-		FieldNameIpAddress, FieldNameReservation6DeviceFlag, FieldNameReservation6DeviceFlagValue, FieldNameComment,
+		FieldNameIpV6Address, FieldNameReservation6DeviceFlag, FieldNameReservation6DeviceFlagValue, FieldNameComment,
 	}
 
 	TableHeaderReservation4Fail = append(TableHeaderReservation4, FailReasonLocalization)
 	TableHeaderReservation6Fail = append(TableHeaderReservation6, FailReasonLocalization)
 
-	ReservationMandatoryFields     = []string{FieldNameIpAddress, FieldNameReservation4DeviceFlag}
+	Reservation4MandatoryFields    = []string{FieldNameIpAddress, FieldNameReservation4DeviceFlagValue}
+	Reservation6MandatoryFields    = []string{FieldNameIpV6Address, FieldNameReservation6DeviceFlagValue}
 	TableHeaderReservation4FailLen = len(TableHeaderReservation4Fail)
 	TableHeaderReservation6FailLen = len(TableHeaderReservation6Fail)
 
 	TemplateReservation4 = [][]string{
-		{"2000::1111,2000::1112", "MAC", "00:0c:29:df:20:33", ""},
-		{"2000::2111", "主机名", "admin电脑1", ""},
-		{"2000::3111", "DUID", "000300015489982161be", ""},
+		{"10.0.0.10", "MAC", "00:0c:29:df:20:33", ""},
+		{"10.0.0.11", "主机名", "admin-设备1", ""},
 	}
 
 	TemplateReservation6 = [][]string{
