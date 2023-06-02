@@ -661,7 +661,8 @@ func (s *Reservation4Service) ExportExcel() (*excel.ExportFile, error) {
 	}
 
 	if filepath, err := excel.WriteExcelFile(Reservation4FileNamePrefix+
-		time.Now().Format(excel.TimeFormat), TableHeaderReservation4, strMatrix); err != nil {
+		time.Now().Format(excel.TimeFormat), TableHeaderReservation4, strMatrix,
+		getOpt(Reservation4DropList, len(strMatrix)+1)); err != nil {
 		return nil, fmt.Errorf("export reservation4s failed: %s", err.Error())
 	} else {
 		return &excel.ExportFile{Path: filepath}, nil
@@ -670,7 +671,7 @@ func (s *Reservation4Service) ExportExcel() (*excel.ExportFile, error) {
 
 func (s *Reservation4Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 	if filepath, err := excel.WriteExcelFile(Reservation4TemplateFileName,
-		TableHeaderReservation4, TemplateReservation4); err != nil {
+		TableHeaderReservation4, TemplateReservation4, getOpt(Reservation4DropList, len(TemplateReservation4)+1)); err != nil {
 		return nil, fmt.Errorf("export reservation4 template failed: %s", err.Error())
 	} else {
 		return &excel.ExportFile{Path: filepath}, nil

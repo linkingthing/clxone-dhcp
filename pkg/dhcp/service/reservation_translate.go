@@ -3,6 +3,8 @@ package service
 import (
 	"strings"
 
+	"github.com/linkingthing/clxone-utils/excel"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
 
@@ -58,7 +60,17 @@ var (
 		{"2000::2111", "主机名", "admin电脑1", ""},
 		{"2000::3111", "DUID", "000300015489982161be", ""},
 	}
+
+	Reservation4DropList = []string{ReservationFlagMac, ReservationFlagHostName}
+	Reservation6DropList = []string{ReservationFlagMac, ReservationFlagHostName, ReservationFlagDUID}
 )
+
+func getOpt(dropList []string, length int) excel.Operate {
+	return excel.MakeDropListOperate(excel.Range{
+		TopLeftAxis:     excel.Coordinate{ColNo: 2, RowNo: 2},
+		BottomRightAxis: excel.Coordinate{ColNo: 2, RowNo: length},
+	}, dropList)
+}
 
 func localizationReservation4ToStrSlice(reservation4 *resource.Reservation4) []string {
 	deviceFlag, deviceFlagValue := getFlagAndValue(reservation4.HwAddress, reservation4.Hostname, "")

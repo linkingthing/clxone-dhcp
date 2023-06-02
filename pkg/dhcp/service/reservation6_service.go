@@ -888,7 +888,8 @@ func (s *Reservation6Service) ExportExcel() (*excel.ExportFile, error) {
 	}
 
 	if filepath, err := excel.WriteExcelFile(Reservation6FileNamePrefix+
-		time.Now().Format(excel.TimeFormat), TableHeaderReservation6, strMatrix); err != nil {
+		time.Now().Format(excel.TimeFormat), TableHeaderReservation6, strMatrix,
+		getOpt(Reservation6DropList, len(strMatrix)+1)); err != nil {
 		return nil, fmt.Errorf("export reservation6s failed: %s", err.Error())
 	} else {
 		return &excel.ExportFile{Path: filepath}, nil
@@ -897,7 +898,7 @@ func (s *Reservation6Service) ExportExcel() (*excel.ExportFile, error) {
 
 func (s *Reservation6Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 	if filepath, err := excel.WriteExcelFile(Reservation6TemplateFileName,
-		TableHeaderReservation6, TemplateReservation6); err != nil {
+		TableHeaderReservation6, TemplateReservation6, getOpt(Reservation6DropList, len(TemplateReservation6)+1)); err != nil {
 		return nil, fmt.Errorf("export reservation6 template failed: %s", err.Error())
 	} else {
 		return &excel.ExportFile{Path: filepath}, nil
