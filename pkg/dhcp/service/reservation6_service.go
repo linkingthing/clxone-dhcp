@@ -825,13 +825,20 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 			continue
 		}
 
-		if _, ok := reservationMap[reservation6.HwAddress]; ok {
-			addFailDataToResponse(response, TableHeaderReservation6FailLen,
-				localizationReservation6ToStrSlice(reservation6), fmt.Sprintf("duplicate ip"))
-			continue
+		hasBreak := false
+		for _, IpAddress := range reservation6.IpAddresses {
+			if _, ok := reservationMap[IpAddress]; ok {
+				addFailDataToResponse(response, TableHeaderReservation6FailLen,
+					localizationReservation6ToStrSlice(reservation6), fmt.Sprintf("duplicate ip"))
+				hasBreak = true
+				break
+			}
+			reservationMap[IpAddress] = struct{}{}
 		}
 
-		reservationMap[reservation6.IpAddresses[0]] = struct{}{}
+		if hasBreak {
+			continue
+		}
 		subnetReservationMaps[ipnet] = append(subnetReservationMaps[ipnet], reservation6)
 	}
 
