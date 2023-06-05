@@ -37,7 +37,6 @@ func (h *SubnetLease4Api) Delete(ctx *restresource.Context) *resterror.APIError 
 		[]string{ctx.Resource.GetID()}); err != nil {
 		return resterror.NewAPIError(resterror.ServerError, err.Error())
 	}
-
 	return nil
 }
 

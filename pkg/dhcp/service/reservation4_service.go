@@ -26,6 +26,10 @@ func NewReservation4Service() *Reservation4Service {
 }
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := reservation.Validate(); err != nil {
+		return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet)
 	}); err != nil {
