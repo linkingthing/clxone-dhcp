@@ -5,10 +5,15 @@ import (
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
+)
+
+const (
+	ActionBatchDelete = "batch_delete"
 )
 
 var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
@@ -28,6 +33,31 @@ type Reservation4 struct {
 
 func (r Reservation4) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet4{}}
+}
+
+func (s Reservation4) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionBatchDelete,
+			Input: &BatchDeleteInput{},
+		},
+	}
+}
+
+type BatchDeleteInput struct {
+	Ids []string `json:"ids"`
 }
 
 func (r *Reservation4) String() string {

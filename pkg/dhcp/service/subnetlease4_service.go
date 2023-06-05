@@ -279,6 +279,58 @@ func (l *SubnetLease4Service) Delete(subnet *resource.Subnet4, leaseId string) e
 	return nil
 }
 
+func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []string) error {
+	for _, leaseId := range leaseIds {
+		if _, err := gohelperip.ParseIPv4(leaseId); err != nil {
+			return fmt.Errorf("subnet4 %s lease4 id %s is invalid: %v",
+				subnetId, leaseId, err.Error())
+		}
+	}
+
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet4, err := getSubnet4FromDB(tx, subnetId)
+		if err != nil {
+			return err
+		}
+
+		for _, leaseId := range leaseIds {
+			_, subnetLeases, err := getReservation4sAndSubnetLease4sWithIp(
+				tx, subnet4, leaseId)
+			if err != nil {
+				return err
+			}
+
+			lease4, err := GetSubnetLease4WithoutReclaimed(subnet4.SubnetId, leaseId,
+				subnetLeases)
+			if err != nil {
+				return err
+			} else if lease4 == nil {
+				return nil
+			}
+
+			lease4.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
+			lease4.Subnet4 = subnetId
+			if _, err = tx.Insert(lease4); err != nil {
+				return pg.Error(err)
+			}
+
+			if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+				_, err = client.DeleteLease4(ctx,
+					&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
+				return err
+			}); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("batch delete lease4 with subnet4 %s failed: %s", subnetId, err.Error())
+	}
+
+	return nil
+}
+
 func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, error) {
 	var err error
 	var resp *pbdhcpagent.GetLeases4Response

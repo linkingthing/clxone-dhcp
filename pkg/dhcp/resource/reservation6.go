@@ -3,6 +3,7 @@ package resource
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/linkingthing/clxone-utils/excel"
 	"math/big"
 	"net"
 	"strings"
@@ -44,6 +45,27 @@ type Reservation6 struct {
 
 func (r Reservation6) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet6{}}
+}
+
+func (s Reservation6) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionBatchDelete,
+			Input: &BatchDeleteInput{},
+		},
+	}
 }
 
 func (r *Reservation6) String() string {
