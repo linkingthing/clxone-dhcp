@@ -25,32 +25,35 @@ func NewReservation4Service() *Reservation4Service {
 }
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) error {
-	if err := reservation.Validate(); err != nil {
-		return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
-	}
-
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
-			return err
-		}
-
-		if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
-			reservation, true); err != nil {
-			return err
-		}
-
-		reservation.Subnet4 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return pg.Error(err)
-		}
-
-		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return CreateReservation4WithTx(tx, subnet, reservation)
 	}); err != nil {
 		return fmt.Errorf("create reservation4 %s failed: %s", reservation.String(), err.Error())
 	}
 
 	return nil
+}
+
+func CreateReservation4WithTx(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := reservation.Validate(); err != nil {
+		return fmt.Errorf("validate reservation4 %s error: %s", reservation.IpAddress, err.Error())
+	}
+
+	if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
+		return err
+	}
+
+	if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
+		reservation, true); err != nil {
+		return err
+	}
+
+	reservation.Subnet4 = subnet.GetID()
+	if _, err := tx.Insert(reservation); err != nil {
+		return pg.Error(err)
+	}
+
+	return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 }
 
 func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
@@ -393,30 +396,9 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 		return err
 	}
 
-	for _, reservation := range reservations {
-		if err := reservation.Validate(); err != nil {
-			return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
-		}
-	}
-
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, reservation := range reservations {
-			if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
-				return err
-			}
-
-			if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
-				reservation, true); err != nil {
-				return err
-			}
-
-			reservation.Subnet4 = subnet.GetID()
-			if _, err := tx.Insert(reservation); err != nil {
-				return pg.Error(err)
-			}
-
-			if err := sendCreateReservation4CmdToDHCPAgent(
-				subnet.SubnetId, subnet.Nodes, reservation); err != nil {
+			if err = CreateReservation4WithTx(tx, subnet, reservation); err != nil {
 				return err
 			}
 		}
