@@ -41,7 +41,11 @@ func (s SubnetLease4) GetActions() []restresource.Action {
 	return []restresource.Action{
 		{
 			Name:  ActionBatchDelete,
-			Input: &BatchDeleteInput{},
+			Input: &BatchDeleteLeasesInput{},
 		},
 	}
+}
+
+type BatchDeleteLeasesInput struct {
+	Addresses []string `json:"addresses"`
 }

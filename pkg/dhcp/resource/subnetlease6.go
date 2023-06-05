@@ -50,7 +50,7 @@ func (s SubnetLease6) GetActions() []restresource.Action {
 	return []restresource.Action{
 		{
 			Name:  ActionBatchDelete,
-			Input: &BatchDeleteInput{},
+			Input: &BatchDeleteLeasesInput{},
 		},
 	}
 }
