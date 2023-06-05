@@ -238,6 +238,26 @@ func (g *GrpcService) GetLease6SBySubnet(ctx context.Context, request *dhcppb.Ge
 	}
 }
 
+func (g *GrpcService) GetLease4SWithMacs(ctx context.Context, request *dhcppb.GetLeaseWithMacsRequest) (*dhcppb.GetLease4SResponse, error) {
+	if lease4s, err := GetDHCPService().GetLease4SWithMacs(request.GetHwAddresses()); err != nil {
+		return nil, err
+	} else {
+		return &dhcppb.GetLease4SResponse{
+			Lease4S: lease4s,
+		}, nil
+	}
+}
+
+func (g *GrpcService) GetLease6SWithMacs(ctx context.Context, request *dhcppb.GetLeaseWithMacsRequest) (*dhcppb.GetLease6SResponse, error) {
+	if lease6s, err := GetDHCPService().GetLease6SWithMacs(request.GetHwAddresses()); err != nil {
+		return nil, err
+	} else {
+		return &dhcppb.GetLease6SResponse{
+			Lease6S: lease6s,
+		}, nil
+	}
+}
+
 func (g *GrpcService) CreateReservation4S(ctx context.Context, request *dhcppb.CreateReservation4SRequest) (*dhcppb.CreateReservation4SResponse, error) {
 	if err := GetDHCPService().CreateReservation4s(request.GetSubnet(),
 		request.GetReservation4S()); err != nil {

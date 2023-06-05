@@ -776,6 +776,22 @@ func (d DHCPService) GetLease4ByPrefix(prefix string) ([]*pbdhcp.Lease4, error) 
 	}
 }
 
+func (d DHCPService) GetLease4SWithMacs(hwAddresses []string) ([]*pbdhcp.Lease4, error) {
+	lease4s, err := service.GetSubnets4LeasesWithMacs(hwAddresses)
+	if err != nil {
+		return nil, err
+	}
+	return parser.SubnetLeases4sToPbDHCPLease4s(lease4s), nil
+}
+
+func (d DHCPService) GetLease6SWithMacs(hwAddresses []string) ([]*pbdhcp.Lease6, error) {
+	lease6s, err := service.GetSubnets6LeasesWithMacs(hwAddresses)
+	if err != nil {
+		return nil, err
+	}
+	return parser.SubnetLease6sToPbDHCPLease6s(lease6s), nil
+}
+
 func (d *DHCPService) GetAllSubnet6s() ([]*pbdhcp.Subnet6, error) {
 	var subnet6s []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {

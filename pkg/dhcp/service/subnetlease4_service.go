@@ -330,3 +330,36 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 
 	return nil
 }
+
+func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, error) {
+	var err error
+	var resp *pbdhcpagent.GetLeases4Response
+	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnets4LeasesWithMacs(ctx,
+			&pbdhcpagent.GetSubnets4LeasesWithMacsRequest{HwAddresses: hwAddresses})
+		return err
+	}); err != nil {
+		return nil, fmt.Errorf("get lease4s by mac failed: %s", err.Error())
+	}
+
+	addresses := make([]string, 0, len(resp.Leases))
+	for i, lease := range resp.Leases {
+		addresses[i] = lease.Address
+	}
+
+	var reservations []*resource.Reservation4
+	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&reservations, `select * from gr_reservation4 where ip_address = any($1::text[])`, addresses)
+	}); err != nil {
+		return nil, fmt.Errorf("list reservation4s failed: %s", err.Error())
+	}
+
+	reservationMap := reservationMapFromReservation4s(reservations)
+
+	leases := make([]*resource.SubnetLease4, len(resp.Leases))
+	for i, lease := range resp.Leases {
+		leases[i] = subnetLease4FromPbLease4AndReservations(lease, reservationMap)
+	}
+
+	return leases, nil
+}

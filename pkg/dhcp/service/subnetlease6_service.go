@@ -344,3 +344,36 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 
 	return nil
 }
+
+func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, error) {
+	var err error
+	var resp *pbdhcpagent.GetLeases6Response
+	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+		resp, err = client.GetSubnets6LeasesWithMacs(ctx,
+			&pbdhcpagent.GetSubnets6LeasesWithMacsRequest{HwAddresses: hwAddresses})
+		return err
+	}); err != nil {
+		return nil, fmt.Errorf("get lease by mac failed: %s", err.Error())
+	}
+
+	subnetIds := make([]string, 0, len(resp.Leases))
+	for i, lease := range resp.Leases {
+		subnetIds[i] = fmt.Sprintf("%d", lease.SubnetId)
+	}
+
+	var reservations []*resource.Reservation6
+	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&reservations, `select * from gr_reservation6 where subnet6 = any($1::text[])`, subnetIds)
+	}); err != nil {
+		return nil, fmt.Errorf("list reservation6s failed: %s", err.Error())
+	}
+
+	reservationMap := reservationMapFromReservation6s(reservations)
+
+	leases := make([]*resource.SubnetLease6, len(resp.Leases))
+	for i, lease := range resp.Leases {
+		leases[i] = subnetLease6FromPbLease6AndReservations(lease, reservationMap)
+	}
+
+	return leases, nil
+}
