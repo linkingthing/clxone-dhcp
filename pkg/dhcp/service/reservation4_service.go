@@ -26,6 +26,10 @@ func NewReservation4Service() *Reservation4Service {
 }
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := reservation.Validate(); err != nil {
+		return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet)
 	}); err != nil {
@@ -502,15 +506,6 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile) (interface{}, 
 	return response, nil
 }
 
-func (s *Reservation4Service) sendImportFieldResponse(fileName string, tableHeader []string, response *excel.ImportResult) {
-	if response.Failed != 0 {
-		if err := response.FlushResult(fmt.Sprintf("%s-error-%s", fileName, time.Now().Format(excel.TimeFormat)),
-			tableHeader); err != nil {
-			log.Warnf("write error excel file failed: %s", err.Error())
-		}
-	}
-}
-
 func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet4s []*resource.Subnet4,
 	response *excel.ImportResult) (map[string][]*resource.Reservation4, map[string]*resource.Subnet4, error) {
 	contents, err := excel.ReadExcelFile(fileName)
@@ -576,7 +571,7 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 			continue
 		}
 
-		if _, ok := reservationMap[reservation4.HwAddress]; ok {
+		if _, ok := reservationMap[reservation4.IpAddress]; ok {
 			addFailDataToResponse(response, TableHeaderReservation4FailLen,
 				localizationReservation4ToStrSlice(reservation4), fmt.Sprintf("duplicate ip"))
 			continue

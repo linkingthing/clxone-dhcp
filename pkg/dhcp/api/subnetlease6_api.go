@@ -58,12 +58,12 @@ func (s *SubnetLease6Api) Action(ctx *restresource.Context) (interface{}, *reste
 }
 
 func (s *SubnetLease6Api) actionBatchDelete(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	input, ok := ctx.Resource.GetAction().Input.(*resource.BatchDeleteInput)
+	input, ok := ctx.Resource.GetAction().Input.(*resource.BatchDeleteLeasesInput)
 	if !ok {
 		return nil, resterror.NewAPIError(resterror.ServerError, "action batch delete input invalid")
 	}
 
-	if err := s.Service.BatchDeleteLease6s(ctx.Resource.GetParent().GetID(), input.Ids); err != nil {
+	if err := s.Service.BatchDeleteLease6s(ctx.Resource.GetParent().GetID(), input.Addresses); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return nil, nil
