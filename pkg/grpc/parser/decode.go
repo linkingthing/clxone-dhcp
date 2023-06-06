@@ -12,7 +12,7 @@ func Reservation4sFromPbDHCPReservation4s(pbReservations []*pbdhcp.Reservation4)
 			HwAddress: pbReservation.GetHwAddress(),
 			IpAddress: pbReservation.GetIpAddress(),
 			Comment:   pbReservation.GetComment(),
-			//Hostname: pbReservation.GetHostname(), // todo: add this line, follows too
+			Hostname:  pbReservation.GetHostname(),
 		}
 	}
 
@@ -27,7 +27,7 @@ func Reservation6sFromPbDHCPReservation6s(pbReservations []*pbdhcp.Reservation6)
 			Duid:        pbReservation.GetDuid(),
 			IpAddresses: pbReservation.GetIpAddresses(),
 			Comment:     pbReservation.GetComment(),
-			//Hostname: pbReservation.GetHostname(), // todo: add this line
+			Hostname:    pbReservation.GetHostname(),
 		}
 	}
 

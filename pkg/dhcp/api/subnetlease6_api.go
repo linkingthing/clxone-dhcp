@@ -47,6 +47,10 @@ func (s *SubnetLease6Api) Action(ctx *restresource.Context) (interface{}, *reste
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionBatchDelete:
 		return s.actionBatchDelete(ctx)
+	case resource.ActionListToReservation:
+		return s.actionListToReservation(ctx)
+	case resource.ActionDynamicToReservation:
+		return s.actionDynamicToReservation(ctx)
 	default:
 		return nil, resterror.NewAPIError(resterror.InvalidAction,
 			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
@@ -64,4 +68,30 @@ func (s *SubnetLease6Api) actionBatchDelete(ctx *restresource.Context) (interfac
 	} else {
 		return nil, nil
 	}
+}
+
+func (s *SubnetLease6Api) actionListToReservation(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	util.SetIgnoreAuditLog(ctx)
+	input, ok := ctx.Resource.GetAction().Input.(*resource.ConvToReservationInput)
+	if !ok {
+		return nil, resterror.NewAPIError(resterror.ServerError, "action input invalid")
+	}
+
+	output, err := s.Service.ActionListToReservation(ctx.Resource.GetParent().(*resource.Subnet6), input)
+	if err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+	}
+	return output, nil
+}
+
+func (s *SubnetLease6Api) actionDynamicToReservation(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	input, ok := ctx.Resource.GetAction().Input.(*resource.ConvToReservationInput)
+	if !ok {
+		return nil, resterror.NewAPIError(resterror.ServerError, "action input invalid")
+	}
+
+	if err := s.Service.ActionDynamicToReservation(ctx.Resource.GetParent().(*resource.Subnet6), input); err != nil {
+		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+	}
+	return nil, nil
 }

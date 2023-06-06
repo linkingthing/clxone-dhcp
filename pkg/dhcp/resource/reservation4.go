@@ -13,7 +13,9 @@ import (
 )
 
 const (
-	ActionBatchDelete = "batch_delete"
+	ActionBatchDelete          = "batch_delete"
+	ActionListToReservation    = "list_to_reservation"
+	ActionDynamicToReservation = "dynamic_to_reservation"
 )
 
 var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
@@ -58,6 +60,24 @@ func (s Reservation4) GetActions() []restresource.Action {
 
 type BatchDeleteInput struct {
 	Ids []string `json:"ids"`
+}
+
+type ConvToReservationInput struct {
+	Addresses       []string        `json:"addresses"`
+	ReservationType ReservationType `json:"reservationType"`
+	BothV4V6        bool            `json:"bothV4V6"`
+}
+
+type ConvToReservationItem struct {
+	Address    string   `json:"address"`
+	DualStacks []string `json:"dualStacks"`
+	HwAddress  string   `json:"hwAddress"`
+	Hostname   string   `json:"hostname"`
+	Duid       string   `json:"duid"`
+}
+
+type ConvToReservationOutput struct {
+	Data []ConvToReservationItem `json:"data"`
 }
 
 func (r *Reservation4) String() string {

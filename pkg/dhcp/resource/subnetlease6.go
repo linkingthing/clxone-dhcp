@@ -52,5 +52,14 @@ func (s SubnetLease6) GetActions() []restresource.Action {
 			Name:  ActionBatchDelete,
 			Input: &BatchDeleteInput{},
 		},
+		{
+			Name:   ActionListToReservation,
+			Input:  &ConvToReservationInput{},
+			Output: &ConvToReservationOutput{},
+		},
+		{
+			Name:  ActionDynamicToReservation,
+			Input: &ConvToReservationInput{},
+		},
 	}
 }

@@ -5,6 +5,14 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
+type ReservationType string
+
+const (
+	ReservationTypeMac      ReservationType = "mac"
+	ReservationTypeHostname ReservationType = "hostname"
+	ReservationTypeDuid     ReservationType = "duid"
+)
+
 var TableSubnetLease4 = restdb.ResourceDBType(&SubnetLease4{})
 
 type SubnetLease4 struct {
@@ -42,6 +50,15 @@ func (s SubnetLease4) GetActions() []restresource.Action {
 		{
 			Name:  ActionBatchDelete,
 			Input: &BatchDeleteInput{},
+		},
+		{
+			Name:   ActionListToReservation,
+			Input:  &ConvToReservationInput{},
+			Output: &ConvToReservationOutput{},
+		},
+		{
+			Name:  ActionDynamicToReservation,
+			Input: &ConvToReservationInput{},
 		},
 	}
 }
