@@ -655,6 +655,22 @@ func (s *Reservation4Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 }
 
 func createReservationsBySubnet(v4Map map[string][]*resource.Reservation4, v6Map map[string][]*resource.Reservation6) error {
+	for _, reservation4s := range v4Map {
+		for _, reservation := range reservation4s {
+			if err := reservation.Validate(); err != nil {
+				return err
+			}
+		}
+	}
+
+	for _, reservation6s := range v6Map {
+		for _, reservation := range reservation6s {
+			if err := reservation.Validate(); err != nil {
+				return err
+			}
+		}
+	}
+
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for subnetId, reservation4s := range v4Map {
 			subnet4, err := getSubnet4FromDB(tx, subnetId)

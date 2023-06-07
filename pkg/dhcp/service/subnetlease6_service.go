@@ -81,7 +81,7 @@ func (l *SubnetLease6Service) listToReservationWithMac(leases []*resource.Subnet
 
 	result := make([]resource.ConvToReservationItem, 0, len(reservationLeases))
 	for _, lease := range reservationLeases {
-		var dualStack []string
+		dualStack := make([]string, 0, len(lease4s))
 		for _, lease4 := range lease4s {
 			if lease4.HwAddress == lease.HwAddress {
 				dualStack = append(dualStack, lease4.Address)
