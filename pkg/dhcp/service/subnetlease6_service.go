@@ -532,7 +532,7 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 		return nil, fmt.Errorf("get lease6s by mac failed: %s", err.Error())
 	}
 
-	subnetIds := make([]string, 0, len(resp.Leases))
+	subnetIds := make([]string, len(resp.Leases))
 	for i, lease := range resp.Leases {
 		subnetIds[i] = fmt.Sprintf("%d", lease.SubnetId)
 	}

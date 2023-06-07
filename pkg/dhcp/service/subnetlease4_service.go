@@ -518,7 +518,7 @@ func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, 
 		return nil, fmt.Errorf("get lease4s by mac failed: %s", err.Error())
 	}
 
-	addresses := make([]string, 0, len(resp.Leases))
+	addresses := make([]string, len(resp.Leases))
 	for i, lease := range resp.Leases {
 		addresses[i] = lease.Address
 	}
