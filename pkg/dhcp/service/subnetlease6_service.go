@@ -152,7 +152,6 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 		if lease4.HwAddress == "" || seenMac[lease4.HwAddress] || lease4.AddressType != resource.AddressTypeDynamic {
 			continue
 		}
-		fmt.Printf("lease4: %s, subnet Id: %s\n", lease4.Address, lease4.Subnet4)
 		seenMac[lease4.HwAddress] = true
 		v4ReservationMap[lease4.Subnet4] = append(v4ReservationMap[lease4.Subnet4], &resource.Reservation4{
 			IpAddress: lease4.Address,
