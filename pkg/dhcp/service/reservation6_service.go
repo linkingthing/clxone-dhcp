@@ -715,36 +715,44 @@ func (s *Reservation6Service) BatchDeleteReservation6s(subnetId string, ids []st
 	})
 }
 
-func (s *Reservation6Service) ImportExcel(file *excel.ImportFile) (interface{}, error) {
+func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId string) (interface{}, error) {
 	var subnet6s []*resource.Subnet6
-	if err := db.GetResources(map[string]interface{}{resource.SqlOrderBy: "subnet_id desc"},
+	if err := db.GetResources(map[string]interface{}{restdb.IDField: subnetId},
 		&subnet6s); err != nil {
 		return nil, fmt.Errorf("get subnet6s from db failed: %s", err.Error())
+	} else if len(subnet6s) == 0 {
+		return nil, fmt.Errorf("not found subnet6")
 	}
 
 	response := &excel.ImportResult{}
 	defer sendImportFieldResponse(Reservation6ImportFileNamePrefix, TableHeaderReservation6Fail, response)
-	subnetReservationsMap, subnetMap, err := s.parseReservation6sFromFile(file.Name, subnet6s, response)
+	reservations, err := s.parseReservation6sFromFile(file.Name, subnet6s[0], response)
 	if err != nil {
 		return response, fmt.Errorf("parse reservation6s from file %s failed: %s",
 			file.Name, err.Error())
 	}
 
-	if len(subnetReservationsMap) == 0 {
+	if len(reservations) == 0 {
 		return response, nil
 	}
 
+	validReservations := make([]*resource.Reservation6, 0, len(reservations))
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for ipnet, reservations := range subnetReservationsMap {
-			if err = batchCreateReservation6s(tx, subnetMap[ipnet], reservations); err != nil {
+		for _, reservation := range reservations {
+			if err = checkReservation6CouldBeCreated(tx, subnet6s[0], reservation); err != nil {
+				addFailDataToResponse(response, TableHeaderReservation6FailLen,
+					localizationReservation6ToStrSlice(reservation), err.Error())
+				continue
+			}
+
+			if err = batchInsertReservation6s(tx, subnet6s[0], reservation); err != nil {
 				return err
 			}
-			if err = batchSendCreateReservation6Cmd(subnetMap[ipnet], reservations...); err != nil {
-				return err
-			}
+
+			validReservations = append(validReservations, reservation)
 		}
 
-		return nil
+		return batchSendCreateReservation6Cmd(subnet6s[0], validReservations...)
 	}); err != nil {
 		return nil, fmt.Errorf("batch create reservation6s failed: %s", err.Error())
 	}
@@ -752,32 +760,45 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile) (interface{}, 
 	return response, nil
 }
 
-func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet6s []*resource.Subnet6,
-	response *excel.ImportResult) (map[string][]*resource.Reservation6, map[string]*resource.Subnet6, error) {
+func batchInsertReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
+
+	if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
+		reservation, true); err != nil {
+		return err
+	}
+
+	reservation.Subnet6 = subnet.GetID()
+	if _, err := tx.Insert(reservation); err != nil {
+		return pg.Error(err)
+	}
+
+	return nil
+}
+
+func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet6 *resource.Subnet6,
+	response *excel.ImportResult) ([]*resource.Reservation6, error) {
 	contents, err := excel.ReadExcelFile(fileName)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if len(contents) < 2 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderReservation6, Reservation6MandatoryFields)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	response.InitData(len(contents) - 1)
 	fieldcontents := contents[1:]
-	subnetReservationMaps := make(map[string][]*resource.Reservation6, len(fieldcontents))
-	subnetMap := make(map[string]*resource.Subnet6, len(fieldcontents))
+	reservations := make([]*resource.Reservation6, 0, len(fieldcontents))
 	reservationMap := make(map[string]struct{}, len(fieldcontents))
 	var contains bool
-	var ipnet string
 	for j, fields := range fieldcontents {
-		contains = false
+		contains = true
 		fields, missingMandatory, emptyLine := excel.ParseTableFields(fields,
 			tableHeaderFields, Reservation6MandatoryFields)
 		if emptyLine {
@@ -802,11 +823,9 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 			continue
 		}
 
-		for _, subnet6 := range subnet6s {
-			if subnet6.Ipnet.Contains(reservation6.Ips[0]) {
-				contains = true
-				ipnet = subnet6.Ipnet.String()
-				subnetMap[ipnet] = subnet6
+		for _, ip := range reservation6.Ips {
+			if !subnet6.Ipnet.Contains(ip) {
+				contains = false
 				break
 			}
 		}
@@ -831,10 +850,10 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 		if hasBreak {
 			continue
 		}
-		subnetReservationMaps[ipnet] = append(subnetReservationMaps[ipnet], reservation6)
+		reservations = append(reservations, reservation6)
 	}
 
-	return subnetReservationMaps, subnetMap, nil
+	return reservations, nil
 }
 
 func (s *Reservation6Service) parseReservation6FromFields(fields, tableHeaderFields []string) (*resource.Reservation6, error) {
