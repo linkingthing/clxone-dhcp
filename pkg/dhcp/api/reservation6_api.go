@@ -100,7 +100,7 @@ func (s *Reservation6Api) actionImportExcel(ctx *restresource.Context) (interfac
 		return nil, resterror.NewAPIError(resterror.ServerError, "action import reservation6s input invalid")
 	}
 
-	if resp, err := s.Service.ImportExcel(file); err != nil {
+	if resp, err := s.Service.ImportExcel(file, ctx.Resource.GetParent().GetID()); err != nil {
 		return resp, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return resp, nil
