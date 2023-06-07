@@ -17,6 +17,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SubnetLease6Service struct{}
@@ -523,7 +524,9 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 	var resp *pbdhcpagent.GetLeases6Response
 	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnets6LeasesWithMacs(ctx,
-			&pbdhcpagent.GetSubnets6LeasesWithMacsRequest{HwAddresses: hwAddresses})
+			&pbdhcpagent.GetSubnets6LeasesWithMacsRequest{
+				HwAddresses: util.ToLower(hwAddresses),
+			})
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("get lease6s by mac failed: %s", err.Error())
