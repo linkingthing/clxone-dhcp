@@ -308,7 +308,6 @@ func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource
 		}
 	}
 
-	lease4.HwAddress = strings.ToUpper(lease4.HwAddress)
 	return []*resource.SubnetLease4{lease4}, nil
 }
 
@@ -338,7 +337,7 @@ func SubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLea
 		Subnet4:               strconv.FormatUint(lease.GetSubnetId(), 10),
 		Address:               lease.GetAddress(),
 		AddressType:           resource.AddressTypeDynamic,
-		HwAddress:             lease.GetHwAddress(),
+		HwAddress:             strings.ToUpper(lease.GetHwAddress()),
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ClientId:              lease.GetClientId(),
 		ValidLifetime:         lease.GetValidLifetime(),
@@ -386,7 +385,6 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 			reclaimleasesForRetain = append(reclaimleasesForRetain, reclaimedLease.GetID())
 			continue
 		} else {
-			lease4.HwAddress = strings.ToUpper(lease4.HwAddress)
 			leases = append(leases, lease4)
 		}
 	}
