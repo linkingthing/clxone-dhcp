@@ -528,7 +528,7 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 			&pbdhcpagent.GetSubnets6LeasesWithMacsRequest{HwAddresses: hwAddresses})
 		return err
 	}); err != nil {
-		return nil, fmt.Errorf("get lease by mac failed: %s", err.Error())
+		return nil, fmt.Errorf("get lease6s by mac failed: %s", err.Error())
 	}
 
 	subnetIds := make([]string, 0, len(resp.Leases))
