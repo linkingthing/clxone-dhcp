@@ -752,16 +752,23 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 		return response, nil
 	}
 
+	validReservations := make([]*resource.Reservation6, 0, len(reservations))
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, reservation := range reservations {
-			if err = batchImportReservation6s(tx, subnet6s[0], reservation, response); err != nil {
+			if err = checkReservation6CouldBeCreated(tx, subnet6s[0], reservation); err != nil {
+				addFailDataToResponse(response, TableHeaderReservation6FailLen,
+					localizationReservation6ToStrSlice(reservation), err.Error())
+				continue
+			}
+
+			if err = batchInsertReservation6s(tx, subnet6s[0], reservation); err != nil {
 				return err
 			}
-			if err = batchSendCreateReservation6Cmd(subnetMap[ipnet], reservations...); err != nil {
-				return err
-			}
+
+			validReservations = append(validReservations, reservation)
 		}
-		return nil
+
+		return batchSendCreateReservation6Cmd(subnet6s[0], validReservations...)
 	}); err != nil {
 		return nil, fmt.Errorf("batch create reservation6s failed: %s", err.Error())
 	}
@@ -769,13 +776,7 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 	return response, nil
 }
 
-func batchImportReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6,
-	response *excel.ImportResult) error {
-	if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
-		addFailDataToResponse(response, TableHeaderReservation6FailLen,
-			localizationReservation6ToStrSlice(reservation), err.Error())
-		return nil
-	}
+func batchInsertReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
 
 	if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
 		reservation, true); err != nil {
@@ -785,11 +786,6 @@ func batchImportReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, r
 	reservation.Subnet6 = subnet.GetID()
 	if _, err := tx.Insert(reservation); err != nil {
 		return pg.Error(err)
-	}
-
-	if err := sendCreateReservation6CmdToDHCPAgent(
-		subnet.SubnetId, subnet.Nodes, reservation); err != nil {
-		return err
 	}
 
 	return nil

@@ -489,27 +489,32 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile, subnetId strin
 
 	response := &excel.ImportResult{}
 	defer sendImportFieldResponse(Reservation4ImportFileNamePrefix, TableHeaderReservation4Fail, response)
-	subnetReservations, err := s.parseReservation4sFromFile(file.Name, subnet4s[0], response)
+	reservations, err := s.parseReservation4sFromFile(file.Name, subnet4s[0], response)
 	if err != nil {
 		return response, fmt.Errorf("parse reservation4s from file %s failed: %s",
 			file.Name, err.Error())
 	}
 
-	if len(subnetReservations) == 0 {
+	if len(reservations) == 0 {
 		return response, nil
 	}
 
+	validReservations := make([]*resource.Reservation4, 0, len(reservations))
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for _, reservation := range subnetReservations {
-			if err = batchImportReservationV4s(tx, subnet4s[0], reservation, response); err != nil {
+		for _, reservation := range reservations {
+			if err = checkReservation4CouldBeCreated(tx, subnet4s[0], reservation); err != nil {
+				addFailDataToResponse(response, TableHeaderReservation4FailLen,
+					localizationReservation4ToStrSlice(reservation), err.Error())
+				continue
+			}
+
+			if err = batchInsertReservationV4s(tx, subnet4s[0], reservation); err != nil {
 				return err
 			}
-			if err = batchSendCreateReservation4Cmd(subnetMap[ipnet], reservations...); err != nil {
-				return err
-			}
+			validReservations = append(validReservations, reservation)
 		}
 
-		return nil
+		return batchSendCreateReservation4Cmd(subnet4s[0], validReservations...)
 	}); err != nil {
 		return nil, fmt.Errorf("create reservation4s failed: %s", err.Error())
 	}
@@ -517,12 +522,7 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile, subnetId strin
 	return response, nil
 }
 
-func batchImportReservationV4s(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4, response *excel.ImportResult) error {
-	if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
-		addFailDataToResponse(response, TableHeaderReservation4FailLen,
-			localizationReservation4ToStrSlice(reservation), err.Error())
-		return nil
-	}
+func batchInsertReservationV4s(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
 
 	if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
 		reservation, true); err != nil {
@@ -532,11 +532,6 @@ func batchImportReservationV4s(tx restdb.Transaction, subnet *resource.Subnet4, 
 	reservation.Subnet4 = subnet.GetID()
 	if _, err := tx.Insert(reservation); err != nil {
 		return pg.Error(err)
-	}
-
-	if err := sendCreateReservation4CmdToDHCPAgent(
-		subnet.SubnetId, subnet.Nodes, reservation); err != nil {
-		return err
 	}
 
 	return nil
