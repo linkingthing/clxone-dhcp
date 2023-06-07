@@ -29,27 +29,11 @@ func NewReservation6Service() *Reservation6Service {
 }
 
 func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *resource.Reservation6) error {
-	if err := reservation.Validate(); err != nil {
-		return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
-	}
-
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
+		if err := batchCreateReservation6s(tx, subnet, []*resource.Reservation6{reservation}); err != nil {
 			return err
 		}
-
-		if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-			reservation, true); err != nil {
-			return err
-		}
-
-		reservation.Subnet6 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return pg.Error(err)
-		}
-
-		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return batchSendCreateReservation6Cmd(subnet, reservation)
 	}); err != nil {
 		return fmt.Errorf("create reservation6 %s failed: %s",
 			reservation.String(), err.Error())

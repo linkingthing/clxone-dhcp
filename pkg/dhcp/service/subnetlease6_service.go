@@ -56,7 +56,7 @@ func (l *SubnetLease6Service) ActionListToReservation(subnet *resource.Subnet6, 
 func (l *SubnetLease6Service) filterAbleToReservation(leases []*resource.SubnetLease6, addresses []string) []*resource.SubnetLease6 {
 	reservationLeases := make([]*resource.SubnetLease6, 0, len(leases))
 	for _, lease := range leases {
-		if slice.SliceIndex(addresses, lease.Address) >= 0 {
+		if lease.AddressType == resource.AddressTypeDynamic && slice.SliceIndex(addresses, lease.Address) >= 0 {
 			reservationLeases = append(reservationLeases, lease)
 		}
 	}
@@ -126,7 +126,7 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 	}
 
 	leases = l.filterAbleToReservation(leases, input.Addresses)
-	reservations, err := l.getReservationFromLease(leases, input)
+	reservations, err := l.getReservationFromLease(leases, input.ReservationType)
 	if err != nil {
 		return err
 	}
@@ -150,8 +150,11 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 	v4ReservationMap := make(map[string][]*resource.Reservation4, len(lease4s))
 	seenMac := make(map[string]bool, len(lease4s))
 	for _, lease4 := range lease4s {
-		if lease4.HwAddress == "" || seenMac[lease4.HwAddress] || lease4.AddressType != resource.AddressTypeDynamic {
+		if lease4.HwAddress == "" || lease4.AddressType != resource.AddressTypeDynamic {
 			continue
+		}
+		if seenMac[lease4.HwAddress] {
+			return fmt.Errorf("duplicated v4 mac %q", lease4.HwAddress)
 		}
 		seenMac[lease4.HwAddress] = true
 		v4ReservationMap[lease4.Subnet4] = append(v4ReservationMap[lease4.Subnet4], &resource.Reservation4{
@@ -163,43 +166,35 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 	return createReservationsBySubnet(v4ReservationMap, v6ReservationMap)
 }
 
-func (l *SubnetLease6Service) getReservationFromLease(leases []*resource.SubnetLease6, input *resource.ConvToReservationInput) (
+func (l *SubnetLease6Service) getReservationFromLease(leases []*resource.SubnetLease6, reservationType resource.ReservationType) (
 	[]*resource.Reservation6, error) {
 	reservations := make([]*resource.Reservation6, 0, len(leases))
-	seen := make(map[string]bool, len(leases))
+	seen := make(map[string][]string, len(leases))
 	for _, lease := range leases {
-		if lease.AddressType != resource.AddressTypeDynamic {
-			continue
-		}
-
-		var hwAddress, hostname, key string
-		switch input.ReservationType {
+		var key string
+		switch reservationType {
 		case resource.ReservationTypeMac:
-			hwAddress = lease.HwAddress
-			if hwAddress == "" {
+			key = lease.HwAddress
+			if key == "" {
 				return nil, fmt.Errorf("%s has no hwAddress", lease.Address)
 			}
-			key = hwAddress
 		case resource.ReservationTypeHostname:
-			hostname = lease.Hostname
-			if hostname == "" {
+			key = lease.Hostname
+			if key == "" {
 				return nil, fmt.Errorf("%s has no hostname", lease.Address)
 			}
-			key = hostname
 		default:
-			return nil, fmt.Errorf("unsupported type %q", input.ReservationType)
+			return nil, fmt.Errorf("unsupported type %q", reservationType)
 		}
 
-		if seen[key] {
-			continue
-		} else if key != "" {
-			seen[key] = true
-		}
+		seen[key] = append(seen[key], lease.Address)
+	}
 
+	for key, addresses := range seen {
 		reservations = append(reservations, &resource.Reservation6{
-			IpAddresses: []string{lease.Address},
-			HwAddress:   hwAddress,
-			Hostname:    hostname,
+			IpAddresses: addresses,
+			HwAddress:   key,
+			Hostname:    key,
 		})
 	}
 
