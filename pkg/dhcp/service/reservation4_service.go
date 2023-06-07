@@ -26,12 +26,11 @@ func NewReservation4Service() *Reservation4Service {
 }
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) error {
-	if err := reservation.Validate(); err != nil {
-		return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
-	}
-
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet)
+		if err := batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet); err != nil {
+			return err
+		}
+		return batchSendCreateReservation4Cmd(subnet, reservation)
 	}); err != nil {
 		return fmt.Errorf("create reservation4 %s failed: %s", reservation.String(), err.Error())
 	}
@@ -383,14 +382,11 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 		return err
 	}
 
-	for _, reservation := range reservations {
-		if err := reservation.Validate(); err != nil {
-			return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
-		}
-	}
-
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return batchCreateReservationV4s(tx, reservations, subnet)
+		if err = batchCreateReservationV4s(tx, reservations, subnet); err != nil {
+			return err
+		}
+		return batchSendCreateReservation4Cmd(subnet, reservations...)
 	}); err != nil {
 		return fmt.Errorf("create reservation4s failed: %s", err.Error())
 	}
@@ -400,6 +396,10 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 
 func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.Reservation4, subnet *resource.Subnet4) error {
 	for _, reservation := range reservations {
+		if err := reservation.Validate(); err != nil {
+			return fmt.Errorf("validate reservation4 params invalid: %s", err.Error())
+		}
+
 		if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
 			return err
 		}
@@ -414,6 +414,12 @@ func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.R
 			return pg.Error(err)
 		}
 
+	}
+	return nil
+}
+
+func batchSendCreateReservation4Cmd(subnet *resource.Subnet4, reservations ...*resource.Reservation4) error {
+	for _, reservation := range reservations {
 		if err := sendCreateReservation4CmdToDHCPAgent(
 			subnet.SubnetId, subnet.Nodes, reservation); err != nil {
 			return err
@@ -494,6 +500,9 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile) (interface{}, 
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for ipnet, reservations := range subnetReservationsMap {
 			if err = batchCreateReservationV4s(tx, reservations, subnetMap[ipnet]); err != nil {
+				return err
+			}
+			if err = batchSendCreateReservation4Cmd(subnetMap[ipnet], reservations...); err != nil {
 				return err
 			}
 		}
@@ -655,23 +664,8 @@ func (s *Reservation4Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 }
 
 func createReservationsBySubnet(v4Map map[string][]*resource.Reservation4, v6Map map[string][]*resource.Reservation6) error {
-	for _, reservation4s := range v4Map {
-		for _, reservation := range reservation4s {
-			if err := reservation.Validate(); err != nil {
-				return err
-			}
-		}
-	}
-
-	for _, reservation6s := range v6Map {
-		for _, reservation := range reservation6s {
-			if err := reservation.Validate(); err != nil {
-				return err
-			}
-		}
-	}
-
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		v4SubnetMap := make(map[string]*resource.Subnet4, len(v4Map))
 		for subnetId, reservation4s := range v4Map {
 			subnet4, err := getSubnet4FromDB(tx, subnetId)
 			if err != nil {
@@ -680,14 +674,28 @@ func createReservationsBySubnet(v4Map map[string][]*resource.Reservation4, v6Map
 			if err = batchCreateReservationV4s(tx, reservation4s, subnet4); err != nil {
 				return err
 			}
+			v4SubnetMap[subnetId] = subnet4
 		}
 
+		v6SubnetMap := make(map[string]*resource.Subnet6, len(v6Map))
 		for subnetId, reservation6s := range v6Map {
 			subnet6, err := getSubnet6FromDB(tx, subnetId)
 			if err != nil {
 				return err
 			}
 			if err = batchCreateReservation6s(tx, subnet6, reservation6s); err != nil {
+				return err
+			}
+			v6SubnetMap[subnetId] = subnet6
+		}
+
+		for subnetId, subnet4 := range v4SubnetMap {
+			if err := batchSendCreateReservation4Cmd(subnet4, v4Map[subnetId]...); err != nil {
+				return err
+			}
+		}
+		for subnetId, subnet6 := range v6SubnetMap {
+			if err := batchSendCreateReservation6Cmd(subnet6, v6Map[subnetId]...); err != nil {
 				return err
 			}
 		}

@@ -62,7 +62,7 @@ func (l *SubnetLease4Service) ActionListToReservation(subnet *resource.Subnet4, 
 func (l *SubnetLease4Service) filterAbleToReservation(leases []*resource.SubnetLease4, addresses []string) []*resource.SubnetLease4 {
 	reservationLeases := make([]*resource.SubnetLease4, 0, len(leases))
 	for _, lease := range leases {
-		if lease.AddressType == resource.AddressTypeDynamic && slice.SliceIndex(addresses, lease.Address) >= 0 {
+		if slice.SliceIndex(addresses, lease.Address) >= 0 {
 			reservationLeases = append(reservationLeases, lease)
 		}
 	}
@@ -174,6 +174,10 @@ func (l *SubnetLease4Service) getReservationFromLease(leases []*resource.SubnetL
 	reservations := make([]*resource.Reservation4, 0, len(leases))
 	seen := make(map[string]bool, len(leases))
 	for _, lease := range leases {
+		if lease.AddressType != resource.AddressTypeDynamic {
+			continue
+		}
+
 		var hwAddress, hostname, key string
 		switch input.ReservationType {
 		case resource.ReservationTypeMac:

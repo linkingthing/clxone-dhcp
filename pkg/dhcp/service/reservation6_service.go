@@ -640,14 +640,11 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 		return err
 	}
 
-	for _, reservation := range reservations {
-		if err := reservation.Validate(); err != nil {
-			return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
-		}
-	}
-
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return batchCreateReservation6s(tx, subnet, reservations)
+		if err = batchCreateReservation6s(tx, subnet, reservations); err != nil {
+			return err
+		}
+		return batchSendCreateReservation6Cmd(subnet, reservations...)
 	}); err != nil {
 		return fmt.Errorf("create reservation6s failed: %s", err.Error())
 	}
@@ -657,6 +654,9 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 
 func batchCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservations []*resource.Reservation6) error {
 	for _, reservation := range reservations {
+		if err := reservation.Validate(); err != nil {
+			return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
+		}
 		if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
 			return err
 		}
@@ -670,13 +670,18 @@ func batchCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, r
 		if _, err := tx.Insert(reservation); err != nil {
 			return pg.Error(err)
 		}
+	}
 
+	return nil
+}
+
+func batchSendCreateReservation6Cmd(subnet *resource.Subnet6, reservations ...*resource.Reservation6) error {
+	for _, reservation := range reservations {
 		if err := sendCreateReservation6CmdToDHCPAgent(
 			subnet.SubnetId, subnet.Nodes, reservation); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -748,6 +753,9 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile) (interface{}, 
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for ipnet, reservations := range subnetReservationsMap {
 			if err = batchCreateReservation6s(tx, subnetMap[ipnet], reservations); err != nil {
+				return err
+			}
+			if err = batchSendCreateReservation6Cmd(subnetMap[ipnet], reservations...); err != nil {
 				return err
 			}
 		}
