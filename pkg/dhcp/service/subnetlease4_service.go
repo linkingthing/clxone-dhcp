@@ -180,30 +180,21 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 func (l *SubnetLease4Service) getReservationFromLease(leases []*resource.SubnetLease4, reservationType resource.ReservationType) (
 	[]*resource.Reservation4, error) {
 	reservations := make([]*resource.Reservation4, 0, len(leases))
-	seen := make(map[string]bool, len(leases))
 	for _, lease := range leases {
-		var hwAddress, hostname, key string
+		var hwAddress, hostname string
 		switch reservationType {
 		case resource.ReservationTypeMac:
 			hwAddress = lease.HwAddress
 			if hwAddress == "" {
 				return nil, fmt.Errorf("%s has no hwAddress", lease.Address)
 			}
-			key = hwAddress
 		case resource.ReservationTypeHostname:
 			hostname = lease.Hostname
 			if hostname == "" {
 				return nil, fmt.Errorf("%s has no hostname", lease.Address)
 			}
-			key = hostname
 		default:
 			return nil, fmt.Errorf("unsupported type %q", reservationType)
-		}
-
-		if seen[key] {
-			continue
-		} else if key != "" {
-			seen[key] = true
 		}
 
 		reservations = append(reservations, &resource.Reservation4{

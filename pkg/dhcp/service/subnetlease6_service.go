@@ -148,15 +148,10 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 	}
 
 	v4ReservationMap := make(map[string][]*resource.Reservation4, len(lease4s))
-	seenMac := make(map[string]bool, len(lease4s))
 	for _, lease4 := range lease4s {
 		if lease4.HwAddress == "" || lease4.AddressType != resource.AddressTypeDynamic {
 			continue
 		}
-		if seenMac[lease4.HwAddress] {
-			return fmt.Errorf("duplicated v4 mac %q", lease4.HwAddress)
-		}
-		seenMac[lease4.HwAddress] = true
 		v4ReservationMap[lease4.Subnet4] = append(v4ReservationMap[lease4.Subnet4], &resource.Reservation4{
 			IpAddress: lease4.Address,
 			HwAddress: lease4.HwAddress,
@@ -191,11 +186,16 @@ func (l *SubnetLease6Service) getReservationFromLease(leases []*resource.SubnetL
 	}
 
 	for key, addresses := range seen {
-		reservations = append(reservations, &resource.Reservation6{
-			IpAddresses: addresses,
-			HwAddress:   key,
-			Hostname:    key,
-		})
+		item := &resource.Reservation6{IpAddresses: addresses}
+
+		switch reservationType {
+		case resource.ReservationTypeMac:
+			item.HwAddress = key
+		case resource.ReservationTypeHostname:
+			item.Hostname = key
+		}
+
+		reservations = append(reservations, item)
 	}
 
 	return reservations, nil
