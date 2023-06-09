@@ -72,7 +72,7 @@ func (s *Reservation4Api) Action(ctx *restresource.Context) (interface{}, *reste
 	case excel.ActionNameImport:
 		return s.actionImportExcel(ctx)
 	case excel.ActionNameExport:
-		return s.actionExportExcel()
+		return s.actionExportExcel(ctx)
 	case excel.ActionNameExportTemplate:
 		return s.actionExportExcelTemplate()
 	default:
@@ -107,8 +107,8 @@ func (s *Reservation4Api) actionImportExcel(ctx *restresource.Context) (interfac
 	}
 }
 
-func (s *Reservation4Api) actionExportExcel() (interface{}, *resterror.APIError) {
-	if exportFile, err := s.Service.ExportExcel(); err != nil {
+func (s *Reservation4Api) actionExportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if exportFile, err := s.Service.ExportExcel(ctx.Resource.GetParent().GetID()); err != nil {
 		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
 	} else {
 		return exportFile, nil

@@ -891,10 +891,10 @@ func (s *Reservation6Service) parseReservation6FromFields(fields, tableHeaderFie
 	return reservation6, err
 }
 
-func (s *Reservation6Service) ExportExcel() (*excel.ExportFile, error) {
+func (s *Reservation6Service) ExportExcel(subnetId string) (*excel.ExportFile, error) {
 	var reservation6s []*resource.Reservation6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		err := tx.Fill(nil, &reservation6s)
+		err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId}, &reservation6s)
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation6s from db failed: %s", pg.Error(err).Error())

@@ -640,10 +640,10 @@ func addFailDataToResponse(response *excel.ImportResult,
 	response.AddFailedData(slices)
 }
 
-func (s *Reservation4Service) ExportExcel() (*excel.ExportFile, error) {
+func (s *Reservation4Service) ExportExcel(subnetId string) (*excel.ExportFile, error) {
 	var reservation4s []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		err := tx.Fill(nil, &reservation4s)
+		err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnetId}, &reservation4s)
 		return err
 	}); err != nil {
 		return nil, fmt.Errorf("list reservation4s from db failed: %s", pg.Error(err).Error())
