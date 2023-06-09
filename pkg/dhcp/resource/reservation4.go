@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"net"
+	"unicode/utf8"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/clxone-utils/excel"
@@ -13,6 +14,8 @@ import (
 )
 
 const (
+	MaxCommentLength = 64
+
 	ActionBatchDelete          = "batch_delete"
 	ActionListToReservation    = "list_to_reservation"
 	ActionDynamicToReservation = "dynamic_to_reservation"
@@ -113,6 +116,8 @@ func (r *Reservation4) Validate() error {
 
 	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
 		return err
+	} else if utf8.RuneCountInString(r.Comment) > MaxCommentLength {
+		return fmt.Errorf("comment exceeds maximum limit: %d", MaxCommentLength)
 	}
 
 	r.Capacity = 1
