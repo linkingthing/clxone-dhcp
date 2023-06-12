@@ -586,18 +586,34 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 		subnetIds[i] = fmt.Sprintf("%d", lease.SubnetId)
 	}
 
+	var subnets []*resource.Subnet6
 	var reservations []*resource.Reservation6
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&reservations, `select * from gr_reservation6 where subnet6 = any($1::text[])`, subnetIds)
+		if err = tx.FillEx(&subnets, `select * from gr_subnet6 where id = any($1::text[])`, subnetIds); err != nil {
+			return fmt.Errorf("list subnet6s failed: %s", err.Error())
+		}
+		if err = tx.FillEx(&reservations, `select * from gr_reservation6 where subnet6 = any($1::text[])`, subnetIds); err != nil {
+			return fmt.Errorf("list reservation6s failed: %s", err.Error())
+		}
+		return nil
 	}); err != nil {
-		return nil, fmt.Errorf("list reservation6s failed: %s", err.Error())
+		return nil, err
 	}
 
 	reservationMap := reservationMapFromReservation6s(reservations)
 
-	leases := make([]*resource.SubnetLease6, len(resp.Leases))
-	for i, lease := range resp.Leases {
-		leases[i] = subnetLease6FromPbLease6AndReservations(lease, reservationMap)
+	leases := make([]*resource.SubnetLease6, 0, len(resp.Leases))
+	for _, lease := range resp.Leases {
+		var skip bool
+		for _, subnet := range subnets {
+			if subnet.UseEui64 && subnet.GetID() == strconv.FormatUint(lease.SubnetId, 10) {
+				skip = true
+			}
+		}
+
+		if !skip {
+			leases = append(leases, subnetLease6FromPbLease6AndReservations(lease, reservationMap))
+		}
 	}
 
 	return leases, nil
