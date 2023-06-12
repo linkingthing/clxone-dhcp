@@ -337,14 +337,20 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 	leasePrefix := prefixFromAddressAndPrefixLen(lease6.Address, lease6.PrefixLen)
 	for _, reservation := range reservations {
 		for _, ipaddress := range reservation.IpAddresses {
-			if ipaddress == lease6.Address {
+			if ipaddress == lease6.Address &&
+				(reservation.HwAddress != "" && reservation.HwAddress == lease6.HwAddress ||
+					reservation.Hostname != "" && reservation.Hostname == lease6.Hostname ||
+					reservation.Duid != "" && reservation.Duid == lease6.Duid) {
 				lease6.AddressType = resource.AddressTypeReservation
 				break
 			}
 		}
 
 		for _, prefix := range reservation.Prefixes {
-			if prefix == leasePrefix {
+			if prefix == leasePrefix &&
+				(reservation.HwAddress != "" && reservation.HwAddress == lease6.HwAddress ||
+					reservation.Hostname != "" && reservation.Hostname == lease6.Hostname ||
+					reservation.Duid != "" && reservation.Duid == lease6.Duid) {
 				lease6.AddressType = resource.AddressTypeReservation
 				break
 			}
@@ -420,10 +426,13 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 	return leases, nil
 }
 
-func subnetLease6FromPbLease6AndReservations(lease *pbdhcpagent.DHCPLease6, reservationMap map[string]struct{}) *resource.SubnetLease6 {
+func subnetLease6FromPbLease6AndReservations(lease *pbdhcpagent.DHCPLease6, reservationMap map[string]*resource.Reservation6) *resource.SubnetLease6 {
 	subnetLease6 := SubnetLease6FromPbLease6(lease)
-	if _, ok := reservationMap[prefixFromAddressAndPrefixLen(subnetLease6.Address,
-		subnetLease6.PrefixLen)]; ok {
+	if reservation, ok := reservationMap[prefixFromAddressAndPrefixLen(subnetLease6.Address,
+		subnetLease6.PrefixLen)]; ok &&
+		(reservation.HwAddress != "" && reservation.HwAddress == subnetLease6.HwAddress ||
+			reservation.Hostname != "" && reservation.Hostname == subnetLease6.Hostname ||
+			reservation.Duid != "" && reservation.Duid == subnetLease6.Duid) {
 		subnetLease6.AddressType = resource.AddressTypeReservation
 	}
 	return subnetLease6

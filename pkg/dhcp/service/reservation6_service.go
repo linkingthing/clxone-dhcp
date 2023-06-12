@@ -402,15 +402,15 @@ func getReservation6sLeasesCount(subnetId uint64, reservations []*resource.Reser
 	return leasesCount
 }
 
-func reservationMapFromReservation6s(reservations []*resource.Reservation6) map[string]struct{} {
-	reservationMap := make(map[string]struct{})
+func reservationMapFromReservation6s(reservations []*resource.Reservation6) map[string]*resource.Reservation6 {
+	reservationMap := make(map[string]*resource.Reservation6)
 	for _, reservation := range reservations {
 		for _, ipAddress := range reservation.IpAddresses {
-			reservationMap[ipAddress+"/128"] = struct{}{}
+			reservationMap[ipAddress+"/128"] = reservation
 		}
 
 		for _, prefix := range reservation.Prefixes {
-			reservationMap[prefix] = struct{}{}
+			reservationMap[prefix] = reservation
 		}
 	}
 
