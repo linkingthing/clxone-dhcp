@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/insomniacslk/dhcp v0.0.0-20210621130208-1cac67f12b1e
 	github.com/linkingthing/cement v1.0.0
-	github.com/linkingthing/clxone-utils v1.2.8
+	github.com/linkingthing/clxone-utils v1.2.9
 	github.com/linkingthing/gorest v1.2.3
 	github.com/segmentio/kafka-go v0.4.31
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234
