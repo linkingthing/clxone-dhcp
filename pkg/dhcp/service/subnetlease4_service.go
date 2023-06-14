@@ -339,7 +339,7 @@ func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource
 
 	for _, reservation := range reservations {
 		if reservation.IpAddress == lease4.Address &&
-			(reservation.HwAddress != "" && reservation.HwAddress == lease4.HwAddress ||
+			(reservation.HwAddress != "" && strings.EqualFold(reservation.HwAddress, lease4.HwAddress) ||
 				reservation.Hostname != "" && reservation.Hostname == lease4.Hostname) {
 			lease4.AddressType = resource.AddressTypeReservation
 			break
@@ -441,7 +441,7 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 func subnetLease4FromPbLease4AndReservations(lease *pbdhcpagent.DHCPLease4, reservationMap map[string]*resource.Reservation4) *resource.SubnetLease4 {
 	subnetLease4 := SubnetLease4FromPbLease4(lease)
 	if r4, ok := reservationMap[subnetLease4.Address]; ok &&
-		(r4.HwAddress != "" && r4.HwAddress == lease.HwAddress ||
+		(r4.HwAddress != "" && strings.EqualFold(r4.HwAddress, lease.HwAddress) ||
 			r4.Hostname != "" && r4.Hostname == lease.Hostname) {
 		subnetLease4.AddressType = resource.AddressTypeReservation
 	}
