@@ -585,7 +585,8 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 
 		if !subnet4.Ipnet.Contains(reservation4.Ip) {
 			addFailDataToResponse(response, TableHeaderReservation4FailLen,
-				localizationReservation4ToStrSlice(reservation4), fmt.Sprintf("not found subnet"))
+				localizationReservation4ToStrSlice(reservation4),
+				fmt.Sprintf("%s is not belong to %s", reservation4.Ip.String(), subnet4.Ipnet.String()))
 			continue
 		}
 

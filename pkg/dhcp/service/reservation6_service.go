@@ -797,6 +797,7 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 	reservations := make([]*resource.Reservation6, 0, len(fieldcontents))
 	reservationMap := make(map[string]struct{}, len(fieldcontents))
 	var contains bool
+	var invalidIp string
 	for j, fields := range fieldcontents {
 		contains = true
 		fields, missingMandatory, emptyLine := excel.ParseTableFields(fields,
@@ -825,6 +826,7 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 
 		for _, ip := range reservation6.Ips {
 			if !subnet6.Ipnet.Contains(ip) {
+				invalidIp = ip.String()
 				contains = false
 				break
 			}
@@ -832,7 +834,8 @@ func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet
 
 		if !contains {
 			addFailDataToResponse(response, TableHeaderReservation6FailLen,
-				localizationReservation6ToStrSlice(reservation6), fmt.Sprintf("not found subnet"))
+				localizationReservation6ToStrSlice(reservation6),
+				fmt.Sprintf("%s is not belong to %s", invalidIp, subnet6.Ipnet.String()))
 			continue
 		}
 
