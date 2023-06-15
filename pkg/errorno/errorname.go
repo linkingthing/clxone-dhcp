@@ -17,6 +17,7 @@ const (
 	ErrNameImport      ErrName = "import"
 	ErrNameExport      ErrName = "export"
 	ErrNameTemplate    ErrName = "template"
+	ErrNameTableHeader ErrName = "tableHeader"
 
 	ErrNameGateway                 ErrName = "gateway"
 	ErrNameResponsiblePerson       ErrName = "responsiblePerson"
@@ -121,6 +122,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameImport:                  "导入数据",
 	ErrNameExport:                  "导出数据",
 	ErrNameTemplate:                "模板",
+	ErrNameTableHeader:             "表头",
 	ErrNamePrefix:                  "子网前缀",
 	ErrNameFile:                    "文件",
 	ErrNameGateway:                 "网关",
