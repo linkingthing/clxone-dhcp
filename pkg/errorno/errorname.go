@@ -86,6 +86,7 @@ const (
 	ErrNameApplication ErrName = "application"
 	ErrNameMac         ErrName = "mac"
 	ErrNameHostname    ErrName = "hostname"
+	ErrNameDeviceFlag  ErrName = "deviceFlag"
 
 	ErrDBNameInsert ErrName = "dbInsert"
 	ErrDBNameUpdate ErrName = "dbUpdate"
@@ -197,6 +198,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameApplication:       "应用资产",
 	ErrNameMac:               "Mac地址",
 	ErrNameHostname:          "主机",
+	ErrNameDeviceFlag:        "设备标识",
 	ErrNameCondition:         "查询条件",
 	ErrNameParams:            "参数",
 	ErrNameCharacter:         "字符数",

@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"net"
 	"strings"
@@ -179,7 +178,7 @@ func (r *Reservation6) Validate() error {
 	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
 		return err
 	} else if utf8.RuneCountInString(r.Comment) > MaxCommentLength {
-		return fmt.Errorf("comment exceeds maximum limit: %d", MaxCommentLength)
+		return errorno.ErrExceedMaxCount(errorno.ErrNameComment, MaxCommentLength)
 	}
 
 	r.IpAddresses = ips
