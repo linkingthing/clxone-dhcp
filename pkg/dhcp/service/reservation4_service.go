@@ -20,6 +20,11 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
+const (
+	InvalidHeaderPrefix = "the file table header field "
+	InvalidHeaderSuffix = " is invalid"
+)
+
 type Reservation4Service struct{}
 
 func NewReservation4Service() *Reservation4Service {
@@ -528,7 +533,7 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderReservation4, Reservation4MandatoryFields)
 	if err != nil {
-		return nil, err
+		return nil, errorno.ErrInvalidParams(errorno.ErrNameTableHeader, getInvalidHeader(err.Error()))
 	}
 
 	response.InitData(len(contents) - 1)
@@ -579,6 +584,10 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 	}
 
 	return subnetReservations, nil
+}
+
+func getInvalidHeader(errMsg string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(errMsg, InvalidHeaderPrefix), InvalidHeaderSuffix)
 }
 
 func (s *Reservation4Service) parseReservation4sFromFields(fields, tableHeaderFields []string) (*resource.Reservation4, error) {
