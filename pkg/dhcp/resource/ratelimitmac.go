@@ -4,6 +4,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -22,7 +23,7 @@ func (r RateLimitMac) GetParents() []restresource.ResourceKind {
 
 func (r *RateLimitMac) Validate() error {
 	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, r.Comment)
 	} else if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
 		return err
 	} else {

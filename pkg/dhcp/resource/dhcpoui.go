@@ -1,12 +1,12 @@
 package resource
 
 import (
-	"fmt"
 	"net"
 
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -21,9 +21,9 @@ type DhcpOui struct {
 
 func (d *DhcpOui) Validate() error {
 	if _, err := net.ParseMAC(d.Oui + ":00:00:00"); err != nil {
-		return fmt.Errorf("invlaid oui %s, it should be prefix 24bit of mac", d.Oui)
+		return errorno.ErrInvalidParams(errorno.ErrNameOui, d.Oui)
 	} else if len(d.Organization) == 0 {
-		return fmt.Errorf("oui organization is required")
+		return errorno.ErrEmpty(string(errorno.ErrNameOrganization))
 	} else {
 		d.IsReadOnly = false
 		return util.ValidateStrings(util.RegexpTypeCommon, d.Organization)

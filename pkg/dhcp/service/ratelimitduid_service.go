@@ -1,15 +1,13 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/cement/log"
-	restdb "github.com/linkingthing/gorest/db"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
+	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
@@ -22,21 +20,17 @@ func NewRateLimitDuidService() *RateLimitDuidService {
 
 func (d *RateLimitDuidService) Create(rateLimitDuid *resource.RateLimitDuid) error {
 	if err := rateLimitDuid.Validate(); err != nil {
-		return fmt.Errorf("validate ratelimit duid %s failed: %s", rateLimitDuid.Duid, err.Error())
+		return err
 	}
 
 	rateLimitDuid.SetID(rateLimitDuid.Duid)
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(rateLimitDuid); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameRateLimit), pg.Error(err).Error())
 		}
 
 		return sendCreateRateLimitDuidCmdToDHCPAgent(rateLimitDuid)
-	}); err != nil {
-		return fmt.Errorf("create ratelimit duid %s failed:%s", rateLimitDuid.Duid, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendCreateRateLimitDuidCmdToDHCPAgent(rateLimitDuid *resource.RateLimitDuid) error {
@@ -59,7 +53,7 @@ func (d *RateLimitDuidService) List(conditions map[string]interface{}) ([]*resou
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &duids)
 	}); err != nil {
-		return nil, fmt.Errorf("list ratelimit duids from db failed: %s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameRateLimit), pg.Error(err).Error())
 	}
 
 	return duids, nil
@@ -70,29 +64,25 @@ func (d *RateLimitDuidService) Get(id string) (*resource.RateLimitDuid, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &rateLimitDuids)
 	}); err != nil {
-		return nil, fmt.Errorf("get ratelimit duid %s failed:%s", id, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(rateLimitDuids) == 0 {
-		return nil, fmt.Errorf("no found ratelimit duid %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameRateLimit, id)
 	}
 
 	return rateLimitDuids[0], nil
 }
 
 func (d *RateLimitDuidService) Delete(id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableRateLimitDuid, map[string]interface{}{
 			restdb.IDField: id}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found ratelimit duid %s", id)
+			return errorno.ErrNotFound(errorno.ErrNameRateLimit, id)
 		}
 
 		return sendDeleteRateLimitDuidCmdToDHCPAgent(id)
-	}); err != nil {
-		return fmt.Errorf("delete ratelimit duid %s failed:%s", id, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendDeleteRateLimitDuidCmdToDHCPAgent(rateLimitDuidId string) error {
@@ -102,23 +92,23 @@ func sendDeleteRateLimitDuidCmdToDHCPAgent(rateLimitDuidId string) error {
 
 func (d *RateLimitDuidService) Update(rateLimitDuid *resource.RateLimitDuid) error {
 	if err := rateLimitDuid.Validate(); err != nil {
-		return fmt.Errorf("validate ratelimit duid %s failed: %s", rateLimitDuid.GetID(), err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var rateLimits []*resource.RateLimitDuid
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: rateLimitDuid.GetID()},
 			&rateLimits); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, rateLimitDuid.GetID(), pg.Error(err).Error())
 		} else if len(rateLimits) == 0 {
-			return fmt.Errorf("no found ratelimit duid %s", rateLimitDuid.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameRateLimit, rateLimitDuid.GetID())
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitDuid, map[string]interface{}{
 			resource.SqlColumnRateLimit: rateLimitDuid.RateLimit,
 			resource.SqlColumnComment:   rateLimitDuid.Comment,
 		}, map[string]interface{}{restdb.IDField: rateLimitDuid.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, rateLimitDuid.GetID(), pg.Error(err).Error())
 		}
 
 		if rateLimits[0].RateLimit != rateLimitDuid.RateLimit {
@@ -126,11 +116,7 @@ func (d *RateLimitDuidService) Update(rateLimitDuid *resource.RateLimitDuid) err
 		} else {
 			return nil
 		}
-	}); err != nil {
-		return fmt.Errorf("update ratelimit duid %s failed:%s", rateLimitDuid.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendUpdateRateLimitDuidCmdToDHCPAgent(rateLimitDuid *resource.RateLimitDuid) error {

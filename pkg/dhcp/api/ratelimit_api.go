@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -24,7 +25,7 @@ func NewRateLimitApi() (*RateLimitApi, error) {
 func (d *RateLimitApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	rateLimits, err := d.Service.List()
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return rateLimits, nil
@@ -33,7 +34,7 @@ func (d *RateLimitApi) List(ctx *restresource.Context) (interface{}, *resterror.
 func (d *RateLimitApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	rateLimit, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return rateLimit, nil
@@ -42,7 +43,7 @@ func (d *RateLimitApi) Get(ctx *restresource.Context) (restresource.Resource, *r
 func (d *RateLimitApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	rateLimit := ctx.Resource.(*resource.RateLimit)
 	if err := d.Service.Update(rateLimit); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return rateLimit, nil

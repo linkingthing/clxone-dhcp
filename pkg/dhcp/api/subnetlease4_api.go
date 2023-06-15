@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -25,7 +24,7 @@ func (h *SubnetLease4Api) List(ctx *restresource.Context) (interface{}, *resterr
 
 	subnetLease4s, err := h.Service.List(ctx.Resource.GetParent().(*resource.Subnet4), ip)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return subnetLease4s, nil
@@ -35,7 +34,7 @@ func (h *SubnetLease4Api) Delete(ctx *restresource.Context) *resterror.APIError 
 	if err := h.Service.BatchDeleteLease4s(
 		(ctx.Resource.GetParent().(*resource.Subnet4)).GetID(),
 		[]string{ctx.Resource.GetID()}); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 	return nil
 }
@@ -53,19 +52,20 @@ func (s *SubnetLease4Api) Action(ctx *restresource.Context) (interface{}, *reste
 	case resource.ActionDynamicToReservation:
 		return s.actionDynamicToReservation(ctx)
 	default:
-		return nil, resterror.NewAPIError(resterror.InvalidAction,
-			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
+		return nil, errorno.HandleAPIError(resterror.InvalidAction,
+			errorno.ErrUnknownOpt(errorno.ErrNameLease, errorno.ErrName(ctx.Resource.GetAction().Name)))
 	}
 }
 
 func (s *SubnetLease4Api) actionBatchDelete(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	input, ok := ctx.Resource.GetAction().Input.(*resource.BatchDeleteLeasesInput)
 	if !ok {
-		return nil, resterror.NewAPIError(resterror.ServerError, "action batch delete input invalid")
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameLease, resource.ActionBatchDelete))
 	}
 
 	if err := s.Service.BatchDeleteLease4s(ctx.Resource.GetParent().GetID(), input.Addresses); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return nil, nil
 	}
@@ -75,12 +75,13 @@ func (s *SubnetLease4Api) actionListToReservation(ctx *restresource.Context) (in
 	util.SetIgnoreAuditLog(ctx)
 	input, ok := ctx.Resource.GetAction().Input.(*resource.ConvToReservationInput)
 	if !ok {
-		return nil, resterror.NewAPIError(resterror.ServerError, "action input invalid")
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameLease, resource.ActionListToReservation))
 	}
 
 	output, err := s.Service.ActionListToReservation(ctx.Resource.GetParent().(*resource.Subnet4), input)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 	return output, nil
 }
@@ -88,11 +89,12 @@ func (s *SubnetLease4Api) actionListToReservation(ctx *restresource.Context) (in
 func (s *SubnetLease4Api) actionDynamicToReservation(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	input, ok := ctx.Resource.GetAction().Input.(*resource.ConvToReservationInput)
 	if !ok {
-		return nil, resterror.NewAPIError(resterror.ServerError, "action input invalid")
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameLease, resource.ActionDynamicToReservation))
 	}
 
 	if err := s.Service.ActionDynamicToReservation(ctx.Resource.GetParent().(*resource.Subnet4), input); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 	return nil, nil
 }

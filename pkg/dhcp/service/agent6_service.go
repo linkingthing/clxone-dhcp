@@ -1,9 +1,8 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 )
 
@@ -45,5 +44,5 @@ func (h *Agent6Service) Get(agent *resource.Agent6) error {
 		return nil
 	}
 
-	return fmt.Errorf("no found dhcp node %s", agent.GetID())
+	return errorno.ErrNotFound(errorno.ErrNameDhcpNode, agent.GetID())
 }

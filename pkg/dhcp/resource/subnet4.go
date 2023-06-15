@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"net"
 	"net/url"
 
@@ -12,6 +11,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -108,7 +108,7 @@ func (s *Subnet4) Contains(ip string) bool {
 func (s *Subnet4) Validate(dhcpConfig *DhcpConfig, clientClass4s []*ClientClass4) error {
 	ipnet, err := gohelperip.ParseCIDRv4(s.Subnet)
 	if err != nil {
-		return fmt.Errorf("subnet %s invalid: %s", s.Subnet, err.Error())
+		return errorno.ErrInvalidParams(errorno.ErrNamePrefix, s.Subnet)
 	}
 
 	s.Ipnet = *ipnet
@@ -129,7 +129,7 @@ func (s *Subnet4) setSubnetDefaultValue(dhcpConfig *DhcpConfig) (err error) {
 	if dhcpConfig == nil {
 		dhcpConfig, err = GetDhcpConfig(true)
 		if err != nil {
-			return fmt.Errorf("get dhcp global config failed: %s", err.Error())
+			return err
 		}
 	}
 
@@ -163,18 +163,18 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 
 	if s.SubnetMask != "" {
 		if err := gohelperip.CheckIPv4sValid(s.SubnetMask); err != nil {
-			return fmt.Errorf("subnet4 mask invalid: %s", err.Error())
+			return errorno.ErrInvalidAddress(s.SubnetMask)
 		}
 	}
 
 	if s.NextServer != "" {
 		if err := gohelperip.CheckIPv4sValid(s.NextServer); err != nil {
-			return fmt.Errorf("subnet4 next server invalid: %s", err.Error())
+			return errorno.ErrInvalidAddress(s.SubnetMask)
 		}
 	}
 
 	if s.Ipv6OnlyPreferred != 0 && s.Ipv6OnlyPreferred < 300 {
-		return fmt.Errorf("subnet4 ipv6-only preferred must not be less than 300")
+		return errorno.ErrIpv6Preferred()
 	}
 
 	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses); err != nil {
@@ -198,16 +198,16 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 
 func checkTFTPValid(tftpServer, bootfile string) error {
 	if len(bootfile) > 128 {
-		return fmt.Errorf("bootfile must not bigger than 128")
+		return errorno.ErrBiggerThan("option67", len(bootfile), 128)
 	}
 
 	if tftpServer != "" {
 		if len(tftpServer) > 64 {
-			return fmt.Errorf("tftp-server must not bigger than 64")
+			return errorno.ErrBiggerThan("option66", len(tftpServer), 64)
 		}
 
 		if _, err := url.Parse(tftpServer); err != nil {
-			return fmt.Errorf("parse tftp server failed: %s", err.Error())
+			return errorno.ErrInvalidAddress(tftpServer)
 		}
 	}
 
@@ -229,7 +229,7 @@ func checkCommonOptions(isv4 bool, domainServers, relayAgents []string) error {
 func checkIpsValidWithVersion(isv4 bool, ips []string) error {
 	for _, ip := range ips {
 		if _, err := gohelperip.ParseIP(ip, isv4); err != nil {
-			return fmt.Errorf("ip %s invalid: %s", ip, err.Error())
+			return errorno.ErrInvalidAddress(ip)
 		}
 	}
 
@@ -276,7 +276,7 @@ func checkClientClassesValid(clientClassNames []string, clientClassSet map[strin
 	clientClassNameSet := make(map[string]struct{}, len(clientClassNames))
 	for _, clientClassName := range clientClassNames {
 		if _, ok := clientClassNameSet[clientClassName]; ok {
-			return fmt.Errorf("duplicate client class %s", clientClassName)
+			return errorno.ErrDuplicate(errorno.ErrNameClientClass, clientClassName)
 		} else {
 			clientClassNameSet[clientClassName] = struct{}{}
 		}
@@ -284,7 +284,7 @@ func checkClientClassesValid(clientClassNames []string, clientClassSet map[strin
 
 	for _, clientClassName := range clientClassNames {
 		if _, ok := clientClassSet[clientClassName]; !ok {
-			return fmt.Errorf("no found client class %s", clientClassName)
+			return errorno.ErrNotFound(errorno.ErrNameClientClass, clientClassName)
 		}
 	}
 
@@ -294,7 +294,7 @@ func checkClientClassesValid(clientClassNames []string, clientClassSet map[strin
 func checkNodesValid(nodes []string) error {
 	for _, node := range nodes {
 		if net.ParseIP(node) == nil {
-			return fmt.Errorf("invalid node %s", node)
+			return errorno.ErrInvalidAddress(node)
 		}
 	}
 

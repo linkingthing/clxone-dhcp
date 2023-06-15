@@ -1,11 +1,10 @@
 package resource
 
 import (
-	"fmt"
-
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -29,17 +28,17 @@ type ClientClass4 struct {
 	Description               string          `json:"description"`
 }
 
-var ErrNameOrRegexpMissing = fmt.Errorf("clientclass name and regexp are required")
-
 func (c *ClientClass4) Validate() error {
 	if len(c.Name) == 0 || (c.Condition != OptionConditionExists && len(c.Regexp) == 0) {
-		return ErrNameOrRegexpMissing
+		return errorno.ErrEmpty(string(errorno.ErrNameName), string(errorno.ErrNameRegexp))
 	} else if c.Code < 1 || c.Code > 254 {
-		return fmt.Errorf("code %d not in [1, 254]", c.Code)
-	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Name, c.Description); err != nil {
-		return fmt.Errorf("name %s or description %s is invalid", c.Name, c.Description)
+		return errorno.ErrNotInScope(errorno.ErrNameCode, 1, 254)
+	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Name); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameName, c.Name)
+	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Description); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameDescription, c.Description)
 	} else if err := util.ValidateStrings(util.RegexpTypeSlash, c.Regexp); err != nil {
-		return fmt.Errorf("regexp %s is invalid", c.Regexp)
+		return errorno.ErrInvalidParams(errorno.ErrNameRegexp, c.Regexp)
 	} else {
 		if c.Description == "" {
 			c.Description = code4ToDescription(c.Code)

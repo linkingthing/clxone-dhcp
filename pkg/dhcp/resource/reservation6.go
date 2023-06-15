@@ -3,7 +3,6 @@ package resource
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/linkingthing/clxone-utils/excel"
 	"math/big"
 	"net"
 	"strings"
@@ -11,9 +10,11 @@ import (
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -116,27 +117,27 @@ func (r *Reservation6) Validate() error {
 		(r.Duid != "" && r.Hostname != "") ||
 		(r.HwAddress != "" && r.Hostname != "") ||
 		(r.Duid == "" && r.HwAddress == "" && r.Hostname == "") {
-		return fmt.Errorf("duid and mac and hostname must have only one")
+		return errorno.ErrOnlyOne("DUID", string(errorno.ErrNameMac), string(errorno.ErrNameHostname))
 	}
 
 	if (len(r.IpAddresses) != 0 && len(r.Prefixes) != 0) ||
 		(len(r.IpAddresses) == 0 && len(r.Prefixes) == 0) {
-		return fmt.Errorf("ips and prefixes must have only one")
+		return errorno.ErrOnlyOne(string(errorno.ErrNameIp), string(errorno.ErrNamePrefix))
 	}
 
 	if r.HwAddress != "" {
 		if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
-			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
+			return err
 		} else {
 			r.HwAddress = hw
 		}
 	} else if r.Duid != "" {
 		if err := parseDUID(r.Duid); err != nil {
-			return fmt.Errorf("duid %s is invalid", r.Duid)
+			return errorno.ErrInvalidParams("DUID", r.Duid)
 		}
 	} else if r.Hostname != "" {
 		if err := util.ValidateStrings(util.RegexpTypeCommon, r.Hostname); err != nil {
-			return err
+			return errorno.ErrInvalidParams(errorno.ErrNameHostname, r.Hostname)
 		}
 	}
 
@@ -146,12 +147,12 @@ func (r *Reservation6) Validate() error {
 	for _, ip := range r.IpAddresses {
 		ipv6, err := gohelperip.ParseIPv6(ip)
 		if err != nil {
-			return err
+			return errorno.ErrInvalidAddress(ip)
 		}
 
 		ipstr := ipv6.String()
 		if _, ok := uniqueIps[ipstr]; ok {
-			return fmt.Errorf("duplicate ip %s", ip)
+			return errorno.ErrDuplicate(errorno.ErrNameIp, ip)
 		} else {
 			uniqueIps[ipstr] = struct{}{}
 			r.Ips = append(r.Ips, ipv6)
@@ -163,11 +164,11 @@ func (r *Reservation6) Validate() error {
 	prefixes := make([]string, 0, len(r.Prefixes))
 	for i, prefix := range r.Prefixes {
 		if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
-			return err
+			return errorno.ErrParseCIDR(prefix)
 		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
-			return fmt.Errorf("prefix %s mask size %d should not bigger than 64", prefix, ones)
+			return errorno.ErrExceedMaxCount(errorno.ErrNamePrefix, 64)
 		} else if prefix_, conflict := isIpnetIntersectPrefixes(r.Prefixes, ipnet, i); conflict {
-			return fmt.Errorf("prefix %s conflict with %s", prefix, prefix_)
+			return errorno.ErrConflict(errorno.ErrNamePrefix, errorno.ErrNamePrefix, prefix, prefix_)
 		} else {
 			r.Ipnets = append(r.Ipnets, *ipnet)
 			prefixes = append(prefixes, ipnet.String())
@@ -208,13 +209,13 @@ func isPrefixIntersectWithIpnet(prefix string, ipnet *net.IPNet) bool {
 
 func parseDUID(duid string) error {
 	if len(duid) == 0 {
-		return fmt.Errorf("duid is required")
+		return errorno.ErrEmpty(string(errorno.ErrNameDuid))
 	}
 
 	duidhexstr := strings.Replace(duid, ":", "", -1)
 	duidbytes, err := hex.DecodeString(duidhexstr)
 	if err != nil {
-		return fmt.Errorf("decode duid with hex failed: %s", err.Error())
+		return errorno.ErrInvalidParams(errorno.ErrNameDuid, duid)
 	}
 
 	_, err = dhcp6.DuidFromBytes(duidbytes)

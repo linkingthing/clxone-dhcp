@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type ReservedPdPoolApi struct {
@@ -19,7 +20,7 @@ func NewReservedPdPoolApi() *ReservedPdPoolApi {
 func (p *ReservedPdPoolApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pdpool := ctx.Resource.(*resource.ReservedPdPool)
 	if err := p.Service.Create(ctx.Resource.GetParent().(*resource.Subnet6), pdpool); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return pdpool, nil
@@ -28,7 +29,7 @@ func (p *ReservedPdPoolApi) Create(ctx *restresource.Context) (restresource.Reso
 func (p *ReservedPdPoolApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	pdpools, err := p.Service.List(ctx.Resource.GetParent().GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return pdpools, nil
@@ -37,7 +38,7 @@ func (p *ReservedPdPoolApi) List(ctx *restresource.Context) (interface{}, *reste
 func (p *ReservedPdPoolApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pdpool, err := p.Service.Get(ctx.Resource.GetParent().(*resource.Subnet6), ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return pdpool, nil
@@ -47,7 +48,7 @@ func (p *ReservedPdPoolApi) Delete(ctx *restresource.Context) *resterror.APIErro
 	if err := p.Service.Delete(
 		ctx.Resource.GetParent().(*resource.Subnet6),
 		ctx.Resource.(*resource.ReservedPdPool)); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
@@ -56,7 +57,7 @@ func (p *ReservedPdPoolApi) Delete(ctx *restresource.Context) *resterror.APIErro
 func (p *ReservedPdPoolApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pool := ctx.Resource.(*resource.ReservedPdPool)
 	if err := p.Service.Update(ctx.Resource.GetParent().GetID(), pool); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return pool, nil

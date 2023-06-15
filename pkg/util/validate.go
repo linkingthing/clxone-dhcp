@@ -1,10 +1,11 @@
 package util
 
 import (
-	"fmt"
 	"net"
 	"regexp"
 	"strings"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type StringRegexp struct {
@@ -108,14 +109,14 @@ func ValidateStrings(typ RegexpType, ss ...string) error {
 	case RegexpTypeComma:
 		regexps = StringRegexpsWithComma
 	default:
-		return fmt.Errorf("no found regexp type %s", typ)
+		return errorno.ErrInvalidParams(errorno.ErrNameRegexp, string(typ))
 	}
 
 	for _, s := range ss {
 		if s != "" {
 			for _, reg := range regexps {
 				if ret := reg.Regexp.MatchString(s); ret != reg.ExpectResult {
-					return fmt.Errorf("%s %s", s, reg.ErrMsg)
+					return errorno.ErrInvalidParams("", s)
 				}
 			}
 		}
@@ -126,7 +127,7 @@ func ValidateStrings(typ RegexpType, ss ...string) error {
 
 func NormalizeMac(mac string) (string, error) {
 	if hw, err := net.ParseMAC(mac); err != nil {
-		return "", err
+		return "", errorno.ErrInvalidParams(errorno.ErrNameMac, mac)
 	} else {
 		return strings.ToUpper(hw.String()), nil
 	}

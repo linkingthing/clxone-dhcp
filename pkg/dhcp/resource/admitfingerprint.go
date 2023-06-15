@@ -1,11 +1,10 @@
 package resource
 
 import (
-	"fmt"
-
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -22,7 +21,7 @@ func (a AdmitFingerprint) GetParents() []restresource.ResourceKind {
 
 func (a *AdmitFingerprint) Validate() error {
 	if len(a.ClientType) == 0 || util.ValidateStrings(util.RegexpTypeCommon, a.ClientType) != nil {
-		return fmt.Errorf("admit client type is required")
+		return errorno.ErrInvalidParams(errorno.ErrNameClientClass, a.ClientType)
 	} else {
 		return nil
 	}

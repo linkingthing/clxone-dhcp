@@ -1,13 +1,12 @@
 package service
 
 import (
-	"fmt"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type Pool4TemplateService struct {
@@ -19,8 +18,7 @@ func NewPool4TemplateService() *Pool4TemplateService {
 
 func (p *Pool4TemplateService) Create(template *resource.Pool4Template) error {
 	if err := template.Validate(); err != nil {
-		return fmt.Errorf("validate pool4 template %s params invalid: %s",
-			template.Name, err.Error())
+		return err
 	}
 
 	template.SetID(template.Name)
@@ -28,8 +26,7 @@ func (p *Pool4TemplateService) Create(template *resource.Pool4Template) error {
 		_, err := tx.Insert(template)
 		return err
 	}); err != nil {
-		return fmt.Errorf("create pool4 template %s failed:%s",
-			template.Name, pg.Error(err).Error())
+		return errorno.ErrDBError(errorno.ErrDBNameInsert, template.Name, pg.Error(err).Error())
 	}
 
 	return nil
@@ -40,7 +37,7 @@ func (p *Pool4TemplateService) List(conditions map[string]interface{}) ([]*resou
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &templates)
 	}); err != nil {
-		return nil, fmt.Errorf("list pool4 template failed:%s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameTemplate), pg.Error(err).Error())
 	}
 
 	return templates, nil
@@ -51,9 +48,9 @@ func (p *Pool4TemplateService) Get(id string) (*resource.Pool4Template, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &templates)
 	}); err != nil {
-		return nil, fmt.Errorf("get pool4 template %s failed:%s", id, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(templates) == 0 {
-		return nil, fmt.Errorf("no found pool4 template %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameTemplate, id)
 	}
 
 	return templates[0], nil
@@ -61,43 +58,33 @@ func (p *Pool4TemplateService) Get(id string) (*resource.Pool4Template, error) {
 
 func (p *Pool4TemplateService) Update(template *resource.Pool4Template) error {
 	if err := template.Validate(); err != nil {
-		return fmt.Errorf("validate pool4 template %s params invalid: %s",
-			template.Name, err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TablePool4Template, map[string]interface{}{
 			resource.SqlColumnBeginOffset: template.BeginOffset,
 			resource.SqlColumnCapacity:    template.Capacity,
 			resource.SqlColumnComment:     template.Comment,
 		}, map[string]interface{}{restdb.IDField: template.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, template.Name, pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found pool4 template %s", template.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameTemplate, template.GetID())
 		} else {
 			return nil
 		}
-	}); err != nil {
-		return fmt.Errorf("update pool4 template %s failed:%s",
-			template.Name, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func (p *Pool4TemplateService) Delete(id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TablePool4Template, map[string]interface{}{
 			restdb.IDField: id}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found pool4 template %s", id)
+			return errorno.ErrNotFound(errorno.ErrNameTemplate, id)
 		} else {
 			return nil
 		}
-	}); err != nil {
-		return fmt.Errorf("delete pool4 template %s failed:%s", id, err.Error())
-	}
-
-	return nil
+	})
 }

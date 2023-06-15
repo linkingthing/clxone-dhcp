@@ -1,13 +1,12 @@
 package api
 
 import (
-	"fmt"
-
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-utils/excel"
 )
 
@@ -22,7 +21,7 @@ func NewSubnet6Api() *Subnet6Api {
 func (s *Subnet6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.(*resource.Subnet6)
 	if err := s.Service.Create(subnet); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return subnet, nil
@@ -31,7 +30,7 @@ func (s *Subnet6Api) Create(ctx *restresource.Context) (restresource.Resource, *
 func (s *Subnet6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnets, err := s.Service.List(ctx)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return subnets, nil
@@ -40,7 +39,7 @@ func (s *Subnet6Api) List(ctx *restresource.Context) (interface{}, *resterror.AP
 func (s *Subnet6Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet, err := s.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return subnet, nil
@@ -49,7 +48,7 @@ func (s *Subnet6Api) Get(ctx *restresource.Context) (restresource.Resource, *res
 func (s *Subnet6Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.(*resource.Subnet6)
 	if err := s.Service.Update(subnet); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return subnet, nil
@@ -57,7 +56,7 @@ func (s *Subnet6Api) Update(ctx *restresource.Context) (restresource.Resource, *
 
 func (s *Subnet6Api) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := s.Service.Delete(ctx.Resource.(*resource.Subnet6)); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
@@ -78,8 +77,8 @@ func (s *Subnet6Api) Action(ctx *restresource.Context) (interface{}, *resterror.
 	case resource.ActionNameListWithSubnets:
 		return s.actionListWithSubnets(ctx)
 	default:
-		return nil, resterror.NewAPIError(resterror.InvalidAction,
-			fmt.Sprintf("action %s is unknown", ctx.Resource.GetAction().Name))
+		return nil, errorno.HandleAPIError(resterror.InvalidAction,
+			errorno.ErrUnknownOpt(errorno.ErrNameNetworkV6, ctx.Resource.GetAction().Name))
 	}
 }
 
@@ -87,12 +86,12 @@ func (s *Subnet6Api) actionUpdateNodes(ctx *restresource.Context) (interface{}, 
 	subnetID := ctx.Resource.GetID()
 	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
 	if !ok {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			fmt.Sprintf("action update subnet6 %s nodes input invalid", subnetID))
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameNetworkV6, resource.ActionNameUpdateNodes))
 	}
 
 	if err := s.Service.UpdateNodes(subnetID, subnetNode); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil, nil
@@ -101,12 +100,12 @@ func (s *Subnet6Api) actionUpdateNodes(ctx *restresource.Context) (interface{}, 
 func (s *Subnet6Api) actionCouldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
 	if !ok {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			"action check subnet could be created input invalid")
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameNetworkV6, resource.ActionNameCouldBeCreated))
 	}
 
 	if err := s.Service.CouldBeCreated(couldBeCreatedSubnet); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil, nil
@@ -115,13 +114,13 @@ func (s *Subnet6Api) actionCouldBeCreated(ctx *restresource.Context) (interface{
 func (s *Subnet6Api) actionListWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
 	if !ok {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			"action list subnet input invalid")
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameNetworkV6, resource.ActionNameListWithSubnets))
 	}
 
 	ret, err := s.Service.ListWithSubnets(subnetListInput)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return ret, nil
@@ -130,12 +129,12 @@ func (s *Subnet6Api) actionListWithSubnets(ctx *restresource.Context) (interface
 func (s *Subnet6Api) importExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	file, ok := ctx.Resource.GetAction().Input.(*excel.ImportFile)
 	if !ok {
-		return nil, resterror.NewAPIError(resterror.InvalidFormat,
-			"action import subnet6s input invalid")
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameNetworkV6, errorno.ErrNameImport))
 	}
 
 	if resp, err := s.Service.ImportExcel(file); err != nil {
-		return resp, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return resp, nil
 	}
@@ -143,7 +142,7 @@ func (s *Subnet6Api) importExcel(ctx *restresource.Context) (interface{}, *reste
 
 func (s *Subnet6Api) actionExportExcel() (interface{}, *resterror.APIError) {
 	if exportFile, err := s.Service.ExportExcel(); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return exportFile, nil
 	}
@@ -151,7 +150,7 @@ func (s *Subnet6Api) actionExportExcel() (interface{}, *resterror.APIError) {
 
 func (s *Subnet6Api) exportExcelTemplate() (interface{}, *resterror.APIError) {
 	if file, err := s.Service.ExportExcelTemplate(); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return file, nil
 	}

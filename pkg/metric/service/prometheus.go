@@ -6,6 +6,7 @@ import (
 	httputil "github.com/linkingthing/clxone-utils/http"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 const HttpScheme = "https://"
@@ -52,12 +53,13 @@ func NewPrometheusClient(conf *config.DHCPConfig) error {
 func prometheusRequest(ctx *MetricContext) (*PrometheusResponse, error) {
 	var resp PrometheusResponse
 	if err := getPrometheusClient().Get(genPrometheusUrl(ctx), &resp); err != nil {
-		return nil, err
+		return nil, errorno.ErrNetworkError(errorno.ErrNameMetric, err.Error())
 	}
 
 	if resp.Status != "success" {
-		return nil, fmt.Errorf("get node %s %s failed with status: %s",
-			ctx.NodeIP, ctx.MetricName, resp.Status)
+		return nil, errorno.ErrNetworkError(errorno.ErrNameMetric,
+			fmt.Sprintf("get node %s %s failed with status: %s",
+				ctx.NodeIP, ctx.MetricName, resp.Status))
 	}
 
 	return &resp, nil

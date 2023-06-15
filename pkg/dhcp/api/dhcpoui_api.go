@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type DhcpOuiApi struct {
@@ -19,7 +20,7 @@ func NewDhcpOuiApi() *DhcpOuiApi {
 func (d *DhcpOuiApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	dhcpOui := ctx.Resource.(*resource.DhcpOui)
 	if err := d.Service.Create(dhcpOui); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return dhcpOui, nil
@@ -28,7 +29,7 @@ func (d *DhcpOuiApi) Create(ctx *restresource.Context) (restresource.Resource, *
 func (d *DhcpOuiApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	ouis, err := d.Service.List(ctx)
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return ouis, nil
@@ -37,7 +38,7 @@ func (d *DhcpOuiApi) List(ctx *restresource.Context) (interface{}, *resterror.AP
 func (d *DhcpOuiApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	dhcpOui, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return dhcpOui, nil
@@ -46,7 +47,7 @@ func (d *DhcpOuiApi) Get(ctx *restresource.Context) (restresource.Resource, *res
 func (d *DhcpOuiApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	dhcpOui := ctx.Resource.(*resource.DhcpOui)
 	if err := d.Service.Update(dhcpOui); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return dhcpOui, nil
@@ -54,7 +55,7 @@ func (d *DhcpOuiApi) Update(ctx *restresource.Context) (restresource.Resource, *
 
 func (d *DhcpOuiApi) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil

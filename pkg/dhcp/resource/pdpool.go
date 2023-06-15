@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"math/big"
 	"net"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -91,16 +91,16 @@ func (pdpool *PdPool) IntersectIpnet(ipnet net.IPNet) bool {
 func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, string, error) {
 	prefixIp, err := gohelperip.ParseIPv6(prefix)
 	if err != nil {
-		return nil, "", fmt.Errorf("pdpool prefix %s is invalid: %s", prefix, err.Error())
+		return nil, "", errorno.ErrInvalidAddress(prefix)
 	}
 
 	if prefixLen <= 0 || prefixLen > 64 {
-		return nil, "", fmt.Errorf("pdpool prefix len %d not in (0, 64]", prefixLen)
+		return nil, "", errorno.ErrNotInScope(errorno.ErrNamePrefix, 0, 64)
 	}
 
 	if delegatedLen < prefixLen || delegatedLen > 64 {
-		return nil, "", fmt.Errorf("pdpool delegated len %d not in [%d, 64]",
-			delegatedLen, prefixLen)
+		return nil, "", errorno.ErrNotInScope(errorno.ErrNameDelegatedLen,
+			prefixLen, 64)
 	}
 
 	return prefixIp, new(big.Int).Lsh(big.NewInt(1), uint(delegatedLen-prefixLen)).String(), nil
