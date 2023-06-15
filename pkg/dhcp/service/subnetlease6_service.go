@@ -67,7 +67,7 @@ func (l *SubnetLease6Service) filterAbleToReservation(subnetId string, leases []
 			resource.SqlColumnSubnet6: subnetId,
 		}, &reservations)
 	}); err != nil {
-		return nil, nil, fmt.Errorf("load reservation6s failed: %s", pg.Error(err).Error())
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
 	reservationLeases := make([]*resource.SubnetLease6, 0, len(addresses))
@@ -98,7 +98,7 @@ outer:
 			}
 		}
 
-		return nil, nil, fmt.Errorf("ipv6 %s has no lease", address)
+		return nil, nil, errorno.ErrNotFound(errorno.ErrNameLease, address)
 	}
 
 	return reservationLeases, hwAddresses, nil
@@ -213,12 +213,12 @@ func (l *SubnetLease6Service) getReservationFromLease(leases []*resource.SubnetL
 		case resource.ReservationTypeMac:
 			key = lease.HwAddress
 			if key == "" {
-				return nil, fmt.Errorf("%s has no hwAddress", lease.Address)
+				return nil, errorno.ErrNotFound(errorno.ErrNameMac, lease.Address)
 			}
 		case resource.ReservationTypeHostname:
 			key = lease.Hostname
 			if key == "" {
-				return nil, fmt.Errorf("%s has no hostname", lease.Address)
+				return nil, errorno.ErrNotFound(errorno.ErrNameHostname, lease.Address)
 			}
 		default:
 			return nil, fmt.Errorf("unsupported type %q", reservationType)
@@ -525,11 +525,11 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 	for _, leaseId := range leaseIds {
 		_, err := gohelperip.ParseIPv6(leaseId)
 		if err != nil {
-			return fmt.Errorf("subnet6 %s lease6 id %s is invalid: %s", subnetId, leaseId, err.Error())
+			return errorno.ErrInvalidParams(errorno.ErrNameIp, leaseId)
 		}
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		subnet6, err := getSubnet6FromDB(tx, subnetId)
 		if err != nil {
 			return err
@@ -553,7 +553,7 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 			lease6.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 			lease6.Subnet6 = subnetId
 			if _, err = tx.Insert(lease6); err != nil {
-				return pg.Error(err)
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
 
 			if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
@@ -562,16 +562,12 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 						LeaseType: lease6.LeaseType, Address: leaseId})
 				return err
 			}); err != nil {
-				return err
+				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("batch delete lease6  with subnet6 %s failed: %s", subnetId, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, error) {
@@ -584,7 +580,7 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 			})
 		return err
 	}); err != nil {
-		return nil, fmt.Errorf("get lease6s by mac failed: %s", err.Error())
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
 	}
 
 	subnetIds := make([]string, len(resp.Leases))
@@ -596,10 +592,10 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 	var reservations []*resource.Reservation6
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err = tx.FillEx(&subnets, `select * from gr_subnet6 where id = any($1::text[])`, subnetIds); err != nil {
-			return fmt.Errorf("list subnet6s failed: %s", err.Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), err.Error())
 		}
 		if err = tx.FillEx(&reservations, `select * from gr_reservation6 where subnet6 = any($1::text[])`, subnetIds); err != nil {
-			return fmt.Errorf("list reservation6s failed: %s", err.Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), err.Error())
 		}
 		return nil
 	}); err != nil {

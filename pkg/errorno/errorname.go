@@ -17,6 +17,7 @@ const (
 	ErrNameImport      ErrName = "import"
 	ErrNameExport      ErrName = "export"
 	ErrNameTemplate    ErrName = "template"
+	ErrNameTableHeader ErrName = "tableHeader"
 
 	ErrNameGateway                 ErrName = "gateway"
 	ErrNameResponsiblePerson       ErrName = "responsiblePerson"
@@ -86,6 +87,7 @@ const (
 	ErrNameApplication ErrName = "application"
 	ErrNameMac         ErrName = "mac"
 	ErrNameHostname    ErrName = "hostname"
+	ErrNameDeviceFlag  ErrName = "deviceFlag"
 
 	ErrDBNameInsert ErrName = "dbInsert"
 	ErrDBNameUpdate ErrName = "dbUpdate"
@@ -121,6 +123,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameImport:                  "导入数据",
 	ErrNameExport:                  "导出数据",
 	ErrNameTemplate:                "模板",
+	ErrNameTableHeader:             "表头",
 	ErrNamePrefix:                  "子网前缀",
 	ErrNameFile:                    "文件",
 	ErrNameGateway:                 "网关",
@@ -197,6 +200,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameApplication:       "应用资产",
 	ErrNameMac:               "Mac地址",
 	ErrNameHostname:          "主机",
+	ErrNameDeviceFlag:        "设备标识",
 	ErrNameCondition:         "查询条件",
 	ErrNameParams:            "参数",
 	ErrNameCharacter:         "字符数",

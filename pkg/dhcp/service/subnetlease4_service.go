@@ -72,7 +72,7 @@ func (l *SubnetLease4Service) filterAbleToReservation(subnetId string, leases []
 		return tx.FillEx(&reservations, `select * from gr_reservation4 where subnet4 = $1 and ip_address = any($2::text[])`,
 			subnetId, addresses)
 	}); err != nil {
-		return nil, nil, fmt.Errorf("load reservation4s failed: %s", pg.Error(err).Error())
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
 	reservationLeases := make([]*resource.SubnetLease4, 0, len(addresses))
@@ -101,7 +101,7 @@ outer:
 			continue outer
 		}
 
-		return nil, nil, fmt.Errorf("ipv4 %s has no lease", address)
+		return nil, nil, errorno.ErrNotFound(errorno.ErrNameLease, address)
 	}
 
 	return reservationLeases, hwAddresses, nil
@@ -223,12 +223,12 @@ func (l *SubnetLease4Service) getReservationFromLease(leases []*resource.SubnetL
 		case resource.ReservationTypeMac:
 			hwAddress = lease.HwAddress
 			if hwAddress == "" {
-				return nil, fmt.Errorf("%s has no hwAddress", lease.Address)
+				return nil, errorno.ErrNotFound(errorno.ErrNameMac, lease.Address)
 			}
 		case resource.ReservationTypeHostname:
 			hostname = lease.Hostname
 			if hostname == "" {
-				return nil, fmt.Errorf("%s has no hostname", lease.Address)
+				return nil, errorno.ErrNotFound(errorno.ErrNameHostname, lease.Address)
 			}
 		default:
 			return nil, fmt.Errorf("unsupported type %q", reservationType)
@@ -501,12 +501,11 @@ func (l *SubnetLease4Service) Delete(subnet *resource.Subnet4, leaseId string) e
 func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []string) error {
 	for _, leaseId := range leaseIds {
 		if _, err := gohelperip.ParseIPv4(leaseId); err != nil {
-			return fmt.Errorf("subnet4 %s lease4 id %s is invalid: %v",
-				subnetId, leaseId, err.Error())
+			return errorno.ErrInvalidParams(errorno.ErrNameIp, leaseId)
 		}
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		subnet4, err := getSubnet4FromDB(tx, subnetId)
 		if err != nil {
 			return err
@@ -530,7 +529,7 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 			lease4.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 			lease4.Subnet4 = subnetId
 			if _, err = tx.Insert(lease4); err != nil {
-				return pg.Error(err)
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
 
 			if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
@@ -538,16 +537,12 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 					&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
 				return err
 			}); err != nil {
-				return err
+				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("batch delete lease4 with subnet4 %s failed: %s", subnetId, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, error) {
@@ -560,7 +555,7 @@ func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, 
 			})
 		return err
 	}); err != nil {
-		return nil, fmt.Errorf("get lease4s by mac failed: %s", err.Error())
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
 	}
 
 	addresses := make([]string, len(resp.Leases))
@@ -572,7 +567,7 @@ func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, 
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&reservations, `select * from gr_reservation4 where ip_address = any($1::text[])`, addresses)
 	}); err != nil {
-		return nil, fmt.Errorf("list reservation4s failed: %s", err.Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), err.Error())
 	}
 
 	reservationMap := reservationMapFromReservation4s(reservations)
