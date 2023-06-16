@@ -153,14 +153,14 @@ func sharedNetworkNameToDeleteSharedNetwork4Request(name string) *pbdhcpagent.De
 	return &pbdhcpagent.DeleteSharedNetwork4Request{Name: name}
 }
 
-func checkUsedBySharedNetwork(tx restdb.Transaction, subnetId uint64) error {
+func checkUsedBySharedNetwork(tx restdb.Transaction, subnet4 *resource.Subnet4) error {
 	var sharedNetwork4s []*resource.SharedNetwork4
 	if err := tx.FillEx(&sharedNetwork4s,
 		"select * from gr_shared_network4 where $1::numeric = any(subnet_ids)",
-		subnetId); err != nil {
+		subnet4.SubnetId); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameSharedNetwork), pg.Error(err).Error())
 	} else if len(sharedNetwork4s) != 0 {
-		return errorno.ErrUsed(errorno.ErrNameNetworkV4, errorno.ErrNameSharedNetwork, subnetId, sharedNetwork4s[0].Name)
+		return errorno.ErrUsed(errorno.ErrNameNetworkV4, errorno.ErrNameSharedNetwork, subnet4.Subnet, sharedNetwork4s[0].Name)
 	} else {
 		return nil
 	}

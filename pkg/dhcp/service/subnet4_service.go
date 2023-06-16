@@ -551,7 +551,7 @@ func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
 }
 
 func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4) error {
-	if err := checkUsedBySharedNetwork(tx, subnet4.SubnetId); err != nil {
+	if err := checkUsedBySharedNetwork(tx, subnet4); err != nil {
 		return err
 	}
 
