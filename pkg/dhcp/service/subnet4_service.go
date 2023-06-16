@@ -543,7 +543,7 @@ func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
 
 		if _, err := tx.Delete(resource.TableSubnet4,
 			map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameDelete, subnet.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, subnet.Subnet, pg.Error(err).Error())
 		}
 
 		return sendDeleteSubnet4CmdToDHCPAgent(subnet, subnet.Nodes)
