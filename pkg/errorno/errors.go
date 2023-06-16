@@ -139,10 +139,10 @@ var (
 			fmt.Sprintf(`code %s length mismatch with begin %d and end %d`, code, begin, end),
 			fmt.Sprintf(`地址码%s的长度不匹配开始%d与结束%d`, code, begin, end))
 	}
-	ErrUsedReservation = func() *goresterr.ErrorMessage {
+	ErrUsedReservation = func(ip string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf(`reservation exists with same subnet, mac and hostname or ip`),
-			fmt.Sprintf(`已存在拥有相同子网、MAC和主机或IP的%s`, localizeErrName(ErrNameDhcpReservation)))
+			fmt.Sprintf(`reservation %s exists with same subnet, mac and hostname or ip`, ip),
+			fmt.Sprintf(`%s已存在拥有相同子网、MAC和主机或IP的%s`, ip, localizeErrName(ErrNameDhcpReservation)))
 	}
 	ErrSubnetWithEui64 = func(name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
