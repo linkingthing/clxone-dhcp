@@ -7,6 +7,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type Pool4TemplateService struct {
@@ -26,7 +27,7 @@ func (p *Pool4TemplateService) Create(template *resource.Pool4Template) error {
 		_, err := tx.Insert(template)
 		return err
 	}); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameInsert, template.Name, pg.Error(err).Error())
+		return util.FormatDbInsertError(errorno.ErrNameTemplate, template.Name, err)
 	}
 
 	return nil

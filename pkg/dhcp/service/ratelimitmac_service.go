@@ -27,7 +27,7 @@ func (d *RateLimitMacService) Create(rateLimitMac *resource.RateLimitMac) error 
 	rateLimitMac.SetID(rateLimitMac.HwAddress)
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(rateLimitMac); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameRateLimit), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameMac, rateLimitMac.HwAddress, err)
 		}
 
 		return sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac)

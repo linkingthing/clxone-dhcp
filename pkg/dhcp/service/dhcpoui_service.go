@@ -34,7 +34,7 @@ func (d *DhcpOuiService) Create(dhcpOui *resource.DhcpOui) error {
 	dhcpOui.SetID(dhcpOui.Oui)
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(dhcpOui); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameOui, dhcpOui.Oui, err)
 		}
 
 		return sendCreateDhcpOuiCmdToDHCPAgent(dhcpOui)

@@ -60,7 +60,7 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 		}
 
 		if _, err := tx.Insert(subnet); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, subnet.Subnet, pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameNetwork, subnet.Subnet, err)
 		}
 
 		return sendCreateSubnet4CmdToDHCPAgent(subnet)

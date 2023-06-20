@@ -4,7 +4,10 @@ import (
 	"strings"
 
 	"github.com/linkingthing/clxone-utils/filter"
+	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restresource "github.com/linkingthing/gorest/resource"
+
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 const (
@@ -70,4 +73,23 @@ func GetFilterValueWithEqModifierFromFilter(filter restresource.Filter) (string,
 
 func SetIgnoreAuditLog(ctx *restresource.Context) {
 	ctx.Response.Header().Add(filter.IgnoreAuditLog, filter.IgnoreAuditLog)
+}
+
+func StringOr(ss ...string) string {
+	for _, s := range ss {
+		if s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+func FormatDbInsertError(errName errorno.ErrName, target string, err error) error {
+	if err == nil {
+		return nil
+	}
+	if strings.Contains(err.Error(), "unique violation") {
+		return errorno.ErrDuplicate(errName, target)
+	}
+	return errorno.ErrDBError(errorno.ErrDBNameInsert, target, pg.Error(err).Error())
 }

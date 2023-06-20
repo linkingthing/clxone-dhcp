@@ -10,6 +10,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type AdmitFingerprintService struct{}
@@ -26,7 +27,7 @@ func (d *AdmitFingerprintService) Create(admitFingerprint *resource.AdmitFingerp
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitFingerprint); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAdmit), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameFingerprint, admitFingerprint.ClientType, err)
 		}
 
 		return sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint)
