@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/linkingthing/cement/log"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -26,7 +27,7 @@ func (d *RateLimitDuidService) Create(rateLimitDuid *resource.RateLimitDuid) err
 	rateLimitDuid.SetID(rateLimitDuid.Duid)
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(rateLimitDuid); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameRateLimit), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameDuid, rateLimitDuid.Duid, err)
 		}
 
 		return sendCreateRateLimitDuidCmdToDHCPAgent(rateLimitDuid)

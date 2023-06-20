@@ -10,6 +10,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type AddressCodeService struct{}
@@ -25,7 +26,8 @@ func (d *AddressCodeService) Create(addressCode *resource.AddressCode) error {
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(addressCode); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAddressCode), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameAddressCode,
+				util.StringOr(addressCode.HwAddress, addressCode.Duid), err)
 		}
 
 		return sendCreateAddressCodeCmdToDHCPAgent(addressCode)

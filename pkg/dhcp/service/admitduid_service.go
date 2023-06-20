@@ -10,6 +10,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type AdmitDuidService struct{}
@@ -26,7 +27,7 @@ func (d *AdmitDuidService) Create(admitDuid *resource.AdmitDuid) error {
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitDuid); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAdmit), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameDuid, admitDuid.Duid, err)
 		}
 
 		return sendCreateAdmitDuidCmdToDHCPAgent(admitDuid)

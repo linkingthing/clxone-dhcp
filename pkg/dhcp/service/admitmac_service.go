@@ -27,7 +27,7 @@ func (d *AdmitMacService) Create(admitMac *resource.AdmitMac) error {
 	admitMac.SetID(admitMac.HwAddress)
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(admitMac); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAdmit), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameMac, admitMac.HwAddress, err)
 		}
 
 		return sendCreateAdmitMacCmdToDHCPAgent(admitMac)

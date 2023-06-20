@@ -63,7 +63,7 @@ func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation
 		subnetId, reservation.HwAddress, reservation.Hostname, reservation.IpAddress); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	} else if count != 0 {
-		return errorno.ErrUsedReservation()
+		return errorno.ErrUsedReservation(reservation.IpAddress)
 	} else {
 		return nil
 	}

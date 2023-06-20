@@ -47,7 +47,7 @@ func (p *Pool4Service) Create(subnet *resource.Subnet4, pool *resource.Pool4) er
 
 		pool.Subnet4 = subnet.GetID()
 		if _, err := tx.Insert(pool); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameDhcpPool, pool.GetID(), err)
 		}
 
 		return sendCreatePool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)

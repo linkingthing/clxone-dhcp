@@ -24,7 +24,7 @@ var baseThreshold = []*alarm.Threshold{
 			Level: alarmProto.ThresholdLevel_critical,
 			Type:  alarmProto.ThresholdType_values,
 		},
-		Value:    3000,
+		Value:    2000,
 		SendMail: true,
 		Enabled:  true,
 	},

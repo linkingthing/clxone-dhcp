@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -29,7 +30,7 @@ func (c *ClientClass6Service) Create(clientClass *resource.ClientClass6) error {
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(clientClass); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameClientClass, clientClass.Name, err)
 		}
 
 		return sendCreateClientClass6CmdToAgent(clientClass)

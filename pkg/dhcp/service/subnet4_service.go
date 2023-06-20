@@ -60,7 +60,7 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 		}
 
 		if _, err := tx.Insert(subnet); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, subnet.Subnet, pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameNetwork, subnet.Subnet, err)
 		}
 
 		return sendCreateSubnet4CmdToDHCPAgent(subnet)
@@ -543,7 +543,7 @@ func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
 
 		if _, err := tx.Delete(resource.TableSubnet4,
 			map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameDelete, subnet.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, subnet.Subnet, pg.Error(err).Error())
 		}
 
 		return sendDeleteSubnet4CmdToDHCPAgent(subnet, subnet.Nodes)
@@ -551,7 +551,7 @@ func (s *Subnet4Service) Delete(subnet *resource.Subnet4) error {
 }
 
 func checkSubnet4CouldBeDelete(tx restdb.Transaction, subnet4 *resource.Subnet4) error {
-	if err := checkUsedBySharedNetwork(tx, subnet4.SubnetId); err != nil {
+	if err := checkUsedBySharedNetwork(tx, subnet4); err != nil {
 		return err
 	}
 

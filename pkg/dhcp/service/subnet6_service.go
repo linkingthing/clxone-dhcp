@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"math/big"
 	"strconv"
 	"strings"
@@ -52,7 +53,7 @@ func (s *Subnet6Service) Create(subnet *resource.Subnet6) error {
 		}
 
 		if _, err := tx.Insert(subnet); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, subnet.Subnet, pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameNetwork, subnet.Subnet, err)
 		}
 
 		return sendCreateSubnet6CmdToDHCPAgent(subnet)
@@ -544,7 +545,7 @@ func (s *Subnet6Service) Delete(subnet *resource.Subnet6) error {
 
 		if _, err := tx.Delete(resource.TableSubnet6,
 			map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, subnet.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, subnet.Subnet, pg.Error(err).Error())
 		}
 
 		return sendDeleteSubnet6CmdToDHCPAgent(subnet, subnet.Nodes)
