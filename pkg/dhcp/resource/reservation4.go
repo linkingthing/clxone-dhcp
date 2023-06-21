@@ -3,12 +3,22 @@ package resource
 import (
 	"fmt"
 	"net"
+	"unicode/utf8"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
+)
+
+const (
+	MaxCommentLength = 64
+
+	ActionBatchDelete          = "batch_delete"
+	ActionListToReservation    = "list_to_reservation"
+	ActionDynamicToReservation = "dynamic_to_reservation"
 )
 
 var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
@@ -28,6 +38,49 @@ type Reservation4 struct {
 
 func (r Reservation4) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet4{}}
+}
+
+func (s Reservation4) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionBatchDelete,
+			Input: &BatchDeleteInput{},
+		},
+	}
+}
+
+type BatchDeleteInput struct {
+	Ids []string `json:"ids"`
+}
+
+type ConvToReservationInput struct {
+	Addresses       []string        `json:"addresses"`
+	ReservationType ReservationType `json:"reservationType"`
+	BothV4V6        bool            `json:"bothV4V6"`
+}
+
+type ConvToReservationItem struct {
+	Address    string   `json:"address"`
+	DualStacks []string `json:"dualStacks"`
+	HwAddress  string   `json:"hwAddress"`
+	Hostname   string   `json:"hostname"`
+	Duid       string   `json:"duid"`
+}
+
+type ConvToReservationOutput struct {
+	Data []ConvToReservationItem `json:"data"`
 }
 
 func (r *Reservation4) String() string {
@@ -63,6 +116,8 @@ func (r *Reservation4) Validate() error {
 
 	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
 		return err
+	} else if utf8.RuneCountInString(r.Comment) > MaxCommentLength {
+		return fmt.Errorf("comment exceeds maximum limit: %d", MaxCommentLength)
 	}
 
 	r.Capacity = 1

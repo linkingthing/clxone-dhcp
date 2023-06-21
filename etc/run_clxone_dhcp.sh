@@ -5,4 +5,4 @@ docker run -d --name clxone-dhcp \
 -v work_key_path:work_key_path \
 -v key_factory_path:key_factory_path \
 -v /etc/localtime:/etc/localtime \
-linkingthing/clxone-dhcp:v2.0.4
+linkingthing/clxone-dhcp:v2.0.6

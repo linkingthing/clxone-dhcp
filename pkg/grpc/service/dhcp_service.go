@@ -486,7 +486,7 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 	}
 
 	var err error
-	var resp *pbdhcpagent.GetLeases4WithIpsResponse
+	var resp *pbdhcpagent.GetLeases4Response
 	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4LeasesWithIps(ctx,
 			&pbdhcpagent.GetSubnet4LeasesWithIpsRequest{Addresses: reqs})
@@ -495,8 +495,8 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 		return fmt.Errorf("get subnet4 leases failed: %s", err.Error())
 	}
 
-	for ip, lease4 := range resp.GetLeases() {
-		if subnetLease, ok := reclaimedSubnetLeases[ip]; ok &&
+	for _, lease4 := range resp.GetLeases() {
+		if subnetLease, ok := reclaimedSubnetLeases[lease4.Address]; ok &&
 			subnetLease.Address == lease4.GetAddress() &&
 			subnetLease.Expire == service.TimeFromUinx(lease4.GetExpire()) &&
 			subnetLease.HwAddress == lease4.GetHwAddress() &&
@@ -504,7 +504,7 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 			continue
 		}
 
-		ipv4Infos[ip].Lease = pbDHCPLease4FromPbDHCPAgentDHCPLease4(lease4)
+		ipv4Infos[lease4.Address].Lease = pbDHCPLease4FromPbDHCPAgentDHCPLease4(lease4)
 	}
 
 	return nil
@@ -650,7 +650,7 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 	}
 
 	var err error
-	var resp *pbdhcpagent.GetLeases6WithIpsResponse
+	var resp *pbdhcpagent.GetLeases6Response
 	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet6LeasesWithIps(ctx,
 			&pbdhcpagent.GetSubnet6LeasesWithIpsRequest{Addresses: reqs})
@@ -659,8 +659,8 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 		return fmt.Errorf("get subnet6 leases failed: %s", err.Error())
 	}
 
-	for ip, lease := range resp.GetLeases() {
-		if subnetLease, ok := reclaimedSubnetLeases[ip]; ok &&
+	for _, lease := range resp.GetLeases() {
+		if subnetLease, ok := reclaimedSubnetLeases[lease.Address]; ok &&
 			subnetLease.Address == lease.GetAddress() &&
 			subnetLease.Expire == service.TimeFromUinx(lease.GetExpire()) &&
 			subnetLease.Duid == lease.GetDuid() &&
@@ -670,7 +670,7 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 			continue
 		}
 
-		ipv6Infos[ip].Lease = pbDHCPLease6FromPbDHCPAgentDHCPLease6(lease)
+		ipv6Infos[lease.Address].Lease = pbDHCPLease6FromPbDHCPAgentDHCPLease6(lease)
 	}
 
 	return nil
@@ -774,6 +774,22 @@ func (d DHCPService) GetLease4ByPrefix(prefix string) ([]*pbdhcp.Lease4, error) 
 	} else {
 		return parser.SubnetLeases4sToPbDHCPLease4s(lease4s), nil
 	}
+}
+
+func (d DHCPService) GetLease4SWithMacs(hwAddresses []string) ([]*pbdhcp.Lease4, error) {
+	lease4s, err := service.GetSubnets4LeasesWithMacs(hwAddresses)
+	if err != nil {
+		return nil, err
+	}
+	return parser.SubnetLeases4sToPbDHCPLease4s(lease4s), nil
+}
+
+func (d DHCPService) GetLease6SWithMacs(hwAddresses []string) ([]*pbdhcp.Lease6, error) {
+	lease6s, err := service.GetSubnets6LeasesWithMacs(hwAddresses)
+	if err != nil {
+		return nil, err
+	}
+	return parser.SubnetLease6sToPbDHCPLease6s(lease6s), nil
 }
 
 func (d *DHCPService) GetAllSubnet6s() ([]*pbdhcp.Subnet6, error) {

@@ -6,8 +6,10 @@ import (
 	"math/big"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/linkingthing/cement/log"
+	"github.com/linkingthing/clxone-utils/excel"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
@@ -27,27 +29,11 @@ func NewReservation6Service() *Reservation6Service {
 }
 
 func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *resource.Reservation6) error {
-	if err := reservation.Validate(); err != nil {
-		return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
-	}
-
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
+		if err := batchCreateReservation6s(tx, subnet, []*resource.Reservation6{reservation}); err != nil {
 			return err
 		}
-
-		if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-			reservation, true); err != nil {
-			return err
-		}
-
-		reservation.Subnet6 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return pg.Error(err)
-		}
-
-		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return batchSendCreateReservation6Cmd(subnet, reservation)
 	}); err != nil {
 		return fmt.Errorf("create reservation6 %s failed: %s",
 			reservation.String(), err.Error())
@@ -416,15 +402,15 @@ func getReservation6sLeasesCount(subnetId uint64, reservations []*resource.Reser
 	return leasesCount
 }
 
-func reservationMapFromReservation6s(reservations []*resource.Reservation6) map[string]struct{} {
-	reservationMap := make(map[string]struct{})
+func reservationMapFromReservation6s(reservations []*resource.Reservation6) map[string]*resource.Reservation6 {
+	reservationMap := make(map[string]*resource.Reservation6)
 	for _, reservation := range reservations {
 		for _, ipAddress := range reservation.IpAddresses {
-			reservationMap[ipAddress+"/128"] = struct{}{}
+			reservationMap[ipAddress+"/128"] = reservation
 		}
 
 		for _, prefix := range reservation.Prefixes {
-			reservationMap[prefix] = struct{}{}
+			reservationMap[prefix] = reservation
 		}
 	}
 
@@ -546,6 +532,10 @@ func checkReservation6CouldBeDeleted(tx restdb.Transaction, subnet *resource.Sub
 		return err
 	}
 
+	return checkReservation6WithLease(subnet, reservation)
+}
+
+func checkReservation6WithLease(subnet *resource.Subnet6, reservation *resource.Reservation6) error {
 	if leasesCount, err := getReservation6LeasesCount(subnet, reservation); err != nil {
 		return fmt.Errorf("get reservation6 %s leases count failed: %s",
 			reservation.String(), err.Error())
@@ -634,37 +624,304 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 		return err
 	}
 
-	for _, reservation := range reservations {
-		if err := reservation.Validate(); err != nil {
-			return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
+	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err = batchCreateReservation6s(tx, subnet, reservations); err != nil {
+			return err
 		}
-	}
-
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for _, reservation := range reservations {
-			if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
-				return err
-			}
-
-			if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-				reservation, true); err != nil {
-				return err
-			}
-
-			reservation.Subnet6 = subnet.GetID()
-			if _, err := tx.Insert(reservation); err != nil {
-				return pg.Error(err)
-			}
-
-			if err := sendCreateReservation6CmdToDHCPAgent(
-				subnet.SubnetId, subnet.Nodes, reservation); err != nil {
-				return err
-			}
-		}
-		return nil
+		return batchSendCreateReservation6Cmd(subnet, reservations...)
 	}); err != nil {
 		return fmt.Errorf("create reservation6s failed: %s", err.Error())
 	}
 
 	return nil
+}
+
+func batchCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservations []*resource.Reservation6) error {
+	for _, reservation := range reservations {
+		if err := reservation.Validate(); err != nil {
+			return fmt.Errorf("validate reservation6 params invalid: %s", err.Error())
+		}
+		if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
+			return err
+		}
+
+		if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
+			reservation, true); err != nil {
+			return err
+		}
+
+		reservation.Subnet6 = subnet.GetID()
+		if _, err := tx.Insert(reservation); err != nil {
+			return pg.Error(err)
+		}
+	}
+
+	return nil
+}
+
+func batchSendCreateReservation6Cmd(subnet *resource.Subnet6, reservations ...*resource.Reservation6) error {
+	for _, reservation := range reservations {
+		if err := sendCreateReservation6CmdToDHCPAgent(
+			subnet.SubnetId, subnet.Nodes, reservation); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Reservation6Service) BatchDeleteReservation6s(subnetId string, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	var reservations []*resource.Reservation6
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet, err := getSubnet6FromDB(tx, subnetId)
+		if err != nil {
+			return err
+		}
+
+		if err = tx.Fill(map[string]interface{}{restdb.IDField: restdb.FillValue{
+			Operator: restdb.OperatorAny, Value: ids}},
+			&reservations); err != nil {
+			return pg.Error(err)
+		}
+
+		for _, reservation := range reservations {
+			if err = setReservation6FromDB(tx, reservation); err != nil {
+				return err
+			}
+
+			if err = checkReservation6WithLease(subnet, reservation); err != nil {
+				return err
+			}
+
+			if err = updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
+				reservation, false); err != nil {
+				return err
+			}
+
+			if _, err = tx.Delete(resource.TableReservation6,
+				map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
+				return pg.Error(err)
+			}
+
+			if err = sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
+				reservation); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId string) (interface{}, error) {
+	var subnet6s []*resource.Subnet6
+	if err := db.GetResources(map[string]interface{}{restdb.IDField: subnetId},
+		&subnet6s); err != nil {
+		return nil, fmt.Errorf("get subnet6s from db failed: %s", err.Error())
+	} else if len(subnet6s) == 0 {
+		return nil, fmt.Errorf("not found subnet6")
+	}
+
+	response := &excel.ImportResult{}
+	defer sendImportFieldResponse(Reservation6ImportFileNamePrefix, TableHeaderReservation6Fail, response)
+	reservations, err := s.parseReservation6sFromFile(file.Name, subnet6s[0], response)
+	if err != nil {
+		return response, fmt.Errorf("parse reservation6s from file %s failed: %s",
+			file.Name, err.Error())
+	}
+
+	if len(reservations) == 0 {
+		return response, nil
+	}
+
+	validReservations := make([]*resource.Reservation6, 0, len(reservations))
+	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		for _, reservation := range reservations {
+			if err = checkReservation6CouldBeCreated(tx, subnet6s[0], reservation); err != nil {
+				addFailDataToResponse(response, TableHeaderReservation6FailLen,
+					localizationReservation6ToStrSlice(reservation), err.Error())
+				continue
+			}
+
+			if err = batchInsertReservation6s(tx, subnet6s[0], reservation); err != nil {
+				return err
+			}
+
+			validReservations = append(validReservations, reservation)
+		}
+
+		return batchSendCreateReservation6Cmd(subnet6s[0], validReservations...)
+	}); err != nil {
+		return nil, fmt.Errorf("batch create reservation6s failed: %s", err.Error())
+	}
+
+	return response, nil
+}
+
+func batchInsertReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
+
+	if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
+		reservation, true); err != nil {
+		return err
+	}
+
+	reservation.Subnet6 = subnet.GetID()
+	if _, err := tx.Insert(reservation); err != nil {
+		return pg.Error(err)
+	}
+
+	return nil
+}
+
+func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet6 *resource.Subnet6,
+	response *excel.ImportResult) ([]*resource.Reservation6, error) {
+	contents, err := excel.ReadExcelFile(fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(contents) < 2 {
+		return nil, nil
+	}
+
+	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
+		TableHeaderReservation6, Reservation6MandatoryFields)
+	if err != nil {
+		return nil, err
+	}
+
+	response.InitData(len(contents) - 1)
+	fieldcontents := contents[1:]
+	reservations := make([]*resource.Reservation6, 0, len(fieldcontents))
+	reservationMap := make(map[string]struct{}, len(fieldcontents))
+	var contains bool
+	var invalidIp string
+	for j, fields := range fieldcontents {
+		contains = true
+		fields, missingMandatory, emptyLine := excel.ParseTableFields(fields,
+			tableHeaderFields, Reservation6MandatoryFields)
+		if emptyLine {
+			continue
+		} else if missingMandatory {
+			addFailDataToResponse(response, TableHeaderReservation6FailLen,
+				localizationReservation6ToStrSlice(&resource.Reservation6{}),
+				fmt.Sprintf("line %d rr missing mandatory fields: %v", j+2, Reservation6MandatoryFields))
+			continue
+		}
+
+		reservation6, err := s.parseReservation6FromFields(fields, tableHeaderFields)
+		if err != nil {
+			addFailDataToResponse(response, TableHeaderReservation6FailLen,
+				localizationReservation6ToStrSlice(reservation6), err.Error())
+			continue
+		}
+
+		if err = reservation6.Validate(); err != nil {
+			addFailDataToResponse(response, TableHeaderReservation6FailLen,
+				localizationReservation6ToStrSlice(reservation6), err.Error())
+			continue
+		}
+
+		for _, ip := range reservation6.Ips {
+			if !subnet6.Ipnet.Contains(ip) {
+				invalidIp = ip.String()
+				contains = false
+				break
+			}
+		}
+
+		if !contains {
+			addFailDataToResponse(response, TableHeaderReservation6FailLen,
+				localizationReservation6ToStrSlice(reservation6),
+				fmt.Sprintf("%s is not belong to %s", invalidIp, subnet6.Ipnet.String()))
+			continue
+		}
+
+		hasBreak := false
+		for _, IpAddress := range reservation6.IpAddresses {
+			if _, ok := reservationMap[IpAddress]; ok {
+				addFailDataToResponse(response, TableHeaderReservation6FailLen,
+					localizationReservation6ToStrSlice(reservation6), fmt.Sprintf("duplicate ip"))
+				hasBreak = true
+				break
+			}
+			reservationMap[IpAddress] = struct{}{}
+		}
+
+		if hasBreak {
+			continue
+		}
+		reservations = append(reservations, reservation6)
+	}
+
+	return reservations, nil
+}
+
+func (s *Reservation6Service) parseReservation6FromFields(fields, tableHeaderFields []string) (*resource.Reservation6, error) {
+	reservation6 := &resource.Reservation6{}
+
+	var deviceFlag string
+	var err error
+	for i, field := range fields {
+		if excel.IsSpaceField(field) {
+			continue
+		}
+		field = strings.TrimSpace(field)
+		switch tableHeaderFields[i] {
+		case FieldNameIpV6Address:
+			addresses := strings.Split(strings.TrimSpace(field), ",")
+			reservation6.IpAddresses = addresses
+		case FieldNameReservation6DeviceFlag:
+			deviceFlag = field
+		case FieldNameReservation6DeviceFlagValue:
+			if deviceFlag == ReservationFlagMac {
+				reservation6.HwAddress = field
+				continue
+			} else if deviceFlag == ReservationFlagHostName {
+				reservation6.Hostname = field
+				continue
+			} else if deviceFlag == ReservationFlagDUID {
+				reservation6.Duid = field
+				continue
+			}
+			err = fmt.Errorf("invalid device flag: %s", field)
+		case FieldNameComment:
+			reservation6.Comment = field
+		}
+	}
+	return reservation6, err
+}
+
+func (s *Reservation6Service) ExportExcel(subnetId string) (*excel.ExportFile, error) {
+	var reservation6s []*resource.Reservation6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId}, &reservation6s)
+		return err
+	}); err != nil {
+		return nil, fmt.Errorf("list reservation6s from db failed: %s", pg.Error(err).Error())
+	}
+
+	strMatrix := make([][]string, 0, len(reservation6s))
+	for _, reservation6 := range reservation6s {
+		strMatrix = append(strMatrix, localizationReservation6ToStrSlice(reservation6))
+	}
+
+	if filepath, err := excel.WriteExcelFile(Reservation6FileNamePrefix+
+		time.Now().Format(excel.TimeFormat), TableHeaderReservation6, strMatrix,
+		getOpt(Reservation6DropList, len(strMatrix)+1)); err != nil {
+		return nil, fmt.Errorf("export reservation6s failed: %s", err.Error())
+	} else {
+		return &excel.ExportFile{Path: filepath}, nil
+	}
+}
+
+func (s *Reservation6Service) ExportExcelTemplate() (*excel.ExportFile, error) {
+	if filepath, err := excel.WriteExcelFile(Reservation6TemplateFileName,
+		TableHeaderReservation6, TemplateReservation6, getOpt(Reservation6DropList, len(TemplateReservation6)+1)); err != nil {
+		return nil, fmt.Errorf("export reservation6 template failed: %s", err.Error())
+	} else {
+		return &excel.ExportFile{Path: filepath}, nil
+	}
 }

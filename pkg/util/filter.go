@@ -3,18 +3,20 @@ package util
 import (
 	"strings"
 
+	"github.com/linkingthing/clxone-utils/filter"
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
 const (
-	FilterNameName       = "name"
-	FilterNameComment    = "comment"
-	FilterNameIp         = "ip"
-	FilterNameCreateTime = "create_time"
-	FilterNameVersion    = "version"
-	FilterNameSubnet     = "subnet"
-	FilterNameTimeFrom   = "from"
-	FilterNameTimeTo     = "to"
+	FilterNameName            = "name"
+	FilterNameComment         = "comment"
+	FilterNameIp              = "ip"
+	FilterNameReservationType = "reservation_type"
+	FilterNameCreateTime      = "create_time"
+	FilterNameVersion         = "version"
+	FilterNameSubnet          = "subnet"
+	FilterNameTimeFrom        = "from"
+	FilterNameTimeTo          = "to"
 
 	TimeFromSuffix  = " 00:00"
 	TimeToSuffix    = " 23:59"
@@ -64,4 +66,8 @@ func GetFilterValueWithEqModifierFromFilter(filter restresource.Filter) (string,
 	}
 
 	return "", false
+}
+
+func SetIgnoreAuditLog(ctx *restresource.Context) {
+	ctx.Response.Header().Add(filter.IgnoreAuditLog, filter.IgnoreAuditLog)
 }

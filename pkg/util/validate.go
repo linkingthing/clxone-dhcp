@@ -131,3 +131,11 @@ func NormalizeMac(mac string) (string, error) {
 		return strings.ToUpper(hw.String()), nil
 	}
 }
+
+func ToLower(ss []string) []string {
+	rs := make([]string, len(ss))
+	for i, s := range ss {
+		rs[i] = strings.ToLower(s)
+	}
+	return rs
+}

@@ -5,6 +5,14 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
+type ReservationType string
+
+const (
+	ReservationTypeMac      ReservationType = "mac"
+	ReservationTypeHostname ReservationType = "hostname"
+	ReservationTypeDuid     ReservationType = "duid"
+)
+
 var TableSubnetLease4 = restdb.ResourceDBType(&SubnetLease4{})
 
 type SubnetLease4 struct {
@@ -35,4 +43,26 @@ func (l *SubnetLease4) Equal(another *SubnetLease4) bool {
 		l.HwAddress == another.HwAddress &&
 		l.ClientId == another.ClientId &&
 		l.Hostname == another.Hostname
+}
+
+func (s SubnetLease4) GetActions() []restresource.Action {
+	return []restresource.Action{
+		{
+			Name:  ActionBatchDelete,
+			Input: &BatchDeleteLeasesInput{},
+		},
+		{
+			Name:   ActionListToReservation,
+			Input:  &ConvToReservationInput{},
+			Output: &ConvToReservationOutput{},
+		},
+		{
+			Name:  ActionDynamicToReservation,
+			Input: &ConvToReservationInput{},
+		},
+	}
+}
+
+type BatchDeleteLeasesInput struct {
+	Addresses []string `json:"addresses"`
 }

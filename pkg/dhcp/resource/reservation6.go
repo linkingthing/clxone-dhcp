@@ -3,9 +3,11 @@ package resource
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/linkingthing/clxone-utils/excel"
 	"math/big"
 	"net"
 	"strings"
+	"unicode/utf8"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
@@ -44,6 +46,27 @@ type Reservation6 struct {
 
 func (r Reservation6) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet6{}}
+}
+
+func (s Reservation6) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionBatchDelete,
+			Input: &BatchDeleteInput{},
+		},
+	}
 }
 
 func (r *Reservation6) String() string {
@@ -154,6 +177,8 @@ func (r *Reservation6) Validate() error {
 
 	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
 		return err
+	} else if utf8.RuneCountInString(r.Comment) > MaxCommentLength {
+		return fmt.Errorf("comment exceeds maximum limit: %d", MaxCommentLength)
 	}
 
 	r.IpAddresses = ips
