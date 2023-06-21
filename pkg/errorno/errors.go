@@ -3,6 +3,7 @@ package errorno
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/linkingthing/cement/log"
 	restdb "github.com/linkingthing/gorest/db"
@@ -252,9 +253,13 @@ var (
 			fmt.Sprintf("文件 [%s] 为空", file))
 	}
 	ErrReadFile = func(file string, errMsg string) *goresterr.ErrorMessage {
+		zhErrMsg := errMsg
+		if strings.Contains(errMsg, "only support format of XLSX") {
+			zhErrMsg = "仅支持 XLSX 格式的 Excel 文件"
+		}
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("read file [%s] failed:%s", file, errMsg),
-			fmt.Sprintf("读取文件[%s] 失败: %s", file, errMsg))
+			fmt.Sprintf("读取文件[%s] 失败: %s", file, zhErrMsg))
 	}
 	ErrParseHeader = func(file string, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
