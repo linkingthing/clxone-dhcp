@@ -523,7 +523,7 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 	response *excel.ImportResult) ([]*resource.Reservation4, error) {
 	contents, err := excel.ReadExcelFile(fileName)
 	if err != nil {
-		return nil, err
+		return nil, errorno.ErrReadFile(fileName, err.Error())
 	}
 
 	if len(contents) < 2 {
