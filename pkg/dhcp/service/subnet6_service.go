@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	"math/big"
 	"strconv"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 const (
@@ -647,7 +647,7 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderSubnet6, SubnetMandatoryFields)
 	if err != nil {
-		return nil, nil, nil, nil, nil, errorno.ErrInvalidParams(errorno.ErrNameTableHeader, getInvalidHeader(err.Error()))
+		return nil, nil, nil, nil, nil, errorno.ErrInvalidTableHeader(TableHeaderSubnet6)
 	}
 
 	dhcpConfig, err := resource.GetDhcpConfig(false)

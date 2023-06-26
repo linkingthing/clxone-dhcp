@@ -591,7 +591,7 @@ func (s *Subnet4Service) ImportExcel(file *excel.ImportFile) (interface{}, error
 		reqForServerCreate, reqForServerDelete, err := parseSubnet4sFromFile(file.Name, oldSubnet4s,
 		sentryNodes, sentryVip, response)
 	if err != nil {
-		return response, errorno.ErrParseFailed(errorno.ErrNameNetworkV4, err.Error())
+		return response, err
 	}
 
 	if len(validSqls) == 0 {
@@ -640,7 +640,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderSubnet4, SubnetMandatoryFields)
 	if err != nil {
-		return nil, nil, nil, nil, nil, errorno.ErrInvalidParams(errorno.ErrNameTableHeader, getInvalidHeader(err.Error()))
+		return nil, nil, nil, nil, nil, errorno.ErrInvalidTableHeader(TableHeaderSubnet4)
 	}
 
 	dhcpConfig, err := resource.GetDhcpConfig(true)

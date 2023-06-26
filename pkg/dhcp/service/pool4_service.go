@@ -372,7 +372,7 @@ func checkPool4CouldBeDeleted(tx restdb.Transaction, subnet *resource.Subnet4, p
 	if leasesCount, err := getPool4LeasesCount(subnet, pool, reservations); err != nil {
 		return err
 	} else if leasesCount != 0 {
-		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameDhcpPool, pool.GetID())
+		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameDhcpPool, "")
 	}
 
 	return nil

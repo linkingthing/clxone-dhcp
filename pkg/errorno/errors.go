@@ -70,17 +70,17 @@ var (
 	ErrEui64Conflict = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("subnet use eui64 conflict with use address code"),
-			fmt.Sprintf("同时开启了 EUI64 和地址码"))
+			fmt.Sprintf("不能同时开启EUI64和地址编码"))
 	}
 	ErrAddressCodeMask = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("the mask size of subnet use address code must not less than 64"),
-			fmt.Sprintf("开启了地址码的子网的前缀长度不能小于64"))
+			fmt.Sprintf("开启了地址编码的子网的前缀长度不能小于64"))
 	}
 	ErrHasPool = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("subnet6 has pools, can not enabled eui64 or address code"),
-			fmt.Sprintf("已配置地址池的子网不能开启 EUI64 或者地址码"))
+			fmt.Sprintf("子网已配置地址池，不能开启EUI64"))
 	}
 	ErrHaMode = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -148,7 +148,7 @@ var (
 	ErrSubnetWithEui64 = func(name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`subnet6 %s has opened EUI64 or address code`, name),
-			fmt.Sprintf(`子网 %s 已经开启了 EUI64 或者地址码`, name))
+			fmt.Sprintf(`子网%s已经开启了EUI64`, name))
 	}
 	ErrBiggerThan = func(target ErrName, obj1, obj2 interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -237,6 +237,12 @@ var (
 			fmt.Sprintf("import [%s] failed:%s", target, errMsg),
 			fmt.Sprintf("导入数据 [%s] 失败: %s", localizeErrName(target), errMsg))
 	}
+	ErrInvalidTableHeader = func(expectedHeader []string) *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("invalid table header, expected is %q", expectedHeader),
+			fmt.Sprintf("表头格式不正确，应该为：%q", expectedHeader),
+		)
+	}
 	ErrImportExceedMaxCount = func(target ErrName, maxCount int) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("import %s exceeds max count: %d", target, maxCount),
@@ -289,7 +295,7 @@ var (
 	ErrIPHasBeenAllocated = func(target ErrName, resource string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s[%s] has been allocate IP", target, resource),
-			fmt.Sprintf("%s[%s]已分配IP", localizeErrName(target), resource))
+			fmt.Sprintf("%s%s已分配IP", localizeErrName(target), resource))
 	}
 	ErrUsed = func(src, dct ErrName, srcValue, dctValue interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
