@@ -358,16 +358,13 @@ func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4Lease(ctx,
 			&pbdhcpagent.GetSubnet4LeaseRequest{Id: subnetId, Address: ip})
-		if err != nil {
-			errMsg := err.Error()
-			if s, ok := status.FromError(err); ok {
-				errMsg = s.Message()
-			}
-			err = errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
-		}
 		return err
 	}); err != nil {
-		return nil, err
+		errMsg := err.Error()
+		if s, ok := status.FromError(err); ok {
+			errMsg = s.Message()
+		}
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
 	}
 
 	subnetLease4 := SubnetLease4FromPbLease4(resp.GetLease())
@@ -412,13 +409,6 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, su
 	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 		resp, err = client.GetSubnet4Leases(ctx,
 			&pbdhcpagent.GetSubnet4LeasesRequest{Id: subnetId})
-		if err != nil {
-			errMsg := err.Error()
-			if s, ok := status.FromError(err); ok {
-				errMsg = s.Message()
-			}
-			err = errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
-		}
 		return err
 	}); err != nil {
 		log.Debugf("get subnet4 %d lease4s failed: %s", subnetId, err.Error())
@@ -553,6 +543,10 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 				errMsg := err.Error()
 				if s, ok := status.FromError(err); ok {
 					errMsg = s.Message()
+					if strings.Contains(errMsg, ":") {
+						msgs := strings.Split(errMsg, ":")
+						errMsg = msgs[len(msgs)-1]
+					}
 				}
 				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 			}

@@ -373,15 +373,15 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 		resp, err = client.GetSubnet6Lease(ctx,
 			&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
 		if err != nil {
-			errMsg := err.Error()
-			if s, ok := status.FromError(err); ok {
-				errMsg = s.Message()
-			}
-			err = errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
 		}
 		return err
 	}); err != nil {
-		return nil, err
+		errMsg := err.Error()
+		if s, ok := status.FromError(err); ok {
+			errMsg = s.Message()
+		}
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
 	}
 
 	subnetLease6 := SubnetLease6FromPbLease6(resp.GetLease())
@@ -401,11 +401,7 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 		resp, err = client.GetSubnet6Leases(ctx,
 			&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 		if err != nil {
-			errMsg := err.Error()
-			if s, ok := status.FromError(err); ok {
-				errMsg = s.Message()
-			}
-			err = errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
 		}
 		return err
 	}); err != nil {
@@ -526,6 +522,10 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 				errMsg := err.Error()
 				if s, ok := status.FromError(err); ok {
 					errMsg = s.Message()
+					if strings.Contains(errMsg, "failed:") {
+						msgs := strings.Split(errMsg, "failed:")
+						errMsg = msgs[len(msgs)-1]
+					}
 				}
 				err = errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 			}
@@ -575,7 +575,15 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 						LeaseType: lease6.LeaseType, Address: leaseId})
 				return err
 			}); err != nil {
-				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), pg.Error(err).Error())
+				errMsg := err.Error()
+				if s, ok := status.FromError(err); ok {
+					errMsg = s.Message()
+					if strings.Contains(errMsg, "failed:") {
+						msgs := strings.Split(errMsg, "failed:")
+						errMsg = msgs[len(msgs)-1]
+					}
+				}
+				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 			}
 		}
 
