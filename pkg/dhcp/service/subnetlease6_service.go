@@ -12,6 +12,7 @@ import (
 	"github.com/linkingthing/cement/slice"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
+	"google.golang.org/grpc/status"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -372,7 +373,11 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 		resp, err = client.GetSubnet6Lease(ctx,
 			&pbdhcpagent.GetSubnet6LeaseRequest{Id: subnetId, Address: ip})
 		if err != nil {
-			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
+			errMsg := err.Error()
+			if s, ok := status.FromError(err); ok {
+				errMsg = s.Message()
+			}
+			err = errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
 		}
 		return err
 	}); err != nil {
@@ -396,7 +401,11 @@ func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, su
 		resp, err = client.GetSubnet6Leases(ctx,
 			&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
 		if err != nil {
-			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
+			errMsg := err.Error()
+			if s, ok := status.FromError(err); ok {
+				errMsg = s.Message()
+			}
+			err = errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
 		}
 		return err
 	}); err != nil {
@@ -514,7 +523,11 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 				&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
 					LeaseType: lease6.LeaseType, Address: leaseId})
 			if err != nil {
-				err = errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), pg.Error(err).Error())
+				errMsg := err.Error()
+				if s, ok := status.FromError(err); ok {
+					errMsg = s.Message()
+				}
+				err = errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 			}
 			return err
 		})
@@ -580,7 +593,11 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 			})
 		return err
 	}); err != nil {
-		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
+		errMsg := err.Error()
+		if s, ok := status.FromError(err); ok {
+			errMsg = s.Message()
+		}
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
 	}
 
 	subnetIds := make([]string, len(resp.Leases))
