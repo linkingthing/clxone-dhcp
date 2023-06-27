@@ -24,17 +24,13 @@ func (s *SharedNetwork4Service) Create(sharedNetwork4 *resource.SharedNetwork4) 
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(sharedNetwork4); err != nil {
 			return util.FormatDbInsertError(errorno.ErrNameSharedNetwork, sharedNetwork4.Name, err)
 		}
 
 		return sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4)
-	}); err != nil {
-		return errorno.ErrOperateResource(errorno.ErrMethodCreate, sharedNetwork4.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4 *resource.SharedNetwork4) error {
