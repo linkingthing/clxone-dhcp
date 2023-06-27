@@ -299,7 +299,7 @@ func checkReservation4WithLease(subnet *resource.Subnet4, reservation *resource.
 	if leasesCount, err := getReservation4LeaseCount(subnet, reservation); err != nil {
 		return err
 	} else if leasesCount != 0 {
-		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameDhcpReservation, reservation.GetID())
+		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameDhcpReservation, reservation.IpAddress)
 	}
 
 	return nil
