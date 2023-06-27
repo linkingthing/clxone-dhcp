@@ -77,7 +77,7 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		oldSharedNetwork4, err := getOldSharedNetwork(tx, sharedNetwork4.GetID())
 		if err != nil {
 			return err
@@ -90,15 +90,11 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 			resource.SqlColumnComment:    sharedNetwork4.Comment,
 		}, map[string]interface{}{
 			restdb.IDField: sharedNetwork4.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameUpdate, sharedNetwork4.Name, pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameNetwork, sharedNetwork4.Name, err)
 		}
 
 		return sendUpdateSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name, sharedNetwork4)
-	}); err != nil {
-		return errorno.ErrOperateResource(errorno.ErrMethodUpdate, sharedNetwork4.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendUpdateSharedNetwork4CmdToDHCPAgent(name string, sharedNetwork4 *resource.SharedNetwork4) error {
@@ -110,7 +106,7 @@ func sendUpdateSharedNetwork4CmdToDHCPAgent(name string, sharedNetwork4 *resourc
 }
 
 func (s *SharedNetwork4Service) Delete(sharedNetwork4Id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		oldSharedNetwork4, err := getOldSharedNetwork(tx, sharedNetwork4Id)
 		if err != nil {
 			return err
@@ -122,11 +118,7 @@ func (s *SharedNetwork4Service) Delete(sharedNetwork4Id string) error {
 		}
 
 		return sendDeleteSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name)
-	}); err != nil {
-		return errorno.ErrOperateResource(errorno.ErrDBNameDelete, sharedNetwork4Id, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func getOldSharedNetwork(tx restdb.Transaction, id string) (*resource.SharedNetwork4, error) {

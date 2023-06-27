@@ -138,7 +138,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameNetworkPool:             "子网地址池",
 	ErrNameNetworkLease:            "子网租赁",
 
-	ErrDBNameInsert:   "插入数据",
+	ErrDBNameInsert:   "写入数据",
 	ErrDBNameUpdate:   "更新数据",
 	ErrDBNameQuery:    "查询数据",
 	ErrDBNameDelete:   "删除数据",

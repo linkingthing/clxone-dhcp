@@ -126,7 +126,7 @@ func (h *DhcpFingerprintService) Update(fingerprint *resource.DhcpFingerprint) e
 		}, map[string]interface{}{
 			restdb.IDField: fingerprint.GetID(),
 		}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameUpdate, fingerprint.GetID(), pg.Error(err).Error())
+			return util.FormatDbInsertError(errorno.ErrNameFingerprint, oldFingerprint.Fingerprint, err)
 		}
 
 		return sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, fingerprint)
