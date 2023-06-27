@@ -533,7 +533,7 @@ func (s *Reservation4Service) parseReservation4sFromFile(fileName string, subnet
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderReservation4, Reservation4MandatoryFields)
 	if err != nil {
-		return nil, errorno.ErrInvalidParams(errorno.ErrNameTableHeader, getInvalidHeader(err.Error()))
+		return nil, errorno.ErrInvalidTableHeader()
 	}
 
 	response.InitData(len(contents) - 1)

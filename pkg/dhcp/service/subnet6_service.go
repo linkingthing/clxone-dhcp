@@ -647,7 +647,7 @@ func parseSubnet6sFromFile(fileName string, oldSubnets []*resource.Subnet6, sent
 	tableHeaderFields, err := excel.ParseTableHeader(contents[0],
 		TableHeaderSubnet6, SubnetMandatoryFields)
 	if err != nil {
-		return nil, nil, nil, nil, nil, errorno.ErrInvalidTableHeader(TableHeaderSubnet6)
+		return nil, nil, nil, nil, nil, errorno.ErrInvalidTableHeader()
 	}
 
 	dhcpConfig, err := resource.GetDhcpConfig(false)

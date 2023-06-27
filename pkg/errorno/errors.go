@@ -237,10 +237,10 @@ var (
 			fmt.Sprintf("import [%s] failed:%s", target, errMsg),
 			fmt.Sprintf("导入数据 [%s] 失败: %s", localizeErrName(target), errMsg))
 	}
-	ErrInvalidTableHeader = func(expectedHeader []string) *goresterr.ErrorMessage {
+	ErrInvalidTableHeader = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("invalid table header, expected is %q", expectedHeader),
-			fmt.Sprintf("表头格式不正确，应该为：%q", expectedHeader),
+			fmt.Sprintf("failed to parse file: invalid table header"),
+			fmt.Sprintf("解析导入文件失败: 表头格式不正确"),
 		)
 	}
 	ErrImportExceedMaxCount = func(target ErrName, maxCount int) *goresterr.ErrorMessage {
