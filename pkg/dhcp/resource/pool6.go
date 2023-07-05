@@ -82,7 +82,7 @@ func (p *Pool6) String() string {
 
 func (p *Pool6) Validate() error {
 	if err := util.ValidateStrings(util.RegexpTypeComma, p.Comment); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, p.Comment)
 	}
 
 	if p.Template != "" {

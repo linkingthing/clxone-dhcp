@@ -176,7 +176,7 @@ func (r *Reservation6) Validate() error {
 	}
 
 	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, r.Comment)
 	} else if utf8.RuneCountInString(r.Comment) > MaxCommentLength {
 		return errorno.ErrExceedMaxCount(errorno.ErrNameComment, MaxCommentLength)
 	}

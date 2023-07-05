@@ -4,6 +4,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -23,7 +24,9 @@ func (r RateLimitDuid) GetParents() []restresource.ResourceKind {
 func (r *RateLimitDuid) Validate() error {
 	if err := parseDUID(r.Duid); err != nil {
 		return err
-	} else {
-		return util.ValidateStrings(util.RegexpTypeComma, r.Comment)
 	}
+	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, r.Comment)
+	}
+	return nil
 }

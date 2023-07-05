@@ -78,6 +78,15 @@ const (
 	ErrNameCmd               ErrName = "cmd"
 	ErrNameCode              ErrName = "code"
 	ErrNameDescription       ErrName = "description"
+	ErrNameVendorId          ErrName = "vendorId"
+	ErrNameOperatingSystem   ErrName = "operatingSystem"
+	ErrNameClientType        ErrName = "clientType"
+	ErrNameTftpServer        ErrName = "option 66"
+	ErrNameBootFile          ErrName = "option 67"
+	ErrNameRelayAgent        ErrName = "option 82"
+	ErrNameRelayAgentIf      ErrName = "option 18"
+	ErrNameRelayAgentAddr    ErrName = "relayAgentAddr"
+	ErrNameIfName            ErrName = "ifName"
 
 	ErrNameMetric      ErrName = "metric"
 	ErrNameUsedRatio   ErrName = "usedRatio"
@@ -115,7 +124,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameRegexp:                  "匹配值",
 	ErrNameOffset:                  "起始位置",
 	ErrNameCapacity:                "数量",
-	ErrNameFingerprint:             "指纹",
+	ErrNameFingerprint:             "指纹编码",
 	ErrNameTime:                    "时间",
 	ErrNameFullName:                "全名称",
 	ErrNameID:                      "id",
@@ -137,6 +146,11 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameUser:                    "用户",
 	ErrNameNetworkPool:             "子网地址池",
 	ErrNameNetworkLease:            "子网租赁",
+	ErrNameVendorId:                "厂商标识",
+	ErrNameOperatingSystem:         "操作系统",
+	ErrNameClientType:              "客户端类型",
+	ErrNameRelayAgentAddr:          "中继路由地址",
+	ErrNameIfName:                  "网卡名字",
 
 	ErrDBNameInsert:   "写入数据",
 	ErrDBNameUpdate:   "更新数据",

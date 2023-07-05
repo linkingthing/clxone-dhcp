@@ -157,8 +157,11 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 		return err
 	}
 
-	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags, s.IfaceName); err != nil {
-		return err
+	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameName, s.Tags)
+	}
+	if err := util.ValidateStrings(util.RegexpTypeCommon, s.IfaceName); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameIfName, s.IfaceName)
 	}
 
 	if s.SubnetMask != "" {
@@ -169,7 +172,7 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 
 	if s.NextServer != "" {
 		if err := gohelperip.CheckIPv4sValid(s.NextServer); err != nil {
-			return errorno.ErrInvalidAddress(s.SubnetMask)
+			return errorno.ErrInvalidAddress(s.NextServer)
 		}
 	}
 
@@ -186,7 +189,7 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 	}
 
 	if err := checkIpsValidWithVersion(true, s.Routers); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameGateway, s.Routers[0])
 	}
 
 	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
@@ -198,29 +201,35 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 
 func checkTFTPValid(tftpServer, bootfile string) error {
 	if len(bootfile) > 128 {
-		return errorno.ErrBiggerThan("option67", len(bootfile), 128)
+		return errorno.ErrBiggerThan(errorno.ErrNameBootFile, len(bootfile), 128)
 	}
 
 	if tftpServer != "" {
 		if len(tftpServer) > 64 {
-			return errorno.ErrBiggerThan("option66", len(tftpServer), 64)
+			return errorno.ErrBiggerThan(errorno.ErrNameTftpServer, len(tftpServer), 64)
 		}
 
 		if _, err := url.Parse(tftpServer); err != nil {
-			return errorno.ErrInvalidAddress(tftpServer)
+			return errorno.ErrInvalidParams(errorno.ErrNameTftpServer, tftpServer)
 		}
 	}
 
-	return util.ValidateStrings(util.RegexpTypeSlash, tftpServer, bootfile)
+	if err := util.ValidateStrings(util.RegexpTypeSlash, tftpServer); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameTftpServer, tftpServer)
+	}
+	if err := util.ValidateStrings(util.RegexpTypeSlash, bootfile); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameBootFile, bootfile)
+	}
+	return nil
 }
 
 func checkCommonOptions(isv4 bool, domainServers, relayAgents []string) error {
 	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
-		return err
+		return errorno.ErrInvalidParams("DNS", domainServers[0])
 	}
 
 	if err := checkIpsValidWithVersion(isv4, relayAgents); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgent, relayAgents[0])
 	}
 
 	return nil

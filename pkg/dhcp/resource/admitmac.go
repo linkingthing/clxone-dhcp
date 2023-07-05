@@ -4,6 +4,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -24,6 +25,9 @@ func (a *AdmitMac) Validate() error {
 		return err
 	} else {
 		a.HwAddress = hw
-		return util.ValidateStrings(util.RegexpTypeComma, a.Comment)
 	}
+	if err := util.ValidateStrings(util.RegexpTypeComma, a.Comment); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, a.Comment)
+	}
+	return nil
 }
