@@ -166,7 +166,7 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 
 	if s.SubnetMask != "" {
 		if err := gohelperip.CheckIPv4sValid(s.SubnetMask); err != nil {
-			return errorno.ErrInvalidAddress(s.SubnetMask)
+			return errorno.ErrInvalidParams(errorno.ErrNameNetworkMask, s.SubnetMask)
 		}
 	}
 
