@@ -1,10 +1,9 @@
 package kafka
 
 import (
-	"fmt"
-
 	"github.com/golang/protobuf/proto"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
@@ -52,7 +51,7 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 
 	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
-		return nil, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+		return nil, err
 	}
 
 	sentryRole := AgentRoleSentry4
@@ -72,7 +71,7 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 		if hasSentry {
 			if vip := node.GetVirtualIp(); vip != "" {
 				if vip != selectedSentryNodes[0] {
-					return nil, fmt.Errorf("only node with virtual ip could be selected for ha model")
+					return nil, errorno.ErrHaModeVip()
 				}
 
 				sentryNodes = []string{node.GetIpv4()}
@@ -97,7 +96,7 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 	}
 
 	if !hasServer {
-		return nil, fmt.Errorf("no found valid dhcp server nodes")
+		return nil, errorno.ErrResourceNotFound(errorno.ErrNameDhcpServerNode)
 	}
 
 	if len(sentryNodes) != 0 {
@@ -105,7 +104,7 @@ func GetDHCPNodesWithSentryNodes(selectedSentryNodes []string, isv4 bool) ([]str
 	} else {
 		for _, sentryNode := range selectedSentryNodes {
 			if _, ok := sentryNodeMap[sentryNode]; !ok {
-				return nil, fmt.Errorf("invalid sentry node %s", sentryNode)
+				return nil, errorno.ErrNotFound(errorno.ErrNameDhcpSentryNode, sentryNode)
 			}
 		}
 
@@ -142,7 +141,7 @@ func SendDHCPCmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
 func GetDHCPNodes(stack AgentStack) ([]string, []string, string, error) {
 	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+		return nil, nil, "", err
 	}
 
 	sentryRoles := []AgentRole{AgentRoleSentry4, AgentRoleSentry6}
@@ -191,7 +190,7 @@ func GetDHCPNodes(stack AgentStack) ([]string, []string, string, error) {
 	}
 
 	if len(sentryNodes) == 0 || !hasServer {
-		return nil, nil, "", fmt.Errorf("no found valid dhcp sentry or server nodes")
+		return nil, nil, "", errorno.ErrResourceNotFound(errorno.ErrNameDhcpNode)
 	}
 
 	return sentryNodes, serverNodes, virtualIp, nil

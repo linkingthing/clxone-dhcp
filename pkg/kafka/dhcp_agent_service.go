@@ -3,7 +3,6 @@ package kafka
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -11,6 +10,7 @@ import (
 	"github.com/segmentio/kafka-go/sasl/plain"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type DHCPCmd string
@@ -100,6 +100,7 @@ const (
 )
 
 var globalDHCPAgentService *DHCPAgentService
+
 var onceDHCPAgentService sync.Once
 
 type DHCPAgentService struct {
@@ -136,14 +137,14 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 
 	data, err := proto.Marshal(msg)
 	if err != nil {
-		return nil, fmt.Errorf("marshal %s failed: %s\n", cmd, err.Error())
+		return nil, errorno.ErrHandleCmd(string(cmd), err.Error())
 	}
 
 	succeedNodes := make([]string, 0, len(nodes))
 	for _, node := range nodes {
 		if err := a.dhcpWriter.WriteMessages(context.Background(), kg.Message{
 			Topic: TopicPrefix + node, Key: []byte(cmd), Value: data}); err != nil {
-			return succeedNodes, fmt.Errorf("send kafka cmd to %s failed: %s", node, err.Error())
+			return succeedNodes, errorno.ErrHandleCmd(string(cmd), err.Error())
 		}
 
 		succeedNodes = append(succeedNodes, node)

@@ -1,9 +1,8 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
@@ -52,7 +51,7 @@ func (h *Agent4Service) Get(agent *resource.Agent4) error {
 		return nil
 	}
 
-	return fmt.Errorf("no found dhcp node %s", agent.GetID())
+	return errorno.ErrNotFound(errorno.ErrNameDhcpNode, agent.GetID())
 }
 
 func GetNodeNames(isv4 bool) (map[string]string, error) {
@@ -76,7 +75,7 @@ func GetNodeNames(isv4 bool) (map[string]string, error) {
 func IsSentryHA(isv4 bool) (bool, error) {
 	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
-		return false, fmt.Errorf("get dhcp nodes failed: %s", err.Error())
+		return false, err
 	}
 
 	sentryRole := kafka.AgentRoleSentry4
@@ -112,7 +111,7 @@ func (a Agent) HasNode(node string) bool {
 func GetAgentInfo(alive bool, role ...kafka.AgentRole) (map[string]Agent, error) {
 	dhcpNodes, err := transport.GetDHCPNodes()
 	if err != nil {
-		return nil, fmt.Errorf("get dhcp nodes failed: %v", err)
+		return nil, err
 	}
 
 	nodes := dhcpNodes.GetNodes()

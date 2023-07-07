@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"fmt"
+	"strings"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -9,6 +9,7 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 var TableDhcpConfig = restdb.ResourceDBType(&DhcpConfig{})
@@ -36,7 +37,7 @@ type DhcpConfig struct {
 
 func (config *DhcpConfig) Validate() error {
 	if err := gohelperip.CheckIPsValid(config.DomainServers...); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameIp, strings.Join(config.DomainServers, ","))
 	}
 
 	return checkLifetimeValid(config.ValidLifetime, config.MinValidLifetime, config.MaxValidLifetime)
@@ -44,16 +45,15 @@ func (config *DhcpConfig) Validate() error {
 
 func checkLifetimeValid(validLifetime, minValidLifetime, maxValidLifetime uint32) error {
 	if minValidLifetime < MinValidLifetime {
-		return fmt.Errorf("min-lifetime %d must not less than %d", minValidLifetime, MinValidLifetime)
+		return errorno.ErrMinLifetime(MinValidLifetime)
 	}
 
 	if minValidLifetime > maxValidLifetime {
-		return fmt.Errorf("min-lifetime must less than max-lifetime")
+		return errorno.ErrMinLifetime(MinValidLifetime)
 	}
 
 	if validLifetime < minValidLifetime || validLifetime > maxValidLifetime {
-		return fmt.Errorf("default lifetime %d is not between min-lifttime %d and max-lifetime %d",
-			validLifetime, minValidLifetime, maxValidLifetime)
+		return errorno.ErrDefaultLifetime()
 	}
 
 	return nil
@@ -64,7 +64,7 @@ func GetDhcpConfig(isv4 bool) (*DhcpConfig, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &configs)
 	}); err != nil {
-		return nil, fmt.Errorf("get dhcp global config failed: %s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameConfig), pg.Error(err).Error())
 	}
 
 	if len(configs) != 0 {

@@ -15,6 +15,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	dhcpresource "github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
@@ -34,17 +35,17 @@ func (h *SubnetUsedRatioService) List(ctx *restresource.Context) (interface{}, e
 	}
 
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
-		return nil, fmt.Errorf("get packet stats failed: %s", err.Error())
+		return nil, err
 	}
 
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get subnets used ratio from prometheus failed: %s", err.Error())
+		return nil, err
 	}
 
 	subnets, err := getSubnetsFromDB(metricCtx.Version)
 	if err != nil {
-		return nil, fmt.Errorf("list subnets from db failed: %s", err.Error())
+		return nil, err
 	}
 
 	nodeIpAndSubnetUsages := make(map[string]resource.SubnetUsages)
@@ -86,7 +87,7 @@ func getSubnetsFromDB(version DHCPVersion) (map[string]struct{}, error) {
 		if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 			return tx.Fill(nil, &subnet4s)
 		}); err != nil {
-			return nil, pg.Error(err)
+			return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 		}
 
 		for _, subnet := range subnet4s {
@@ -97,7 +98,7 @@ func getSubnetsFromDB(version DHCPVersion) (map[string]struct{}, error) {
 		if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 			return tx.Fill(nil, &subnet6s)
 		}); err != nil {
-			return nil, pg.Error(err)
+			return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 		}
 
 		for _, subnet := range subnet6s {
@@ -138,17 +139,17 @@ func (h *SubnetUsedRatioService) Get(ctx *restresource.Context) (restresource.Re
 	}
 
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
-		return nil, fmt.Errorf("get packet stats failed: %s", err.Error())
+		return nil, err
 	}
 
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
-		return nil, fmt.Errorf("get subnets used ratio from prometheus failed: %s", err.Error())
+		return nil, err
 	}
 
 	subnets, err := getSubnetsFromDB(metricCtx.Version)
 	if err != nil {
-		return nil, fmt.Errorf("list subnets from db failed: %s", err.Error())
+		return nil, err
 	}
 
 	for _, r := range resp.Data.Results {
@@ -175,15 +176,11 @@ func (h *SubnetUsedRatioService) Get(ctx *restresource.Context) (restresource.Re
 }
 
 func (h *SubnetUsedRatioService) Export(ctx *restresource.Context) (interface{}, error) {
-	if result, err := exportMultiColunms(ctx, &MetricContext{
+	return exportMultiColunms(ctx, &MetricContext{
 		NodeIP:         ctx.Resource.GetID(),
 		PrometheusAddr: h.prometheusAddr,
 		PromQuery:      PromQueryVersionNode,
 		MetricName:     MetricNameDHCPSubnetUsage,
 		MetricLabel:    MetricLabelSubnet,
-	}); err != nil {
-		return nil, fmt.Errorf("subnet usage %s export action failed: %s", ctx.Resource.GetID(), err.Error())
-	} else {
-		return result, nil
-	}
+	})
 }

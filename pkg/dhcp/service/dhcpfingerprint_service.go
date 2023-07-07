@@ -1,15 +1,14 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/cement/log"
-	restdb "github.com/linkingthing/gorest/db"
-
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
+	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
@@ -32,21 +31,15 @@ func NewDhcpFingerprintService() *DhcpFingerprintService {
 
 func (h *DhcpFingerprintService) Create(fingerprint *resource.DhcpFingerprint) error {
 	if err := fingerprint.Validate(); err != nil {
-		return fmt.Errorf("validate fingerprint %s failed: %s",
-			fingerprint.Fingerprint, err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(fingerprint); err != nil {
-			return pg.Error(err)
+			return util.FormatDbInsertError(errorno.ErrNameFingerprint, fingerprint.Fingerprint, err)
 		}
 		return sendCreateFingerprintCmdToAgent(fingerprint)
-	}); err != nil {
-		return fmt.Errorf("create fingerprint %s failed:%s",
-			fingerprint.Fingerprint, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendCreateFingerprintCmdToAgent(fingerprint *resource.DhcpFingerprint) error {
@@ -95,7 +88,7 @@ func (h *DhcpFingerprintService) List(conditions map[string]interface{}) ([]*res
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &fingerprints)
 	}); err != nil {
-		return nil, fmt.Errorf("list fingerprint failed:%s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameFingerprint), pg.Error(err).Error())
 	}
 
 	return fingerprints, nil
@@ -106,9 +99,9 @@ func (h *DhcpFingerprintService) Get(id string) (*resource.DhcpFingerprint, erro
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &fingerprints)
 	}); err != nil {
-		return nil, fmt.Errorf("get fingerprint %s failed:%s", id, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(fingerprints) == 0 {
-		return nil, fmt.Errorf("no found fingerprint %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameFingerprint, id)
 	}
 
 	return fingerprints[0], nil
@@ -116,11 +109,10 @@ func (h *DhcpFingerprintService) Get(id string) (*resource.DhcpFingerprint, erro
 
 func (h *DhcpFingerprintService) Update(fingerprint *resource.DhcpFingerprint) error {
 	if err := fingerprint.Validate(); err != nil {
-		return fmt.Errorf("validate fingerprint %s failed: %s",
-			fingerprint.Fingerprint, err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		oldFingerprint, err := getFingerprintWithoutReadOnly(tx, fingerprint.GetID())
 		if err != nil {
 			return err
@@ -134,27 +126,22 @@ func (h *DhcpFingerprintService) Update(fingerprint *resource.DhcpFingerprint) e
 		}, map[string]interface{}{
 			restdb.IDField: fingerprint.GetID(),
 		}); err != nil {
-			return pg.Error(err)
+			return util.FormatDbInsertError(errorno.ErrNameFingerprint, oldFingerprint.Fingerprint, err)
 		}
 
 		return sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, fingerprint)
-	}); err != nil {
-		return fmt.Errorf("update fingerprint %s failed:%s",
-			fingerprint.Fingerprint, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func getFingerprintWithoutReadOnly(tx restdb.Transaction, id string) (*resource.DhcpFingerprint, error) {
 	var fingerprints []*resource.DhcpFingerprint
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
 		&fingerprints); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(fingerprints) == 0 {
-		return nil, fmt.Errorf("no found fingerprint %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameFingerprint, id)
 	} else if fingerprints[0].IsReadOnly {
-		return nil, fmt.Errorf("fingerprint %s is readonly", id)
+		return nil, errorno.ErrReadOnly(id)
 	} else {
 		return fingerprints[0], nil
 	}
@@ -168,7 +155,7 @@ func sendUpdateFingerprintCmdToDHCPAgent(oldFingerprint, newFingerprint *resourc
 }
 
 func (h *DhcpFingerprintService) Delete(id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		oldFingerprint, err := getFingerprintWithoutReadOnly(tx, id)
 		if err != nil {
 			return err
@@ -176,15 +163,11 @@ func (h *DhcpFingerprintService) Delete(id string) error {
 
 		if _, err := tx.Delete(resource.TableDhcpFingerprint, map[string]interface{}{
 			restdb.IDField: id}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
 		}
 
 		return sendDeleteFingerprintCmdToDHCPAgent(oldFingerprint)
-	}); err != nil {
-		return fmt.Errorf("delete fingerprint %s failed:%s", id, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendDeleteFingerprintCmdToDHCPAgent(oldFingerprint *resource.DhcpFingerprint) error {

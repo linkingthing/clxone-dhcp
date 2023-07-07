@@ -1,11 +1,10 @@
 package resource
 
 import (
-	"fmt"
-
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -21,10 +20,13 @@ type Pool4Template struct {
 
 func (p *Pool4Template) Validate() error {
 	if len(p.Name) == 0 || util.ValidateStrings(util.RegexpTypeCommon, p.Name) != nil {
-		return fmt.Errorf("name %s is invalid", p.Name)
-	} else if p.BeginOffset <= 0 || p.BeginOffset >= 65535 || p.Capacity <= 0 || p.Capacity >= 65535 {
-		return fmt.Errorf("offset %v or capacity %v should in (0, 65535)", p.BeginOffset, p.Capacity)
-	} else {
-		return util.ValidateStrings(util.RegexpTypeComma, p.Comment)
+		return errorno.ErrInvalidParams(errorno.ErrNameName, p.Name)
+	} else if p.BeginOffset <= 0 || p.BeginOffset >= 65535 {
+		return errorno.ErrNotInScope(errorno.ErrNameOffset, 1, 65534)
+	} else if p.Capacity <= 0 || p.Capacity >= 65535 {
+		return errorno.ErrNotInScope(errorno.ErrNameCapacity, 1, 65534)
+	} else if err := util.ValidateStrings(util.RegexpTypeComma, p.Comment); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, p.Comment)
 	}
+	return nil
 }

@@ -1,16 +1,16 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type AddressCodeService struct{}
@@ -21,22 +21,17 @@ func NewAddressCodeService() *AddressCodeService {
 
 func (d *AddressCodeService) Create(addressCode *resource.AddressCode) error {
 	if err := addressCode.Validate(); err != nil {
-		return fmt.Errorf("validate address code %s %s failed:%s",
-			addressCode.HwAddress, addressCode.Duid, err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(addressCode); err != nil {
-			return pg.Error(err)
+			return util.FormatDbInsertError(errorno.ErrNameAddressCode,
+				util.StringOr(addressCode.HwAddress, addressCode.Duid), err)
 		}
 
 		return sendCreateAddressCodeCmdToDHCPAgent(addressCode)
-	}); err != nil {
-		return fmt.Errorf("create address code %s %s failed: %s",
-			addressCode.HwAddress, addressCode.Duid, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendCreateAddressCodeCmdToDHCPAgent(addressCode *resource.AddressCode) error {
@@ -66,7 +61,7 @@ func (d *AddressCodeService) List(conditions map[string]interface{}) ([]*resourc
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &addressCodes)
 	}); err != nil {
-		return nil, fmt.Errorf("list address codes failed:%s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameAddressCode), pg.Error(err).Error())
 	}
 
 	return addressCodes, nil
@@ -77,34 +72,30 @@ func (d *AddressCodeService) Get(id string) (*resource.AddressCode, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &addressCodes)
 	}); err != nil {
-		return nil, fmt.Errorf("get address code %s failed:%s", id, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(addressCodes) != 1 {
-		return nil, fmt.Errorf("no found address code %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameAddressCode, id)
 	}
 
 	return addressCodes[0], nil
 }
 
 func (d *AddressCodeService) Delete(id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var addressCodes []*resource.AddressCode
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: id}, &addressCodes); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 		} else if len(addressCodes) == 0 {
-			return fmt.Errorf("no found address code %s", id)
+			return errorno.ErrNotFound(errorno.ErrNameAddressCode, id)
 		}
 
 		if _, err := tx.Delete(resource.TableAddressCode,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
 		}
 
 		return sendDeleteAddressCodeCmdToDHCPAgent(addressCodes[0])
-	}); err != nil {
-		return fmt.Errorf("delete address code %s failed:%s", id, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendDeleteAddressCodeCmdToDHCPAgent(addressCode *resource.AddressCode) error {
@@ -117,15 +108,15 @@ func sendDeleteAddressCodeCmdToDHCPAgent(addressCode *resource.AddressCode) erro
 
 func (d *AddressCodeService) Update(addressCode *resource.AddressCode) error {
 	if err := addressCode.ValidateCode(); err != nil {
-		return fmt.Errorf("validate address code %s failed: %s", addressCode.GetID(), err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var addressCodes []*resource.AddressCode
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: addressCode.GetID()}, &addressCodes); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCode.GetID(), pg.Error(err).Error())
 		} else if len(addressCodes) == 0 {
-			return fmt.Errorf("no found address code %s", addressCode.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCode.GetID())
 		}
 
 		if _, err := tx.Update(resource.TableAddressCode,
@@ -136,7 +127,7 @@ func (d *AddressCodeService) Update(addressCode *resource.AddressCode) error {
 				resource.SqlColumnComment:   addressCode.Comment,
 			},
 			map[string]interface{}{restdb.IDField: addressCode.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCode.GetID(), pg.Error(err).Error())
 		}
 
 		if addressCode.Code != addressCodes[0].Code || addressCode.CodeBegin != addressCodes[0].CodeBegin ||
@@ -145,11 +136,7 @@ func (d *AddressCodeService) Update(addressCode *resource.AddressCode) error {
 		} else {
 			return nil
 		}
-	}); err != nil {
-		return fmt.Errorf("update address code %s failed:%s", addressCode.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendUpdateAddressCodeCmdToDHCPAgent(oldAddressCode, newAddressCode *resource.AddressCode) error {

@@ -11,7 +11,7 @@ require (
 	github.com/insomniacslk/dhcp v0.0.0-20210621130208-1cac67f12b1e
 	github.com/linkingthing/cement v1.0.0
 	github.com/linkingthing/clxone-utils v1.2.9
-	github.com/linkingthing/gorest v1.2.3
+	github.com/linkingthing/gorest v1.2.4-0.20230315120018-858efa2e11b3
 	github.com/segmentio/kafka-go v0.4.31
 	golang.org/x/net v0.0.0-20220812174116-3211cb980234
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8

@@ -1,14 +1,13 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/cement/log"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -22,21 +21,17 @@ func NewRateLimitMacService() *RateLimitMacService {
 
 func (d *RateLimitMacService) Create(rateLimitMac *resource.RateLimitMac) error {
 	if err := rateLimitMac.Validate(); err != nil {
-		return fmt.Errorf("validate ratelimit mac %s failed: %s", rateLimitMac.GetID(), err.Error())
+		return err
 	}
 
 	rateLimitMac.SetID(rateLimitMac.HwAddress)
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(rateLimitMac); err != nil {
-			return pg.Error(err)
+			return util.FormatDbInsertError(errorno.ErrNameMac, rateLimitMac.HwAddress, err)
 		}
 
 		return sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac)
-	}); err != nil {
-		return fmt.Errorf("create ratelimit mac %s failed:%s", rateLimitMac.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendCreateRateLimitMacCmdToDHCPAgent(rateLimitMac *resource.RateLimitMac) error {
@@ -65,7 +60,7 @@ func (d *RateLimitMacService) List(condition map[string]interface{}) ([]*resourc
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(condition, &rateLimitMacs)
 	}); err != nil {
-		return nil, fmt.Errorf("list ratelimit macs from db failed: %s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameRateLimit), pg.Error(err).Error())
 	}
 
 	return rateLimitMacs, nil
@@ -76,29 +71,25 @@ func (d *RateLimitMacService) Get(id string) (*resource.RateLimitMac, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &rateLimitMacs)
 	}); err != nil {
-		return nil, fmt.Errorf("get ratelimit mac %s failed:%s", id, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(rateLimitMacs) == 0 {
-		return nil, fmt.Errorf("no found ratelimit mac %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameRateLimit, id)
 	}
 
 	return rateLimitMacs[0], nil
 }
 
 func (d *RateLimitMacService) Delete(id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Delete(resource.TableRateLimitMac, map[string]interface{}{
 			restdb.IDField: id}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found ratelimit mac %s", id)
+			return errorno.ErrNotFound(errorno.ErrNameRateLimit, id)
 		}
 
 		return sendDeleteRateLimitMacCmdToDHCPAgent(id)
-	}); err != nil {
-		return fmt.Errorf("delete ratelimit mac %s failed:%s", id, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId string) error {
@@ -108,23 +99,23 @@ func sendDeleteRateLimitMacCmdToDHCPAgent(ratelimitMacId string) error {
 
 func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error {
 	if err := rateLimitMac.Validate(); err != nil {
-		return fmt.Errorf("validate ratelimit mac %s failed: %s", rateLimitMac.GetID(), err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		var rateLimits []*resource.RateLimitMac
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: rateLimitMac.GetID()},
 			&rateLimits); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, rateLimitMac.GetID(), pg.Error(err).Error())
 		} else if len(rateLimits) == 0 {
-			return fmt.Errorf("no found ratelimit mac %s", rateLimitMac.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameRateLimit, rateLimitMac.GetID())
 		}
 
 		if _, err := tx.Update(resource.TableRateLimitMac, map[string]interface{}{
 			resource.SqlColumnRateLimit: rateLimitMac.RateLimit,
 			resource.SqlColumnComment:   rateLimitMac.Comment,
 		}, map[string]interface{}{restdb.IDField: rateLimitMac.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, rateLimitMac.GetID(), pg.Error(err).Error())
 		}
 
 		if rateLimits[0].RateLimit != rateLimitMac.RateLimit {
@@ -132,11 +123,7 @@ func (d *RateLimitMacService) Update(rateLimitMac *resource.RateLimitMac) error 
 		} else {
 			return nil
 		}
-	}); err != nil {
-		return fmt.Errorf("update ratelimit mac %s failed:%s", rateLimitMac.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendUpdateRateLimitMacCmdToDHCPAgent(ratelimitMac *resource.RateLimitMac) error {

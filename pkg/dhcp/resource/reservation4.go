@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"net"
 	"unicode/utf8"
 
@@ -10,6 +9,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -93,31 +93,31 @@ func (r *Reservation4) String() string {
 
 func (r *Reservation4) Validate() error {
 	if (r.HwAddress != "" && r.Hostname != "") || (r.HwAddress == "" && r.Hostname == "") {
-		return fmt.Errorf("hwaddress and hostname must have only one")
+		return errorno.ErrOnlyOne(string(errorno.ErrNameMac), string(errorno.ErrNameHostname))
 	}
 
 	if r.HwAddress != "" {
 		if hw, err := util.NormalizeMac(r.HwAddress); err != nil {
-			return fmt.Errorf("hwaddress %s is invalid", r.HwAddress)
+			return err
 		} else {
 			r.HwAddress = hw
 		}
 	} else if r.Hostname != "" {
 		if err := util.ValidateStrings(util.RegexpTypeCommon, r.Hostname); err != nil {
-			return err
+			return errorno.ErrInvalidParams(errorno.ErrNameHostname, r.Hostname)
 		}
 	}
 
 	if ipv4, err := gohelperip.ParseIPv4(r.IpAddress); err != nil {
-		return err
+		return errorno.ErrInvalidAddress(r.IpAddress)
 	} else {
 		r.Ip = ipv4
 	}
 
 	if err := util.ValidateStrings(util.RegexpTypeComma, r.Comment); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, r.Comment)
 	} else if utf8.RuneCountInString(r.Comment) > MaxCommentLength {
-		return fmt.Errorf("comment exceeds maximum limit: %d", MaxCommentLength)
+		return errorno.ErrExceedMaxCount(errorno.ErrNameComment, MaxCommentLength)
 	}
 
 	r.Capacity = 1

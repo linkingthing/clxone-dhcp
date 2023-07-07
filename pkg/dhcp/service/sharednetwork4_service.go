@@ -1,17 +1,16 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/cement/log"
-	restdb "github.com/linkingthing/gorest/db"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
+	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 type SharedNetwork4Service struct{}
@@ -22,21 +21,16 @@ func NewSharedNetwork4Service() *SharedNetwork4Service {
 
 func (s *SharedNetwork4Service) Create(sharedNetwork4 *resource.SharedNetwork4) error {
 	if err := sharedNetwork4.Validate(); err != nil {
-		return fmt.Errorf("validate shared network4 params invalid: %s", err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(sharedNetwork4); err != nil {
-			return pg.Error(err)
+			return util.FormatDbInsertError(errorno.ErrNameSharedNetwork, sharedNetwork4.Name, err)
 		}
 
 		return sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4)
-	}); err != nil {
-		return fmt.Errorf("create shared network4 %s failed: %s",
-			sharedNetwork4.Name, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4 *resource.SharedNetwork4) error {
@@ -64,7 +58,7 @@ func (s *SharedNetwork4Service) List(condition map[string]interface{}) ([]*resou
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(condition, &sharedNetwork4s)
 	}); err != nil {
-		return nil, fmt.Errorf("list shared network4s from db failed: %s", pg.Error(err).Error())
+		return nil, errorno.ErrOperateResource(errorno.ErrMethodList, string(errorno.ErrNameSharedNetwork), pg.Error(err).Error())
 	}
 
 	return sharedNetwork4s, nil
@@ -73,17 +67,17 @@ func (s *SharedNetwork4Service) List(condition map[string]interface{}) ([]*resou
 func (s *SharedNetwork4Service) Get(id string) (sharedNetwork4 *resource.SharedNetwork4, err error) {
 	err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		sharedNetwork4, err = getOldSharedNetwork(tx, id)
-		return pg.Error(err)
+		return err
 	})
 	return
 }
 
 func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) error {
 	if err := sharedNetwork4.Validate(); err != nil {
-		return fmt.Errorf("validate shared network4 params invalid: %s", err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		oldSharedNetwork4, err := getOldSharedNetwork(tx, sharedNetwork4.GetID())
 		if err != nil {
 			return err
@@ -96,16 +90,11 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 			resource.SqlColumnComment:    sharedNetwork4.Comment,
 		}, map[string]interface{}{
 			restdb.IDField: sharedNetwork4.GetID()}); err != nil {
-			return pg.Error(err)
+			return util.FormatDbInsertError(errorno.ErrNameNetwork, sharedNetwork4.Name, err)
 		}
 
 		return sendUpdateSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name, sharedNetwork4)
-	}); err != nil {
-		return fmt.Errorf("update sharenetwork4 %s failed:%s",
-			sharedNetwork4.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendUpdateSharedNetwork4CmdToDHCPAgent(name string, sharedNetwork4 *resource.SharedNetwork4) error {
@@ -117,7 +106,7 @@ func sendUpdateSharedNetwork4CmdToDHCPAgent(name string, sharedNetwork4 *resourc
 }
 
 func (s *SharedNetwork4Service) Delete(sharedNetwork4Id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		oldSharedNetwork4, err := getOldSharedNetwork(tx, sharedNetwork4Id)
 		if err != nil {
 			return err
@@ -125,24 +114,20 @@ func (s *SharedNetwork4Service) Delete(sharedNetwork4Id string) error {
 
 		if _, err := tx.Delete(resource.TableSharedNetwork4, map[string]interface{}{
 			restdb.IDField: sharedNetwork4Id}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, sharedNetwork4Id, pg.Error(err).Error())
 		}
 
 		return sendDeleteSharedNetwork4CmdToDHCPAgent(oldSharedNetwork4.Name)
-	}); err != nil {
-		return fmt.Errorf("delete shared network4 %s failed: %s", sharedNetwork4Id, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func getOldSharedNetwork(tx restdb.Transaction, id string) (*resource.SharedNetwork4, error) {
 	var sharedNetworks []*resource.SharedNetwork4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: id},
 		&sharedNetworks); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(sharedNetworks) == 0 {
-		return nil, fmt.Errorf("no found shared network4 %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameSharedNetwork, id)
 	}
 
 	return sharedNetworks[0], nil
@@ -157,14 +142,14 @@ func sharedNetworkNameToDeleteSharedNetwork4Request(name string) *pbdhcpagent.De
 	return &pbdhcpagent.DeleteSharedNetwork4Request{Name: name}
 }
 
-func checkUsedBySharedNetwork(tx restdb.Transaction, subnetId uint64) error {
+func checkUsedBySharedNetwork(tx restdb.Transaction, subnet4 *resource.Subnet4) error {
 	var sharedNetwork4s []*resource.SharedNetwork4
 	if err := tx.FillEx(&sharedNetwork4s,
 		"select * from gr_shared_network4 where $1::numeric = any(subnet_ids)",
-		subnetId); err != nil {
-		return fmt.Errorf("check subnet4 is used by shared network4 failed: %s", pg.Error(err).Error())
+		subnet4.SubnetId); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameSharedNetwork), pg.Error(err).Error())
 	} else if len(sharedNetwork4s) != 0 {
-		return fmt.Errorf("subnet4 used by shared network4 %s", sharedNetwork4s[0].Name)
+		return errorno.ErrUsed(errorno.ErrNameNetworkV4, errorno.ErrNameSharedNetwork, subnet4.Subnet, sharedNetwork4s[0].Name)
 	} else {
 		return nil
 	}

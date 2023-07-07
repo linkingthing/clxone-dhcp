@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/linkingthing/cement/log"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -26,7 +24,7 @@ func (h *LeaseTotalService) List(ctx *restresource.Context) (interface{}, error)
 		PromQuery:      PromQueryVersion,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get values failed: %s", err.Error())
+		return nil, err
 	}
 
 	nodeNames, err := service.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
@@ -53,7 +51,7 @@ func (h *LeaseTotalService) Get(ctx *restresource.Context) (restresource.Resourc
 		NodeIP:         lease.GetID(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("get values failed: %s", err.Error())
+		return nil, err
 	}
 
 	if nodeNames, err := service.GetNodeNames(IsDHCPVersion4(ctx.Resource.GetParent().GetID())); err != nil {
@@ -69,15 +67,11 @@ func (h *LeaseTotalService) Get(ctx *restresource.Context) (restresource.Resourc
 var TableHeaderLeaseTotal = []string{"日期", "租赁总数"}
 
 func (h *LeaseTotalService) Export(ctx *restresource.Context) (interface{}, error) {
-	if result, err := exportTwoColumns(ctx, &MetricContext{
+	return exportTwoColumns(ctx, &MetricContext{
 		NodeIP:         ctx.Resource.GetID(),
 		PrometheusAddr: h.prometheusAddr,
 		PromQuery:      PromQueryVersionNode,
 		MetricName:     MetricNameDHCPLeaseCountTotal,
 		TableHeader:    TableHeaderLeaseTotal,
-	}); err != nil {
-		return nil, fmt.Errorf("export to columns failed: %s", err.Error())
-	} else {
-		return result, nil
-	}
+	})
 }

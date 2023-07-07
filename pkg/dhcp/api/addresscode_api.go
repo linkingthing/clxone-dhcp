@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
@@ -20,7 +21,7 @@ func NewAddressCodeApi() *AddressCodeApi {
 func (d *AddressCodeApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	addressCode := ctx.Resource.(*resource.AddressCode)
 	if err := d.Service.Create(addressCode); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return addressCode, nil
@@ -31,7 +32,7 @@ func (d *AddressCodeApi) List(ctx *restresource.Context) (interface{}, *resterro
 		service.OrderByCreateTime, resource.SqlColumnDuid,
 		resource.SqlColumnHwAddress, resource.SqlColumnCode))
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return duids, nil
@@ -40,7 +41,7 @@ func (d *AddressCodeApi) List(ctx *restresource.Context) (interface{}, *resterro
 func (d *AddressCodeApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	addressCode, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return addressCode, nil
@@ -48,7 +49,7 @@ func (d *AddressCodeApi) Get(ctx *restresource.Context) (restresource.Resource, 
 
 func (d *AddressCodeApi) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
-		return resterror.NewAPIError(resterror.ServerError, err.Error())
+		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
@@ -57,7 +58,7 @@ func (d *AddressCodeApi) Delete(ctx *restresource.Context) *resterror.APIError {
 func (d *AddressCodeApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	addressCode := ctx.Resource.(*resource.AddressCode)
 	if err := d.Service.Update(addressCode); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return addressCode, nil

@@ -6,6 +6,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
 type Agent4Api struct {
@@ -19,7 +20,7 @@ func NewAgent4Api() *Agent4Api {
 func (h *Agent4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	agents, err := h.Service.List()
 	if err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return agents, nil
@@ -28,7 +29,7 @@ func (h *Agent4Api) List(ctx *restresource.Context) (interface{}, *resterror.API
 func (h *Agent4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	agent4 := ctx.Resource.(*resource.Agent4)
 	if err := h.Service.Get(agent4); err != nil {
-		return nil, resterror.NewAPIError(resterror.ServerError, err.Error())
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return agent4, nil

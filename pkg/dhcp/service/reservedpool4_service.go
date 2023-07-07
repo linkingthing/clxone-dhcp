@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
@@ -25,10 +25,10 @@ func NewReservedPool4Service() *ReservedPool4Service {
 
 func (p *ReservedPool4Service) Create(subnet *resource.Subnet4, pool *resource.ReservedPool4) error {
 	if err := pool.Validate(); err != nil {
-		return fmt.Errorf("validate reserved pool4 params invalid: %s", err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := checkReservedPool4CouldBeCreated(tx, subnet, pool); err != nil {
 			return err
 		}
@@ -40,16 +40,11 @@ func (p *ReservedPool4Service) Create(subnet *resource.Subnet4, pool *resource.R
 
 		pool.Subnet4 = subnet.GetID()
 		if _, err := tx.Insert(pool); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 		}
 
 		return sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
-	}); err != nil {
-		return fmt.Errorf("create reserved pool4 %s with subnet4 %s failed: %s",
-			pool.String(), subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func checkReservedPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, pool *resource.ReservedPool4) error {
@@ -64,7 +59,7 @@ func checkReservedPool4CouldBeCreated(tx restdb.Transaction, subnet *resource.Su
 	}
 
 	if !checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) {
-		return fmt.Errorf("reserved pool4 %s not belongs to subnet4 %s",
+		return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool, errorno.ErrNameNetworkV4,
 			pool.String(), subnet.Subnet)
 	}
 
@@ -85,7 +80,7 @@ func checkReservedPool4ConflictWithSubnet4ReservedPool4s(tx restdb.Transaction, 
 		pool.BeginIp, pool.EndIp); err != nil {
 		return err
 	} else if len(reservedpools) != 0 {
-		return fmt.Errorf("reserved pool4 %s conflict with exists reserved pool4 %s",
+		return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservedPool,
 			pool.String(), reservedpools[0].String())
 	} else {
 		return nil
@@ -97,8 +92,7 @@ func getReservedPool4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, 
 	if err := tx.FillEx(&reservedpools,
 		"select * from gr_reserved_pool4 where subnet4 = $1 and begin_ip <= $2 and end_ip >= $3",
 		subnetID, end, begin); err != nil {
-		return nil, fmt.Errorf("get reserved pool4s with subnet4 %s from db failed: %s",
-			subnetID, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 	} else {
 		return reservedpools, nil
 	}
@@ -109,7 +103,7 @@ func checkReservedPool4ConflictWithSubnet4Reservation4s(tx restdb.Transaction, s
 		pool.BeginIp, pool.EndIp); err != nil {
 		return err
 	} else if len(reservations) != 0 {
-		return fmt.Errorf("reserved pool4 %s conflict with exists reservation4 %s",
+		return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservation,
 			pool.String(), reservations[0].String())
 	} else {
 		return nil
@@ -120,22 +114,20 @@ func updateSubnet4AndPoolsCapacityWithReservedPool4(tx restdb.Transaction, subne
 	affectPools, err := recalculatePool4sCapacityWithReservedPool4(tx, subnet,
 		reservedPool, isCreate)
 	if err != nil {
-		return fmt.Errorf("recalculate pool4s capacity failed: %s", err.Error())
+		return err
 	}
 
 	if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
 		resource.SqlColumnCapacity: subnet.Capacity,
 	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-		return fmt.Errorf("update subnet4 %s capacity to db failed: %s",
-			subnet.GetID(), pg.Error(err).Error())
+		return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 	}
 
 	for affectPoolID, capacity := range affectPools {
 		if _, err := tx.Update(resource.TablePool4, map[string]interface{}{
 			resource.SqlColumnCapacity: capacity,
 		}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
-			return fmt.Errorf("update subnet4 %s pool4 %s capacity to db failed: %s",
-				subnet.GetID(), affectPoolID, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
 		}
 	}
 
@@ -213,8 +205,7 @@ func listReservedPool4s(subnetID string) ([]*resource.ReservedPool4, error) {
 			resource.SqlOrderBy:       resource.SqlColumnBeginIp},
 			&pools)
 	}); err != nil {
-		return nil, fmt.Errorf("list reserved pool4s with subnet4 %s from db failed: %s",
-			subnetID, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 	}
 
 	return pools, nil
@@ -225,17 +216,16 @@ func (p *ReservedPool4Service) Get(subnet *resource.Subnet4, poolID string) (*re
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: poolID}, &pools)
 	}); err != nil {
-		return nil, fmt.Errorf("get reserved pool4 %s with subnet4 %s from db failed: %s",
-			poolID, subnet.GetID(), pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, poolID, pg.Error(err).Error())
 	} else if len(pools) != 1 {
-		return nil, fmt.Errorf("no found reserved pool4 %s with subnet4 %s", poolID, subnet.GetID())
+		return nil, errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, poolID)
 	}
 
 	return pools[0], nil
 }
 
 func (p *ReservedPool4Service) Delete(subnet *resource.Subnet4, pool *resource.ReservedPool4) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := setSubnet4FromDB(tx, subnet); err != nil {
 			return err
 		}
@@ -251,25 +241,20 @@ func (p *ReservedPool4Service) Delete(subnet *resource.Subnet4, pool *resource.R
 
 		if _, err := tx.Delete(resource.TableReservedPool4, map[string]interface{}{
 			restdb.IDField: pool.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, pool.GetID(), pg.Error(err).Error())
 		}
 
 		return sendDeleteReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
-	}); err != nil {
-		return fmt.Errorf("delete reserved pool4 %s with subnet4 %s failed: %s",
-			pool.String(), subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func setReservedPool4FromDB(tx restdb.Transaction, pool *resource.ReservedPool4) error {
 	var pools []*resource.ReservedPool4
 	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
 		&pools); err != nil {
-		return fmt.Errorf("get reserved pool4 from db failed: %s", pg.Error(err).Error())
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, pool.GetID(), pg.Error(err).Error())
 	} else if len(pools) == 0 {
-		return fmt.Errorf("no found reserved pool4 %s", pool.GetID())
+		return errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, pool.GetID())
 	}
 
 	pool.Subnet4 = pools[0].Subnet4
@@ -299,22 +284,17 @@ func (p *ReservedPool4Service) Update(subnetId string, pool *resource.ReservedPo
 		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableReservedPool4, map[string]interface{}{
 			resource.SqlColumnComment: pool.Comment,
 		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, pool.GetID(), pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found reserved pool4 %s", pool.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, pool.GetID())
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("update reserved pool4 %s with subnet4 %s failed: %s",
-			pool.String(), subnetId, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func (p *ReservedPool4Service) ActionValidTemplate(subnet *resource.Subnet4, pool *resource.ReservedPool4,
@@ -323,7 +303,7 @@ func (p *ReservedPool4Service) ActionValidTemplate(subnet *resource.Subnet4, poo
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkReservedPool4CouldBeCreated(tx, subnet, pool)
 	}); err != nil {
-		return nil, fmt.Errorf("template4 %s invalid: %s", pool.Template, err.Error())
+		return nil, err
 	}
 
 	return &resource.TemplatePool{
@@ -352,11 +332,11 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 
 	for _, pool := range pools {
 		if err := pool.Validate(); err != nil {
-			return fmt.Errorf("validate reserved pool4 params invalid: %s", err.Error())
+			return err
 		}
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, pool := range pools {
 			if err := checkReservedPool4CouldBeCreated(tx, subnet, pool); err != nil {
 				return err
@@ -369,7 +349,7 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 
 			pool.Subnet4 = subnet.GetID()
 			if _, err := tx.Insert(pool); err != nil {
-				return pg.Error(err)
+				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 			}
 
 			if err := sendCreateReservedPool4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool); err != nil {
@@ -378,10 +358,5 @@ func BatchCreateReservedPool4s(prefix string, pools []*resource.ReservedPool4) e
 		}
 
 		return nil
-	}); err != nil {
-		return fmt.Errorf("batch create reserved pool4s with subnet4 %s failed: %s",
-			subnet.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }

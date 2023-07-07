@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"github.com/linkingthing/cement/log"
-	restdb "github.com/linkingthing/gorest/db"
-
 	pg "github.com/linkingthing/clxone-utils/postgresql"
+	restdb "github.com/linkingthing/gorest/db"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
 const (
@@ -30,22 +31,16 @@ func NewClientClass4Service() *ClientClass4Service {
 func (c *ClientClass4Service) Create(clientClass *resource.ClientClass4) error {
 	clientClass.SetID(clientClass.Name)
 	if err := clientClass.Validate(); err != nil {
-		return fmt.Errorf("validate clientclass4 %s failed: %s",
-			clientClass.GetID(), err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(clientClass); err != nil {
-			return pg.Error(err)
+			return util.FormatDbInsertError(errorno.ErrNameClientClass, clientClass.Name, err)
 		}
 
 		return sendCreateClientClass4CmdToAgent(clientClass)
-	}); err != nil {
-		return fmt.Errorf("create clientclass4 %s failed:%s",
-			clientClass.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendCreateClientClass4CmdToAgent(clientClass4 *resource.ClientClass4) error {
@@ -81,7 +76,7 @@ func (c *ClientClass4Service) List(conditions map[string]interface{}) ([]*resour
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &clientClasses)
 	}); err != nil {
-		return nil, fmt.Errorf("list clientclass4 failed:%s", pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameClientClass), pg.Error(err).Error())
 	}
 
 	return clientClasses, nil
@@ -92,9 +87,9 @@ func (c *ClientClass4Service) Get(id string) (*resource.ClientClass4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &clientClasses)
 	}); err != nil {
-		return nil, fmt.Errorf("get clientclass4 of %s failed:%s", id, pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(clientClasses) == 0 {
-		return nil, fmt.Errorf("no found clientclass4 %s", id)
+		return nil, errorno.ErrNotFound(errorno.ErrNameClientClass, id)
 	}
 
 	return clientClasses[0], nil
@@ -102,11 +97,10 @@ func (c *ClientClass4Service) Get(id string) (*resource.ClientClass4, error) {
 
 func (c *ClientClass4Service) Update(clientClass *resource.ClientClass4) error {
 	if err := clientClass.Validate(); err != nil {
-		return fmt.Errorf("validate clientclass4 %s failed: %s",
-			clientClass.GetID(), err.Error())
+		return err
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableClientClass4,
 			map[string]interface{}{
 				resource.SqlColumnClassCondition:   clientClass.Condition,
@@ -115,18 +109,13 @@ func (c *ClientClass4Service) Update(clientClass *resource.ClientClass4) error {
 				resource.SqlColumnClassDescription: clientClass.Description,
 			},
 			map[string]interface{}{restdb.IDField: clientClass.GetID()}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, clientClass.GetID(), pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found clientclass4 %s", clientClass.GetID())
+			return errorno.ErrNotFound(errorno.ErrNameClientClass, clientClass.GetID())
 		}
 
 		return sendUpdateClientClass4CmdToDHCPAgent(clientClass)
-	}); err != nil {
-		return fmt.Errorf("update clientclass4 %s failed:%s",
-			clientClass.GetID(), err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendUpdateClientClass4CmdToDHCPAgent(clientClass *resource.ClientClass4) error {
@@ -139,28 +128,24 @@ func sendUpdateClientClass4CmdToDHCPAgent(clientClass *resource.ClientClass4) er
 }
 
 func (c *ClientClass4Service) Delete(id string) error {
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if count, err := tx.CountEx(resource.TableSubnet4,
 			"select count(*) from gr_subnet4 where $1::text = any(white_client_classes) or $1::text = any(black_client_classes)",
 			id); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 		} else if count != 0 {
-			return fmt.Errorf("client class %s used by subnet4", id)
+			return errorno.ErrBeenUsed(errorno.ErrNameClientClass, id)
 		}
 
 		if rows, err := tx.Delete(resource.TableClientClass4,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return pg.Error(err)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
 		} else if rows == 0 {
-			return fmt.Errorf("no found clientclass4 %s", id)
+			return errorno.ErrNotFound(errorno.ErrNameClientClass, id)
 		}
 
 		return sendDeleteClientClass4CmdToDHCPAgent(id)
-	}); err != nil {
-		return fmt.Errorf("delete clientclass4 %s failed:%s", id, err.Error())
-	}
-
-	return nil
+	})
 }
 
 func sendDeleteClientClass4CmdToDHCPAgent(clientClassID string) error {
