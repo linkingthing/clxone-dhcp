@@ -52,8 +52,14 @@ func (f *DhcpFingerprint) Validate() error {
 		}
 	}
 
-	if err := util.ValidateStrings(util.RegexpTypeCommon, f.VendorId, f.OperatingSystem, f.ClientType); err != nil {
-		return err
+	if err := util.ValidateStrings(util.RegexpTypeCommon, f.VendorId); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameVendorId, f.VendorId)
+	}
+	if err := util.ValidateStrings(util.RegexpTypeCommon, f.OperatingSystem); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameOperatingSystem, f.OperatingSystem)
+	}
+	if err := util.ValidateStrings(util.RegexpTypeCommon, f.ClientType); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameClientType, f.ClientType)
 	}
 
 	f.MatchPattern = MatchPatternEqual

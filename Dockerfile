@@ -2,7 +2,8 @@ ARG go_image
 
 FROM $go_image AS build
 
-ENV GOPROXY=http://mirrors.aliyun.com/goproxy
+#ENV GOPROXY=http://mirrors.aliyun.com/goproxy
+ENV GOPROXY=https://goproxy.cn
 
 RUN mkdir -p /go/src/github.com/linkingthing/clxone-dhcp
 COPY . /go/src/github.com/linkingthing/clxone-dhcp

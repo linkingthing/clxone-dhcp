@@ -166,16 +166,23 @@ func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 }
 
 func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6) error {
-	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags, s.IfaceName); err != nil {
-		return err
+	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameName, s.Tags)
+	}
+	if err := util.ValidateStrings(util.RegexpTypeCommon, s.IfaceName); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameIfName, s.IfaceName)
 	}
 
 	if err := util.ValidateStrings(util.RegexpTypeSlash, s.RelayAgentInterfaceId); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentIf, s.RelayAgentInterfaceId)
 	}
 
-	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses); err != nil {
-		return err
+	if err := checkIpsValidWithVersion(false, s.DomainServers); err != nil {
+		return errorno.ErrInvalidParams("DNS", s.DomainServers[0])
+	}
+
+	if err := checkIpsValidWithVersion(false, s.RelayAgentAddresses); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentAddr, s.RelayAgentAddresses[0])
 	}
 
 	if err := checkClientClass6s(s.WhiteClientClasses, s.BlackClientClasses, clientClass6s); err != nil {

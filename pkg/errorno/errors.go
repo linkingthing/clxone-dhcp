@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/linkingthing/cement/log"
-	restdb "github.com/linkingthing/gorest/db"
 	goresterr "github.com/linkingthing/gorest/error"
 )
 
@@ -344,12 +342,6 @@ var (
 		)
 	}
 )
-
-func LogError(resource restdb.ResourceType, method string, err error) {
-	if err != nil {
-		log.Errorf("%s %s failed:%s", resource, method, err.Error())
-	}
-}
 
 func HandleAPIError(code goresterr.ErrorCode, err error) *goresterr.APIError {
 	if errMsg := new(goresterr.ErrorMessage); errors.As(err, &errMsg) {

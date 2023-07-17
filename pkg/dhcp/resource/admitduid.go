@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -22,7 +23,9 @@ func (a AdmitDuid) GetParents() []restresource.ResourceKind {
 func (a *AdmitDuid) Validate() error {
 	if err := parseDUID(a.Duid); err != nil {
 		return err
-	} else {
-		return util.ValidateStrings(util.RegexpTypeComma, a.Comment)
 	}
+	if err := util.ValidateStrings(util.RegexpTypeComma, a.Comment); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, a.Comment)
+	}
+	return nil
 }

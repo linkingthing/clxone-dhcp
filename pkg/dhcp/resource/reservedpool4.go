@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"net"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
@@ -67,7 +68,7 @@ func (p *ReservedPool4) String() string {
 
 func (p *ReservedPool4) Validate() error {
 	if err := util.ValidateStrings(util.RegexpTypeComma, p.Comment); err != nil {
-		return err
+		return errorno.ErrInvalidParams(errorno.ErrNameComment, p.Comment)
 	}
 
 	if p.Template != "" {

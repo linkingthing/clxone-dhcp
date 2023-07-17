@@ -556,11 +556,10 @@ func checkSubnet6HasNoBeenAllocated(subnet6 *resource.Subnet6) error {
 	if leasesCount, err := getSubnet6LeasesCount(subnet6); err != nil {
 		return err
 	} else if leasesCount != 0 {
-		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameNetworkV6, subnet6.GetID())
+		return errorno.ErrIPHasBeenAllocated(errorno.ErrNameNetworkV6, subnet6.Subnet)
 	} else {
 		return nil
 	}
-
 }
 
 func sendDeleteSubnet6CmdToDHCPAgent(subnet *resource.Subnet6, nodes []string) error {
