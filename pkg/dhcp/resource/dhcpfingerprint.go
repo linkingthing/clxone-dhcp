@@ -47,8 +47,8 @@ func (f *DhcpFingerprint) Validate() error {
 	for _, v := range strings.Split(f.Fingerprint, ",") {
 		if i, err := strconv.Atoi(v); err != nil {
 			return errorno.ErrInvalidParams(errorno.ErrNameFingerprint, f.Fingerprint)
-		} else if i <= 0 || i >= 255 {
-			return errorno.ErrNotInScope(errorno.ErrNameFingerprint, 1, 254)
+		} else if i < 0 || i > 255 {
+			return errorno.ErrNotInScope(errorno.ErrNameFingerprint, 0, 255)
 		}
 	}
 
