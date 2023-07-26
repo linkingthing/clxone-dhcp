@@ -1,8 +1,6 @@
 package resource
 
 import (
-	"net"
-
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -32,8 +30,10 @@ func (a *AddressCode) Validate() error {
 	}
 
 	if a.HwAddress != "" {
-		if _, err := net.ParseMAC(a.HwAddress); err != nil {
+		if hw, err := util.NormalizeMac(a.HwAddress); err != nil {
 			return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
+		} else {
+			a.HwAddress = hw
 		}
 	} else {
 		if err := parseDUID(a.Duid); err != nil {
