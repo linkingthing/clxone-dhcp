@@ -36,7 +36,7 @@ func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *reso
 		if err := batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet); err != nil {
 			return err
 		}
-		return batchSendCreateReservation4Cmd(subnet, reservation)
+		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 	})
 }
 
@@ -117,17 +117,31 @@ func updateSubnet4OrPool4CapacityWithReservation4(tx restdb.Transaction, subnet 
 	return nil
 }
 
-func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {
-	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreateReservation4,
-		reservation4ToCreateReservation4Request(subnetID, reservation),
+func sendCreateReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservations ...*resource.Reservation4) error {
+	if len(reservations) == 0 {
+		return nil
+	}
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreateReservation4s,
+		reservation4sToCreateReservations4Request(subnetID, reservations),
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-				nodesForSucceed, kafka.DeleteReservation4,
-				reservation4ToDeleteReservation4Request(subnetID, reservation)); err != nil {
+				nodesForSucceed, kafka.DeleteReservation4s,
+				reservation4sToDeleteReservations4Request(subnetID, reservations)); err != nil {
 				log.Errorf("create subnet4 %d reservation4 %s failed, rollback with nodes %v failed: %s",
-					subnetID, reservation.String(), nodesForSucceed, err.Error())
+					subnetID, reservations[0].String(), nodesForSucceed, err.Error())
 			}
 		})
+}
+
+func reservation4sToCreateReservations4Request(subnetID uint64, reservations []*resource.Reservation4) *pbdhcpagent.CreateReservations4Request {
+	pbReservations := make([]*pbdhcpagent.CreateReservation4Request, len(reservations))
+	for i, reservation := range reservations {
+		pbReservations[i] = reservation4ToCreateReservation4Request(subnetID, reservation)
+	}
+	return &pbdhcpagent.CreateReservations4Request{
+		SubnetId:     subnetID,
+		Reservations: pbReservations,
+	}
 }
 
 func reservation4ToCreateReservation4Request(subnetID uint64, reservation *resource.Reservation4) *pbdhcpagent.CreateReservation4Request {
@@ -278,8 +292,7 @@ func (r *Reservation4Service) Delete(subnet *resource.Subnet4, reservation *reso
 			return errorno.ErrDBError(errorno.ErrDBNameDelete, reservation.GetID(), pg.Error(err).Error())
 		}
 
-		return sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 	})
 }
 
@@ -323,9 +336,20 @@ func setReservation4FromDB(tx restdb.Transaction, reservation *resource.Reservat
 	return nil
 }
 
-func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {
-	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeleteReservation4,
-		reservation4ToDeleteReservation4Request(subnetID, reservation), nil)
+func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservations ...*resource.Reservation4) error {
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeleteReservation4s,
+		reservation4sToDeleteReservations4Request(subnetID, reservations), nil)
+}
+
+func reservation4sToDeleteReservations4Request(subnetID uint64, reservations []*resource.Reservation4) *pbdhcpagent.DeleteReservations4Request {
+	pbReservations := make([]*pbdhcpagent.DeleteReservation4Request, len(reservations))
+	for i, reservation := range reservations {
+		pbReservations[i] = reservation4ToDeleteReservation4Request(subnetID, reservation)
+	}
+	return &pbdhcpagent.DeleteReservations4Request{
+		SubnetId:     subnetID,
+		Reservations: pbReservations,
+	}
 }
 
 func reservation4ToDeleteReservation4Request(subnetID uint64, reservation *resource.Reservation4) *pbdhcpagent.DeleteReservation4Request {
@@ -378,7 +402,7 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 		if err = batchCreateReservationV4s(tx, reservations, subnet); err != nil {
 			return err
 		}
-		return batchSendCreateReservation4Cmd(subnet, reservations...)
+		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservations...)
 	})
 }
 
@@ -402,16 +426,6 @@ func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.R
 			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 
-	}
-	return nil
-}
-
-func batchSendCreateReservation4Cmd(subnet *resource.Subnet4, reservations ...*resource.Reservation4) error {
-	for _, reservation := range reservations {
-		if err := sendCreateReservation4CmdToDHCPAgent(
-			subnet.SubnetId, subnet.Nodes, reservation); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -452,13 +466,9 @@ func (s *Reservation4Service) BatchDeleteReservation4s(subnetId string, ids []st
 				map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 			}
-
-			if err = sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-				reservation); err != nil {
-				return err
-			}
 		}
-		return nil
+
+		return sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservations...)
 	})
 }
 
@@ -497,7 +507,7 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile, subnetId strin
 			validReservations = append(validReservations, reservation)
 		}
 
-		return batchSendCreateReservation4Cmd(subnet4s[0], validReservations...)
+		return sendCreateReservation4CmdToDHCPAgent(subnet4s[0].SubnetId, subnet4s[0].Nodes, validReservations...)
 	}); err != nil {
 		return nil, err
 	}
@@ -687,12 +697,12 @@ func createReservationsBySubnet(v4Map map[string][]*resource.Reservation4, v6Map
 		}
 
 		for subnetId, subnet4 := range v4SubnetMap {
-			if err := batchSendCreateReservation4Cmd(subnet4, v4Map[subnetId]...); err != nil {
+			if err := sendCreateReservation4CmdToDHCPAgent(subnet4.SubnetId, subnet4.Nodes, v4Map[subnetId]...); err != nil {
 				return err
 			}
 		}
 		for subnetId, subnet6 := range v6SubnetMap {
-			if err := batchSendCreateReservation6Cmd(subnet6, v6Map[subnetId]...); err != nil {
+			if err := sendCreateReservation6CmdToDHCPAgent(subnet6.SubnetId, subnet6.Nodes, v6Map[subnetId]...); err != nil {
 				return err
 			}
 		}

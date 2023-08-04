@@ -534,22 +534,22 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 			if _, err = tx.Insert(lease4); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
+		}
 
-			if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
-				_, err = client.DeleteLease4(ctx,
-					&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
-				return err
-			}); err != nil {
-				errMsg := err.Error()
-				if s, ok := status.FromError(err); ok {
-					errMsg = s.Message()
-					if strings.Contains(errMsg, ":") {
-						msgs := strings.Split(errMsg, ":")
-						errMsg = msgs[len(msgs)-1]
-					}
+		if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			_, err = client.DeleteLeases4(ctx,
+				&pbdhcpagent.DeleteLeases4Request{SubnetId: subnet4.SubnetId, Addresses: leaseIds})
+			return err
+		}); err != nil {
+			errMsg := err.Error()
+			if s, ok := status.FromError(err); ok {
+				errMsg = s.Message()
+				if strings.Contains(errMsg, ":") {
+					msgs := strings.Split(errMsg, ":")
+					errMsg = msgs[len(msgs)-1]
 				}
-				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 			}
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 		}
 
 		return nil

@@ -548,6 +548,7 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 			return err
 		}
 
+		addrsByLeaseTypeMap := make(map[string][]string, len(leaseIds))
 		for _, leaseId := range leaseIds {
 			_, subnetLeases, err := getReservation6sAndSubnetLease6sWithIp(
 				tx, subnet6, leaseId)
@@ -563,16 +564,19 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 				return nil
 			}
 
+			addrsByLeaseTypeMap[lease6.LeaseType] = append(addrsByLeaseTypeMap[lease6.LeaseType], leaseId)
 			lease6.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 			lease6.Subnet6 = subnetId
 			if _, err = tx.Insert(lease6); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
+		}
 
+		for leaseType, addrs := range addrsByLeaseTypeMap {
 			if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
-				_, err = client.DeleteLease6(ctx,
-					&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
-						LeaseType: lease6.LeaseType, Address: leaseId})
+				_, err = client.DeleteLeases6(ctx,
+					&pbdhcpagent.DeleteLeases6Request{SubnetId: subnet6.SubnetId,
+						LeaseType: leaseType, Addresses: addrs})
 				return err
 			}); err != nil {
 				errMsg := err.Error()
