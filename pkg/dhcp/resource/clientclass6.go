@@ -8,12 +8,29 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
+type Option6Code uint16
+
+const (
+	Option6CodeClientID               Option6Code = 1
+	Option6CodeServerID               Option6Code = 2
+	Option6CodeIAAddr                 Option6Code = 5
+	Option6CodeORO                    Option6Code = 6
+	Option6CodeElapsedTime            Option6Code = 8
+	Option6CodeUserClass              Option6Code = 15
+	Option6CodeVendorClass            Option6Code = 16
+	Option6CodeIAPrefix               Option6Code = 26
+	Option6CodeInformationRefreshTime Option6Code = 32
+	Option6CodeFQDN                   Option6Code = 39
+	Option6CodeClientArchType         Option6Code = 61
+	Option6CodeRelayPort              Option6Code = 135
+)
+
 var TableClientClass6 = restdb.ResourceDBType(&ClientClass6{})
 
 type ClientClass6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Name                      string          `json:"name" rest:"required=true,description=immutable" db:"uk"`
-	Code                      uint16          `json:"code" rest:"required=true,description=immutable"`
+	Code                      Option6Code     `json:"code" rest:"required=true,description=immutable"`
 	Condition                 OptionCondition `json:"condition" rest:"required=true,options=exists|equal|substring"`
 	Regexp                    string          `json:"regexp"`
 	BeginIndex                uint32          `json:"beginIndex"`
@@ -23,8 +40,8 @@ type ClientClass6 struct {
 func (c *ClientClass6) Validate() error {
 	if len(c.Name) == 0 || (c.Condition != OptionConditionExists && len(c.Regexp) == 0) {
 		return errorno.ErrEmpty(string(errorno.ErrNameName), string(errorno.ErrNameRegexp))
-	} else if c.Code < 1 || c.Code > 65535 {
-		return errorno.ErrNotInScope(errorno.ErrNameCode, 1, 65535)
+	} else if _, ok := code6Localization[c.Code]; !ok {
+		return errorno.ErrInvalidParams(errorno.ErrNameCode, c.Code)
 	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Name); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, c.Name)
 	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Description); err != nil {
@@ -33,11 +50,26 @@ func (c *ClientClass6) Validate() error {
 		return errorno.ErrInvalidParams(errorno.ErrNameRegexp, c.Regexp)
 	} else {
 		if c.Description == "" {
-			c.Description = code6ToDescription(c.Code)
+			c.Description = code6ToDescription(uint16(c.Code))
 		}
 
 		return nil
 	}
+}
+
+var code6Localization = map[Option6Code]string{
+	Option6CodeClientID:               "客户端标识",
+	Option6CodeServerID:               "服务器标识",
+	Option6CodeIAAddr:                 "IA IP地址",
+	Option6CodeORO:                    "客户端请求参数列表",
+	Option6CodeElapsedTime:            "客户端尝试完成消息交换时间",
+	Option6CodeUserClass:              "用户类型标识",
+	Option6CodeVendorClass:            "厂商信息",
+	Option6CodeIAPrefix:               "IA前缀地址",
+	Option6CodeInformationRefreshTime: "Information消息刷新时间",
+	Option6CodeFQDN:                   "客户端主机名",
+	Option6CodeClientArchType:         "客户端系统架构",
+	Option6CodeRelayPort:              "中继服务器端口",
 }
 
 var code6Description = map[uint16]string{

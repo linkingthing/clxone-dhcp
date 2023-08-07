@@ -8,6 +8,28 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
+type Option4Code uint8
+
+const (
+	Option4CodeHostName                     Option4Code = 12
+	Option4CodeDomainName                   Option4Code = 15
+	Option4CodeRootPath                     Option4Code = 17
+	Option4CodeRequestedIPAddress           Option4Code = 50
+	Option4CodeIPAddressLeaseTime           Option4Code = 51
+	Option4CodeDHCPMessageType              Option4Code = 53
+	Option4CodeServerIdentifier             Option4Code = 54
+	Option4CodeParameterRequestList         Option4Code = 55
+	Option4CodeMaximumDHCPMessageSize       Option4Code = 57
+	Option4CodeClassIdentifier              Option4Code = 60
+	Option4CodeClientIdentifier             Option4Code = 61
+	Option4CodeUserClassInformation         Option4Code = 77
+	Option4CodeFQDN                         Option4Code = 81
+	Option4CodeRelayAgentInformation        Option4Code = 82
+	Option4CodeClientSystemArchitectureType Option4Code = 93
+	Option4CodeSubnetSelection              Option4Code = 118
+	Option4CodeVendorIdentifyingVendorClass Option4Code = 124
+)
+
 type OptionCondition string
 
 const (
@@ -21,7 +43,7 @@ var TableClientClass4 = restdb.ResourceDBType(&ClientClass4{})
 type ClientClass4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Name                      string          `json:"name" rest:"required=true,description=immutable" db:"uk"`
-	Code                      uint8           `json:"code" rest:"required=true,description=immutable"`
+	Code                      Option4Code     `json:"code" rest:"required=true,description=immutable"`
 	Condition                 OptionCondition `json:"condition" rest:"required=true,options=exists|equal|substring"`
 	Regexp                    string          `json:"regexp"`
 	BeginIndex                uint32          `json:"beginIndex"`
@@ -31,8 +53,8 @@ type ClientClass4 struct {
 func (c *ClientClass4) Validate() error {
 	if len(c.Name) == 0 || (c.Condition != OptionConditionExists && len(c.Regexp) == 0) {
 		return errorno.ErrEmpty(string(errorno.ErrNameName), string(errorno.ErrNameRegexp))
-	} else if c.Code < 1 || c.Code > 254 {
-		return errorno.ErrNotInScope(errorno.ErrNameCode, 1, 254)
+	} else if _, ok := code4Localization[c.Code]; !ok {
+		return errorno.ErrInvalidParams(errorno.ErrNameCode, c.Code)
 	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Name); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, c.Name)
 	} else if err := util.ValidateStrings(util.RegexpTypeCommon, c.Description); err != nil {
@@ -41,11 +63,31 @@ func (c *ClientClass4) Validate() error {
 		return errorno.ErrInvalidParams(errorno.ErrNameRegexp, c.Regexp)
 	} else {
 		if c.Description == "" {
-			c.Description = code4ToDescription(c.Code)
+			c.Description = code4ToDescription(uint8(c.Code))
 		}
 
 		return nil
 	}
+}
+
+var code4Localization = map[Option4Code]string{
+	Option4CodeHostName:                     "客户端主机名",
+	Option4CodeDomainName:                   "客户端主机名后缀",
+	Option4CodeRootPath:                     "客户端磁盘根路径",
+	Option4CodeRequestedIPAddress:           "客户端请求地址",
+	Option4CodeIPAddressLeaseTime:           "地址租赁时间",
+	Option4CodeDHCPMessageType:              "消息类型",
+	Option4CodeServerIdentifier:             "服务器标识",
+	Option4CodeParameterRequestList:         "客户端请求参数列表",
+	Option4CodeMaximumDHCPMessageSize:       "最大消息长度",
+	Option4CodeClassIdentifier:              "厂商信息",
+	Option4CodeClientIdentifier:             "客户端标识",
+	Option4CodeUserClassInformation:         "用户类型标识",
+	Option4CodeFQDN:                         "客户端主机名",
+	Option4CodeRelayAgentInformation:        "中继路由信息",
+	Option4CodeClientSystemArchitectureType: "客户端系统架构",
+	Option4CodeSubnetSelection:              "子网选择",
+	Option4CodeVendorIdentifyingVendorClass: "厂商标识",
 }
 
 var code4Description = map[uint8]string{
