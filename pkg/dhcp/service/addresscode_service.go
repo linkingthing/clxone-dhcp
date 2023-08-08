@@ -57,6 +57,14 @@ func sendCreateAddressCodeCmdToDHCPAgent(addressCode *resource.AddressCode) erro
 }
 
 func (d *AddressCodeService) List(conditions map[string]interface{}) ([]*resource.AddressCode, error) {
+	if hw, ok := conditions[resource.SqlColumnHwAddress]; ok {
+		mac, err := util.NormalizeMac(hw.(string))
+		if err != nil {
+			return nil, err
+		}
+		conditions[resource.SqlColumnHwAddress] = mac
+	}
+
 	var addressCodes []*resource.AddressCode
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &addressCodes)
