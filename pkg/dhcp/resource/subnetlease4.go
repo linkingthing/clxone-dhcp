@@ -3,6 +3,7 @@ package resource
 import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
+	"strings"
 )
 
 type ReservationType string
@@ -40,7 +41,7 @@ func (l SubnetLease4) GetParents() []restresource.ResourceKind {
 func (l *SubnetLease4) Equal(another *SubnetLease4) bool {
 	return l.Address == another.Address &&
 		l.Expire == another.Expire &&
-		l.HwAddress == another.HwAddress &&
+		strings.EqualFold(l.HwAddress, another.HwAddress) &&
 		l.ClientId == another.ClientId &&
 		l.Hostname == another.Hostname
 }

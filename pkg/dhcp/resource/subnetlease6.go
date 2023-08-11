@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"strings"
+
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
@@ -40,7 +42,7 @@ func (l *SubnetLease6) Equal(another *SubnetLease6) bool {
 	return l.Address == another.Address &&
 		l.Expire == another.Expire &&
 		l.Duid == another.Duid &&
-		l.HwAddress == another.HwAddress &&
+		strings.EqualFold(l.HwAddress, another.HwAddress) &&
 		l.LeaseType == another.LeaseType &&
 		l.Iaid == another.Iaid &&
 		l.Hostname == another.Hostname
