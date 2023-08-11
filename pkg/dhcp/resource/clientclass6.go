@@ -13,12 +13,10 @@ type Option6Code uint16
 const (
 	Option6CodeClientID               Option6Code = 1
 	Option6CodeServerID               Option6Code = 2
-	Option6CodeIAAddr                 Option6Code = 5
 	Option6CodeORO                    Option6Code = 6
 	Option6CodeElapsedTime            Option6Code = 8
 	Option6CodeUserClass              Option6Code = 15
 	Option6CodeVendorClass            Option6Code = 16
-	Option6CodeIAPrefix               Option6Code = 26
 	Option6CodeInformationRefreshTime Option6Code = 32
 	Option6CodeFQDN                   Option6Code = 39
 	Option6CodeClientArchType         Option6Code = 61
@@ -60,12 +58,10 @@ func (c *ClientClass6) Validate() error {
 var code6Localization = map[Option6Code]string{
 	Option6CodeClientID:               "客户端标识",
 	Option6CodeServerID:               "服务器标识",
-	Option6CodeIAAddr:                 "IA IP地址",
 	Option6CodeORO:                    "客户端请求参数列表",
 	Option6CodeElapsedTime:            "客户端尝试完成消息交换时间",
 	Option6CodeUserClass:              "用户类型标识",
 	Option6CodeVendorClass:            "厂商信息",
-	Option6CodeIAPrefix:               "IA前缀地址",
 	Option6CodeInformationRefreshTime: "Information消息刷新时间",
 	Option6CodeFQDN:                   "客户端主机名",
 	Option6CodeClientArchType:         "客户端系统架构",
