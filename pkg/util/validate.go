@@ -140,3 +140,31 @@ func ToLower(ss []string) []string {
 	}
 	return rs
 }
+
+func IsSubnetMask(addr string) bool {
+	ip := net.ParseIP(addr)
+	if ip == nil {
+		return false
+	}
+	if tip := ip.To4(); tip != nil {
+		ip = tip
+	}
+	var foundZero bool
+	for _, bt := range ip {
+		if foundZero {
+			if bt != 0 {
+				return false
+			}
+			continue
+		}
+
+		for i := 7; i >= 0; i-- {
+			if (bt>>i)&1 == 0 {
+				foundZero = true
+			} else if foundZero {
+				return false
+			}
+		}
+	}
+	return true
+}
