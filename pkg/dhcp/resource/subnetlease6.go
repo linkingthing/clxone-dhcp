@@ -32,6 +32,7 @@ type SubnetLease6 struct {
 	AddressCode               string      `json:"addressCode"`
 	AddressCodeBegin          uint32      `json:"addressCodeBegin"`
 	AddressCodeEnd            uint32      `json:"addressCodeEnd"`
+	BelongEui64Subnet         bool        `json:"-" db:"-"`
 }
 
 func (l SubnetLease6) GetParents() []restresource.ResourceKind {

@@ -635,16 +635,15 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 
 	leases := make([]*resource.SubnetLease6, 0, len(resp.Leases))
 	for _, lease := range resp.Leases {
-		var skip bool
+		lease6 := subnetLease6FromPbLease6AndReservations(lease, reservationMap)
 		for _, subnet := range subnets {
-			if subnet.UseEui64 && subnet.GetID() == strconv.FormatUint(lease.SubnetId, 10) {
-				skip = true
+			if subnet.UseEui64 && subnet.GetID() == lease6.Subnet6 {
+				lease6.BelongEui64Subnet = true
+				break
 			}
 		}
 
-		if !skip {
-			leases = append(leases, subnetLease6FromPbLease6AndReservations(lease, reservationMap))
-		}
+		leases = append(leases, lease6)
 	}
 
 	return leases, nil

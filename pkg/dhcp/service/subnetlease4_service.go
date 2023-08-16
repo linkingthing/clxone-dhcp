@@ -129,7 +129,11 @@ func (l *SubnetLease4Service) listToReservationWithMac(leases []*resource.Subnet
 		dualStack := make([]string, 0, len(lease6s))
 		for _, lease6 := range lease6s {
 			if lease6.HwAddress == lease.HwAddress {
-				dualStack = append(dualStack, lease6.Address)
+				if lease6.BelongEui64Subnet {
+					dualStack = append(dualStack, fmt.Sprintf("%s(EUI64)", lease6.Address))
+				} else {
+					dualStack = append(dualStack, lease6.Address)
+				}
 			}
 		}
 
@@ -198,6 +202,9 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 		}
 		if _, ok := seenMac[lease6.HwAddress]; !ok {
 			seenMac[lease6.HwAddress] = map[string][]string{}
+		}
+		if lease6.BelongEui64Subnet {
+			return errorno.ErrSubnetWithEui64(lease6.Address)
 		}
 		seenMac[lease6.HwAddress][lease6.Subnet6] = append(seenMac[lease6.HwAddress][lease6.Subnet6], lease6.Address)
 	}
