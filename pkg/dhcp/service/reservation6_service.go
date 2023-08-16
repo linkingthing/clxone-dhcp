@@ -582,10 +582,12 @@ func reservation6sToDeleteReservations6Request(subnetID uint64, reservations []*
 
 func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resource.Reservation6) *pbdhcpagent.DeleteReservation6Request {
 	return &pbdhcpagent.DeleteReservation6Request{
-		SubnetId:  subnetID,
-		HwAddress: reservation.HwAddress,
-		Duid:      reservation.Duid,
-		Hostname:  reservation.Hostname,
+		SubnetId:    subnetID,
+		HwAddress:   reservation.HwAddress,
+		Duid:        reservation.Duid,
+		Hostname:    reservation.Hostname,
+		IpAddresses: reservation.IpAddresses,
+		Prefixes:    reservation.Prefixes,
 	}
 }
 
