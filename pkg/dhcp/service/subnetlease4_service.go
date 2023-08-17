@@ -204,7 +204,7 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 			seenMac[lease6.HwAddress] = map[string][]string{}
 		}
 		if lease6.BelongEui64Subnet {
-			return errorno.ErrSubnetWithEui64(lease6.Address)
+			return errorno.ErrAddressWithEui64(lease6.Address)
 		}
 		seenMac[lease6.HwAddress][lease6.Subnet6] = append(seenMac[lease6.HwAddress][lease6.Subnet6], lease6.Address)
 	}
