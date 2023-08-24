@@ -51,8 +51,8 @@ var (
 	TableHeaderReservation6FailLen = len(TableHeaderReservation6Fail)
 
 	TemplateReservation4 = [][]string{
-		{"10.0.0.10", "MAC", "00:0c:29:df:20:33", ""},
-		{"10.0.0.11", "主机名", "admin-设备1", ""},
+		{"127.0.0.10", "MAC", "00:0c:29:df:20:33", ""},
+		{"127.0.0.11", "主机名", "admin-设备1", ""},
 	}
 
 	TemplateReservation6 = [][]string{

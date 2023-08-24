@@ -74,7 +74,7 @@ var (
 	TableHeaderSubnet6FailLen = len(TableHeaderSubnet6Fail)
 
 	TemplateSubnet4 = [][]string{{
-		"127.0.0.0/8", "template", "14400", "28800", "7200", "128.0.0.0", "127.0.0.1",
+		"127.0.0.0/8", "template", "14400", "28800", "7200", "255.0.0.0", "127.0.0.1",
 		"114.114.114.114\n8.8.8.8", "ens33", "option60\noption61", "option3\noption6", "127.0.0.1",
 		"linkingthing", "tftp.bin", "1800", "127.0.0.2\n127.0.0.3",
 		"127.0.0.6-127.0.0.100-备注1\n127.0.0.106-127.0.0.200-备注2",
