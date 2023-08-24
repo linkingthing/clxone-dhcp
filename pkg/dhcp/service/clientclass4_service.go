@@ -16,9 +16,9 @@ import (
 )
 
 const (
-	ClientClassOptionExists         = "option %s exists"
-	ClientClassOptionEqual          = "option %s == '%s'"
-	ClientClassOptionSubstringEqual = "substring(option[%d],%d,%d) == '%s'"
+	ClientClassOptionExists         = `option %s exists`
+	ClientClassOptionEqual          = `option %s == "%s"`
+	ClientClassOptionSubstringEqual = `substring(option[%d],%d,%d) == "%s"`
 )
 
 type ClientClass4Service struct {

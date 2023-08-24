@@ -548,6 +548,7 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 			return err
 		}
 
+		addrsByLeaseTypeMap := make(map[string][]string, len(leaseIds))
 		for _, leaseId := range leaseIds {
 			_, subnetLeases, err := getReservation6sAndSubnetLease6sWithIp(
 				tx, subnet6, leaseId)
@@ -563,16 +564,19 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 				return nil
 			}
 
+			addrsByLeaseTypeMap[lease6.LeaseType] = append(addrsByLeaseTypeMap[lease6.LeaseType], leaseId)
 			lease6.LeaseState = pbdhcpagent.LeaseState_RECLAIMED.String()
 			lease6.Subnet6 = subnetId
 			if _, err = tx.Insert(lease6); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
+		}
 
+		for leaseType, addrs := range addrsByLeaseTypeMap {
 			if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
-				_, err = client.DeleteLease6(ctx,
-					&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
-						LeaseType: lease6.LeaseType, Address: leaseId})
+				_, err = client.DeleteLeases6(ctx,
+					&pbdhcpagent.DeleteLeases6Request{SubnetId: subnet6.SubnetId,
+						LeaseType: leaseType, Addresses: addrs})
 				return err
 			}); err != nil {
 				errMsg := err.Error()
@@ -631,16 +635,15 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 
 	leases := make([]*resource.SubnetLease6, 0, len(resp.Leases))
 	for _, lease := range resp.Leases {
-		var skip bool
+		lease6 := subnetLease6FromPbLease6AndReservations(lease, reservationMap)
 		for _, subnet := range subnets {
-			if subnet.UseEui64 && subnet.GetID() == strconv.FormatUint(lease.SubnetId, 10) {
-				skip = true
+			if subnet.UseEui64 && subnet.GetID() == lease6.Subnet6 {
+				lease6.BelongEui64Subnet = true
+				break
 			}
 		}
 
-		if !skip {
-			leases = append(leases, subnetLease6FromPbLease6AndReservations(lease, reservationMap))
-		}
+		leases = append(leases, lease6)
 	}
 
 	return leases, nil

@@ -34,7 +34,7 @@ func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *reso
 		if err := batchCreateReservation6s(tx, subnet, []*resource.Reservation6{reservation}); err != nil {
 			return err
 		}
-		return batchSendCreateReservation6Cmd(subnet, reservation)
+		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 	})
 }
 
@@ -297,17 +297,31 @@ func getPdPoolReservedCount(pdpool *resource.PdPool, prefixLen uint32) *big.Int 
 	}
 }
 
-func sendCreateReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservation6,
-		reservation6ToCreateReservation6Request(subnetID, reservation),
+func sendCreateReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservations ...*resource.Reservation6) error {
+	if len(reservations) == 0 {
+		return nil
+	}
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservation6s,
+		reservation6sToCreateReservations6Request(subnetID, reservations),
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-				nodesForSucceed, kafka.DeleteReservation6,
-				reservation6ToDeleteReservation6Request(subnetID, reservation)); err != nil {
+				nodesForSucceed, kafka.DeleteReservation6s,
+				reservation6sToDeleteReservations6Request(subnetID, reservations)); err != nil {
 				log.Errorf("create subnet6 %d reservation6 %s failed, rollback with nodes %v failed: %s",
-					subnetID, reservation.String(), nodesForSucceed, err.Error())
+					subnetID, reservations[0].String(), nodesForSucceed, err.Error())
 			}
 		})
+}
+
+func reservation6sToCreateReservations6Request(subnetID uint64, reservations []*resource.Reservation6) *pbdhcpagent.CreateReservations6Request {
+	pbPools := make([]*pbdhcpagent.CreateReservation6Request, len(reservations))
+	for i, pool := range reservations {
+		pbPools[i] = reservation6ToCreateReservation6Request(subnetID, pool)
+	}
+	return &pbdhcpagent.CreateReservations6Request{
+		SubnetId:     subnetID,
+		Reservations: pbPools,
+	}
 }
 
 func reservation6ToCreateReservation6Request(subnetID uint64, reservation *resource.Reservation6) *pbdhcpagent.CreateReservation6Request {
@@ -503,8 +517,7 @@ func (r *Reservation6Service) Delete(subnet *resource.Subnet6, reservation *reso
 			return errorno.ErrDBError(errorno.ErrDBNameDelete, reservation.GetID(), pg.Error(err).Error())
 		}
 
-		return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 	})
 }
 
@@ -551,17 +564,30 @@ func setReservation6FromDB(tx restdb.Transaction, reservation *resource.Reservat
 	return nil
 }
 
-func sendDeleteReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservation6,
-		reservation6ToDeleteReservation6Request(subnetID, reservation), nil)
+func sendDeleteReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservations ...*resource.Reservation6) error {
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservation6s,
+		reservation6sToDeleteReservations6Request(subnetID, reservations), nil)
+}
+
+func reservation6sToDeleteReservations6Request(subnetID uint64, reservations []*resource.Reservation6) *pbdhcpagent.DeleteReservations6Request {
+	pbPools := make([]*pbdhcpagent.DeleteReservation6Request, len(reservations))
+	for i, pool := range reservations {
+		pbPools[i] = reservation6ToDeleteReservation6Request(subnetID, pool)
+	}
+	return &pbdhcpagent.DeleteReservations6Request{
+		SubnetId:     subnetID,
+		Reservations: pbPools,
+	}
 }
 
 func reservation6ToDeleteReservation6Request(subnetID uint64, reservation *resource.Reservation6) *pbdhcpagent.DeleteReservation6Request {
 	return &pbdhcpagent.DeleteReservation6Request{
-		SubnetId:  subnetID,
-		HwAddress: reservation.HwAddress,
-		Duid:      reservation.Duid,
-		Hostname:  reservation.Hostname,
+		SubnetId:    subnetID,
+		HwAddress:   reservation.HwAddress,
+		Duid:        reservation.Duid,
+		Hostname:    reservation.Hostname,
+		IpAddresses: reservation.IpAddresses,
+		Prefixes:    reservation.Prefixes,
 	}
 }
 
@@ -606,7 +632,7 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 		if err = batchCreateReservation6s(tx, subnet, reservations); err != nil {
 			return err
 		}
-		return batchSendCreateReservation6Cmd(subnet, reservations...)
+		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservations...)
 	})
 }
 
@@ -630,16 +656,6 @@ func batchCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, r
 		}
 	}
 
-	return nil
-}
-
-func batchSendCreateReservation6Cmd(subnet *resource.Subnet6, reservations ...*resource.Reservation6) error {
-	for _, reservation := range reservations {
-		if err := sendCreateReservation6CmdToDHCPAgent(
-			subnet.SubnetId, subnet.Nodes, reservation); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 
@@ -679,13 +695,9 @@ func (s *Reservation6Service) BatchDeleteReservation6s(subnetId string, ids []st
 				map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 			}
-
-			if err = sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-				reservation); err != nil {
-				return err
-			}
 		}
-		return nil
+
+		return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservations...)
 	})
 }
 
@@ -725,7 +737,7 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 			validReservations = append(validReservations, reservation)
 		}
 
-		return batchSendCreateReservation6Cmd(subnet6s[0], validReservations...)
+		return sendCreateReservation6CmdToDHCPAgent(subnet6s[0].SubnetId, subnet6s[0].Nodes, validReservations...)
 	}); err != nil {
 		return nil, err
 	}

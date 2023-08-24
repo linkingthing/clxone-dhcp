@@ -803,6 +803,10 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			}
 		case FieldNameSubnetMask:
 			subnet.SubnetMask = strings.TrimSpace(field)
+			if !util.IsSubnetMask(subnet.SubnetMask) {
+				return subnet, pools, reservedPools, reservations,
+					errorno.ErrInvalidParams(errorno.ErrNameNetworkMask, field)
+			}
 		case FieldNameRouters:
 			subnet.Routers = splitFieldWithoutSpace(field)
 		case FieldNameDomainServers:

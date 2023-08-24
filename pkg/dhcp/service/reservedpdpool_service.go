@@ -154,17 +154,31 @@ func recalculatePdPoolsCapacityWithReservedPdPool(tx restdb.Transaction, subnet 
 	return affectedPdPools, nil
 }
 
-func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPdPool,
-		reservedPdPoolToCreateReservedPdPoolRequest(subnetID, pdpool),
+func sendCreateReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpools ...*resource.ReservedPdPool) error {
+	if len(pdpools) == 0 {
+		return nil
+	}
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPdPools,
+		reservedPdPoolsToCreateReservedPdPoolsRequest(subnetID, pdpools),
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-				nodesForSucceed, kafka.DeleteReservedPdPool,
-				reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool)); err != nil {
+				nodesForSucceed, kafka.DeleteReservedPdPools,
+				reservedPdPoolsToDeleteReservedPdPoolsRequest(subnetID, pdpools)); err != nil {
 				log.Errorf("create subnet %d reserved pdpool %s failed, rollback with nodes %v failed: %s",
-					subnetID, pdpool.String(), nodesForSucceed, err.Error())
+					subnetID, pdpools[0].String(), nodesForSucceed, err.Error())
 			}
 		})
+}
+
+func reservedPdPoolsToCreateReservedPdPoolsRequest(subnetID uint64, pdpools []*resource.ReservedPdPool) *pbdhcpagent.CreateReservedPdPoolsRequest {
+	pbPools := make([]*pbdhcpagent.CreateReservedPdPoolRequest, len(pdpools))
+	for i, pool := range pdpools {
+		pbPools[i] = reservedPdPoolToCreateReservedPdPoolRequest(subnetID, pool)
+	}
+	return &pbdhcpagent.CreateReservedPdPoolsRequest{
+		SubnetId:        subnetID,
+		ReservedPdPools: pbPools,
+	}
 }
 
 func reservedPdPoolToCreateReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *pbdhcpagent.CreateReservedPdPoolRequest {
@@ -244,9 +258,20 @@ func setReservedPdPoolFromDB(tx restdb.Transaction, pdpool *resource.ReservedPdP
 	return nil
 }
 
-func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpool *resource.ReservedPdPool) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPdPool,
-		reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pdpool), nil)
+func sendDeleteReservedPdPoolCmdToDHCPAgent(subnetID uint64, nodes []string, pdpools ...*resource.ReservedPdPool) error {
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPdPools,
+		reservedPdPoolsToDeleteReservedPdPoolsRequest(subnetID, pdpools), nil)
+}
+
+func reservedPdPoolsToDeleteReservedPdPoolsRequest(subnetID uint64, pdpools []*resource.ReservedPdPool) *pbdhcpagent.DeleteReservedPdPoolsRequest {
+	pbPools := make([]*pbdhcpagent.DeleteReservedPdPoolRequest, len(pdpools))
+	for i, pool := range pdpools {
+		pbPools[i] = reservedPdPoolToDeleteReservedPdPoolRequest(subnetID, pool)
+	}
+	return &pbdhcpagent.DeleteReservedPdPoolsRequest{
+		SubnetId:        subnetID,
+		ReservedPdPools: pbPools,
+	}
 }
 
 func reservedPdPoolToDeleteReservedPdPoolRequest(subnetID uint64, pdpool *resource.ReservedPdPool) *pbdhcpagent.DeleteReservedPdPoolRequest {

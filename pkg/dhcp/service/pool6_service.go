@@ -165,16 +165,30 @@ func updateSubnet6CapacityWithPool6(tx restdb.Transaction, subnetID string, capa
 	}
 }
 
-func sendCreatePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool6) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreatePool6,
-		pool6ToCreatePool6Request(subnetID, pool), func(nodesForSucceed []string) {
+func sendCreatePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.Pool6) error {
+	if len(pools) == 0 {
+		return nil
+	}
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreatePool6s,
+		pool6sToCreatePools6Request(subnetID, pools), func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-				nodesForSucceed, kafka.DeletePool6,
-				pool6ToDeletePool6Request(subnetID, pool)); err != nil {
+				nodesForSucceed, kafka.DeletePool6s,
+				pool6sToDeletePools6Request(subnetID, pools)); err != nil {
 				log.Errorf("create subnet6 %d pool6 %s failed, rollback with nodes %v failed: %s",
-					subnetID, pool.String(), nodesForSucceed, err.Error())
+					subnetID, pools[0].String(), nodesForSucceed, err.Error())
 			}
 		})
+}
+
+func pool6sToCreatePools6Request(subnetID uint64, pools []*resource.Pool6) *pbdhcpagent.CreatePools6Request {
+	pbPools := make([]*pbdhcpagent.CreatePool6Request, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = pool6ToCreatePool6Request(subnetID, pool)
+	}
+	return &pbdhcpagent.CreatePools6Request{
+		SubnetId: subnetID,
+		Pools:    pbPools,
+	}
 }
 
 func pool6ToCreatePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpagent.CreatePool6Request {
@@ -405,9 +419,20 @@ func setPool6FromDB(tx restdb.Transaction, pool *resource.Pool6) error {
 	return nil
 }
 
-func sendDeletePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool6) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeletePool6,
-		pool6ToDeletePool6Request(subnetID, pool), nil)
+func sendDeletePool6CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.Pool6) error {
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeletePool6s,
+		pool6sToDeletePools6Request(subnetID, pools), nil)
+}
+
+func pool6sToDeletePools6Request(subnetID uint64, pools []*resource.Pool6) *pbdhcpagent.DeletePools6Request {
+	pbPools := make([]*pbdhcpagent.DeletePool6Request, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = pool6ToDeletePool6Request(subnetID, pool)
+	}
+	return &pbdhcpagent.DeletePools6Request{
+		SubnetId: subnetID,
+		Pools:    pbPools,
+	}
 }
 
 func pool6ToDeletePool6Request(subnetID uint64, pool *resource.Pool6) *pbdhcpagent.DeletePool6Request {

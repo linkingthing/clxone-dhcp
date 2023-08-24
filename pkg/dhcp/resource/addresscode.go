@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"strconv"
+
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -47,6 +49,12 @@ func (a *AddressCode) Validate() error {
 func (a *AddressCode) ValidateCode() error {
 	if a.Code == "" {
 		return errorno.ErrEmpty(string(errorno.ErrNameAddressCode))
+	}
+
+	for i := range a.Code {
+		if _, err := strconv.ParseUint(a.Code[i:i+1], 16, 4); err != nil {
+			return errorno.ErrInvalidParams(errorno.ErrNameAddressCode, a.Code)
+		}
 	}
 
 	if a.CodeBegin < 65 || a.CodeBegin > 128 ||

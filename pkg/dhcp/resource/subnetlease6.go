@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"strings"
+
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
@@ -30,6 +32,7 @@ type SubnetLease6 struct {
 	AddressCode               string      `json:"addressCode"`
 	AddressCodeBegin          uint32      `json:"addressCodeBegin"`
 	AddressCodeEnd            uint32      `json:"addressCodeEnd"`
+	BelongEui64Subnet         bool        `json:"-" db:"-"`
 }
 
 func (l SubnetLease6) GetParents() []restresource.ResourceKind {
@@ -40,7 +43,7 @@ func (l *SubnetLease6) Equal(another *SubnetLease6) bool {
 	return l.Address == another.Address &&
 		l.Expire == another.Expire &&
 		l.Duid == another.Duid &&
-		l.HwAddress == another.HwAddress &&
+		strings.EqualFold(l.HwAddress, another.HwAddress) &&
 		l.LeaseType == another.LeaseType &&
 		l.Iaid == another.Iaid &&
 		l.Hostname == another.Hostname

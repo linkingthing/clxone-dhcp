@@ -134,16 +134,30 @@ func updateSubnet4CapacityWithPool4(tx restdb.Transaction, subnetID string, capa
 	}
 }
 
-func sendCreatePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool4) error {
-	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreatePool4,
-		pool4ToCreatePool4Request(subnetID, pool), func(nodesForSucceed []string) {
+func sendCreatePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.Pool4) error {
+	if len(pools) == 0 {
+		return nil
+	}
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreatePool4s,
+		pool4sToCreatePools4Request(subnetID, pools), func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-				nodesForSucceed, kafka.DeletePool4,
-				pool4ToDeletePool4Request(subnetID, pool)); err != nil {
+				nodesForSucceed, kafka.DeletePool4s,
+				pool4sToDeletePools4Request(subnetID, pools)); err != nil {
 				log.Errorf("create subnet4 %d pool4 %s failed, rollback with nodes %v failed: %s",
-					subnetID, pool.String(), nodesForSucceed, err.Error())
+					subnetID, pools[0].String(), nodesForSucceed, err.Error())
 			}
 		})
+}
+
+func pool4sToCreatePools4Request(subnetID uint64, pools []*resource.Pool4) *pbdhcpagent.CreatePools4Request {
+	pbPools := make([]*pbdhcpagent.CreatePool4Request, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = pool4ToCreatePool4Request(subnetID, pool)
+	}
+	return &pbdhcpagent.CreatePools4Request{
+		SubnetId: subnetID,
+		Pools:    pbPools,
+	}
 }
 
 func pool4ToCreatePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpagent.CreatePool4Request {
@@ -396,9 +410,20 @@ func setPool4FromDB(tx restdb.Transaction, pool *resource.Pool4) error {
 	return nil
 }
 
-func sendDeletePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.Pool4) error {
-	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeletePool4,
-		pool4ToDeletePool4Request(subnetID, pool), nil)
+func sendDeletePool4CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.Pool4) error {
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.DeletePool4s,
+		pool4sToDeletePools4Request(subnetID, pools), nil)
+}
+
+func pool4sToDeletePools4Request(subnetID uint64, pools []*resource.Pool4) *pbdhcpagent.DeletePools4Request {
+	pbPools := make([]*pbdhcpagent.DeletePool4Request, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = pool4ToDeletePool4Request(subnetID, pool)
+	}
+	return &pbdhcpagent.DeletePools4Request{
+		SubnetId: subnetID,
+		Pools:    pbPools,
+	}
 }
 
 func pool4ToDeletePool4Request(subnetID uint64, pool *resource.Pool4) *pbdhcpagent.DeletePool4Request {

@@ -146,7 +146,12 @@ var (
 	ErrSubnetWithEui64 = func(name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`subnet6 %s has opened EUI64 or address code`, name),
-			fmt.Sprintf(`子网%s已经开启了EUI64`, name))
+			fmt.Sprintf(`%s已经设置了EUI64`, name))
+	}
+	ErrAddressWithEui64 = func(address string) *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf(`address of subnet has opened EUI64`, address),
+			fmt.Sprintf(`%s所属DHCP子网是EUI64`, address))
 	}
 	ErrBiggerThan = func(target ErrName, obj1, obj2 interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(

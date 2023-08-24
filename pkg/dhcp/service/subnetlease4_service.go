@@ -129,7 +129,11 @@ func (l *SubnetLease4Service) listToReservationWithMac(leases []*resource.Subnet
 		dualStack := make([]string, 0, len(lease6s))
 		for _, lease6 := range lease6s {
 			if lease6.HwAddress == lease.HwAddress {
-				dualStack = append(dualStack, lease6.Address)
+				if lease6.BelongEui64Subnet {
+					dualStack = append(dualStack, fmt.Sprintf("%s(EUI64)", lease6.Address))
+				} else {
+					dualStack = append(dualStack, lease6.Address)
+				}
 			}
 		}
 
@@ -198,6 +202,9 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 		}
 		if _, ok := seenMac[lease6.HwAddress]; !ok {
 			seenMac[lease6.HwAddress] = map[string][]string{}
+		}
+		if lease6.BelongEui64Subnet {
+			return errorno.ErrAddressWithEui64(lease6.Address)
 		}
 		seenMac[lease6.HwAddress][lease6.Subnet6] = append(seenMac[lease6.HwAddress][lease6.Subnet6], lease6.Address)
 	}
@@ -534,22 +541,22 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 			if _, err = tx.Insert(lease4); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 			}
+		}
 
-			if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
-				_, err = client.DeleteLease4(ctx,
-					&pbdhcpagent.DeleteLease4Request{SubnetId: subnet4.SubnetId, Address: leaseId})
-				return err
-			}); err != nil {
-				errMsg := err.Error()
-				if s, ok := status.FromError(err); ok {
-					errMsg = s.Message()
-					if strings.Contains(errMsg, ":") {
-						msgs := strings.Split(errMsg, ":")
-						errMsg = msgs[len(msgs)-1]
-					}
+		if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
+			_, err = client.DeleteLeases4(ctx,
+				&pbdhcpagent.DeleteLeases4Request{SubnetId: subnet4.SubnetId, Addresses: leaseIds})
+			return err
+		}); err != nil {
+			errMsg := err.Error()
+			if s, ok := status.FromError(err); ok {
+				errMsg = s.Message()
+				if strings.Contains(errMsg, ":") {
+					msgs := strings.Split(errMsg, ":")
+					errMsg = msgs[len(msgs)-1]
 				}
-				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 			}
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
 		}
 
 		return nil

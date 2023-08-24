@@ -202,16 +202,30 @@ func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *
 	return count
 }
 
-func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPool6,
-		reservedPool6ToCreateReservedPool6Request(subnetID, pool), func(nodesForSucceed []string) {
+func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.ReservedPool6) error {
+	if len(pools) == 0 {
+		return nil
+	}
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPool6s,
+		reservedPool6sToCreateReservedPools6Request(subnetID, pools), func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-				nodesForSucceed, kafka.DeleteReservedPool6,
-				reservedPool6ToDeleteReservedPool6Request(subnetID, pool)); err != nil {
+				nodesForSucceed, kafka.DeleteReservedPool6s,
+				reservedPool6sToDeleteReservedPools6Request(subnetID, pools)); err != nil {
 				log.Errorf("create subnet6 %d reserved pool6 %s failed, rollback with nodes %v failed: %s",
-					subnetID, pool.String(), nodesForSucceed, err.Error())
+					subnetID, pools[0].String(), nodesForSucceed, err.Error())
 			}
 		})
+}
+
+func reservedPool6sToCreateReservedPools6Request(subnetID uint64, pools []*resource.ReservedPool6) *pbdhcpagent.CreateReservedPools6Request {
+	pbPools := make([]*pbdhcpagent.CreateReservedPool6Request, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = reservedPool6ToCreateReservedPool6Request(subnetID, pool)
+	}
+	return &pbdhcpagent.CreateReservedPools6Request{
+		SubnetId:      subnetID,
+		ReservedPools: pbPools,
+	}
 }
 
 func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.CreateReservedPool6Request {
@@ -294,9 +308,20 @@ func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6)
 	return nil
 }
 
-func sendDeleteReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPool6,
-		reservedPool6ToDeleteReservedPool6Request(subnetID, pool), nil)
+func sendDeleteReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.ReservedPool6) error {
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPool6s,
+		reservedPool6sToDeleteReservedPools6Request(subnetID, pools), nil)
+}
+
+func reservedPool6sToDeleteReservedPools6Request(subnetID uint64, pools []*resource.ReservedPool6) *pbdhcpagent.DeleteReservedPools6Request {
+	pbPools := make([]*pbdhcpagent.DeleteReservedPool6Request, len(pools))
+	for i, pool := range pools {
+		pbPools[i] = reservedPool6ToDeleteReservedPool6Request(subnetID, pool)
+	}
+	return &pbdhcpagent.DeleteReservedPools6Request{
+		SubnetId:      subnetID,
+		ReservedPools: pbPools,
+	}
 }
 
 func reservedPool6ToDeleteReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.DeleteReservedPool6Request {
@@ -379,12 +404,8 @@ func BatchCreateReservedPool6s(prefix string, pools []*resource.ReservedPool6) e
 			if _, err := tx.Insert(pool); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 			}
-
-			if err := sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool); err != nil {
-				return err
-			}
 		}
 
-		return nil
+		return sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pools...)
 	})
 }
