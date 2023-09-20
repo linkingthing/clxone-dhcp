@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 
+	"github.com/linkingthing/cement/log"
 	httputil "github.com/linkingthing/clxone-utils/http"
 
 	"github.com/linkingthing/clxone-dhcp/config"
@@ -53,13 +54,15 @@ func NewPrometheusClient(conf *config.DHCPConfig) error {
 func prometheusRequest(ctx *MetricContext) (*PrometheusResponse, error) {
 	var resp PrometheusResponse
 	if err := getPrometheusClient().Get(genPrometheusUrl(ctx), &resp); err != nil {
-		return nil, errorno.ErrNetworkError(errorno.ErrNameMetric, err.Error())
+		log.Warnf("%s", errorno.ErrNetworkError(errorno.ErrNameMetric, err.Error()).ErrorCN())
+		return nil, errorno.ErrGetNodeInfoFromPrometheus()
 	}
 
 	if resp.Status != "success" {
-		return nil, errorno.ErrNetworkError(errorno.ErrNameMetric,
+		log.Warnf("%s", errorno.ErrNetworkError(errorno.ErrNameMetric,
 			fmt.Sprintf("get node %s %s failed with status: %s",
-				ctx.NodeIP, ctx.MetricName, resp.Status))
+				ctx.NodeIP, ctx.MetricName, resp.Status)).ErrorCN())
+		return nil, errorno.ErrGetNodeInfoFromPrometheus()
 	}
 
 	return &resp, nil

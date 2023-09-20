@@ -143,6 +143,12 @@ var (
 			fmt.Sprintf(`reservation %s exists with same subnet, mac and hostname or ip`, ip),
 			fmt.Sprintf(`%s已存在拥有相同子网、MAC和主机或IP的%s`, ip, localizeErrName(ErrNameDhcpReservation)))
 	}
+	ErrGetNodeInfoFromPrometheus = func() *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("get nodes from prometheus failed"),
+			fmt.Sprintf("从Prometheus获取节点信息失败"),
+		)
+	}
 	ErrSubnetWithEui64 = func(name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`subnet6 %s has opened EUI64 or address code`, name),
