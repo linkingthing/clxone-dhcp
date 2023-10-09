@@ -1593,7 +1593,7 @@ func (s *Subnet6Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 func ListSubnet6sByPrefixes(prefixes []string) ([]*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE subnet = ANY ($1)", prefixes)
+		return tx.FillEx(&subnets, "SELECT * FROM gr_subnet6 WHERE subnet = ANY ($1::TEXT[])", prefixes)
 	}); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 	}
