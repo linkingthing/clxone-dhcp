@@ -24,7 +24,7 @@ func (a AddressCodeLayoutSegment) GetParents() []restresource.ResourceKind {
 }
 
 func (a *AddressCodeLayoutSegment) Validate(layout *AddressCodeLayout) error {
-	if util.ValidateStrings(util.RegexpTypeCommon, a.Value) != nil {
+	if util.ValidateStrings(util.RegexpTypeSpace, a.Value) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameCode, a.Value)
 	}
 

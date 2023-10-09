@@ -26,19 +26,19 @@ func (a *Asset) Validate() error {
 		return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
 	}
 
-	if util.ValidateStrings(util.RegexpTypeCommon, a.AssetType) != nil {
+	if util.ValidateStrings(util.RegexpTypeSpace, a.AssetType) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameAssetType, a.AssetType)
 	}
 
-	if util.ValidateStrings(util.RegexpTypeCommon, a.Manufacturer) != nil {
+	if util.ValidateStrings(util.RegexpTypeSpace, a.Manufacturer) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameManufacturer, a.Manufacturer)
 	}
 
-	if util.ValidateStrings(util.RegexpTypeCommon, a.Model) != nil {
+	if util.ValidateStrings(util.RegexpTypeSpace, a.Model) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameModel, a.Model)
 	}
 
-	if util.ValidateStrings(util.RegexpTypeCommon, a.AccessNetworkTime) != nil {
+	if util.ValidateStrings(util.RegexpTypeSpace, a.AccessNetworkTime) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameAccessNetworkTime, a.AccessNetworkTime)
 	}
 
