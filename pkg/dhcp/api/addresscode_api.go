@@ -29,8 +29,7 @@ func (d *AddressCodeApi) Create(ctx *restresource.Context) (restresource.Resourc
 
 func (d *AddressCodeApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	duids, err := d.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
-		service.OrderByCreateTime, resource.SqlColumnDuid,
-		resource.SqlColumnHwAddress, resource.SqlColumnCode))
+		service.OrderByCreateTime, resource.SqlColumnName))
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}

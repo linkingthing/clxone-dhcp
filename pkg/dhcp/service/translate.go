@@ -33,7 +33,7 @@ const (
 	FieldNameOption18           = "option18"
 	FieldNameNodes              = "节点列表"
 	FieldNameEUI64              = "EUI64"
-	FieldNameUseAddressCode     = "编码分配地址"
+	FieldNameAddressCode        = "编码分配地址"
 	FieldNameWhiteClientClasses = "option白名单"
 	FieldNameBlackClientClasses = "option黑名单"
 
@@ -56,7 +56,7 @@ var (
 	}
 
 	TableHeaderSubnet6 = []string{
-		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, FieldNameUseAddressCode,
+		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, FieldNameAddressCode,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameDomainServers, FieldNameIfaceName,
 		FieldNameRelayAddresses, FieldNameWhiteClientClasses, FieldNameBlackClientClasses,
@@ -83,21 +83,21 @@ var (
 	}}
 
 	TemplateSubnet6 = [][]string{
-		[]string{"2001::/32", "template1", "关闭", "关闭", "14400", "28800", "7200", "14400",
+		[]string{"2001::/32", "template1", "关闭", "a1", "14400", "28800", "7200", "14400",
 			"2400:3200::1\n2400:3200::baba:1", "ens33", "2001::255", "option6\noption16", "option21\noption22",
 			"Gi0/0/1", "127.0.0.2\n127.0.0.3", "", "", "",
 			"2001:0:2001::-48-64-备注1\n2001:0:2002::-48-64-备注2"},
-		[]string{"2002::/64", "template2", "关闭", "关闭", "14400", "28800", "7200", "14400",
+		[]string{"2002::/64", "template2", "关闭", "a2", "14400", "28800", "7200", "14400",
 			"2400:3200::1", "eno1", "2002::255", "option16-1", "option17-1",
 			"Gi0/0/2", "127.0.0.3\n127.0.0.4",
 			"2002::6-2002::1f-备注1\n2002::26-2002::3f-备注2",
 			"2002::1-2002::5-备注3\n2002::20-2002::25-备注4",
 			"duid$0102$ips$2002::11_2002::12$备注5\nmac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6\nhostname$linking$ips$2002::34_2002::35$备注7",
 			""},
-		[]string{"2003::/64", "template3", "开启", "关闭", "14400", "28800", "7200", "14400",
+		[]string{"2003::/64", "template3", "开启", "a3", "14400", "28800", "7200", "14400",
 			"2400:3200::baba:1", "eth0", "2003::255", "option16-2", "option17-2", "Gi0/0/3",
 			"127.0.0.4\n127.0.0.5", "", "", "", ""},
-		[]string{"2004::/64", "template3", "关闭", "开启", "14400", "28800", "7200", "14400",
+		[]string{"2004::/64", "template3", "关闭", "a4", "14400", "28800", "7200", "14400",
 			"2400:3200::baba:1", "eth0", "2003::255", "option16-2", "option17-2", "Gi0/0/3",
 			"127.0.0.4\n127.0.0.5", "", "", "", ""},
 	}
@@ -126,7 +126,7 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 	return []string{
 		subnet6.Subnet, subnet6.Tags,
-		localizationBoolSwitch(subnet6.UseEui64), localizationBoolSwitch(subnet6.UseAddressCode),
+		localizationBoolSwitch(subnet6.UseEui64), subnet6.AddressCode,
 		uint32ToString(subnet6.ValidLifetime),
 		uint32ToString(subnet6.MaxValidLifetime),
 		uint32ToString(subnet6.MinValidLifetime),
@@ -333,11 +333,7 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 		buf.WriteString("false")
 	}
 	buf.WriteString("','")
-	if subnet6.UseAddressCode {
-		buf.WriteString("true")
-	} else {
-		buf.WriteString("false")
-	}
+	buf.WriteString(subnet6.AddressCode)
 	buf.WriteString("','")
 	buf.WriteString(subnet6.Capacity)
 	buf.WriteString("'),")

@@ -159,10 +159,7 @@ func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *r
 	affectedPool6s := make(map[string]string)
 	for _, pool := range pools {
 		reservedCount := getPool6ReservedCountWithReservedPool6(pool, reservedPool)
-		if !subnet.UseAddressCode {
-			allReservedCount.Add(allReservedCount, reservedCount)
-		}
-
+		allReservedCount.Add(allReservedCount, reservedCount)
 		if isCreate {
 			affectedPool6s[pool.GetID()] = pool.SubCapacityWithBigInt(reservedCount)
 		} else {
@@ -170,13 +167,7 @@ func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *r
 		}
 	}
 
-	if subnet.UseAddressCode {
-		if isCreate {
-			subnet.SubCapacityWithString(reservedPool.Capacity)
-		} else {
-			subnet.AddCapacityWithString(reservedPool.Capacity)
-		}
-	} else if isCreate {
+	if isCreate {
 		subnet.SubCapacityWithBigInt(allReservedCount)
 	} else {
 		subnet.AddCapacityWithBigInt(allReservedCount)

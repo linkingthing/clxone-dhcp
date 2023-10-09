@@ -36,6 +36,7 @@ type Subnet4 struct {
 	IfaceName                 string    `json:"ifaceName"`
 	NextServer                string    `json:"nextServer"`
 	Ipv6OnlyPreferred         uint32    `json:"ipv6OnlyPreferred"`
+	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	Tags                      string    `json:"tags"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
@@ -180,7 +181,7 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 		return errorno.ErrIpv6Preferred()
 	}
 
-	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses); err != nil {
+	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
 		return err
 	}
 
@@ -223,13 +224,17 @@ func checkTFTPValid(tftpServer, bootfile string) error {
 	return nil
 }
 
-func checkCommonOptions(isv4 bool, domainServers, relayAgents []string) error {
+func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses []string) error {
 	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
-		return errorno.ErrInvalidParams("DNS", domainServers[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameDNS, domainServers[0])
 	}
 
 	if err := checkIpsValidWithVersion(isv4, relayAgents); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgent, relayAgents[0])
+	}
+
+	if err := checkIpsValidWithVersion(isv4, acAddresses); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameCapWapACAddresses, acAddresses[0])
 	}
 
 	return nil
@@ -254,6 +259,10 @@ func checkClientClass4s(whiteClientClasses, blackClientClasses []string, clientC
 		clientClass4s, err = GetClientClass4s()
 	}
 
+	if err != nil {
+		return
+	}
+
 	clientClass4Set := make(map[string]struct{}, len(clientClass4s))
 	for _, clientClass4 := range clientClass4s {
 		clientClass4Set[clientClass4.Name] = struct{}{}
@@ -271,7 +280,8 @@ func GetClientClass4s() ([]*ClientClass4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &clientClass4s)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameClientClass), pg.Error(err).Error())
 	} else {
 		return clientClass4s, nil
 	}
@@ -284,16 +294,14 @@ func checkClientClassesValid(clientClassNames []string, clientClassSet map[strin
 
 	clientClassNameSet := make(map[string]struct{}, len(clientClassNames))
 	for _, clientClassName := range clientClassNames {
+		if _, ok := clientClassSet[clientClassName]; !ok {
+			return errorno.ErrNotFound(errorno.ErrNameClientClass, clientClassName)
+		}
+
 		if _, ok := clientClassNameSet[clientClassName]; ok {
 			return errorno.ErrDuplicate(errorno.ErrNameClientClass, clientClassName)
 		} else {
 			clientClassNameSet[clientClassName] = struct{}{}
-		}
-	}
-
-	for _, clientClassName := range clientClassNames {
-		if _, ok := clientClassSet[clientClassName]; !ok {
-			return errorno.ErrNotFound(errorno.ErrNameClientClass, clientClassName)
 		}
 	}
 

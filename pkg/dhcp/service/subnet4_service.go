@@ -18,6 +18,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
@@ -28,8 +29,6 @@ import (
 )
 
 const (
-	MaxSubnetsCount = 10000
-
 	Subnet4FileNamePrefix       = "subnet4-"
 	Subnet4TemplateFileName     = "subnet4-template"
 	Subnet4ImportFileNamePrefix = "subnet4-import"
@@ -70,8 +69,8 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
 	if count, err := tx.Count(resource.TableSubnet4, nil); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
-	} else if count >= MaxSubnetsCount {
-		return errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, MaxSubnetsCount)
+	} else if count >= int64(config.GetMaxSubnetsCount()) {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, config.GetMaxSubnetsCount())
 	}
 
 	var subnets []*resource.Subnet4
@@ -182,6 +181,14 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 			Name: "ipv6-only-perferred",
 			Code: 108,
 			Data: uint32ToString(subnet.Ipv6OnlyPreferred),
+		})
+	}
+
+	if len(subnet.CapWapACAddresses) != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "cap-wap-access-controller-addresses",
+			Code: 138,
+			Data: strings.Join(subnet.CapWapACAddresses, ","),
 		})
 	}
 
@@ -576,8 +583,8 @@ func (s *Subnet4Service) ImportExcel(file *excel.ImportFile) (interface{}, error
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), err.Error())
 	}
 
-	if len(oldSubnet4s) >= MaxSubnetsCount {
-		return nil, errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, MaxSubnetsCount)
+	if len(oldSubnet4s) >= config.GetMaxSubnetsCount() {
+		return nil, errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, config.GetMaxSubnetsCount())
 	}
 
 	sentryNodes, serverNodes, sentryVip, err := kafka.GetDHCPNodes(kafka.AgentStack4)

@@ -84,10 +84,10 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 		}
 
 		if _, err := tx.Update(resource.TableSharedNetwork4, map[string]interface{}{
-			resource.SqlColumnName:       sharedNetwork4.Name,
-			resource.SqlColumnsSubnetIds: sharedNetwork4.SubnetIds,
-			resource.SqlColumnsSubnets:   sharedNetwork4.Subnets,
-			resource.SqlColumnComment:    sharedNetwork4.Comment,
+			resource.SqlColumnName:      sharedNetwork4.Name,
+			resource.SqlColumnSubnetIds: sharedNetwork4.SubnetIds,
+			resource.SqlColumnSubnets:   sharedNetwork4.Subnets,
+			resource.SqlColumnComment:   sharedNetwork4.Comment,
 		}, map[string]interface{}{
 			restdb.IDField: sharedNetwork4.GetID()}); err != nil {
 			return util.FormatDbInsertError(errorno.ErrNameNetwork, sharedNetwork4.Name, err)

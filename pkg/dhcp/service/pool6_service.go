@@ -40,11 +40,9 @@ func (p *Pool6Service) Create(subnet *resource.Subnet6, pool *resource.Pool6) er
 			return err
 		}
 
-		if !subnet.UseAddressCode {
-			if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
-				subnet.AddCapacityWithString(pool.Capacity)); err != nil {
-				return err
-			}
+		if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
+			subnet.AddCapacityWithString(pool.Capacity)); err != nil {
+			return err
 		}
 
 		pool.Subnet6 = subnet.GetID()
@@ -88,8 +86,8 @@ func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, p
 }
 
 func checkSubnet6IfCanCreateDynamicPool(subnet *resource.Subnet6) error {
-	if subnet.UseEui64 {
-		return errorno.ErrSubnetWithEui64(subnet.Subnet)
+	if subnet.UseEui64 || subnet.AddressCode != "" {
+		return errorno.ErrSubnetWithEui64OrCode(subnet.Subnet)
 	}
 
 	if ones, _ := subnet.Ipnet.Mask.Size(); ones < 64 {
@@ -362,11 +360,9 @@ func (p *Pool6Service) Delete(subnet *resource.Subnet6, pool *resource.Pool6) er
 			return err
 		}
 
-		if !subnet.UseAddressCode {
-			if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
-				subnet.SubCapacityWithString(pool.Capacity)); err != nil {
-				return err
-			}
+		if err := updateSubnet6CapacityWithPool6(tx, subnet.GetID(),
+			subnet.SubCapacityWithString(pool.Capacity)); err != nil {
+			return err
 		}
 
 		if _, err := tx.Delete(resource.TablePool6, map[string]interface{}{

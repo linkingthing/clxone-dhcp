@@ -34,13 +34,14 @@ type Subnet6 struct {
 	IfaceName                 string    `json:"ifaceName"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
+	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	Tags                      string    `json:"tags"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Nodes                     []string  `json:"nodes"`
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
-	UseAddressCode            bool      `json:"useAddressCode"`
+	AddressCode               string    `json:"addressCode"`
 	Capacity                  string    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
@@ -88,7 +89,7 @@ func (s *Subnet6) Contains(ip string) bool {
 	}
 }
 
-func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6) error {
+func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6, addressCodes []*AddressCode) error {
 	ipnet, err := gohelperip.ParseCIDRv6(s.Subnet)
 	if err != nil {
 		return errorno.ErrParseCIDR(s.Subnet)
@@ -98,16 +99,17 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 	s.Subnet = ipnet.String()
 	maskSize, _ := s.Ipnet.Mask.Size()
 	if s.UseEui64 {
-		if s.UseAddressCode {
+		if s.AddressCode != "" {
 			return errorno.ErrEui64Conflict()
 		}
 
 		if maskSize != 64 {
-			return errorno.ErrExpect("EUI64", 64, maskSize)
+			return errorno.ErrExpect(errorno.ErrNameEUI64, 64, maskSize)
 		}
+
 		s.Capacity = MaxUint64String
 	} else {
-		if s.UseAddressCode {
+		if s.AddressCode != "" {
 			if maskSize < 64 {
 				return errorno.ErrAddressCodeMask()
 			}
@@ -126,7 +128,7 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 		return err
 	}
 
-	return s.ValidateParams(clientClass6s)
+	return s.ValidateParams(clientClass6s, addressCodes)
 }
 
 func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
@@ -165,7 +167,7 @@ func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 	return
 }
 
-func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6) error {
+func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*AddressCode) error {
 	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, s.Tags)
 	}
@@ -177,15 +179,15 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6) error {
 		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentIf, s.RelayAgentInterfaceId)
 	}
 
-	if err := checkIpsValidWithVersion(false, s.DomainServers); err != nil {
-		return errorno.ErrInvalidParams("DNS", s.DomainServers[0])
-	}
-
-	if err := checkIpsValidWithVersion(false, s.RelayAgentAddresses); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentAddr, s.RelayAgentAddresses[0])
+	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
+		return err
 	}
 
 	if err := checkClientClass6s(s.WhiteClientClasses, s.BlackClientClasses, clientClass6s); err != nil {
+		return err
+	}
+
+	if err := checkAddressCode(s.AddressCode, addressCodes); err != nil {
 		return err
 	}
 
@@ -209,6 +211,10 @@ func checkClientClass6s(whiteClientClasses, blackClientClasses []string, clientC
 		clientClass6s, err = GetClientClass6s()
 	}
 
+	if err != nil {
+		return
+	}
+
 	clientClass6Set := make(map[string]struct{}, len(clientClass6s))
 	for _, clientClass6 := range clientClass6s {
 		clientClass6Set[clientClass6.Name] = struct{}{}
@@ -226,10 +232,45 @@ func GetClientClass6s() ([]*ClientClass6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &clientClass6s)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameClientClass), pg.Error(err).Error())
 	} else {
 		return clientClass6s, nil
 	}
+}
+
+func checkAddressCode(addressCode string, addressCodes []*AddressCode) (err error) {
+	if addressCode == "" {
+		return
+	}
+
+	if len(addressCodes) == 0 {
+		addressCodes, err = GetAddressCodes(map[string]interface{}{SqlColumnName: addressCode})
+	}
+
+	if err != nil {
+		return
+	}
+
+	for _, addrCode := range addressCodes {
+		if addrCode.Name == addressCode {
+			return
+		}
+	}
+
+	return errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCode)
+}
+
+func GetAddressCodes(condition map[string]interface{}) ([]*AddressCode, error) {
+	var addressCodes []*AddressCode
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(condition, &addressCodes)
+	}); err != nil {
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameAddressCode), pg.Error(err).Error())
+	}
+
+	return addressCodes, nil
 }
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {

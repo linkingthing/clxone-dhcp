@@ -166,7 +166,7 @@ func listReservation4s(subnet *resource.Subnet4) ([]*resource.Reservation4, erro
 
 		if err := tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet4: subnet.GetID(),
-			resource.SqlOrderBy:       resource.SqlColumnsIp}, &reservations); err != nil {
+			resource.SqlOrderBy:       resource.SqlColumnIp}, &reservations); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 

@@ -143,10 +143,10 @@ var (
 			fmt.Sprintf(`reservation %s exists with same subnet, mac and hostname or ip`, ip),
 			fmt.Sprintf(`%s已存在拥有相同子网、MAC和主机或IP的%s`, ip, localizeErrName(ErrNameDhcpReservation)))
 	}
-	ErrSubnetWithEui64 = func(name string) *goresterr.ErrorMessage {
+	ErrSubnetWithEui64OrCode = func(name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`subnet6 %s has opened EUI64 or address code`, name),
-			fmt.Sprintf(`%s已经设置了EUI64`, name))
+			fmt.Sprintf(`%s已经设置了EUI64 或者地址编码`, name))
 	}
 	ErrAddressWithEui64 = func(address string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
