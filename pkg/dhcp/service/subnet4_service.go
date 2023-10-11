@@ -484,6 +484,7 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnTftpServer:          subnet.TftpServer,
 			resource.SqlColumnBootfile:            subnet.Bootfile,
 			resource.SqlColumnIpv6OnlyPreferred:   subnet.Ipv6OnlyPreferred,
+			resource.SqlColumnCapWapACAddresses:   subnet.CapWapACAddresses,
 			resource.SqlColumnTags:                subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, subnet.GetID(), pg.Error(err).Error())

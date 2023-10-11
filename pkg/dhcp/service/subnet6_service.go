@@ -328,6 +328,7 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 			resource.SqlColumnIfaceName:             subnet.IfaceName,
 			resource.SqlColumnRelayAgentAddresses:   subnet.RelayAgentAddresses,
 			resource.SqlColumnRelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
+			resource.SqlColumnCapWapACAddresses:     subnet.CapWapACAddresses,
 			resource.SqlColumnTags:                  subnet.Tags,
 			resource.SqlColumnRapidCommit:           subnet.RapidCommit,
 			resource.SqlColumnUseEui64:              subnet.UseEui64,
