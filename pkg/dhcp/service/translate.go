@@ -13,29 +13,33 @@ import (
 )
 
 const (
-	FieldNameSubnet             = "子网地址*"
-	FieldNameSubnetName         = "子网名称"
-	FieldNameValidLifetime      = "租约时长"
-	FieldNameMaxValidLifetime   = "最大租约时长"
-	FieldNameMinValidLifetime   = "最小租约时长"
-	FieldNamePreferredLifetime  = "首选租约时长"
-	FieldNameSubnetMask         = "子网掩码"
-	FieldNameRouters            = "默认网关"
-	FieldNameDomainServers      = "DNS"
-	FieldNameIfaceName          = "网卡名字"
-	FieldNameOption60           = "option60"
-	FieldNameOption82           = "option82"
-	FieldNameOption66           = "option66"
-	FieldNameOption67           = "option67"
-	FieldNameOption108          = "option108"
-	FieldNameRelayAddresses     = "中继路由地址"
-	FieldNameOption16           = "option16"
-	FieldNameOption18           = "option18"
-	FieldNameNodes              = "节点列表"
-	FieldNameEUI64              = "EUI64"
-	FieldNameAddressCode        = "编码分配地址"
-	FieldNameWhiteClientClasses = "option白名单"
-	FieldNameBlackClientClasses = "option黑名单"
+	FieldNameSubnet              = "子网地址*"
+	FieldNameSubnetName          = "子网名称"
+	FieldNameValidLifetime       = "租约时长"
+	FieldNameMaxValidLifetime    = "最大租约时长"
+	FieldNameMinValidLifetime    = "最小租约时长"
+	FieldNamePreferredLifetime   = "首选租约时长"
+	FieldNameSubnetMask          = "子网掩码"
+	FieldNameRouters             = "默认网关"
+	FieldNameDomainServers       = "DNS"
+	FieldNameIfaceName           = "网卡名字"
+	FieldNameOption60            = "option60"
+	FieldNameOption82_suboption1 = "option82_suboption1"
+	FieldNameOption82_suboption2 = "option82_suboption2"
+	FieldNameOption82_suboption5 = "option82_suboption5"
+	FieldNameOption66            = "option66"
+	FieldNameOption67            = "option67"
+	FieldNameOption108           = "option108"
+	FieldNameRelayCircuitId      = "中继路由电路标识"
+	FieldNameRelayRemoteId       = "中继路由远程标识"
+	FieldNameRelayAddresses      = "中继路由链路地址"
+	FieldNameOption16            = "option16"
+	FieldNameOption18            = "option18"
+	FieldNameNodes               = "节点列表"
+	FieldNameEUI64               = "EUI64"
+	FieldNameAddressCode         = "编码分配地址"
+	FieldNameWhiteClientClasses  = "option白名单"
+	FieldNameBlackClientClasses  = "option黑名单"
 
 	FieldNamePools         = "动态地址池"
 	FieldNameReservedPools = "保留地址池"
@@ -51,7 +55,8 @@ var (
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNameSubnetMask, FieldNameRouters, FieldNameDomainServers, FieldNameIfaceName,
 		FieldNameWhiteClientClasses, FieldNameBlackClientClasses,
-		FieldNameOption82, FieldNameOption66, FieldNameOption67, FieldNameOption108,
+		FieldNameRelayCircuitId, FieldNameRelayRemoteId, FieldNameRelayAddresses,
+		FieldNameOption66, FieldNameOption67, FieldNameOption108,
 		FieldNameNodes, FieldNamePools, FieldNameReservedPools, FieldNameReservations,
 	}
 
@@ -75,7 +80,8 @@ var (
 
 	TemplateSubnet4 = [][]string{{
 		"127.0.0.0/8", "template", "14400", "28800", "7200", "255.0.0.0", "127.0.0.1",
-		"114.114.114.114\n8.8.8.8", "ens33", "option60\noption61", "option3\noption6", "127.0.0.1",
+		"114.114.114.114\n8.8.8.8", "ens33", "option60\noption61", "option3\noption6",
+		"Gi1/1/1", "11:11:11:11:11:11", "127.0.0.1",
 		"linkingthing", "tftp.bin", "1800", "127.0.0.2\n127.0.0.3",
 		"127.0.0.6-127.0.0.100-备注1\n127.0.0.106-127.0.0.200-备注2",
 		"127.0.0.1-127.0.0.5-备注3\n127.0.0.200-127.0.0.255-备注4",
@@ -117,6 +123,7 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 		strings.Join(subnet4.DomainServers, resource.CommonDelimiter), subnet4.IfaceName,
 		strings.Join(subnet4.WhiteClientClasses, resource.CommonDelimiter),
 		strings.Join(subnet4.BlackClientClasses, resource.CommonDelimiter),
+		subnet4.RelayAgentCircuitId, subnet4.RelayAgentRemoteId,
 		strings.Join(subnet4.RelayAgentAddresses, resource.CommonDelimiter),
 		subnet4.TftpServer, subnet4.Bootfile, uint32ToString(subnet4.Ipv6OnlyPreferred),
 		strings.Join(subnet4.Nodes, resource.CommonDelimiter),
@@ -191,6 +198,10 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString(subnet4.TftpServer)
 	buf.WriteString("','")
 	buf.WriteString(subnet4.Bootfile)
+	buf.WriteString("','")
+	buf.WriteString(subnet4.RelayAgentCircuitId)
+	buf.WriteString("','")
+	buf.WriteString(subnet4.RelayAgentRemoteId)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet4.RelayAgentAddresses, ","))
 	buf.WriteString("}','")

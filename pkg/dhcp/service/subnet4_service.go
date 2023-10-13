@@ -128,6 +128,8 @@ func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *pbdhcpagent.Create
 		WhiteClientClasses:  subnet.WhiteClientClasses,
 		BlackClientClasses:  subnet.BlackClientClasses,
 		IfaceName:           subnet.IfaceName,
+		RelayAgentCircuitId: subnet.RelayAgentCircuitId,
+		RelayAgentRemoteId:  subnet.RelayAgentRemoteId,
 		RelayAgentAddresses: subnet.RelayAgentAddresses,
 		NextServer:          subnet.NextServer,
 		SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
@@ -479,6 +481,8 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnWhiteClientClasses:  subnet.WhiteClientClasses,
 			resource.SqlColumnBlackClientClasses:  subnet.BlackClientClasses,
 			resource.SqlColumnIfaceName:           subnet.IfaceName,
+			resource.SqlColumnRelayAgentCircuitId: subnet.RelayAgentCircuitId,
+			resource.SqlColumnRelayAgentRemoteId:  subnet.RelayAgentRemoteId,
 			resource.SqlColumnRelayAgentAddresses: subnet.RelayAgentAddresses,
 			resource.SqlColumnNextServer:          subnet.NextServer,
 			resource.SqlColumnTftpServer:          subnet.TftpServer,
@@ -533,6 +537,8 @@ func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 			WhiteClientClasses:  subnet.WhiteClientClasses,
 			BlackClientClasses:  subnet.BlackClientClasses,
 			IfaceName:           subnet.IfaceName,
+			RelayAgentCircuitId: subnet.RelayAgentCircuitId,
+			RelayAgentRemoteId:  subnet.RelayAgentRemoteId,
 			RelayAgentAddresses: subnet.RelayAgentAddresses,
 			NextServer:          subnet.NextServer,
 			SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
@@ -825,7 +831,11 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.WhiteClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameBlackClientClasses:
 			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
-		case FieldNameOption82:
+		case FieldNameRelayCircuitId:
+			subnet.RelayAgentCircuitId = strings.TrimSpace(field)
+		case FieldNameRelayRemoteId:
+			subnet.RelayAgentRemoteId = strings.TrimSpace(field)
+		case FieldNameRelayAddresses:
 			subnet.RelayAgentAddresses = splitFieldWithoutSpace(field)
 		case FieldNameOption66:
 			subnet.TftpServer = strings.TrimSpace(field)

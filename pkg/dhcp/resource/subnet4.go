@@ -32,6 +32,8 @@ type Subnet4 struct {
 	BlackClientClasses        []string  `json:"blackClientClasses"`
 	TftpServer                string    `json:"tftpServer"`
 	Bootfile                  string    `json:"bootfile"`
+	RelayAgentCircuitId       string    `json:"relayAgentCircuitId"`
+	RelayAgentRemoteId        string    `json:"relayAgentRemoteId"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	IfaceName                 string    `json:"ifaceName"`
 	NextServer                string    `json:"nextServer"`

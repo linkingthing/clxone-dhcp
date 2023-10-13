@@ -16,6 +16,8 @@ const (
 	SqlColumnSubnetMask            = "subnet_mask"
 	SqlColumnRouters               = "routers"
 	SqlColumnIfaceName             = "iface_name"
+	SqlColumnRelayAgentCircuitId   = "relay_agent_circuit_id"
+	SqlColumnRelayAgentRemoteId    = "relay_agent_remote_id"
 	SqlColumnRelayAgentAddresses   = "relay_agent_addresses"
 	SqlColumnNextServer            = "next_server"
 	SqlColumnTftpServer            = "tftp_server"
