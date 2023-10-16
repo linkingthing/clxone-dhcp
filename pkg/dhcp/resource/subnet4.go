@@ -183,6 +183,14 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 		return errorno.ErrIpv6Preferred()
 	}
 
+	if err := util.ValidateStrings(util.RegexpTypeSpace, s.RelayAgentCircuitId); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentCircuitId, s.RelayAgentCircuitId)
+	}
+
+	if err := util.ValidateStrings(util.RegexpTypeSpace, s.RelayAgentRemoteId); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentRemoteId, s.RelayAgentRemoteId)
+	}
+
 	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
 		return err
 	}
@@ -192,7 +200,7 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 	}
 
 	if err := checkIpsValidWithVersion(true, s.Routers); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameGateway, s.Routers[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameGateway, s.Routers)
 	}
 
 	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
@@ -228,15 +236,15 @@ func checkTFTPValid(tftpServer, bootfile string) error {
 
 func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses []string) error {
 	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameDNS, domainServers[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameDNS, domainServers)
 	}
 
 	if err := checkIpsValidWithVersion(isv4, relayAgents); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgent, relayAgents[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentAddresses, relayAgents)
 	}
 
 	if err := checkIpsValidWithVersion(isv4, acAddresses); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameCapWapACAddresses, acAddresses[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameCapWapACAddresses, acAddresses)
 	}
 
 	return nil

@@ -89,7 +89,9 @@ const (
 	ErrNameBootFile                 ErrName = "option 67"
 	ErrNameRelayAgent               ErrName = "option 82"
 	ErrNameRelayAgentIf             ErrName = "option 18"
-	ErrNameRelayAgentAddr           ErrName = "relayAgentAddr"
+	ErrNameRelayAgentCircuitId      ErrName = "relayAgentCircuitId"
+	ErrNameRelayAgentRemoteId       ErrName = "relayAgentRemoteId"
+	ErrNameRelayAgentAddresses      ErrName = "relayAgentAddresses"
 	ErrNameIfName                   ErrName = "ifName"
 	ErrNameCapWapACAddresses        ErrName = "capwapACAddresses"
 	ErrNameAssetType                ErrName = "assetType"
@@ -158,7 +160,9 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameVendorId:                "厂商标识",
 	ErrNameOperatingSystem:         "操作系统",
 	ErrNameClientType:              "客户端类型",
-	ErrNameRelayAgentAddr:          "中继路由地址",
+	ErrNameRelayAgentCircuitId:     "中继路由电路标识",
+	ErrNameRelayAgentRemoteId:      "中继路由远程标识",
+	ErrNameRelayAgentAddresses:     "中继路由链路地址",
 	ErrNameIfName:                  "网卡名字",
 	ErrNameCapWapACAddresses:       "AC地址列表",
 	ErrNameAssetType:               "资产类型",
