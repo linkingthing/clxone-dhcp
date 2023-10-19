@@ -56,7 +56,7 @@ type CallServiceConf struct {
 	DnsAgent  string `yaml:"dns-agent"`
 	DhcpAgent string `yaml:"dhcp-agent"`
 	Boxsearch string `yaml:"boxsearch"`
-	Warden    string `yaml:"warden"`
+	Monitor   string `yaml:"monitor"`
 	Alarm     string `yaml:"alarm"`
 }
 
