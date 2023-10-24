@@ -265,7 +265,7 @@ var (
 	ErrExceedResourceMaxCount = func(target, targetResource ErrName, maxCount int) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s of %s exceeds max count: %d", target, targetResource, maxCount),
-			fmt.Sprintf("%s%s超过最大限制: %d", localizeErrName(targetResource), localizeErrName(target), maxCount))
+			fmt.Sprintf("%s%s超过最大限制: %d", localizeErrName(target), localizeErrName(targetResource), maxCount))
 	}
 	ErrFileIsEmpty = func(file string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
