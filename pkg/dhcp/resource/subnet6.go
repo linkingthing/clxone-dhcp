@@ -36,12 +36,13 @@ type Subnet6 struct {
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
 	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	Tags                      string    `json:"tags"`
+	Nodes                     []string  `json:"nodes"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
-	Nodes                     []string  `json:"nodes"`
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
 	AddressCode               string    `json:"addressCode"`
+	AddressCodeName           string    `json:"addressCodeName" db:"-"`
 	Capacity                  string    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
@@ -187,8 +188,10 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*
 		return err
 	}
 
-	if err := checkAddressCode(s.AddressCode, addressCodes); err != nil {
+	if addrCodeId, err := checkAddressCode(s.AddressCodeName, addressCodes); err != nil {
 		return err
+	} else if s.AddressCode == "" {
+		s.AddressCode = addrCodeId
 	}
 
 	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
@@ -239,26 +242,26 @@ func GetClientClass6s() ([]*ClientClass6, error) {
 	}
 }
 
-func checkAddressCode(addressCode string, addressCodes []*AddressCode) (err error) {
-	if addressCode == "" {
+func checkAddressCode(addressCodeName string, addressCodes []*AddressCode) (addressCodeId string, err error) {
+	if addressCodeName == "" {
 		return
 	}
 
 	if len(addressCodes) == 0 {
-		addressCodes, err = GetAddressCodes(map[string]interface{}{SqlColumnName: addressCode})
+		addressCodes, err = GetAddressCodes(map[string]interface{}{SqlColumnName: addressCodeName})
 	}
 
 	if err != nil {
 		return
 	}
 
-	for _, addrCode := range addressCodes {
-		if addrCode.Name == addressCode {
-			return
+	for _, addressCode := range addressCodes {
+		if addressCode.Name == addressCodeName {
+			return addressCode.GetID(), nil
 		}
 	}
 
-	return errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCode)
+	return "", errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCodeName)
 }
 
 func GetAddressCodes(condition map[string]interface{}) ([]*AddressCode, error) {

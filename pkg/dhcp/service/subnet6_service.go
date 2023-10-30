@@ -128,7 +128,7 @@ func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *pbdhcpagent.Create
 		RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
 		RapidCommit:           subnet.RapidCommit,
 		UseEui64:              subnet.UseEui64,
-		AddressCode:           subnet.AddressCode,
+		AddressCode:           subnet.AddressCodeName,
 		SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 	}
 }
@@ -157,6 +157,7 @@ func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetO
 func (s *Subnet6Service) List(ctx *restresource.Context) ([]*resource.Subnet6, error) {
 	listCtx := genGetSubnetsContext(ctx, resource.TableSubnet6)
 	var subnets []*resource.Subnet6
+	var addressCodes []*resource.AddressCode
 	var subnetsCount int
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if listCtx.hasPagination {
@@ -170,6 +171,10 @@ func (s *Subnet6Service) List(ctx *restresource.Context) ([]*resource.Subnet6, e
 
 		if err := tx.FillEx(&subnets, listCtx.sql, listCtx.params...); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
+		}
+
+		if err := tx.Fill(nil, &addressCodes); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameAddressCode), pg.Error(err).Error())
 		}
 
 		return nil
@@ -187,6 +192,7 @@ func (s *Subnet6Service) List(ctx *restresource.Context) ([]*resource.Subnet6, e
 		setSubnet6sNodeNames(subnets, nodeNames)
 	}
 
+	setAddressCode(subnets, addressCodes)
 	setPagination(ctx, listCtx.hasPagination, subnetsCount)
 	return subnets, nil
 }
@@ -253,10 +259,32 @@ func setSubnet6sNodeNames(subnets []*resource.Subnet6, nodeNames map[string]Agen
 	}
 }
 
+func setAddressCode(subnets []*resource.Subnet6, addressCodes []*resource.AddressCode) {
+	if len(subnets) == 0 || len(addressCodes) == 0 {
+		return
+	}
+
+	addrCodeNames := make(map[string]string, len(addressCodes))
+	for _, addressCode := range addressCodes {
+		addrCodeNames[addressCode.GetID()] = addressCode.Name
+	}
+
+	for i := range subnets {
+		if name, ok := addrCodeNames[subnets[i].AddressCode]; ok {
+			subnets[i].AddressCodeName = name
+		}
+	}
+}
+
 func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
 	var subnets []*resource.Subnet6
+	var addressCodes []*resource.AddressCode
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &subnets)
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: id}, &subnets); err != nil {
+			return err
+		}
+
+		return tx.Fill(nil, &addressCodes)
 	}); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
 	} else if len(subnets) == 0 {
@@ -270,6 +298,7 @@ func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
 		subnets[0].NodeNames, subnets[0].NodeIds = getSubnetNodeNamesAndIds(subnets[0].Nodes, nodeNames)
 	}
 
+	setAddressCode(subnets, addressCodes)
 	return subnets[0], nil
 }
 
@@ -459,7 +488,7 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
 			RapidCommit:           subnet.RapidCommit,
 			UseEui64:              subnet.UseEui64,
-			AddressCode:           subnet.AddressCode,
+			AddressCode:           subnet.AddressCodeName,
 			SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
 		}, nil)
 }
@@ -728,7 +757,7 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameEUI64:
 			subnet.UseEui64 = internationalizationBoolSwitch(strings.TrimSpace(field))
 		case FieldNameAddressCode:
-			subnet.AddressCode = strings.TrimSpace(field)
+			subnet.AddressCodeName = strings.TrimSpace(field)
 		case FieldNameValidLifetime:
 			if subnet.ValidLifetime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {

@@ -109,6 +109,7 @@ func (d *AssetService) Update(asset *resource.Asset) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableAsset,
 			map[string]interface{}{
+				resource.SqlColumnName:              asset.Name,
 				resource.SqlColumnAssetType:         asset.AssetType,
 				resource.SqlColumnManufacturer:      asset.Manufacturer,
 				resource.SqlColumnModel:             asset.Model,

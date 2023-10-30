@@ -14,6 +14,7 @@ var TableAsset = restdb.ResourceDBType(&Asset{})
 
 type Asset struct {
 	restresource.ResourceBase `json:",inline"`
+	Name                      string `json:"name" rest:"required=true"`
 	HwAddress                 string `json:"hwAddress" db:"uk" rest:"required=true"`
 	AssetType                 string `json:"assetType" rest:"required=true"`
 	Manufacturer              string `json:"manufacturer" rest:"required=true"`
@@ -24,6 +25,10 @@ type Asset struct {
 func (a *Asset) Validate() error {
 	if _, err := net.ParseMAC(a.HwAddress); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
+	}
+
+	if util.ValidateStrings(util.RegexpTypeCommon, a.Name) != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameName, a.Name)
 	}
 
 	if util.ValidateStrings(util.RegexpTypeSpace, a.AssetType) != nil {

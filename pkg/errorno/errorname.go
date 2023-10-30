@@ -116,6 +116,7 @@ const (
 	ErrDBNameDelete ErrName = "dbDelete"
 	ErrDBNameCount  ErrName = "dbCount"
 	ErrDBNameAlter  ErrName = "dbAlter"
+	ErrDBNameExists ErrName = "dbExists"
 )
 
 const (
@@ -170,12 +171,14 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameModel:                   "资产型号",
 	ErrNameAccessNetworkTime:       "资产入网时间",
 
-	ErrDBNameInsert:   "写入数据",
-	ErrDBNameUpdate:   "更新数据",
-	ErrDBNameQuery:    "查询数据",
-	ErrDBNameDelete:   "删除数据",
-	ErrDBNameCount:    "统计数据",
-	ErrDBNameAlter:    "修改表",
+	ErrDBNameInsert: "写入数据",
+	ErrDBNameUpdate: "更新数据",
+	ErrDBNameQuery:  "查询数据",
+	ErrDBNameDelete: "删除数据",
+	ErrDBNameCount:  "统计数据",
+	ErrDBNameAlter:  "修改表",
+	ErrDBNameExists: "查询数据是否存在",
+
 	ErrMethodAction:   "操作",
 	ErrMethodCreate:   "创建",
 	ErrMethodUpdate:   "更新",

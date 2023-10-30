@@ -133,7 +133,7 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 	return []string{
 		subnet6.Subnet, subnet6.Tags,
-		localizationBoolSwitch(subnet6.UseEui64), subnet6.AddressCode,
+		localizationBoolSwitch(subnet6.UseEui64), subnet6.AddressCodeName,
 		uint32ToString(subnet6.ValidLifetime),
 		uint32ToString(subnet6.MaxValidLifetime),
 		uint32ToString(subnet6.MinValidLifetime),
