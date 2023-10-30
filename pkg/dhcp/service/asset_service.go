@@ -107,7 +107,14 @@ func (d *AssetService) Update(asset *resource.Asset) error {
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Update(resource.TableAsset,
+		var assets []*resource.Asset
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: asset.GetID()}, &assets); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, asset.GetID(), pg.Error(err).Error())
+		} else if len(assets) == 0 {
+			return errorno.ErrNotFound(errorno.ErrNameAsset, asset.HwAddress)
+		}
+
+		if _, err := tx.Update(resource.TableAsset,
 			map[string]interface{}{
 				resource.SqlColumnName:              asset.Name,
 				resource.SqlColumnAssetType:         asset.AssetType,
@@ -117,11 +124,13 @@ func (d *AssetService) Update(asset *resource.Asset) error {
 			},
 			map[string]interface{}{restdb.IDField: asset.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, asset.GetID(), pg.Error(err).Error())
-		} else if rows == 0 {
-			return errorno.ErrNotFound(errorno.ErrNameAsset, asset.HwAddress)
 		}
 
-		return sendUpdateAssetCmdToDHCPAgent(asset)
+		if !assets[0].Equal(asset) {
+			return sendUpdateAssetCmdToDHCPAgent(asset)
+		}
+
+		return nil
 	})
 }
 
