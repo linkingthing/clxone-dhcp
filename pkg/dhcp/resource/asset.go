@@ -50,6 +50,14 @@ func (a *Asset) Validate() error {
 	return nil
 }
 
+func (a *Asset) Diff(another *Asset) bool {
+	return a.HwAddress != another.HwAddress ||
+		a.AssetType != another.AssetType ||
+		a.Manufacturer != another.Manufacturer ||
+		a.Model != another.Model ||
+		a.AccessNetworkTime != another.AccessNetworkTime
+}
+
 func (a *Asset) Equal(another *Asset) bool {
 	return a.HwAddress == another.HwAddress &&
 		a.AssetType == another.AssetType &&

@@ -126,7 +126,7 @@ func (d *AssetService) Update(asset *resource.Asset) error {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, asset.GetID(), pg.Error(err).Error())
 		}
 
-		if !assets[0].Equal(asset) {
+		if assets[0].Diff(asset) {
 			return sendUpdateAssetCmdToDHCPAgent(asset)
 		}
 
