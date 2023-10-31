@@ -46,6 +46,13 @@ const (
 	FieldNameReservations  = "固定地址池"
 	FieldNamePdPools       = "前缀委派地址池"
 
+	FieldNameAssetName         = "资产名称"
+	FieldNameHwAddress         = "硬件地址"
+	FieldNameAssetType         = "资产类型"
+	FieldNameManufacturer      = "资产厂商"
+	FieldNameModel             = "资产型号"
+	FieldNameAccessNetworkTime = "入网时间"
+
 	FailReasonLocalization = "失败原因"
 )
 
@@ -69,14 +76,24 @@ var (
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations, FieldNamePdPools,
 	}
 
+	TableHeaderAsset = []string{
+		FieldNameAssetName, FieldNameHwAddress, FieldNameAssetType, FieldNameManufacturer,
+		FieldNameModel, FieldNameAccessNetworkTime,
+	}
+
 	TableHeaderSubnet4Fail = append(TableHeaderSubnet4, FailReasonLocalization)
 	TableHeaderSubnet6Fail = append(TableHeaderSubnet6, FailReasonLocalization)
+	TableHeaderAssetFail   = append(TableHeaderAsset, FailReasonLocalization)
 
-	SubnetMandatoryFields     = []string{FieldNameSubnet}
+	SubnetMandatoryFields = []string{FieldNameSubnet}
+	AssetMandatoryFields  = []string{FieldNameAssetName, FieldNameHwAddress}
+
 	TableHeaderSubnet4Len     = len(TableHeaderSubnet4)
 	TableHeaderSubnet6Len     = len(TableHeaderSubnet6)
+	TableHeaderAssetLen       = len(TableHeaderAsset)
 	TableHeaderSubnet4FailLen = len(TableHeaderSubnet4Fail)
 	TableHeaderSubnet6FailLen = len(TableHeaderSubnet6Fail)
+	TableHeaderAssetFailLen   = len(TableHeaderAssetFail)
 
 	TemplateSubnet4 = [][]string{{
 		"127.0.0.0/8", "template", "14400", "28800", "7200", "255.0.0.0", "127.0.0.1",
@@ -106,6 +123,11 @@ var (
 		[]string{"2004::/64", "template3", "关闭", "a4", "14400", "28800", "7200", "14400",
 			"2400:3200::baba:1", "eth0", "2003::255", "option16-2", "option17-2", "Gi0/0/3",
 			"127.0.0.4\n127.0.0.5", "", "", "", ""},
+	}
+
+	TemplateAsset = [][]string{
+		[]string{"a1", "11:11:11:11:11:11", "mobile", "huawei", "p40", "2023-10-31"},
+		[]string{"a2", "22:22:22:22:22:22", "pc", "huawei", "matebook pro", "2023-10-31"},
 	}
 )
 
@@ -143,6 +165,13 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 		strings.Join(subnet6.WhiteClientClasses, resource.CommonDelimiter),
 		strings.Join(subnet6.BlackClientClasses, resource.CommonDelimiter),
 		subnet6.RelayAgentInterfaceId, strings.Join(subnet6.Nodes, resource.CommonDelimiter),
+	}
+}
+
+func localizationAssetToStrSlice(asset *resource.Asset) []string {
+	return []string{
+		asset.Name, asset.HwAddress, asset.AssetType,
+		asset.Manufacturer, asset.Model, asset.AccessNetworkTime,
 	}
 }
 
@@ -473,4 +502,27 @@ func pdpoolToInsertDBSqlString(subnetId uint64, pdpool *resource.PdPool) string 
 	buf.WriteString(strconv.FormatUint(subnetId, 10))
 	buf.WriteString("'),")
 	return buf.String()
+}
+
+func assetToInsertDBSqlString(asset *resource.Asset) string {
+	var buf bytes.Buffer
+	buf.WriteString("('")
+	buf.WriteString(asset.HwAddress)
+	buf.WriteString("','")
+	buf.WriteString(time.Now().Format(time.RFC3339))
+	buf.WriteString("','")
+	buf.WriteString(asset.Name)
+	buf.WriteString("','")
+	buf.WriteString(asset.HwAddress)
+	buf.WriteString("','")
+	buf.WriteString(asset.AssetType)
+	buf.WriteString("','")
+	buf.WriteString(asset.Manufacturer)
+	buf.WriteString("','")
+	buf.WriteString(asset.Model)
+	buf.WriteString("','")
+	buf.WriteString(asset.AccessNetworkTime)
+	buf.WriteString("'),")
+	return buf.String()
+
 }

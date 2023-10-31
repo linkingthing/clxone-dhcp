@@ -689,7 +689,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		if emptyLine {
 			continue
 		} else if missingMandatory {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen,
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen,
 				localizationSubnet4ToStrSlice(&resource.Subnet4{}),
 				errorno.ErrMissingMandatory(j+2, SubnetMandatoryFields).ErrorCN())
 			continue
@@ -698,25 +698,25 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		subnet, pools, reservedPools, reservations, err := parseSubnet4sAndPools(
 			tableHeaderFields, fields)
 		if err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := subnet.Validate(dhcpConfig, clientClass4s); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkSubnet4ConflictWithSubnet4s(subnet, append(oldSubnets, subnets...)); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkReservation4sValid(subnet, reservations); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkReservedPool4sValid(subnet, reservedPools, reservations); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkPool4sValid(subnet, pools, reservedPools, reservations); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else {
 			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
@@ -766,11 +766,11 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 	return sqls, reqsForSentryCreate, reqsForSentryDelete, reqForServerCreate, reqForServerDelete, nil
 }
 
-func addSubnetFailDataToResponse(response *excel.ImportResult, headerLen int, subnetSlices []string, errStr string) {
-	slices := make([]string, headerLen)
-	copy(slices, subnetSlices)
-	slices[headerLen-1] = errStr
-	response.AddFailedData(slices)
+func addFailDataToResponse(response *excel.ImportResult, headerLen int, resourceSlices []string, errStr string) {
+	errSlices := make([]string, headerLen)
+	copy(errSlices, resourceSlices)
+	errSlices[headerLen-1] = errStr
+	response.AddFailedData(errSlices)
 }
 
 func parseUint32FromString(field string) (uint32, error) {

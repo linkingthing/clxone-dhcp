@@ -630,14 +630,6 @@ func (s *Reservation4Service) parseReservation4sFromFields(fields, tableHeaderFi
 	return reservation4, err
 }
 
-func addFailDataToResponse(response *excel.ImportResult,
-	headerLen int, subnetSlices []string, errStr string) {
-	slices := make([]string, headerLen)
-	copy(slices, subnetSlices)
-	slices[headerLen-1] = errStr
-	response.AddFailedData(slices)
-}
-
 func (s *Reservation4Service) ExportExcel(subnetId string) (*excel.ExportFile, error) {
 	var reservation4s []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
