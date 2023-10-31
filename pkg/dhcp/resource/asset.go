@@ -15,8 +15,7 @@ var TableAsset = restdb.ResourceDBType(&Asset{})
 
 const (
 	ActionNameBatchDelete = "batch_delete"
-
-	AssetUnknownValue = "unknown"
+	AssetUnknownValue     = "unknown"
 )
 
 type Asset struct {

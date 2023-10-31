@@ -46,12 +46,15 @@ const (
 	FieldNameReservations  = "固定地址池"
 	FieldNamePdPools       = "前缀委派地址池"
 
-	FieldNameAssetName         = "资产名称"
-	FieldNameHwAddress         = "硬件地址"
+	FieldNameAssetName         = "资产名称*"
+	FieldNameHwAddress         = "硬件地址*"
 	FieldNameAssetType         = "资产类型"
 	FieldNameManufacturer      = "资产厂商"
 	FieldNameModel             = "资产型号"
 	FieldNameAccessNetworkTime = "入网时间"
+
+	FieldNameCode  = "编码值（十六进制）*"
+	FieldNameValue = "编码用途*"
 
 	FailReasonLocalization = "失败原因"
 )
@@ -81,19 +84,25 @@ var (
 		FieldNameModel, FieldNameAccessNetworkTime,
 	}
 
+	TableHeaderSegment = []string{FieldNameValue, FieldNameCode}
+
 	TableHeaderSubnet4Fail = append(TableHeaderSubnet4, FailReasonLocalization)
 	TableHeaderSubnet6Fail = append(TableHeaderSubnet6, FailReasonLocalization)
 	TableHeaderAssetFail   = append(TableHeaderAsset, FailReasonLocalization)
+	TableHeaderSegmentFail = append(TableHeaderSegment, FailReasonLocalization)
 
-	SubnetMandatoryFields = []string{FieldNameSubnet}
-	AssetMandatoryFields  = []string{FieldNameAssetName, FieldNameHwAddress}
+	SubnetMandatoryFields  = []string{FieldNameSubnet}
+	AssetMandatoryFields   = []string{FieldNameAssetName, FieldNameHwAddress}
+	SegmentMandatoryFields = []string{FieldNameValue, FieldNameCode}
 
 	TableHeaderSubnet4Len     = len(TableHeaderSubnet4)
 	TableHeaderSubnet6Len     = len(TableHeaderSubnet6)
 	TableHeaderAssetLen       = len(TableHeaderAsset)
+	TableHeaderSegmentLen     = len(TableHeaderSegment)
 	TableHeaderSubnet4FailLen = len(TableHeaderSubnet4Fail)
 	TableHeaderSubnet6FailLen = len(TableHeaderSubnet6Fail)
 	TableHeaderAssetFailLen   = len(TableHeaderAssetFail)
+	TableHeaderSegmentFailLen = len(TableHeaderSegmentFail)
 
 	TemplateSubnet4 = [][]string{{
 		"127.0.0.0/8", "template", "14400", "28800", "7200", "255.0.0.0", "127.0.0.1",
@@ -128,6 +137,11 @@ var (
 	TemplateAsset = [][]string{
 		[]string{"a1", "11:11:11:11:11:11", "mobile", "huawei", "p40", "2023-10-31"},
 		[]string{"a2", "22:22:22:22:22:22", "pc", "huawei", "matebook pro", "2023-10-31"},
+	}
+
+	TemplateSegment = [][]string{
+		[]string{"手机", "01"},
+		[]string{"缺省", "ff"},
 	}
 )
 
@@ -173,6 +187,10 @@ func localizationAssetToStrSlice(asset *resource.Asset) []string {
 		asset.Name, asset.HwAddress, asset.AssetType,
 		asset.Manufacturer, asset.Model, asset.AccessNetworkTime,
 	}
+}
+
+func localizationSegmentToStrSlice(segment *resource.AddressCodeLayoutSegment) []string {
+	return []string{segment.Value, segment.Code}
 }
 
 func localizationBoolSwitch(b bool) string {
@@ -525,4 +543,21 @@ func assetToInsertDBSqlString(asset *resource.Asset) string {
 	buf.WriteString("'),")
 	return buf.String()
 
+}
+
+func segmentToInsertDBSqlString(layoutId string, segment *resource.AddressCodeLayoutSegment) string {
+	id, _ := uuid.Gen()
+	var buf bytes.Buffer
+	buf.WriteString("('")
+	buf.WriteString(id)
+	buf.WriteString("','")
+	buf.WriteString(time.Now().Format(time.RFC3339))
+	buf.WriteString("','")
+	buf.WriteString(segment.Code)
+	buf.WriteString("','")
+	buf.WriteString(segment.Value)
+	buf.WriteString("','")
+	buf.WriteString(layoutId)
+	buf.WriteString("'),")
+	return buf.String()
 }

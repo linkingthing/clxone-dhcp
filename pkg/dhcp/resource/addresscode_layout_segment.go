@@ -3,6 +3,7 @@ package resource
 import (
 	"strconv"
 
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -21,6 +22,31 @@ type AddressCodeLayoutSegment struct {
 
 func (a AddressCodeLayoutSegment) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{AddressCodeLayout{}}
+}
+
+type AddressCodeLayoutSegments struct {
+	Codes []string `json:"codes"`
+}
+
+func (a AddressCodeLayoutSegment) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionNameBatchDelete,
+			Input: &AddressCodeLayoutSegments{},
+		},
+	}
 }
 
 func (a *AddressCodeLayoutSegment) Validate(layout *AddressCodeLayout) error {

@@ -172,7 +172,7 @@ func (a *AssetService) ImportExcel(file *excel.ImportFile) (interface{}, error) 
 
 	response := &excel.ImportResult{}
 	defer sendImportFieldResponse(AssetImportFileNamePrefix, TableHeaderAssetFail, response)
-	validSql, createAssetsRequest, deleteAssetsRequest, err := parseAssetFromFile(file.Name, response)
+	validSql, createAssetsRequest, deleteAssetsRequest, err := parseAssetsFromFile(file.Name, response)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Exec(validSql); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAsset), pg.Error(err).Error())
@@ -186,7 +186,7 @@ func (a *AssetService) ImportExcel(file *excel.ImportFile) (interface{}, error) 
 	return response, nil
 }
 
-func parseAssetFromFile(fileName string, response *excel.ImportResult) (string, *pbdhcpagent.CreateAssetsRequest, *pbdhcpagent.DeleteAssetsRequest, error) {
+func parseAssetsFromFile(fileName string, response *excel.ImportResult) (string, *pbdhcpagent.CreateAssetsRequest, *pbdhcpagent.DeleteAssetsRequest, error) {
 	contents, err := excel.ReadExcelFile(fileName)
 	if err != nil {
 		return "", nil, nil, errorno.ErrReadFile(fileName, err.Error())
@@ -371,6 +371,7 @@ func (a *AssetService) BatchDelete(ids []string) error {
 }
 
 func sendDeleteAssetsCmdToDHCPAgent(nodes []string, deleteAssetsRequest *pbdhcpagent.DeleteAssetsRequest) error {
-	_, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes, kafka.DeleteAssets, deleteAssetsRequest)
+	_, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
+		kafka.DeleteAssets, deleteAssetsRequest)
 	return err
 }

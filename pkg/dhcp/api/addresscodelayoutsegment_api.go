@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/linkingthing/clxone-utils/excel"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -65,4 +66,66 @@ func (d *AddressCodeLayoutSegmentApi) Update(ctx *restresource.Context) (restres
 	}
 
 	return addressCode, nil
+}
+
+func (a *AddressCodeLayoutSegmentApi) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case excel.ActionNameImport:
+		return a.actionImportExcel(ctx)
+	case excel.ActionNameExport:
+		return a.actionExportExcel(ctx)
+	case excel.ActionNameExportTemplate:
+		return a.actionExportExcelTemplate(ctx)
+	case resource.ActionNameBatchDelete:
+		return a.actionBatchDelete(ctx)
+	default:
+		return nil, errorno.HandleAPIError(resterror.InvalidAction,
+			errorno.ErrUnknownOpt(errorno.ErrNameAddressCodeLayoutSegment, ctx.Resource.GetAction().Name))
+	}
+}
+
+func (a *AddressCodeLayoutSegmentApi) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	file, ok := ctx.Resource.GetAction().Input.(*excel.ImportFile)
+	if !ok {
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameAddressCodeLayoutSegment, errorno.ErrNameImport))
+	}
+
+	if resp, err := a.Service.ImportExcel(ctx.Resource.GetParent().GetParent().GetID(),
+		ctx.Resource.GetParent().GetID(), file); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return resp, nil
+	}
+}
+
+func (a *AddressCodeLayoutSegmentApi) actionExportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if file, err := a.Service.ExportExcel(ctx.Resource.GetParent().GetID()); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return file, nil
+	}
+}
+
+func (a *AddressCodeLayoutSegmentApi) actionExportExcelTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if file, err := a.Service.ExportExcelTemplate(); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return file, nil
+	}
+}
+
+func (a *AddressCodeLayoutSegmentApi) actionBatchDelete(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	segments, ok := ctx.Resource.GetAction().Input.(*resource.AddressCodeLayoutSegments)
+	if !ok {
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameAddressCodeLayoutSegment, errorno.ErrNameImport))
+	}
+
+	if err := a.Service.BatchDelete(ctx.Resource.GetParent().GetParent().GetID(),
+		ctx.Resource.GetParent().GetID(), segments.Codes); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return nil, nil
+	}
 }
