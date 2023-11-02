@@ -56,19 +56,8 @@ func (d *AddressCodeLayoutSegmentService) Create(addressCodeId, layoutId string,
 	})
 }
 
-func getAddressCodeLayout(tx restdb.Transaction, layout string) (*resource.AddressCodeLayout, error) {
-	var addressCodeLayouts []*resource.AddressCodeLayout
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: layout}, &addressCodeLayouts); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, layout, pg.Error(err).Error())
-	} else if len(addressCodeLayouts) == 0 {
-		return nil, errorno.ErrNotFound(errorno.ErrNameAddressCode, layout)
-	} else {
-		return addressCodeLayouts[0], nil
-	}
-}
-
 func sendCreateAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode, layout string, addressCodeLayoutSegment *resource.AddressCodeLayoutSegment) error {
-	return kafka.SendDHCPCmd(kafka.CreateAddressCodeLayoutSegment,
+	return kafka.SendDHCP6Cmd(kafka.CreateAddressCodeLayoutSegment,
 		&pbdhcpagent.CreateAddressCodeLayoutSegmentRequest{
 			AddressCode: addressCode,
 			Layout:      layout,
@@ -145,7 +134,7 @@ func (d *AddressCodeLayoutSegmentService) Delete(addressCodeId, layoutId, id str
 }
 
 func sendDeleteAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode, layout string, addressCodeLayoutSegment *resource.AddressCodeLayoutSegment) error {
-	return kafka.SendDHCPCmd(kafka.DeleteAddressCodeLayoutSegment,
+	return kafka.SendDHCP6Cmd(kafka.DeleteAddressCodeLayoutSegment,
 		&pbdhcpagent.DeleteAddressCodeLayoutSegmentRequest{
 			AddressCode: addressCode,
 			Layout:      layout,
@@ -196,7 +185,7 @@ func (d *AddressCodeLayoutSegmentService) Update(addressCodeId, layoutId string,
 }
 
 func sendUpdateAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode, layout string, oldAddressCodeLayoutSegment, newAddressCodeLayoutSegment *resource.AddressCodeLayoutSegment) error {
-	return kafka.SendDHCPCmd(kafka.UpdateAddressCodeLayoutSegment,
+	return kafka.SendDHCP6Cmd(kafka.UpdateAddressCodeLayoutSegment,
 		&pbdhcpagent.UpdateAddressCodeLayoutSegmentRequest{
 			AddressCode: addressCode,
 			Layout:      layout,
@@ -216,23 +205,22 @@ func (a *AddressCodeLayoutSegmentService) ImportExcel(addressCodeId, layoutId st
 		return nil, nil
 	}
 
-	sentryNodes, _, _, err := kafka.GetDHCPNodes(kafka.AgentStack6)
-	if err != nil {
-		return nil, err
-	}
-
 	response := &excel.ImportResult{}
 	defer sendImportFieldResponse(SegmentImportFileNamePrefix, TableHeaderSegmentFail, response)
 	validSql, createSegmentsRequest, deleteSegmentsRequest, err := parseSegmentsFromFile(file.Name, addressCodeId, layoutId, response)
+	if err != nil {
+		return response, err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Exec(validSql); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert,
 				string(errorno.ErrNameAddressCodeLayoutSegment), pg.Error(err).Error())
 		}
 
-		return sendCreateSegmentsCmdToDHCPAgent(sentryNodes, createSegmentsRequest, deleteSegmentsRequest)
+		return sendCreateSegmentsCmdToDHCPAgent(createSegmentsRequest, deleteSegmentsRequest)
 	}); err != nil {
-		return nil, err
+		return response, err
 	}
 
 	return response, nil
@@ -253,27 +241,9 @@ func parseSegmentsFromFile(fileName, addressCodeId, layoutId string, response *e
 		return "", nil, nil, errorno.ErrInvalidTableHeader()
 	}
 
-	var oldSegments []*resource.AddressCodeLayoutSegment
-	var addressCode *resource.AddressCode
-	var layout *resource.AddressCodeLayout
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		err := tx.Fill(map[string]interface{}{
-			resource.SqlColumnAddressCodeLayout: layoutId,
-			resource.SqlOrderBy:                 resource.SqlColumnCode}, &oldSegments)
-		if err != nil {
-			return err
-		}
-
-		addressCode, err = getAddressCode(tx, addressCodeId)
-		if err != nil {
-			return err
-		}
-
-		layout, err = getAddressCodeLayout(tx, layoutId)
-		return err
-	}); err != nil {
-		return "", nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
-			string(errorno.ErrNameAddressCodeLayoutSegment), pg.Error(err).Error())
+	addressCode, layout, oldSegments, err := getSegmentAndParentResources(addressCodeId, layoutId)
+	if err != nil {
+		return "", nil, nil, err
 	}
 
 	response.InitData(len(contents) - 1)
@@ -309,6 +279,33 @@ func parseSegmentsFromFile(fileName, addressCodeId, layoutId string, response *e
 
 	sql, createSegmentsRequest, deleteSegmentsRequest := segmentToInsertSqlAndPbRequest(segments, addressCode, layout)
 	return sql, createSegmentsRequest, deleteSegmentsRequest, nil
+}
+
+func getSegmentAndParentResources(addressCodeId, layoutId string) (*resource.AddressCode, *resource.AddressCodeLayout, []*resource.AddressCodeLayoutSegment, error) {
+	var oldSegments []*resource.AddressCodeLayoutSegment
+	var addressCode *resource.AddressCode
+	var layout *resource.AddressCodeLayout
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		err := tx.Fill(map[string]interface{}{
+			resource.SqlColumnAddressCodeLayout: layoutId,
+			resource.SqlOrderBy:                 resource.SqlColumnCode}, &oldSegments)
+		if err != nil {
+			return err
+		}
+
+		addressCode, err = getAddressCode(tx, addressCodeId)
+		if err != nil {
+			return err
+		}
+
+		layout, err = getAddressCodeLayout(tx, layoutId)
+		return err
+	}); err != nil {
+		return nil, nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameAddressCodeLayoutSegment), pg.Error(err).Error())
+	}
+
+	return addressCode, layout, oldSegments, nil
 }
 
 func parseSegment(tableHeaderFields, fields []string) *resource.AddressCodeLayoutSegment {
@@ -364,25 +361,14 @@ func segmentToInsertSqlAndPbRequest(segments []*resource.AddressCodeLayoutSegmen
 		}
 }
 
-func sendCreateSegmentsCmdToDHCPAgent(nodes []string, createSegmentsRequest *pbdhcpagent.CreateAddressCodeLayoutSegmentsRequest, deleteSegmentsRequest *pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest) error {
-	if len(nodes) == 0 {
-		return nil
-	}
-
-	succeedSentryNodes := make([]string, 0, len(nodes))
-	for _, node := range nodes {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			[]string{node}, kafka.CreateAddressCodeLayoutSegments, createSegmentsRequest); err != nil {
-			if err := sendDeleteSegmentsCmdToDHCPAgent(succeedSentryNodes, deleteSegmentsRequest); err != nil {
+func sendCreateSegmentsCmdToDHCPAgent(createSegmentsRequest *pbdhcpagent.CreateAddressCodeLayoutSegmentsRequest, deleteSegmentsRequest *pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest) error {
+	return kafka.SendDHCP6Cmd(kafka.CreateAddressCodeLayoutSegments,
+		createSegmentsRequest, func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForSucceed,
+				kafka.DeleteAddressCodeLayoutSegments, deleteSegmentsRequest); err != nil {
 				log.Warnf("batch create segments failed and rollback failed: %s", err.Error())
 			}
-			return err
-		}
-
-		succeedSentryNodes = append(succeedSentryNodes, node)
-	}
-
-	return nil
+		})
 }
 
 func (a *AddressCodeLayoutSegmentService) ExportExcel(layoutId string) (interface{}, error) {
@@ -425,11 +411,6 @@ func (a *AddressCodeLayoutSegmentService) BatchDelete(addressCodeId, layoutId st
 		return nil
 	}
 
-	sentryNodes, _, _, err := kafka.GetDHCPNodes(kafka.AgentStack6)
-	if err != nil {
-		return err
-	}
-
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		addressCode, err := getAddressCode(tx, addressCodeId)
 		if err != nil {
@@ -448,18 +429,15 @@ func (a *AddressCodeLayoutSegmentService) BatchDelete(addressCodeId, layoutId st
 		} else if int(rows) != len(codes) {
 			return errorno.ErrNotFound(errorno.ErrNameAddressCodeLayoutSegment, codes[0])
 		} else {
-			return sendDeleteSegmentsCmdToDHCPAgent(sentryNodes,
-				&pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest{
-					AddressCode:  addressCode.Name,
-					Layout:       layout.Label,
-					SegmentCodes: codes,
-				})
+			return sendDeleteSegmentsCmdToDHCPAgent(&pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest{
+				AddressCode:  addressCode.Name,
+				Layout:       layout.Label,
+				SegmentCodes: codes,
+			})
 		}
 	})
 }
 
-func sendDeleteSegmentsCmdToDHCPAgent(nodes []string, deleteSegmentsRequest *pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest) error {
-	_, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
-		kafka.DeleteAddressCodeLayoutSegments, deleteSegmentsRequest)
-	return err
+func sendDeleteSegmentsCmdToDHCPAgent(deleteSegmentsRequest *pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest) error {
+	return kafka.SendDHCP6Cmd(kafka.DeleteAddressCodeLayoutSegments, deleteSegmentsRequest, nil)
 }

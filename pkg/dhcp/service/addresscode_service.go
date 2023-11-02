@@ -35,10 +35,8 @@ func (d *AddressCodeService) Create(addressCode *resource.AddressCode) error {
 }
 
 func sendCreateAddressCodeCmdToDHCPAgent(addressCode *resource.AddressCode) error {
-	return kafka.SendDHCPCmd(kafka.CreateAddressCode,
-		&pbdhcpagent.CreateAddressCodeRequest{
-			Name: addressCode.Name,
-		},
+	return kafka.SendDHCP6Cmd(kafka.CreateAddressCode,
+		&pbdhcpagent.CreateAddressCodeRequest{Name: addressCode.Name},
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				nodesForSucceed, kafka.DeleteAddressCode,
@@ -64,16 +62,23 @@ func (d *AddressCodeService) List(conditions map[string]interface{}) ([]*resourc
 }
 
 func (d *AddressCodeService) Get(id string) (*resource.AddressCode, error) {
-	var addressCodes []*resource.AddressCode
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &addressCodes)
-	}); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
-	} else if len(addressCodes) != 1 {
-		return nil, errorno.ErrNotFound(errorno.ErrNameAddressCode, id)
-	}
+	var addrCode *resource.AddressCode
+	err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) (err error) {
+		addrCode, err = getAddressCode(tx, id)
+		return err
+	})
+	return addrCode, err
+}
 
-	return addressCodes[0], nil
+func getAddressCode(tx restdb.Transaction, addressCode string) (*resource.AddressCode, error) {
+	var addressCodes []*resource.AddressCode
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: addressCode}, &addressCodes); err != nil {
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, addressCode, pg.Error(err).Error())
+	} else if len(addressCodes) == 0 {
+		return nil, errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCode)
+	} else {
+		return addressCodes[0], nil
+	}
 }
 
 func (d *AddressCodeService) Delete(id string) error {
@@ -102,10 +107,8 @@ func (d *AddressCodeService) Delete(id string) error {
 }
 
 func sendDeleteAddressCodeCmdToDHCPAgent(addressCode *resource.AddressCode) error {
-	return kafka.SendDHCPCmd(kafka.DeleteAddressCode,
-		&pbdhcpagent.DeleteAddressCodeRequest{
-			Name: addressCode.Name,
-		}, nil)
+	return kafka.SendDHCP6Cmd(kafka.DeleteAddressCode,
+		&pbdhcpagent.DeleteAddressCodeRequest{Name: addressCode.Name}, nil)
 }
 
 func (d *AddressCodeService) Update(addressCode *resource.AddressCode) error {
@@ -132,14 +135,14 @@ func (d *AddressCodeService) Update(addressCode *resource.AddressCode) error {
 
 		if addressCode.Name != addressCodes[0].Name {
 			return sendUpdateAddressCodeCmdToDHCPAgent(addressCodes[0], addressCode)
-		} else {
-			return nil
 		}
+
+		return nil
 	})
 }
 
 func sendUpdateAddressCodeCmdToDHCPAgent(oldAddressCode, newAddressCode *resource.AddressCode) error {
-	return kafka.SendDHCPCmd(kafka.UpdateAddressCode,
+	return kafka.SendDHCP6Cmd(kafka.UpdateAddressCode,
 		&pbdhcpagent.UpdateAddressCodeRequest{
 			OldName: oldAddressCode.Name,
 			NewName: newAddressCode.Name,

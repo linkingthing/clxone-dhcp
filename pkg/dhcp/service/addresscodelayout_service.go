@@ -36,7 +36,7 @@ func (d *AddressCodeLayoutService) Create(addressCodeId string, addressCodeLayou
 			addressCodeId, addressCodeLayout.Label, addressCodeLayout.EndBit, addressCodeLayout.BeginBit); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCodeLayout.Label, pg.Error(err).Error())
 		} else if len(addressCodeLayouts) != 0 {
-			return errorno.ErrExistIntersection(addressCodeLayouts[0], addressCodeLayout)
+			return errorno.ErrExistIntersection(addressCodeLayouts[0].Label, addressCodeLayout.Label)
 		}
 
 		addressCodeLayout.AddressCode = addressCodeId
@@ -49,19 +49,8 @@ func (d *AddressCodeLayoutService) Create(addressCodeId string, addressCodeLayou
 	})
 }
 
-func getAddressCode(tx restdb.Transaction, addressCode string) (*resource.AddressCode, error) {
-	var addressCodes []*resource.AddressCode
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: addressCode}, &addressCodes); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, addressCode, pg.Error(err).Error())
-	} else if len(addressCodes) == 0 {
-		return nil, errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCode)
-	} else {
-		return addressCodes[0], nil
-	}
-}
-
 func sendCreateAddressCodeLayoutCmdToDHCPAgent(addressCode string, addressCodeLayout *resource.AddressCodeLayout) error {
-	return kafka.SendDHCPCmd(kafka.CreateAddressCodeLayout,
+	return kafka.SendDHCP6Cmd(kafka.CreateAddressCodeLayout,
 		&pbdhcpagent.CreateAddressCodeLayoutRequest{
 			AddressCode: addressCode,
 			Label:       addressCodeLayout.Label,
@@ -94,16 +83,23 @@ func (d *AddressCodeLayoutService) List(addressCodeId string, conditions map[str
 }
 
 func (d *AddressCodeLayoutService) Get(id string) (*resource.AddressCodeLayout, error) {
-	var addressCodeLayouts []*resource.AddressCodeLayout
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{restdb.IDField: id}, &addressCodeLayouts)
-	}); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
-	} else if len(addressCodeLayouts) != 1 {
-		return nil, errorno.ErrNotFound(errorno.ErrNameAddressCodeLayout, id)
-	}
+	var addressCodeLayout *resource.AddressCodeLayout
+	err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) (err error) {
+		addressCodeLayout, err = getAddressCodeLayout(tx, id)
+		return
+	})
+	return addressCodeLayout, err
+}
 
-	return addressCodeLayouts[0], nil
+func getAddressCodeLayout(tx restdb.Transaction, layout string) (*resource.AddressCodeLayout, error) {
+	var addressCodeLayouts []*resource.AddressCodeLayout
+	if err := tx.Fill(map[string]interface{}{restdb.IDField: layout}, &addressCodeLayouts); err != nil {
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, layout, pg.Error(err).Error())
+	} else if len(addressCodeLayouts) == 0 {
+		return nil, errorno.ErrNotFound(errorno.ErrNameAddressCode, layout)
+	} else {
+		return addressCodeLayouts[0], nil
+	}
 }
 
 func (d *AddressCodeLayoutService) Delete(addressCodeId, id string) error {
@@ -130,7 +126,7 @@ func (d *AddressCodeLayoutService) Delete(addressCodeId, id string) error {
 }
 
 func sendDeleteAddressCodeLayoutCmdToDHCPAgent(addressCode string, addressCodeLayout *resource.AddressCodeLayout) error {
-	return kafka.SendDHCPCmd(kafka.DeleteAddressCodeLayout,
+	return kafka.SendDHCP6Cmd(kafka.DeleteAddressCodeLayout,
 		&pbdhcpagent.DeleteAddressCodeLayoutRequest{
 			AddressCode: addressCode,
 			Label:       addressCodeLayout.Label,
@@ -170,7 +166,7 @@ func (d *AddressCodeLayoutService) Update(addressCodeId string, addressCodeLayou
 }
 
 func sendUpdateAddressCodeLayoutCmdToDHCPAgent(addressCode string, oldAddressCodeLayout, newAddressCodeLayout *resource.AddressCodeLayout) error {
-	return kafka.SendDHCPCmd(kafka.UpdateAddressCodeLayout,
+	return kafka.SendDHCP6Cmd(kafka.UpdateAddressCodeLayout,
 		&pbdhcpagent.UpdateAddressCodeLayoutRequest{
 			AddressCode: addressCode,
 			OldLabel:    oldAddressCodeLayout.Label,

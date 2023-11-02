@@ -124,8 +124,20 @@ func IsAgentService(tags []string, roles ...AgentRole) bool {
 	return false
 }
 
+func SendDHCP4Cmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
+	return sendDHCPCmd(AgentStack4, cmd, req, rollback)
+}
+
+func SendDHCP6Cmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
+	return sendDHCPCmd(AgentStack6, cmd, req, rollback)
+}
+
 func SendDHCPCmd(cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
-	sentryNodes, serverNodes, _, err := GetDHCPNodes(AgentStackDual)
+	return sendDHCPCmd(AgentStackDual, cmd, req, rollback)
+}
+
+func sendDHCPCmd(stack AgentStack, cmd DHCPCmd, req proto.Message, rollback RollBackFunc) error {
+	sentryNodes, serverNodes, _, err := GetDHCPNodes(stack)
 	if err != nil {
 		return err
 	}

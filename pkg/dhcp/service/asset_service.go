@@ -38,8 +38,7 @@ func (a *AssetService) Create(asset *resource.Asset) error {
 	asset.SetID(asset.HwAddress)
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Insert(asset); err != nil {
-			return util.FormatDbInsertError(errorno.ErrNameMac,
-				asset.HwAddress, err)
+			return util.FormatDbInsertError(errorno.ErrNameMac, asset.HwAddress, err)
 		}
 
 		return sendCreateAssetCmdToDHCPAgent(asset)
@@ -47,9 +46,8 @@ func (a *AssetService) Create(asset *resource.Asset) error {
 }
 
 func sendCreateAssetCmdToDHCPAgent(asset *resource.Asset) error {
-	return kafka.SendDHCPCmd(kafka.CreateAsset,
-		assetToPbCreateAssetRequest(asset),
-		func(nodesForSucceed []string) {
+	return kafka.SendDHCP6Cmd(kafka.CreateAsset,
+		assetToPbCreateAssetRequest(asset), func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				nodesForSucceed, kafka.DeleteAsset,
 				&pbdhcpagent.DeleteAssetRequest{
@@ -110,10 +108,8 @@ func (a *AssetService) Delete(id string) error {
 }
 
 func sendDeleteAssetCmdToDHCPAgent(hwAddress string) error {
-	return kafka.SendDHCPCmd(kafka.DeleteAsset,
-		&pbdhcpagent.DeleteAssetRequest{
-			HwAddress: hwAddress,
-		}, nil)
+	return kafka.SendDHCP6Cmd(kafka.DeleteAsset,
+		&pbdhcpagent.DeleteAssetRequest{HwAddress: hwAddress}, nil)
 }
 
 func (a *AssetService) Update(asset *resource.Asset) error {
@@ -150,14 +146,13 @@ func (a *AssetService) Update(asset *resource.Asset) error {
 }
 
 func sendUpdateAssetCmdToDHCPAgent(asset *resource.Asset) error {
-	return kafka.SendDHCPCmd(kafka.UpdateAsset,
-		&pbdhcpagent.UpdateAssetRequest{
-			HwAddress:         asset.HwAddress,
-			AssetType:         asset.AssetType,
-			Manufacturer:      asset.Manufacturer,
-			Model:             asset.Model,
-			AccessNetworkTime: asset.AccessNetworkTime,
-		}, nil)
+	return kafka.SendDHCP6Cmd(kafka.UpdateAsset, &pbdhcpagent.UpdateAssetRequest{
+		HwAddress:         asset.HwAddress,
+		AssetType:         asset.AssetType,
+		Manufacturer:      asset.Manufacturer,
+		Model:             asset.Model,
+		AccessNetworkTime: asset.AccessNetworkTime,
+	}, nil)
 }
 
 func (a *AssetService) ImportExcel(file *excel.ImportFile) (interface{}, error) {
@@ -165,22 +160,21 @@ func (a *AssetService) ImportExcel(file *excel.ImportFile) (interface{}, error) 
 		return nil, nil
 	}
 
-	sentryNodes, _, _, err := kafka.GetDHCPNodes(kafka.AgentStack6)
-	if err != nil {
-		return nil, err
-	}
-
 	response := &excel.ImportResult{}
 	defer sendImportFieldResponse(AssetImportFileNamePrefix, TableHeaderAssetFail, response)
 	validSql, createAssetsRequest, deleteAssetsRequest, err := parseAssetsFromFile(file.Name, response)
+	if err != nil {
+		return response, err
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Exec(validSql); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAsset), pg.Error(err).Error())
 		}
 
-		return sendCreateAssetsCmdToDHCPAgent(sentryNodes, createAssetsRequest, deleteAssetsRequest)
+		return sendCreateAssetsCmdToDHCPAgent(createAssetsRequest, deleteAssetsRequest)
 	}); err != nil {
-		return nil, err
+		return response, err
 	}
 
 	return response, nil
@@ -297,25 +291,14 @@ func assetToInsertSqlAndPbRequest(assets []*resource.Asset) (string, *pbdhcpagen
 		&pbdhcpagent.DeleteAssetsRequest{HwAddresses: hwAddresses}
 }
 
-func sendCreateAssetsCmdToDHCPAgent(nodes []string, createAssetsRequest *pbdhcpagent.CreateAssetsRequest, deleteAssetsRequest *pbdhcpagent.DeleteAssetsRequest) error {
-	if len(nodes) == 0 {
-		return nil
-	}
-
-	succeedSentryNodes := make([]string, 0, len(nodes))
-	for _, node := range nodes {
-		if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-			[]string{node}, kafka.CreateAssets, createAssetsRequest); err != nil {
-			if err := sendDeleteAssetsCmdToDHCPAgent(succeedSentryNodes, deleteAssetsRequest); err != nil {
+func sendCreateAssetsCmdToDHCPAgent(createAssetsRequest *pbdhcpagent.CreateAssetsRequest, deleteAssetsRequest *pbdhcpagent.DeleteAssetsRequest) error {
+	return kafka.SendDHCP6Cmd(kafka.CreateAssets,
+		createAssetsRequest, func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodesForSucceed,
+				kafka.DeleteAssets, deleteAssetsRequest); err != nil {
 				log.Warnf("batch create assets failed and rollback failed: %s", err.Error())
 			}
-			return err
-		}
-
-		succeedSentryNodes = append(succeedSentryNodes, node)
-	}
-
-	return nil
+		})
 }
 
 func (a *AssetService) ExportExcel() (interface{}, error) {
@@ -353,11 +336,6 @@ func (a *AssetService) BatchDelete(ids []string) error {
 		return nil
 	}
 
-	sentryNodes, _, _, err := kafka.GetDHCPNodes(kafka.AgentStack6)
-	if err != nil {
-		return err
-	}
-
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Exec("delete from gr_asset where id in ('" +
 			strings.Join(ids, "','") + "')"); err != nil {
@@ -365,13 +343,11 @@ func (a *AssetService) BatchDelete(ids []string) error {
 		} else if int(rows) != len(ids) {
 			return errorno.ErrNotFound(errorno.ErrNameAsset, ids[0])
 		} else {
-			return sendDeleteAssetsCmdToDHCPAgent(sentryNodes, &pbdhcpagent.DeleteAssetsRequest{HwAddresses: ids})
+			return sendDeleteAssetsCmdToDHCPAgent(&pbdhcpagent.DeleteAssetsRequest{HwAddresses: ids})
 		}
 	})
 }
 
-func sendDeleteAssetsCmdToDHCPAgent(nodes []string, deleteAssetsRequest *pbdhcpagent.DeleteAssetsRequest) error {
-	_, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(nodes,
-		kafka.DeleteAssets, deleteAssetsRequest)
-	return err
+func sendDeleteAssetsCmdToDHCPAgent(deleteAssetsRequest *pbdhcpagent.DeleteAssetsRequest) error {
+	return kafka.SendDHCP6Cmd(kafka.DeleteAssets, deleteAssetsRequest, nil)
 }
