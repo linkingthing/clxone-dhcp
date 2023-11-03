@@ -188,7 +188,7 @@ func listReservation4s(subnet *resource.Subnet4) ([]*resource.Reservation4, erro
 func getReservation4sLeasesCount(subnetId uint64, reservations []*resource.Reservation4) map[string]uint64 {
 	resp, err := getSubnet4Leases(subnetId)
 	if err != nil {
-		log.Warnf("get subnet4 %s leases failed: %s", subnetId, err.Error())
+		log.Warnf("get subnet4 %d leases failed: %s", subnetId, err.Error())
 		return nil
 	}
 

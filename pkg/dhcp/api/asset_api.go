@@ -30,7 +30,7 @@ func (a *AssetApi) Create(ctx *restresource.Context) (restresource.Resource, *re
 
 func (a *AssetApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	duids, err := a.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
-		service.OrderByCreateTime, resource.SqlColumnHwAddress, resource.SqlColumnAssetType,
+		service.OrderByCreateTime, resource.SqlColumnName, resource.SqlColumnHwAddress, resource.SqlColumnAssetType,
 		resource.SqlColumnManufacturer, resource.SqlColumnModel, resource.SqlColumnAccessNetworkTime))
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)

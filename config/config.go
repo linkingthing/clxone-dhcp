@@ -34,6 +34,7 @@ type ServerConf struct {
 	IP              string `yaml:"ip"`
 	Port            int    `yaml:"port"`
 	GrpcPort        int    `yaml:"grpc_port"`
+	AgentGrpcPort   int    `yaml:"agent_grpc_port"`
 	Hostname        string `yaml:"hostname"`
 	KeyFactoryPath  string `yaml:"key_factory_path"`
 	WorkKeyPath     string `yaml:"work_key_path"`
