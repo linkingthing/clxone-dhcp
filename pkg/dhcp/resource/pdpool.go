@@ -95,11 +95,11 @@ func validPdPool(prefix string, prefixLen, delegatedLen uint32) (net.IP, string,
 	}
 
 	if prefixLen <= 0 || prefixLen > 64 {
-		return nil, "", errorno.ErrNotInScope(errorno.ErrNamePrefix, 0, 64)
+		return nil, "", errorno.ErrNotInRange(errorno.ErrNamePrefix, 0, 64)
 	}
 
 	if delegatedLen < prefixLen || delegatedLen > 64 {
-		return nil, "", errorno.ErrNotInScope(errorno.ErrNameDelegatedLen,
+		return nil, "", errorno.ErrNotInRange(errorno.ErrNameDelegatedLen,
 			prefixLen, 64)
 	}
 

@@ -91,7 +91,7 @@ func checkSubnet6IfCanCreateDynamicPool(subnet *resource.Subnet6) error {
 	}
 
 	if ones, _ := subnet.Ipnet.Mask.Size(); ones < 64 {
-		return errorno.ErrNotInScope(errorno.ErrNamePrefix, 64, 128)
+		return errorno.ErrNotInRange(errorno.ErrNamePrefix, 64, 128)
 	}
 
 	return nil

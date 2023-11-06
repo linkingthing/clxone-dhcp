@@ -278,7 +278,7 @@ func GetAddressCodes(condition map[string]interface{}) ([]*AddressCode, error) {
 
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {
 	if preferredLifetime > validLifetime || preferredLifetime < minValidLifetime {
-		return errorno.ErrNotInScope(errorno.ErrNamePreferLifetime,
+		return errorno.ErrNotInRange(errorno.ErrNamePreferLifetime,
 			minValidLifetime, validLifetime)
 	}
 

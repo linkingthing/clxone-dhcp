@@ -100,15 +100,24 @@ var (
 			fmt.Sprintf(`%s[%v] contains "%v"`, target, obj, part),
 			fmt.Sprintf(`%s[%v] 中包含了"%v"`, localizeErrName(target), obj, part))
 	}
-	ErrInvalidScope = func(name string, begin, end interface{}) *goresterr.ErrorMessage {
+	ErrInvalidRange = func(name string, begin, end interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`%s has invalid scope %v-%v`, name, begin, end),
 			fmt.Sprintf(`%s 有无效的范围 %v-%v`, name, begin, end))
 	}
-	ErrNotInScope = func(target ErrName, begin, end interface{}) *goresterr.ErrorMessage {
+	ErrNotInRange = func(target ErrName, begin, end interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`%s should in scope %v-%v`, target, begin, end),
 			fmt.Sprintf(`%s 应该位于范围 %v-%v 中`, localizeErrName(target), begin, end))
+	}
+	ErrNotInScope = func(target ErrName, values ...string) *goresterr.ErrorMessage {
+		localizeValues := make([]string, len(values))
+		for i, val := range values {
+			localizeValues[i] = localizeErrName(ErrName(val))
+		}
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf(`%s should in %v`, target, values),
+			fmt.Sprintf(`%s 应该位于范围%v中`, localizeErrName(target), localizeValues))
 	}
 	ErrOnlyOne = func(values ...string) *goresterr.ErrorMessage {
 		localizeValues := make([]string, len(values))

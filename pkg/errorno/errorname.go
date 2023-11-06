@@ -54,6 +54,7 @@ const (
 	ErrNameAddressCode              ErrName = "addressCode"
 	ErrNameAddressCodeLayout        ErrName = "addressCodeLayout"
 	ErrNameAddressCodeLayoutSegment ErrName = "addressCodeLayoutSegment"
+	ErrNameLabel                    ErrName = "label"
 	ErrNameDelegatedLen             ErrName = "delegatedLen"
 	ErrNameOui                      ErrName = "oui"
 	ErrNameOrganization             ErrName = "organization"
@@ -211,6 +212,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameAddressCode:              "地址编码",
 	ErrNameAddressCodeLayout:        "地址编码标识",
 	ErrNameAddressCodeLayoutSegment: "地址编码标识编码",
+	ErrNameLabel:                    "标签类型",
 	ErrNameDelegatedLen:             "委派长度",
 	ErrNameOui:                      "网卡厂商",
 	ErrNameOrganization:             "组织机构",

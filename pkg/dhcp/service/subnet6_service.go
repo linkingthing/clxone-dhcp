@@ -794,6 +794,8 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameOption18:
 			subnet.RelayAgentInterfaceId = strings.TrimSpace(field)
+		case FieldNameCAPWAPACAddresses:
+			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
 		case FieldNameNodes:
 			subnet.Nodes = splitFieldWithoutSpace(field)
 		case FieldNamePools:

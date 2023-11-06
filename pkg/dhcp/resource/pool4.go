@@ -135,7 +135,7 @@ func parsePool4FromTemplate(tx restdb.Transaction, template string, subnet *Subn
 	beginIp := gohelperip.IPv4FromUint32(beginUint32)
 	endIp := gohelperip.IPv4FromUint32(endUint32)
 	if !subnet.Ipnet.Contains(beginIp) || !subnet.Ipnet.Contains(endIp) {
-		return nil, nil, 0, errorno.ErrInvalidScope(template,
+		return nil, nil, 0, errorno.ErrInvalidRange(template,
 			beginIp.String(), endIp.String())
 	}
 

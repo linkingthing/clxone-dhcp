@@ -1,6 +1,6 @@
 GOSRC = $(shell find . -type f -name '*.go')
 
-VERSION=v2.7.0
+VERSION=v2.8.1
 go_image=golang:1.18.10-alpine3.16
 go_harbor_image=harbor.linkingipam.com/linkingthing/golang-base:1.18.10-alpine3.16
 

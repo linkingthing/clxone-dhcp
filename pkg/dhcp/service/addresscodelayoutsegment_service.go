@@ -52,7 +52,7 @@ func (d *AddressCodeLayoutSegmentService) Create(addressCodeId, layoutId string,
 				addressCodeLayoutSegment.Code, err)
 		}
 
-		return sendCreateAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode.Name, layout.Label, addressCodeLayoutSegment)
+		return sendCreateAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode.Name, string(layout.Label), addressCodeLayoutSegment)
 	})
 }
 
@@ -129,7 +129,7 @@ func (d *AddressCodeLayoutSegmentService) Delete(addressCodeId, layoutId, id str
 			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
 		}
 
-		return sendDeleteAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode.Name, layout.Label, addressCodeLayoutSegments[0])
+		return sendDeleteAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode.Name, string(layout.Label), addressCodeLayoutSegments[0])
 	})
 }
 
@@ -179,7 +179,7 @@ func (d *AddressCodeLayoutSegmentService) Update(addressCodeId, layoutId string,
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCodeLayoutSegment.GetID(), pg.Error(err).Error())
 		}
 
-		return sendUpdateAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode.Name, layout.Label,
+		return sendUpdateAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode.Name, string(layout.Label),
 			addressCodeLayoutSegments[0], addressCodeLayoutSegment)
 	})
 }
@@ -352,11 +352,11 @@ func segmentToInsertSqlAndPbRequest(segments []*resource.AddressCodeLayoutSegmen
 	return strings.TrimSuffix(buf.String(), ",") + ";",
 		&pbdhcpagent.CreateAddressCodeLayoutSegmentsRequest{
 			AddressCode: addressCode.Name,
-			Layout:      layout.Label,
+			Layout:      string(layout.Label),
 			Segments:    createSegmentRequests},
 		&pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest{
 			AddressCode:  addressCode.Name,
-			Layout:       layout.Label,
+			Layout:       string(layout.Label),
 			SegmentCodes: segmentCodes,
 		}
 }
@@ -431,7 +431,7 @@ func (a *AddressCodeLayoutSegmentService) BatchDelete(addressCodeId, layoutId st
 		} else {
 			return sendDeleteSegmentsCmdToDHCPAgent(&pbdhcpagent.DeleteAddressCodeLayoutSegmentsRequest{
 				AddressCode:  addressCode.Name,
-				Layout:       layout.Label,
+				Layout:       string(layout.Label),
 				SegmentCodes: codes,
 			})
 		}

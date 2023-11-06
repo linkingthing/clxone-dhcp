@@ -847,6 +847,8 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 				return subnet, pools, reservedPools, reservations,
 					errorno.ErrInvalidParams(FieldNameOption108, field)
 			}
+		case FieldNameCAPWAPACAddresses:
+			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
 		case FieldNameNodes:
 			subnet.Nodes = splitFieldWithoutSpace(field)
 		case FieldNamePools:

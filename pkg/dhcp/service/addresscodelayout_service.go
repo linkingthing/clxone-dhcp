@@ -34,15 +34,14 @@ func (d *AddressCodeLayoutService) Create(addressCodeId string, addressCodeLayou
 		if err := tx.FillEx(&addressCodeLayouts,
 			"select * from gr_address_code_layout where address_code = $1 and (label = $2 or (begin_bit <= $3 and end_bit >= $4))",
 			addressCodeId, addressCodeLayout.Label, addressCodeLayout.EndBit, addressCodeLayout.BeginBit); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCodeLayout.Label, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(addressCodeLayout.Label), pg.Error(err).Error())
 		} else if len(addressCodeLayouts) != 0 {
 			return errorno.ErrExistIntersection(addressCodeLayouts[0].Label, addressCodeLayout.Label)
 		}
 
 		addressCodeLayout.AddressCode = addressCodeId
 		if _, err := tx.Insert(addressCodeLayout); err != nil {
-			return util.FormatDbInsertError(errorno.ErrNameAddressCodeLayout,
-				addressCodeLayout.Label, err)
+			return util.FormatDbInsertError(errorno.ErrNameAddressCodeLayout, string(addressCodeLayout.Label), err)
 		}
 
 		return sendCreateAddressCodeLayoutCmdToDHCPAgent(addressCode.Name, addressCodeLayout)
@@ -53,7 +52,7 @@ func sendCreateAddressCodeLayoutCmdToDHCPAgent(addressCode string, addressCodeLa
 	return kafka.SendDHCP6Cmd(kafka.CreateAddressCodeLayout,
 		&pbdhcpagent.CreateAddressCodeLayoutRequest{
 			AddressCode: addressCode,
-			Label:       addressCodeLayout.Label,
+			Label:       string(addressCodeLayout.Label),
 			Begin:       addressCodeLayout.BeginBit,
 			End:         addressCodeLayout.EndBit,
 		},
@@ -62,7 +61,7 @@ func sendCreateAddressCodeLayoutCmdToDHCPAgent(addressCode string, addressCodeLa
 				nodesForSucceed, kafka.DeleteAddressCodeLayout,
 				&pbdhcpagent.DeleteAddressCodeLayoutRequest{
 					AddressCode: addressCode,
-					Label:       addressCodeLayout.Label,
+					Label:       string(addressCodeLayout.Label),
 				}); err != nil {
 				log.Errorf("create address code %s layout %s failed, rollback with nodes %v failed: %s",
 					addressCode, addressCodeLayout.Label, nodesForSucceed, err.Error())
@@ -129,7 +128,7 @@ func sendDeleteAddressCodeLayoutCmdToDHCPAgent(addressCode string, addressCodeLa
 	return kafka.SendDHCP6Cmd(kafka.DeleteAddressCodeLayout,
 		&pbdhcpagent.DeleteAddressCodeLayoutRequest{
 			AddressCode: addressCode,
-			Label:       addressCodeLayout.Label,
+			Label:       string(addressCodeLayout.Label),
 		}, nil)
 }
 
@@ -169,7 +168,7 @@ func sendUpdateAddressCodeLayoutCmdToDHCPAgent(addressCode string, oldAddressCod
 	return kafka.SendDHCP6Cmd(kafka.UpdateAddressCodeLayout,
 		&pbdhcpagent.UpdateAddressCodeLayoutRequest{
 			AddressCode: addressCode,
-			OldLabel:    oldAddressCodeLayout.Label,
-			NewLabel:    newAddressCodeLayout.Label,
+			OldLabel:    string(oldAddressCodeLayout.Label),
+			NewLabel:    string(newAddressCodeLayout.Label),
 		}, nil)
 }
