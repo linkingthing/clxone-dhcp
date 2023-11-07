@@ -24,25 +24,25 @@ type Subnet6 struct {
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
 	Ipnet                     net.IPNet `json:"-" db:"suk"`
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
+	Tags                      string    `json:"tags"`
+	IfaceName                 string    `json:"ifaceName"`
+	WhiteClientClasses        []string  `json:"whiteClientClasses"`
+	BlackClientClasses        []string  `json:"blackClientClasses"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
 	PreferredLifetime         uint32    `json:"preferredLifetime"`
-	DomainServers             []string  `json:"domainServers"`
-	WhiteClientClasses        []string  `json:"whiteClientClasses"`
-	BlackClientClasses        []string  `json:"blackClientClasses"`
-	IfaceName                 string    `json:"ifaceName"`
-	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
+	DomainServers             []string  `json:"domainServers"`
 	CapWapACAddresses         []string  `json:"capWapACAddresses"`
-	Tags                      string    `json:"tags"`
-	Nodes                     []string  `json:"nodes"`
-	NodeIds                   []string  `json:"nodeIds" db:"-"`
-	NodeNames                 []string  `json:"nodeNames" db:"-"`
+	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
 	AddressCode               string    `json:"addressCode"`
 	AddressCodeName           string    `json:"addressCodeName" db:"-"`
+	Nodes                     []string  `json:"nodes"`
+	NodeIds                   []string  `json:"nodeIds" db:"-"`
+	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Capacity                  string    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`

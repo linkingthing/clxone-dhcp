@@ -72,21 +72,60 @@ func sendCreateAddressCodeLayoutCmdToDHCPAgent(addressCode string, addressCodeLa
 func (d *AddressCodeLayoutService) List(addressCodeId string, conditions map[string]interface{}) ([]*resource.AddressCodeLayout, error) {
 	conditions[resource.SqlColumnAddressCode] = addressCodeId
 	var addressCodeLayouts []*resource.AddressCodeLayout
+	var addressCodeLayoutSegments []*resource.AddressCodeLayoutSegment
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(conditions, &addressCodeLayouts)
+		if err := tx.Fill(conditions, &addressCodeLayouts); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery,
+				string(errorno.ErrNameAddressCodeLayout), pg.Error(err).Error())
+		}
+
+		if err := tx.Fill(map[string]interface{}{resource.SqlOrderBy: "address_code_layout,code"},
+			&addressCodeLayoutSegments); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery,
+				string(errorno.ErrNameAddressCodeLayoutSegment), pg.Error(err).Error())
+		}
+
+		return nil
 	}); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameAddressCodeLayout), pg.Error(err).Error())
+		return nil, err
 	}
 
+	setAddressCodeLayoutSegments(addressCodeLayouts, addressCodeLayoutSegments)
 	return addressCodeLayouts, nil
+}
+
+func setAddressCodeLayoutSegments(layouts []*resource.AddressCodeLayout, segments []*resource.AddressCodeLayoutSegment) {
+	layoutSegments := make(map[string][]*resource.AddressCodeLayoutSegment, len(layouts))
+	for _, segment := range segments {
+		layoutsegments := layoutSegments[segment.AddressCodeLayout]
+		layoutsegments = append(layoutsegments, segment)
+		layoutSegments[segment.AddressCodeLayout] = layoutsegments
+	}
+
+	for i := range layouts {
+		if segments, ok := layoutSegments[layouts[i].GetID()]; ok {
+			layouts[i].Segments = segments
+		}
+	}
 }
 
 func (d *AddressCodeLayoutService) Get(id string) (*resource.AddressCodeLayout, error) {
 	var addressCodeLayout *resource.AddressCodeLayout
+	var addressCodeLayoutSegments []*resource.AddressCodeLayoutSegment
 	err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) (err error) {
-		addressCodeLayout, err = getAddressCodeLayout(tx, id)
+		if addressCodeLayout, err = getAddressCodeLayout(tx, id); err != nil {
+			return
+		}
+
+		if err = tx.Fill(map[string]interface{}{resource.SqlColumnAddressCodeLayout: id,
+			resource.SqlOrderBy: resource.SqlColumnCode}, &addressCodeLayoutSegments); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
+		}
+
 		return
 	})
+
+	addressCodeLayout.Segments = addressCodeLayoutSegments
 	return addressCodeLayout, err
 }
 

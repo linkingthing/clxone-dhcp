@@ -22,24 +22,24 @@ type Subnet4 struct {
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
 	Ipnet                     net.IPNet `json:"-" db:"suk"`
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
+	Tags                      string    `json:"tags"`
+	IfaceName                 string    `json:"ifaceName"`
+	WhiteClientClasses        []string  `json:"whiteClientClasses"`
+	BlackClientClasses        []string  `json:"blackClientClasses"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
+	NextServer                string    `json:"nextServer"`
 	SubnetMask                string    `json:"subnetMask"`
-	DomainServers             []string  `json:"domainServers"`
 	Routers                   []string  `json:"routers"`
-	WhiteClientClasses        []string  `json:"whiteClientClasses"`
-	BlackClientClasses        []string  `json:"blackClientClasses"`
+	DomainServers             []string  `json:"domainServers"`
 	TftpServer                string    `json:"tftpServer"`
 	Bootfile                  string    `json:"bootfile"`
 	RelayAgentCircuitId       string    `json:"relayAgentCircuitId"`
 	RelayAgentRemoteId        string    `json:"relayAgentRemoteId"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
-	IfaceName                 string    `json:"ifaceName"`
-	NextServer                string    `json:"nextServer"`
 	Ipv6OnlyPreferred         uint32    `json:"ipv6OnlyPreferred"`
 	CapWapACAddresses         []string  `json:"capWapACAddresses"`
-	Tags                      string    `json:"tags"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Nodes                     []string  `json:"nodes"`
