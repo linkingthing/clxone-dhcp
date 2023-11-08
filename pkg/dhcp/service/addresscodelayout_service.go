@@ -196,7 +196,7 @@ func (d *AddressCodeLayoutService) Update(addressCodeId string, addressCodeLayou
 		if _, err := tx.Update(resource.TableAddressCodeLayout,
 			map[string]interface{}{resource.SqlColumnLabel: addressCodeLayout.Label},
 			map[string]interface{}{restdb.IDField: addressCodeLayout.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCodeLayout.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, addressCodeLayout.GetID(), pg.Error(err).Error())
 		}
 
 		return sendUpdateAddressCodeLayoutCmdToDHCPAgent(addressCode.Name, addressCodeLayouts[0], addressCodeLayout)

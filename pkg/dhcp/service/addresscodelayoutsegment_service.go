@@ -176,7 +176,7 @@ func (d *AddressCodeLayoutSegmentService) Update(addressCodeId, layoutId string,
 				resource.SqlColumnValue: addressCodeLayoutSegment.Value,
 			},
 			map[string]interface{}{restdb.IDField: addressCodeLayoutSegment.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCodeLayoutSegment.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, addressCodeLayoutSegment.GetID(), pg.Error(err).Error())
 		}
 
 		return sendUpdateAddressCodeLayoutSegmentCmdToDHCPAgent(addressCode.Name, string(layout.Label),

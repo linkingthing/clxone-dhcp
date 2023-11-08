@@ -130,7 +130,7 @@ func (d *AddressCodeService) Update(addressCode *resource.AddressCode) error {
 				resource.SqlColumnComment: addressCode.Comment,
 			},
 			map[string]interface{}{restdb.IDField: addressCode.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, addressCode.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, addressCode.GetID(), pg.Error(err).Error())
 		}
 
 		if addressCode.Name != addressCodes[0].Name {

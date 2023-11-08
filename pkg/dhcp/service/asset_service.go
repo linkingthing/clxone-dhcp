@@ -134,7 +134,7 @@ func (a *AssetService) Update(asset *resource.Asset) error {
 				resource.SqlColumnAccessNetworkTime: asset.AccessNetworkTime,
 			},
 			map[string]interface{}{restdb.IDField: asset.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, asset.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, asset.GetID(), pg.Error(err).Error())
 		}
 
 		if assets[0].Diff(asset) {
