@@ -281,14 +281,20 @@ func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
 	var addressCodes []*resource.AddressCode
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: id}, &subnets); err != nil {
-			return err
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
+		} else if len(subnets) == 0 {
+			return errorno.ErrNotFound(errorno.ErrNameNetworkV6, id)
 		}
 
-		return tx.Fill(nil, &addressCodes)
+		if subnets[0].AddressCode != "" {
+			if err := tx.Fill(map[string]interface{}{restdb.IDField: subnets[0].AddressCode}, &addressCodes); err != nil {
+				return errorno.ErrDBError(errorno.ErrDBNameQuery, subnets[0].AddressCode, pg.Error(err).Error())
+			}
+		}
+
+		return nil
 	}); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
-	} else if len(subnets) == 0 {
-		return nil, errorno.ErrNotFound(errorno.ErrNameNetworkV6, id)
+		return nil, err
 	}
 
 	setSubnet6LeasesUsedInfo(subnets[0])
@@ -1033,8 +1039,6 @@ func checkReservedPool6sValid(subnet *resource.Subnet6, reservedPools []*resourc
 			reservations); err != nil {
 			return err
 		}
-
-		subnet.SubCapacityWithString(reservedPools[i].Capacity)
 	}
 
 	return nil
@@ -1307,6 +1311,7 @@ func (s *Subnet6Service) ExportExcel() (*excel.ExportFile, error) {
 	var reservedPools []*resource.ReservedPool6
 	var reservations []*resource.Reservation6
 	var pdpools []*resource.PdPool
+	var addrCodes []*resource.AddressCode
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if err := tx.Fill(map[string]interface{}{resource.SqlOrderBy: resource.SqlColumnSubnetId},
 			&subnet6s); err != nil {
@@ -1327,6 +1332,10 @@ func (s *Subnet6Service) ExportExcel() (*excel.ExportFile, error) {
 
 		if err := tx.Fill(nil, &pdpools); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNamePdPool), pg.Error(err).Error())
+		}
+
+		if err := tx.Fill(nil, &addrCodes); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameAddressCode), pg.Error(err).Error())
 		}
 
 		return nil
@@ -1364,6 +1373,7 @@ func (s *Subnet6Service) ExportExcel() (*excel.ExportFile, error) {
 		subnetPdPools[pdpool.Subnet6] = pdpoolSlices
 	}
 
+	setAddressCode(subnet6s, addrCodes)
 	strMatrix := make([][]string, 0, len(subnet6s))
 	for _, subnet6 := range subnet6s {
 		subnetSlices := localizationSubnet6ToStrSlice(subnet6)

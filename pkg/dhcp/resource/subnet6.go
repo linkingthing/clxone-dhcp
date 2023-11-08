@@ -98,38 +98,17 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 
 	s.Ipnet = *ipnet
 	s.Subnet = ipnet.String()
-	maskSize, _ := s.Ipnet.Mask.Size()
-	if s.UseEui64 {
-		if s.AddressCode != "" {
-			return errorno.ErrEui64Conflict()
-		}
-
-		if maskSize != 64 {
-			return errorno.ErrExpect(errorno.ErrNameEUI64, 64, maskSize)
-		}
-
-		s.Capacity = MaxUint64String
-	} else {
-		if s.AddressCode != "" {
-			if maskSize < 64 {
-				return errorno.ErrAddressCodeMask()
-			}
-
-			if maskSize == 64 {
-				s.Capacity = MaxUint64String
-			} else {
-				s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
-			}
-		} else {
-			s.Capacity = "0"
-		}
-	}
 
 	if err := s.setSubnet6DefaultValue(dhcpConfig); err != nil {
 		return err
 	}
 
-	return s.ValidateParams(clientClass6s, addressCodes)
+	if err := s.ValidateParams(clientClass6s, addressCodes); err != nil {
+		return err
+	}
+
+	maskSize, _ := s.Ipnet.Mask.Size()
+	return s.checkEUI64AndAddressCode(maskSize)
 }
 
 func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
@@ -188,10 +167,11 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*
 		return err
 	}
 
-	if addrCodeId, err := checkAddressCode(s.AddressCodeName, addressCodes); err != nil {
+	if addrCodeId, addrCodeName, err := checkAddressCode(s.AddressCode, s.AddressCodeName, addressCodes); err != nil {
 		return err
-	} else if s.AddressCode == "" {
+	} else {
 		s.AddressCode = addrCodeId
+		s.AddressCodeName = addrCodeName
 	}
 
 	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
@@ -242,26 +222,31 @@ func GetClientClass6s() ([]*ClientClass6, error) {
 	}
 }
 
-func checkAddressCode(addressCodeName string, addressCodes []*AddressCode) (addressCodeId string, err error) {
-	if addressCodeName == "" {
-		return
+func checkAddressCode(addressCodeId, addressCodeName string, addressCodes []*AddressCode) (string, string, error) {
+	if addressCodeId == "" && addressCodeName == "" {
+		return addressCodeId, addressCodeName, nil
 	}
 
+	var err error
 	if len(addressCodes) == 0 {
-		addressCodes, err = GetAddressCodes(map[string]interface{}{SqlColumnName: addressCodeName})
-	}
-
-	if err != nil {
-		return
-	}
-
-	for _, addressCode := range addressCodes {
-		if addressCode.Name == addressCodeName {
-			return addressCode.GetID(), nil
+		if addressCodeId != "" {
+			addressCodes, err = GetAddressCodes(map[string]interface{}{restdb.IDField: addressCodeId})
+		} else {
+			addressCodes, err = GetAddressCodes(map[string]interface{}{SqlColumnName: addressCodeName})
 		}
 	}
 
-	return "", errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCodeName)
+	if err != nil {
+		return addressCodeId, addressCodeName, err
+	}
+
+	for _, addressCode := range addressCodes {
+		if addressCode.GetID() == addressCodeId || addressCode.Name == addressCodeName {
+			return addressCode.GetID(), addressCode.Name, nil
+		}
+	}
+
+	return addressCodeId, addressCodeName, errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCodeName)
 }
 
 func GetAddressCodes(condition map[string]interface{}) ([]*AddressCode, error) {
@@ -280,6 +265,36 @@ func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime u
 	if preferredLifetime > validLifetime || preferredLifetime < minValidLifetime {
 		return errorno.ErrNotInRange(errorno.ErrNamePreferLifetime,
 			minValidLifetime, validLifetime)
+	}
+
+	return nil
+}
+
+func (s *Subnet6) checkEUI64AndAddressCode(maskSize int) error {
+	if s.UseEui64 {
+		if s.AddressCode != "" {
+			return errorno.ErrEui64Conflict()
+		}
+
+		if maskSize != 64 {
+			return errorno.ErrExpect(errorno.ErrNameEUI64, 64, maskSize)
+		}
+
+		s.Capacity = MaxUint64String
+	} else {
+		if s.AddressCode != "" {
+			if maskSize < 64 {
+				return errorno.ErrAddressCodeMask()
+			}
+
+			if maskSize == 64 {
+				s.Capacity = MaxUint64String
+			} else {
+				s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
+			}
+		} else {
+			s.Capacity = "0"
+		}
 	}
 
 	return nil
