@@ -212,6 +212,10 @@ func (a *AddressCodeLayoutSegmentService) ImportExcel(addressCodeId, layoutId st
 		return response, err
 	}
 
+	if len(validSql) == 0 {
+		return response, nil
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Exec(validSql); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert,

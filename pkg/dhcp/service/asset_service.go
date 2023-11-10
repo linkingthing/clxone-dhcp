@@ -167,6 +167,10 @@ func (a *AssetService) ImportExcel(file *excel.ImportFile) (interface{}, error) 
 		return response, err
 	}
 
+	if len(validSql) == 0 {
+		return response, nil
+	}
+
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if _, err := tx.Exec(validSql); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameAsset), pg.Error(err).Error())
