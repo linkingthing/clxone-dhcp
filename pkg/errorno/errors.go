@@ -26,29 +26,29 @@ var (
 	}
 	ErrNoNode = func(target ErrName, name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] no nodes info", target, name),
-			fmt.Sprintf("%s[%s] 无节点信息", localizeErrName(target), name))
+			fmt.Sprintf("%s %s no nodes info", target, name),
+			fmt.Sprintf("%s %s 无节点信息", localizeErrName(target), name))
 	}
 	ErrNotContainNode = func(target ErrName, name string, nodes []string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] should contains nodes %q", target, name, nodes),
-			fmt.Sprintf("%s[%s] 应该包含节点 %q", localizeErrName(target), name, nodes))
+			fmt.Sprintf("%s %s should contains nodes %q", target, name, nodes),
+			fmt.Sprintf("%s %s 应该包含节点 %q", localizeErrName(target), name, nodes))
 	}
 	ErrConflict = func(src, dct ErrName, srcValue, dctValue string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] is conflict with %s[%s]", src, srcValue, dct, dctValue),
-			fmt.Sprintf("%s[%s]与%s[%s]冲突", localizeErrName(src), srcValue, localizeErrName(dct), dctValue))
+			fmt.Sprintf("%s %s is conflict with %s %s", src, srcValue, dct, dctValue),
+			fmt.Sprintf("%s %s 与 %s %s 冲突", localizeErrName(src), srcValue, localizeErrName(dct), dctValue))
 	}
 	ErrOperateResource = func(op ErrName, name, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s]failed: %s", op, name, errMsg),
-			fmt.Sprintf("%s[%s]失败：%s", localizeErrName(op),
+			fmt.Sprintf("%s %s failed: %s", op, name, errMsg),
+			fmt.Sprintf("%s %s 失败：%s", localizeErrName(op),
 				localizeErrName(ErrName(name)), errMsg))
 	}
 	ErrNotFound = func(errName ErrName, value string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] not found", errName, value),
-			fmt.Sprintf("%s[%s] 不存在", localizeErrName(errName), value))
+			fmt.Sprintf("%s %s not found", errName, value),
+			fmt.Sprintf("%s %s 不存在", localizeErrName(errName), value))
 	}
 	ErrIpv6Preferred = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -58,7 +58,7 @@ var (
 	ErrMinLifetime = func(min uint32) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("min-lifetime must not less than %d, and less than max-lifetime", min),
-			fmt.Sprintf("最短租约时长不能小于%d，且不超过最长租约", min))
+			fmt.Sprintf("最短租约时长不能小于 %d，且不超过最长租约", min))
 	}
 	ErrDefaultLifetime = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -78,7 +78,7 @@ var (
 	ErrHasPool = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("subnet6 has pools, can not enabled eui64 or address code"),
-			fmt.Sprintf("子网已配置地址池，不能开启EUI64"))
+			fmt.Sprintf("子网已配置地址池，不能开启EUI64或者地址编码"))
 	}
 	ErrHaMode = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -93,12 +93,12 @@ var (
 	ErrHandleCmd = func(cmd, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("handle command %s failed: %s", cmd, errMsg),
-			fmt.Sprintf("处理命令%s失败: %s", cmd, errMsg))
+			fmt.Sprintf("处理命令 %s 失败: %s", cmd, errMsg))
 	}
 	ErrContain = func(target ErrName, obj, part interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf(`%s[%v] contains "%v"`, target, obj, part),
-			fmt.Sprintf(`%s[%v] 中包含了"%v"`, localizeErrName(target), obj, part))
+			fmt.Sprintf(`%s %v contains "%v"`, target, obj, part),
+			fmt.Sprintf(`%s %v 中包含了"%v"`, localizeErrName(target), obj, part))
 	}
 	ErrInvalidRange = func(name string, begin, end interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -145,88 +145,88 @@ var (
 	ErrMismatchAddressCode = func(code string, begin, end uint32) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`code %s length mismatch with begin %d and end %d`, code, begin, end),
-			fmt.Sprintf(`地址码%s的长度不匹配开始%d与结束%d`, code, begin, end))
+			fmt.Sprintf(`地址码 %s 的长度不匹配开始 %d 与结束 %d`, code, begin, end))
 	}
 	ErrUsedReservation = func(ip string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`reservation %s exists with same subnet, mac and hostname or ip`, ip),
-			fmt.Sprintf(`%s已存在拥有相同子网、MAC和主机或IP的%s`, ip, localizeErrName(ErrNameDhcpReservation)))
+			fmt.Sprintf(`%s 已存在拥有相同子网、MAC和主机或IP的 %s`, ip, localizeErrName(ErrNameDhcpReservation)))
 	}
 	ErrSubnetWithEui64OrCode = func(name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`subnet6 %s has opened EUI64 or address code`, name),
-			fmt.Sprintf(`%s已经设置了EUI64 或者地址编码`, name))
+			fmt.Sprintf(`%s 已经设置了EUI64 或者地址编码`, name))
 	}
 	ErrAddressWithEui64 = func(address string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`address of subnet has opened EUI64`, address),
-			fmt.Sprintf(`%s所属DHCP子网是EUI64`, address))
+			fmt.Sprintf(`%s 所属DHCP子网是EUI64`, address))
 	}
 	ErrBiggerThan = func(target ErrName, obj1, obj2 interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf(`%s[%v] is bigger than %v`, target, obj1, obj2),
-			fmt.Sprintf(`%s[%v] 大于了 %v`, localizeErrName(target), obj1, obj2))
+			fmt.Sprintf(`%s %v is bigger than %v`, target, obj1, obj2),
+			fmt.Sprintf(`%s %v 大于了 %v`, localizeErrName(target), obj1, obj2))
 	}
 	ErrLessThan = func(target ErrName, obj1, obj2 interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf(`%s[%v] is less than %v`, target, obj1, obj2),
-			fmt.Sprintf(`%s[%v] 小于了 %v`, localizeErrName(target), obj1, obj2))
+			fmt.Sprintf(`%s %v is less than %v`, target, obj1, obj2),
+			fmt.Sprintf(`%s %v 小于了 %v`, localizeErrName(target), obj1, obj2))
 	}
 
 	ErrDuplicate = func(errName ErrName, value string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] is duplicate", errName, value),
-			fmt.Sprintf("%s[%s] 已存在", localizeErrName(errName), value))
+			fmt.Sprintf("%s %s is duplicate", errName, value),
+			fmt.Sprintf("%s %s 已存在", localizeErrName(errName), value))
 	}
 	ErrResourceNotFound = func(errName ErrName) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s not found", errName),
-			fmt.Sprintf("%s不存在", localizeErrName(errName)))
+			fmt.Sprintf("%s 不存在", localizeErrName(errName)))
 	}
 	ErrContainResource = func(src, dest ErrName, srcValue, destValue string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s %s contains %s %s", src, dest, srcValue, destValue),
-			fmt.Sprintf("%s[%s]包含了%s[%s]", localizeErrName(src), localizeErrName(dest), srcValue, destValue))
+			fmt.Sprintf("%s %s 包含了 %s %s", localizeErrName(src), localizeErrName(dest), srcValue, destValue))
 	}
 	ErrBeenUsed = func(errName ErrName, value string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] has been used", errName, value),
-			fmt.Sprintf("%s[%s]已被使用", localizeErrName(errName), value))
+			fmt.Sprintf("%s %s has been used", errName, value),
+			fmt.Sprintf("%s %s 已被使用", localizeErrName(errName), value))
 	}
 	ErrMissingParams = func(errName ErrName, value string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s params [%s] is missing", errName, value),
-			fmt.Sprintf("%s 参数 [%s] 缺失", localizeErrName(errName), value))
+			fmt.Sprintf("%s params %s is missing", errName, value),
+			fmt.Sprintf("%s 参数 %s 缺失", localizeErrName(errName), value))
 	}
 	ErrInvalidParams = func(errName ErrName, value interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s [%v] is invalid", errName, value),
-			fmt.Sprintf("%s [%v] 不合法", localizeErrName(errName), value))
+			fmt.Sprintf("%s %v is invalid", errName, value),
+			fmt.Sprintf("%s %v 不合法", localizeErrName(errName), value))
 	}
 	ErrOnlySupport = func(errName ErrName, value interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("unknown %s, only support %v", errName, value),
-			fmt.Sprintf("不支持的%s, 仅支持%v", localizeErrName(errName), value))
+			fmt.Sprintf("不支持 %s, 仅支持 %v", localizeErrName(errName), value))
 	}
 	ErrEnableResource = func(src, target ErrName) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s didn't enable %s", src, target),
-			fmt.Sprintf("%s未开启%s", localizeErrName(src), localizeErrName(target)))
+			fmt.Sprintf("%s 未开启 %s", localizeErrName(src), localizeErrName(target)))
 	}
 	ErrInvalidFormat = func(errName ErrName, opt ErrName) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s action [%s] is invalid format", errName, opt),
-			fmt.Sprintf("%s 操作 [%s] 请求参数格式不正确", localizeErrName(errName), localizeErrName(opt)))
+			fmt.Sprintf("%s action %s is invalid format", errName, opt),
+			fmt.Sprintf("%s 操作 %s 请求参数格式不正确", localizeErrName(errName), localizeErrName(opt)))
 	}
 	ErrUnknownOpt = func(errName ErrName, opt interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s action [%v] is unknown", errName, opt),
-			fmt.Sprintf("%s 操作 [%v] 无法识别", localizeErrName(errName), opt))
+			fmt.Sprintf("%s action %v is unknown", errName, opt),
+			fmt.Sprintf("%s 操作 %v 无法识别", localizeErrName(errName), opt))
 	}
 	ErrDBError = func(errName ErrName, target, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s [%s] failed:%s", errName, target, errMsg),
-			fmt.Sprintf("%s [%s] 失败: %s", localizeErrName(errName),
+			fmt.Sprintf("%s %s failed:%s", errName, target, errMsg),
+			fmt.Sprintf("%s %s 失败: %s", localizeErrName(errName),
 				localizeErrName(ErrName(target)), errMsg))
 	}
 	ErrNetworkError = func(target ErrName, errMsg string) *goresterr.ErrorMessage {
@@ -236,18 +236,18 @@ var (
 	}
 	ErrExportTmp = func(target ErrName, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("export template [%s] failed:%s", target, errMsg),
-			fmt.Sprintf("导出模板 [%s] 失败: %s", localizeErrName(target), errMsg))
+			fmt.Sprintf("export template %s failed:%s", target, errMsg),
+			fmt.Sprintf("导出模板 %s 失败: %s", localizeErrName(target), errMsg))
 	}
 	ErrExport = func(target ErrName, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("export [%s] failed:%s", target, errMsg),
-			fmt.Sprintf("导出数据 [%s] 失败: %s", localizeErrName(target), errMsg))
+			fmt.Sprintf("export %s failed:%s", target, errMsg),
+			fmt.Sprintf("导出数据 %s 失败: %s", localizeErrName(target), errMsg))
 	}
 	ErrImport = func(target ErrName, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("import [%s] failed:%s", target, errMsg),
-			fmt.Sprintf("导入数据 [%s] 失败: %s", localizeErrName(target), errMsg))
+			fmt.Sprintf("import %s failed:%s", target, errMsg),
+			fmt.Sprintf("导入数据 %s 失败: %s", localizeErrName(target), errMsg))
 	}
 	ErrInvalidTableHeader = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -258,17 +258,17 @@ var (
 	ErrImportExceedMaxCount = func(target ErrName, maxCount int) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("import %s exceeds max count: %d", target, maxCount),
-			fmt.Sprintf("导入数据 [%s] 超过最大限制: %d", localizeErrName(target), maxCount))
+			fmt.Sprintf("导入数据 %s 超过最大限制: %d", localizeErrName(target), maxCount))
 	}
 	ErrExceedMaxCount = func(target ErrName, maxCount int) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s exceeds max count: %d", target, maxCount),
-			fmt.Sprintf("%s超过最大限制: %d", localizeErrName(target), maxCount))
+			fmt.Sprintf("%s 超过最大限制: %d", localizeErrName(target), maxCount))
 	}
 	ErrFileIsEmpty = func(file string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("file [%s] is empty", file),
-			fmt.Sprintf("文件 [%s] 为空", file))
+			fmt.Sprintf("file %s is empty", file),
+			fmt.Sprintf("文件 %s 为空", file))
 	}
 	ErrReadFile = func(file string, errMsg string) *goresterr.ErrorMessage {
 		zhErrMsg := errMsg
@@ -276,71 +276,71 @@ var (
 			zhErrMsg = "仅支持 XLSX 格式的 Excel 文件"
 		}
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("read file [%s] failed:%s", file, errMsg),
-			fmt.Sprintf("读取文件[%s] 失败: %s", file, zhErrMsg))
+			fmt.Sprintf("read file %s failed:%s", file, errMsg),
+			fmt.Sprintf("读取文件 %s 失败: %s", file, zhErrMsg))
 	}
 	ErrParseHeader = func(file string, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("parse file [%s] header failed:%s", file, errMsg),
-			fmt.Sprintf("解析文件[%s]表头失败: %s", file, errMsg))
+			fmt.Sprintf("parse file %s header failed:%s", file, errMsg),
+			fmt.Sprintf("解析文件 %s 表头失败: %s", file, errMsg))
 	}
 	ErrMissingMandatory = func(line int, fields []string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("line %d missing mandatory fields: %q", line, fields),
-			fmt.Sprintf("第%d行缺少必填项: %q", line, fields))
+			fmt.Sprintf("第 %d 行缺少必填项: %q", line, fields))
 	}
 	ErrParseFailed = func(target ErrName, errMsg string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("parse %s failed: %s", target, errMsg),
-			fmt.Sprintf("解析%s失败: %s", localizeErrName(target), errMsg))
+			fmt.Sprintf("解析 %s 失败: %s", localizeErrName(target), errMsg))
 	}
 	ErrReadOnly = func(target string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("[%s] is read only", target),
-			fmt.Sprintf("[%s]是只读的", target))
+			fmt.Sprintf("%s is read only", target),
+			fmt.Sprintf("%s 是只读的", target))
 	}
 	ErrHasBeenAllocated = func(target ErrName, resource string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] has been allocated", target, resource),
-			fmt.Sprintf("%s[%s]已分配", localizeErrName(target), resource))
+			fmt.Sprintf("%s %s has been allocated", target, resource),
+			fmt.Sprintf("%s %s 已分配", localizeErrName(target), resource))
 	}
 	ErrIPHasBeenAllocated = func(target ErrName, resource string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] has been allocate IP", target, resource),
-			fmt.Sprintf("%s%s已分配IP", localizeErrName(target), resource))
+			fmt.Sprintf("%s %s has been allocate IP", target, resource),
+			fmt.Sprintf("%s %s 已分配IP", localizeErrName(target), resource))
 	}
 	ErrUsed = func(src, dct ErrName, srcValue, dctValue interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s[%s] is used by %s[%s]", src, srcValue, dct, dctValue),
-			fmt.Sprintf("%s[%v]已被%s[%v]使用", localizeErrName(src), srcValue, localizeErrName(dct), dctValue))
+			fmt.Sprintf("%s %v is used by %s %v", src, srcValue, dct, dctValue),
+			fmt.Sprintf("%s %v 已被%s %v 使用", localizeErrName(src), srcValue, localizeErrName(dct), dctValue))
 	}
 	ErrUsedBy = func(src, dct ErrName, dctValue string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%s is used by %s[%s]", src, dct, dctValue),
-			fmt.Sprintf("%s已被%s[%s]使用", localizeErrName(src), localizeErrName(dct), dctValue))
+			fmt.Sprintf("%s is used by %s %s", src, dct, dctValue),
+			fmt.Sprintf("%s 已被 %s %s 使用", localizeErrName(src), localizeErrName(dct), dctValue))
 	}
 	ErrUnsupported = func(opt string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("[%s] is unsupported", opt),
-			fmt.Sprintf("[%s]不支持", opt),
+			fmt.Sprintf("%s is unsupported", opt),
+			fmt.Sprintf("%s 不支持", opt),
 		)
 	}
 	ErrExpect = func(target ErrName, want, got interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("%v: expected is %v, but got %v", target, want, got),
-			fmt.Sprintf("%v: 期待的值是 %v, 但输入的是 %v", localizeErrName(target), want, got),
+			fmt.Sprintf("%s: expected is %v, but got %v", target, want, got),
+			fmt.Sprintf("%s: 期待的值是 %v, 但输入的是 %v", localizeErrName(target), want, got),
 		)
 	}
 	ErrExceedLimit = func(limit int) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("exceeds max limit [%d]", limit),
-			fmt.Sprintf("超过最大限制[%d]", limit),
+			fmt.Sprintf("exceeds max limit %d", limit),
+			fmt.Sprintf("超过最大限制 %d", limit),
 		)
 	}
 	ErrParseCIDR = func(prefix string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("parse CIDR prefix failed: %s", prefix),
-			fmt.Sprintf("解析CIDR前缀失败：[%s]", prefix),
+			fmt.Sprintf("解析CIDR前缀失败：%s", prefix),
 		)
 	}
 	ErrInvalidAddress = func(address string) *goresterr.ErrorMessage {
@@ -352,7 +352,7 @@ var (
 	ErrNotBelongTo = func(source, target ErrName, sourceValue, targetValue string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s %s isn't contained by %s %s", source, sourceValue, target, targetValue),
-			fmt.Sprintf("%s[%s]不属于%s[%s]", localizeErrName(source), sourceValue, localizeErrName(target), targetValue),
+			fmt.Sprintf("%s %s 不属于 %s %s", localizeErrName(source), sourceValue, localizeErrName(target), targetValue),
 		)
 	}
 )
