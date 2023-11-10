@@ -463,7 +463,7 @@ func checkUseEUI64AndAddressCode(tx restdb.Transaction, subnet *resource.Subnet6
 }
 
 func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, error) {
-	if !resource.IsCapacityZero(subnet.Capacity) {
+	if !subnet.UseEui64 && subnet.AddressCode == "" && !resource.IsCapacityZero(subnet.Capacity) {
 		return true, nil
 	}
 
