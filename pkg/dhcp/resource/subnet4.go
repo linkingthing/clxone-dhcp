@@ -15,6 +15,11 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
+const (
+	ClientClassStrategyAnd = "and"
+	ClientClassStrategyOr  = "or"
+)
+
 var TableSubnet4 = restdb.ResourceDBType(&Subnet4{})
 
 type Subnet4 struct {
@@ -24,7 +29,9 @@ type Subnet4 struct {
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
 	Tags                      string    `json:"tags"`
 	IfaceName                 string    `json:"ifaceName"`
+	WhiteClientClassStrategy  string    `json:"whiteClientClassStrategy"`
 	WhiteClientClasses        []string  `json:"whiteClientClasses"`
+	BlackClientClassStrategy  string    `json:"blackClientClassStrategy"`
 	BlackClientClasses        []string  `json:"blackClientClasses"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
@@ -195,6 +202,14 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 		return err
 	}
 
+	if err := checkClientClassStrategy(s.WhiteClientClassStrategy, len(s.WhiteClientClasses) != 0); err != nil {
+		return err
+	}
+
+	if err := checkClientClassStrategy(s.BlackClientClassStrategy, len(s.BlackClientClasses) != 0); err != nil {
+		return err
+	}
+
 	if err := checkClientClass4s(s.WhiteClientClasses, s.BlackClientClasses, clientClass4s); err != nil {
 		return err
 	}
@@ -254,6 +269,17 @@ func checkIpsValidWithVersion(isv4 bool, ips []string) error {
 	for _, ip := range ips {
 		if _, err := gohelperip.ParseIP(ip, isv4); err != nil {
 			return errorno.ErrInvalidAddress(ip)
+		}
+	}
+
+	return nil
+}
+
+func checkClientClassStrategy(strategy string, needCheck bool) error {
+	if needCheck {
+		if strategy != ClientClassStrategyAnd && strategy != ClientClassStrategyOr {
+			return errorno.ErrNotInScope(errorno.ErrNameClientClassStrategy,
+				ClientClassStrategyAnd, ClientClassStrategyOr)
 		}
 	}
 

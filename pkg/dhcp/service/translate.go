@@ -13,34 +13,36 @@ import (
 )
 
 const (
-	FieldNameSubnet              = "子网地址*"
-	FieldNameSubnetName          = "子网名称"
-	FieldNameValidLifetime       = "租约时长"
-	FieldNameMaxValidLifetime    = "最大租约时长"
-	FieldNameMinValidLifetime    = "最小租约时长"
-	FieldNamePreferredLifetime   = "首选租约时长"
-	FieldNameSubnetMask          = "子网掩码"
-	FieldNameRouters             = "默认网关"
-	FieldNameDomainServers       = "DNS"
-	FieldNameIfaceName           = "网卡名字"
-	FieldNameOption60            = "option60"
-	FieldNameOption82_suboption1 = "option82_suboption1"
-	FieldNameOption82_suboption2 = "option82_suboption2"
-	FieldNameOption82_suboption5 = "option82_suboption5"
-	FieldNameOption66            = "option66"
-	FieldNameOption67            = "option67"
-	FieldNameOption108           = "option108"
-	FieldNameRelayCircuitId      = "中继路由电路标识"
-	FieldNameRelayRemoteId       = "中继路由远程标识"
-	FieldNameRelayAddresses      = "中继路由链路地址"
-	FieldNameCAPWAPACAddresses   = "AC地址列表"
-	FieldNameOption16            = "option16"
-	FieldNameOption18            = "option18"
-	FieldNameNodes               = "节点列表"
-	FieldNameEUI64               = "EUI64"
-	FieldNameAddressCode         = "地址编码模板"
-	FieldNameWhiteClientClasses  = "option白名单"
-	FieldNameBlackClientClasses  = "option黑名单"
+	FieldNameSubnet                   = "子网地址*"
+	FieldNameSubnetName               = "子网名称"
+	FieldNameValidLifetime            = "租约时长"
+	FieldNameMaxValidLifetime         = "最大租约时长"
+	FieldNameMinValidLifetime         = "最小租约时长"
+	FieldNamePreferredLifetime        = "首选租约时长"
+	FieldNameSubnetMask               = "子网掩码"
+	FieldNameRouters                  = "默认网关"
+	FieldNameDomainServers            = "DNS"
+	FieldNameIfaceName                = "网卡名字"
+	FieldNameOption60                 = "option60"
+	FieldNameOption82_suboption1      = "option82_suboption1"
+	FieldNameOption82_suboption2      = "option82_suboption2"
+	FieldNameOption82_suboption5      = "option82_suboption5"
+	FieldNameOption66                 = "option66"
+	FieldNameOption67                 = "option67"
+	FieldNameOption108                = "option108"
+	FieldNameRelayCircuitId           = "中继路由电路标识"
+	FieldNameRelayRemoteId            = "中继路由远程标识"
+	FieldNameRelayAddresses           = "中继路由链路地址"
+	FieldNameCAPWAPACAddresses        = "AC地址列表"
+	FieldNameOption16                 = "option16"
+	FieldNameOption18                 = "option18"
+	FieldNameNodes                    = "节点列表"
+	FieldNameEUI64                    = "EUI64"
+	FieldNameAddressCode              = "地址编码模板"
+	FieldNameWhiteClientClassStrategy = "option白名单策略"
+	FieldNameWhiteClientClasses       = "option白名单"
+	FieldNameBlackClientClassStrategy = "option黑名单策略"
+	FieldNameBlackClientClasses       = "option黑名单"
 
 	FieldNamePools         = "动态地址池"
 	FieldNameReservedPools = "保留地址池"
@@ -63,7 +65,8 @@ const (
 var (
 	TableHeaderSubnet4 = []string{
 		FieldNameSubnet, FieldNameSubnetName, FieldNameIfaceName,
-		FieldNameWhiteClientClasses, FieldNameBlackClientClasses,
+		FieldNameWhiteClientClassStrategy, FieldNameWhiteClientClasses,
+		FieldNameBlackClientClassStrategy, FieldNameBlackClientClasses,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNameSubnetMask, FieldNameRouters, FieldNameDomainServers,
 		FieldNameOption66, FieldNameOption67,
@@ -73,8 +76,9 @@ var (
 	}
 
 	TableHeaderSubnet6 = []string{
-		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, FieldNameAddressCode,
-		FieldNameIfaceName, FieldNameWhiteClientClasses, FieldNameBlackClientClasses,
+		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, FieldNameAddressCode, FieldNameIfaceName,
+		FieldNameWhiteClientClassStrategy, FieldNameWhiteClientClasses,
+		FieldNameBlackClientClassStrategy, FieldNameBlackClientClasses,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameOption18, FieldNameDomainServers,
 		FieldNameCAPWAPACAddresses, FieldNameRelayAddresses, FieldNameNodes,
@@ -107,7 +111,9 @@ var (
 	TableHeaderSegmentFailLen = len(TableHeaderSegmentFail)
 
 	TemplateSubnet4 = [][]string{{
-		"127.0.0.0/8", "template", "ens33", "option60\noption61", "option3\noption6",
+		"127.0.0.0/8", "template", "ens33",
+		"满足全部", "option60\noption61",
+		"满足一个", "option3\noption6",
 		"14400", "28800", "7200", "255.0.0.0", "127.0.0.1", "114.114.114.114\n8.8.8.8",
 		"linkingthing", "tftp.bin", "Gi1/1/1", "11:11:11:11:11:11", "127.0.0.1",
 		"1800", "127.0.0.1\n127.0.0.2", "127.0.0.2\n127.0.0.3",
@@ -117,12 +123,16 @@ var (
 	}}
 
 	TemplateSubnet6 = [][]string{
-		[]string{"2001::/32", "template1", "关闭", "", "ens33", "option6\noption16", "option21\noption22",
+		[]string{"2001::/32", "template1", "关闭", "", "ens33",
+			"满足全部", "option60\noption61",
+			"满足一个", "option3\noption6",
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/1", "2400:3200::1\n2400:3200::baba:1", "2001::255",
 			"2001::1\n2001::2", "127.0.0.2\n127.0.0.3", "", "", "",
 			"2001:0:2001::-48-64-备注1\n2001:0:2002::-48-64-备注2"},
-		[]string{"2002::/64", "template2", "关闭", "", "eno1", "option16-1", "option17-1",
+		[]string{"2002::/64", "template2", "关闭", "", "eno1",
+			"满足全部", "option16-1",
+			"满足一个", "option17-1",
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/2", "2400:3200::1", "2002::255",
 			"2002::1\n2002::2", "127.0.0.3\n127.0.0.4",
@@ -130,11 +140,15 @@ var (
 			"2002::1-2002::5-备注3\n2002::20-2002::25-备注4",
 			"duid$0102$ips$2002::11_2002::12$备注5\nmac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6\nhostname$linking$ips$2002::34_2002::35$备注7",
 			""},
-		[]string{"2003::/64", "template3", "开启", "", "eth0", "option16-2", "option17-2",
+		[]string{"2003::/64", "template3", "开启", "", "eth0",
+			"满足全部", "option16-2",
+			"满足一个", "option17-2",
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/3", "2400:3200::baba:1", "2003::255",
 			"2003::1\n2003::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
-		[]string{"2004::/64", "template4", "关闭", "a4", "eth0", "option16-2", "option17-2",
+		[]string{"2004::/64", "template4", "关闭", "a1", "eth0",
+			"满足全部", "option16-3",
+			"满足一个", "option17-3",
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/3", "2400:3200::baba:1", "2003::255",
 			"2004::1\n2004::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
@@ -158,7 +172,9 @@ func splitFieldWithoutSpace(field string) []string {
 func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 	return []string{
 		subnet4.Subnet, subnet4.Tags, subnet4.IfaceName,
+		localizationClientClassStrategy(subnet4.WhiteClientClassStrategy),
 		strings.Join(subnet4.WhiteClientClasses, resource.CommonDelimiter),
+		localizationClientClassStrategy(subnet4.BlackClientClassStrategy),
 		strings.Join(subnet4.BlackClientClasses, resource.CommonDelimiter),
 		uint32ToString(subnet4.ValidLifetime),
 		uint32ToString(subnet4.MaxValidLifetime),
@@ -179,7 +195,9 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 		subnet6.Subnet, subnet6.Tags,
 		localizationBoolSwitch(subnet6.UseEui64), subnet6.AddressCodeName,
 		subnet6.IfaceName,
+		localizationClientClassStrategy(subnet6.WhiteClientClassStrategy),
 		strings.Join(subnet6.WhiteClientClasses, resource.CommonDelimiter),
+		localizationClientClassStrategy(subnet6.BlackClientClassStrategy),
 		strings.Join(subnet6.BlackClientClasses, resource.CommonDelimiter),
 		uint32ToString(subnet6.ValidLifetime),
 		uint32ToString(subnet6.MaxValidLifetime),
@@ -204,6 +222,14 @@ func localizationSegmentToStrSlice(segment *resource.AddressCodeLayoutSegment) [
 	return []string{segment.Value, segment.Code}
 }
 
+func localizationClientClassStrategy(strategy string) string {
+	if strategy == resource.ClientClassStrategyAnd {
+		return "满足全部"
+	} else {
+		return "满足一个"
+	}
+}
+
 func localizationBoolSwitch(b bool) string {
 	if b {
 		return "开启"
@@ -217,6 +243,14 @@ func internationalizationBoolSwitch(b string) bool {
 		return true
 	} else {
 		return false
+	}
+}
+
+func internationalizationClientClassStrategy(strategy string) string {
+	if strategy == "满足全部" {
+		return resource.ClientClassStrategyAnd
+	} else {
+		return resource.ClientClassStrategyOr
 	}
 }
 
@@ -240,9 +274,13 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString(subnet4.Tags)
 	buf.WriteString("','")
 	buf.WriteString(subnet4.IfaceName)
+	buf.WriteString("','")
+	buf.WriteString(subnet4.WhiteClientClassStrategy)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet4.WhiteClientClasses, ","))
-	buf.WriteString("}','{")
+	buf.WriteString("}','")
+	buf.WriteString(subnet4.BlackClientClassStrategy)
+	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet4.BlackClientClasses, ","))
 	buf.WriteString("}','")
 	buf.WriteString(uint32ToString(subnet4.ValidLifetime))
@@ -371,9 +409,13 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	buf.WriteString(subnet6.Tags)
 	buf.WriteString("','")
 	buf.WriteString(subnet6.IfaceName)
+	buf.WriteString("','")
+	buf.WriteString(subnet6.WhiteClientClassStrategy)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.WhiteClientClasses, ","))
-	buf.WriteString("}','{")
+	buf.WriteString("}','")
+	buf.WriteString(subnet6.BlackClientClassStrategy)
+	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.BlackClientClasses, ","))
 	buf.WriteString("}','")
 	buf.WriteString(uint32ToString(subnet6.ValidLifetime))

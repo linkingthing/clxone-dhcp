@@ -117,7 +117,7 @@ var (
 		}
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`%s should in %v`, target, values),
-			fmt.Sprintf(`%s 应该位于范围%v中`, localizeErrName(target), localizeValues))
+			fmt.Sprintf(`%s 应该位于范围 %v 中`, localizeErrName(target), localizeValues))
 	}
 	ErrOnlyOne = func(values ...string) *goresterr.ErrorMessage {
 		localizeValues := make([]string, len(values))

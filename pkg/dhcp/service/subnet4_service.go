@@ -118,21 +118,23 @@ func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 
 func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *pbdhcpagent.CreateSubnet4Request {
 	return &pbdhcpagent.CreateSubnet4Request{
-		Id:                  subnet.SubnetId,
-		Subnet:              subnet.Subnet,
-		ValidLifetime:       subnet.ValidLifetime,
-		MaxValidLifetime:    subnet.MaxValidLifetime,
-		MinValidLifetime:    subnet.MinValidLifetime,
-		RenewTime:           subnet.ValidLifetime / 2,
-		RebindTime:          subnet.ValidLifetime * 3 / 4,
-		WhiteClientClasses:  subnet.WhiteClientClasses,
-		BlackClientClasses:  subnet.BlackClientClasses,
-		IfaceName:           subnet.IfaceName,
-		RelayAgentCircuitId: subnet.RelayAgentCircuitId,
-		RelayAgentRemoteId:  subnet.RelayAgentRemoteId,
-		RelayAgentAddresses: subnet.RelayAgentAddresses,
-		NextServer:          subnet.NextServer,
-		SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
+		Id:                       subnet.SubnetId,
+		Subnet:                   subnet.Subnet,
+		ValidLifetime:            subnet.ValidLifetime,
+		MaxValidLifetime:         subnet.MaxValidLifetime,
+		MinValidLifetime:         subnet.MinValidLifetime,
+		RenewTime:                subnet.ValidLifetime / 2,
+		RebindTime:               subnet.ValidLifetime * 3 / 4,
+		WhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+		WhiteClientClasses:       subnet.WhiteClientClasses,
+		BlackClientClassStrategy: subnet.BlackClientClassStrategy,
+		BlackClientClasses:       subnet.BlackClientClasses,
+		IfaceName:                subnet.IfaceName,
+		RelayAgentCircuitId:      subnet.RelayAgentCircuitId,
+		RelayAgentRemoteId:       subnet.RelayAgentRemoteId,
+		RelayAgentAddresses:      subnet.RelayAgentAddresses,
+		NextServer:               subnet.NextServer,
+		SubnetOptions:            pbSubnetOptionsFromSubnet4(subnet),
 	}
 }
 
@@ -472,24 +474,26 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 		}
 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			resource.SqlColumnValidLifetime:       subnet.ValidLifetime,
-			resource.SqlColumnMaxValidLifetime:    subnet.MaxValidLifetime,
-			resource.SqlColumnMinValidLifetime:    subnet.MinValidLifetime,
-			resource.SqlColumnSubnetMask:          subnet.SubnetMask,
-			resource.SqlColumnDomainServers:       subnet.DomainServers,
-			resource.SqlColumnRouters:             subnet.Routers,
-			resource.SqlColumnWhiteClientClasses:  subnet.WhiteClientClasses,
-			resource.SqlColumnBlackClientClasses:  subnet.BlackClientClasses,
-			resource.SqlColumnIfaceName:           subnet.IfaceName,
-			resource.SqlColumnRelayAgentCircuitId: subnet.RelayAgentCircuitId,
-			resource.SqlColumnRelayAgentRemoteId:  subnet.RelayAgentRemoteId,
-			resource.SqlColumnRelayAgentAddresses: subnet.RelayAgentAddresses,
-			resource.SqlColumnNextServer:          subnet.NextServer,
-			resource.SqlColumnTftpServer:          subnet.TftpServer,
-			resource.SqlColumnBootfile:            subnet.Bootfile,
-			resource.SqlColumnIpv6OnlyPreferred:   subnet.Ipv6OnlyPreferred,
-			resource.SqlColumnCapWapACAddresses:   subnet.CapWapACAddresses,
-			resource.SqlColumnTags:                subnet.Tags,
+			resource.SqlColumnValidLifetime:            subnet.ValidLifetime,
+			resource.SqlColumnMaxValidLifetime:         subnet.MaxValidLifetime,
+			resource.SqlColumnMinValidLifetime:         subnet.MinValidLifetime,
+			resource.SqlColumnSubnetMask:               subnet.SubnetMask,
+			resource.SqlColumnDomainServers:            subnet.DomainServers,
+			resource.SqlColumnRouters:                  subnet.Routers,
+			resource.SqlColumnWhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+			resource.SqlColumnWhiteClientClasses:       subnet.WhiteClientClasses,
+			resource.SqlColumnBlackClientClassStrategy: subnet.BlackClientClassStrategy,
+			resource.SqlColumnBlackClientClasses:       subnet.BlackClientClasses,
+			resource.SqlColumnIfaceName:                subnet.IfaceName,
+			resource.SqlColumnRelayAgentCircuitId:      subnet.RelayAgentCircuitId,
+			resource.SqlColumnRelayAgentRemoteId:       subnet.RelayAgentRemoteId,
+			resource.SqlColumnRelayAgentAddresses:      subnet.RelayAgentAddresses,
+			resource.SqlColumnNextServer:               subnet.NextServer,
+			resource.SqlColumnTftpServer:               subnet.TftpServer,
+			resource.SqlColumnBootfile:                 subnet.Bootfile,
+			resource.SqlColumnIpv6OnlyPreferred:        subnet.Ipv6OnlyPreferred,
+			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
+			resource.SqlColumnTags:                     subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, subnet.GetID(), pg.Error(err).Error())
 		}
@@ -527,21 +531,23 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 	return kafka.SendDHCPCmdWithNodes(true, subnet.Nodes, kafka.UpdateSubnet4,
 		&pbdhcpagent.UpdateSubnet4Request{
-			Id:                  subnet.SubnetId,
-			Subnet:              subnet.Subnet,
-			ValidLifetime:       subnet.ValidLifetime,
-			MaxValidLifetime:    subnet.MaxValidLifetime,
-			MinValidLifetime:    subnet.MinValidLifetime,
-			RenewTime:           subnet.ValidLifetime / 2,
-			RebindTime:          subnet.ValidLifetime * 3 / 4,
-			WhiteClientClasses:  subnet.WhiteClientClasses,
-			BlackClientClasses:  subnet.BlackClientClasses,
-			IfaceName:           subnet.IfaceName,
-			RelayAgentCircuitId: subnet.RelayAgentCircuitId,
-			RelayAgentRemoteId:  subnet.RelayAgentRemoteId,
-			RelayAgentAddresses: subnet.RelayAgentAddresses,
-			NextServer:          subnet.NextServer,
-			SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
+			Id:                       subnet.SubnetId,
+			Subnet:                   subnet.Subnet,
+			ValidLifetime:            subnet.ValidLifetime,
+			MaxValidLifetime:         subnet.MaxValidLifetime,
+			MinValidLifetime:         subnet.MinValidLifetime,
+			RenewTime:                subnet.ValidLifetime / 2,
+			RebindTime:               subnet.ValidLifetime * 3 / 4,
+			WhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+			WhiteClientClasses:       subnet.WhiteClientClasses,
+			BlackClientClassStrategy: subnet.BlackClientClassStrategy,
+			BlackClientClasses:       subnet.BlackClientClasses,
+			IfaceName:                subnet.IfaceName,
+			RelayAgentCircuitId:      subnet.RelayAgentCircuitId,
+			RelayAgentRemoteId:       subnet.RelayAgentRemoteId,
+			RelayAgentAddresses:      subnet.RelayAgentAddresses,
+			NextServer:               subnet.NextServer,
+			SubnetOptions:            pbSubnetOptionsFromSubnet4(subnet),
 		}, nil)
 }
 
@@ -827,8 +833,12 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.DomainServers = splitFieldWithoutSpace(field)
 		case FieldNameIfaceName:
 			subnet.IfaceName = strings.TrimSpace(field)
+		case FieldNameWhiteClientClassStrategy:
+			subnet.WhiteClientClassStrategy = internationalizationClientClassStrategy(strings.TrimSpace(field))
 		case FieldNameWhiteClientClasses:
 			subnet.WhiteClientClasses = splitFieldWithoutSpace(field)
+		case FieldNameBlackClientClassStrategy:
+			subnet.BlackClientClassStrategy = internationalizationClientClassStrategy(strings.TrimSpace(field))
 		case FieldNameBlackClientClasses:
 			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameRelayCircuitId:

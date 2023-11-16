@@ -111,25 +111,27 @@ func sendCreateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 
 func subnet6ToCreateSubnet6Request(subnet *resource.Subnet6) *pbdhcpagent.CreateSubnet6Request {
 	return &pbdhcpagent.CreateSubnet6Request{
-		Id:                    subnet.SubnetId,
-		Subnet:                subnet.Subnet,
-		ValidLifetime:         subnet.ValidLifetime,
-		MaxValidLifetime:      subnet.MaxValidLifetime,
-		MinValidLifetime:      subnet.MinValidLifetime,
-		PreferredLifetime:     subnet.PreferredLifetime,
-		MinPreferredLifetime:  subnet.PreferredLifetime,
-		MaxPreferredLifetime:  subnet.PreferredLifetime,
-		RenewTime:             subnet.PreferredLifetime / 2,
-		RebindTime:            subnet.PreferredLifetime * 3 / 4,
-		WhiteClientClasses:    subnet.WhiteClientClasses,
-		BlackClientClasses:    subnet.BlackClientClasses,
-		IfaceName:             subnet.IfaceName,
-		RelayAgentAddresses:   subnet.RelayAgentAddresses,
-		RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
-		RapidCommit:           subnet.RapidCommit,
-		UseEui64:              subnet.UseEui64,
-		AddressCode:           subnet.AddressCodeName,
-		SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
+		Id:                       subnet.SubnetId,
+		Subnet:                   subnet.Subnet,
+		ValidLifetime:            subnet.ValidLifetime,
+		MaxValidLifetime:         subnet.MaxValidLifetime,
+		MinValidLifetime:         subnet.MinValidLifetime,
+		PreferredLifetime:        subnet.PreferredLifetime,
+		MinPreferredLifetime:     subnet.PreferredLifetime,
+		MaxPreferredLifetime:     subnet.PreferredLifetime,
+		RenewTime:                subnet.PreferredLifetime / 2,
+		RebindTime:               subnet.PreferredLifetime * 3 / 4,
+		WhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+		WhiteClientClasses:       subnet.WhiteClientClasses,
+		BlackClientClassStrategy: subnet.BlackClientClassStrategy,
+		BlackClientClasses:       subnet.BlackClientClasses,
+		IfaceName:                subnet.IfaceName,
+		RelayAgentAddresses:      subnet.RelayAgentAddresses,
+		RelayAgentInterfaceId:    subnet.RelayAgentInterfaceId,
+		RapidCommit:              subnet.RapidCommit,
+		UseEui64:                 subnet.UseEui64,
+		AddressCode:              subnet.AddressCodeName,
+		SubnetOptions:            pbSubnetOptionsFromSubnet6(subnet),
 	}
 }
 
@@ -353,22 +355,24 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 		}
 
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-			resource.SqlColumnValidLifetime:         subnet.ValidLifetime,
-			resource.SqlColumnMaxValidLifetime:      subnet.MaxValidLifetime,
-			resource.SqlColumnMinValidLifetime:      subnet.MinValidLifetime,
-			resource.SqlColumnPreferredLifetime:     subnet.PreferredLifetime,
-			resource.SqlColumnDomainServers:         subnet.DomainServers,
-			resource.SqlColumnWhiteClientClasses:    subnet.WhiteClientClasses,
-			resource.SqlColumnBlackClientClasses:    subnet.BlackClientClasses,
-			resource.SqlColumnIfaceName:             subnet.IfaceName,
-			resource.SqlColumnRelayAgentAddresses:   subnet.RelayAgentAddresses,
-			resource.SqlColumnRelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
-			resource.SqlColumnCapWapACAddresses:     subnet.CapWapACAddresses,
-			resource.SqlColumnTags:                  subnet.Tags,
-			resource.SqlColumnRapidCommit:           subnet.RapidCommit,
-			resource.SqlColumnUseEui64:              subnet.UseEui64,
-			resource.SqlColumnAddressCode:           subnet.AddressCode,
-			resource.SqlColumnCapacity:              subnet.Capacity,
+			resource.SqlColumnValidLifetime:            subnet.ValidLifetime,
+			resource.SqlColumnMaxValidLifetime:         subnet.MaxValidLifetime,
+			resource.SqlColumnMinValidLifetime:         subnet.MinValidLifetime,
+			resource.SqlColumnPreferredLifetime:        subnet.PreferredLifetime,
+			resource.SqlColumnDomainServers:            subnet.DomainServers,
+			resource.SqlColumnWhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+			resource.SqlColumnWhiteClientClasses:       subnet.WhiteClientClasses,
+			resource.SqlColumnBlackClientClassStrategy: subnet.BlackClientClassStrategy,
+			resource.SqlColumnBlackClientClasses:       subnet.BlackClientClasses,
+			resource.SqlColumnIfaceName:                subnet.IfaceName,
+			resource.SqlColumnRelayAgentAddresses:      subnet.RelayAgentAddresses,
+			resource.SqlColumnRelayAgentInterfaceId:    subnet.RelayAgentInterfaceId,
+			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
+			resource.SqlColumnTags:                     subnet.Tags,
+			resource.SqlColumnRapidCommit:              subnet.RapidCommit,
+			resource.SqlColumnUseEui64:                 subnet.UseEui64,
+			resource.SqlColumnAddressCode:              subnet.AddressCode,
+			resource.SqlColumnCapacity:                 subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, subnet.GetID(), pg.Error(err).Error())
 		}
@@ -477,25 +481,27 @@ func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, erro
 func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 	return kafka.SendDHCPCmdWithNodes(false, subnet.Nodes, kafka.UpdateSubnet6,
 		&pbdhcpagent.UpdateSubnet6Request{
-			Id:                    subnet.SubnetId,
-			Subnet:                subnet.Subnet,
-			ValidLifetime:         subnet.ValidLifetime,
-			MaxValidLifetime:      subnet.MaxValidLifetime,
-			MinValidLifetime:      subnet.MinValidLifetime,
-			PreferredLifetime:     subnet.PreferredLifetime,
-			MinPreferredLifetime:  subnet.PreferredLifetime,
-			MaxPreferredLifetime:  subnet.PreferredLifetime,
-			RenewTime:             subnet.PreferredLifetime / 2,
-			RebindTime:            subnet.PreferredLifetime * 3 / 4,
-			WhiteClientClasses:    subnet.WhiteClientClasses,
-			BlackClientClasses:    subnet.BlackClientClasses,
-			IfaceName:             subnet.IfaceName,
-			RelayAgentAddresses:   subnet.RelayAgentAddresses,
-			RelayAgentInterfaceId: subnet.RelayAgentInterfaceId,
-			RapidCommit:           subnet.RapidCommit,
-			UseEui64:              subnet.UseEui64,
-			AddressCode:           subnet.AddressCodeName,
-			SubnetOptions:         pbSubnetOptionsFromSubnet6(subnet),
+			Id:                       subnet.SubnetId,
+			Subnet:                   subnet.Subnet,
+			ValidLifetime:            subnet.ValidLifetime,
+			MaxValidLifetime:         subnet.MaxValidLifetime,
+			MinValidLifetime:         subnet.MinValidLifetime,
+			PreferredLifetime:        subnet.PreferredLifetime,
+			MinPreferredLifetime:     subnet.PreferredLifetime,
+			MaxPreferredLifetime:     subnet.PreferredLifetime,
+			RenewTime:                subnet.PreferredLifetime / 2,
+			RebindTime:               subnet.PreferredLifetime * 3 / 4,
+			WhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+			WhiteClientClasses:       subnet.WhiteClientClasses,
+			BlackClientClassStrategy: subnet.BlackClientClassStrategy,
+			BlackClientClasses:       subnet.BlackClientClasses,
+			IfaceName:                subnet.IfaceName,
+			RelayAgentAddresses:      subnet.RelayAgentAddresses,
+			RelayAgentInterfaceId:    subnet.RelayAgentInterfaceId,
+			RapidCommit:              subnet.RapidCommit,
+			UseEui64:                 subnet.UseEui64,
+			AddressCode:              subnet.AddressCodeName,
+			SubnetOptions:            pbSubnetOptionsFromSubnet6(subnet),
 		}, nil)
 }
 
@@ -794,8 +800,12 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.IfaceName = strings.TrimSpace(field)
 		case FieldNameRelayAddresses:
 			subnet.RelayAgentAddresses = splitFieldWithoutSpace(field)
+		case FieldNameWhiteClientClassStrategy:
+			subnet.WhiteClientClassStrategy = internationalizationClientClassStrategy(strings.TrimSpace(field))
 		case FieldNameWhiteClientClasses:
 			subnet.WhiteClientClasses = splitFieldWithoutSpace(field)
+		case FieldNameBlackClientClassStrategy:
+			subnet.BlackClientClassStrategy = internationalizationClientClassStrategy(strings.TrimSpace(field))
 		case FieldNameBlackClientClasses:
 			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameOption18:

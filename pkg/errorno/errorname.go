@@ -34,6 +34,7 @@ const (
 	ErrNameSharedNetwork            ErrName = "sharedNetwork"
 	ErrNameConfig                   ErrName = "config"
 	ErrNameClientClass              ErrName = "clientClass"
+	ErrNameClientClassStrategy      ErrName = "clientClassStrategy"
 	ErrNameDhcpNode                 ErrName = "dhcpNode"
 	ErrNameDhcpServerNode           ErrName = "dhcpServerNode"
 	ErrNameDhcpSentryNode           ErrName = "dhcpSentryNode"
@@ -194,6 +195,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameSharedNetwork:            "共享网络",
 	ErrNameConfig:                   "配置",
 	ErrNameClientClass:              "OPTION",
+	ErrNameClientClassStrategy:      "OPTION策略",
 	ErrNameDhcpNode:                 "DHCP节点",
 	ErrNameDhcpServerNode:           "服务器节点",
 	ErrNameDhcpSentryNode:           "哨兵节点",

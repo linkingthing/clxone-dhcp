@@ -26,7 +26,9 @@ type Subnet6 struct {
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
 	Tags                      string    `json:"tags"`
 	IfaceName                 string    `json:"ifaceName"`
+	WhiteClientClassStrategy  string    `json:"whiteClientClassStrategy"`
 	WhiteClientClasses        []string  `json:"whiteClientClasses"`
+	BlackClientClassStrategy  string    `json:"blackClientClassStrategy"`
 	BlackClientClasses        []string  `json:"blackClientClasses"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
@@ -160,6 +162,14 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*
 	}
 
 	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
+		return err
+	}
+
+	if err := checkClientClassStrategy(s.WhiteClientClassStrategy, len(s.WhiteClientClasses) != 0); err != nil {
+		return err
+	}
+
+	if err := checkClientClassStrategy(s.BlackClientClassStrategy, len(s.BlackClientClasses) != 0); err != nil {
 		return err
 	}
 
