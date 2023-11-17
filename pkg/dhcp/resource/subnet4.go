@@ -279,7 +279,7 @@ func checkClientClassStrategy(strategy string, needCheck bool) error {
 	if needCheck {
 		if strategy != ClientClassStrategyAnd && strategy != ClientClassStrategyOr {
 			return errorno.ErrNotInScope(errorno.ErrNameClientClassStrategy,
-				ClientClassStrategyAnd, ClientClassStrategyOr)
+				string(errorno.ErrNameClientClassStrategyAnd), string(errorno.ErrNameClientClassStrategyOr))
 		}
 	}
 

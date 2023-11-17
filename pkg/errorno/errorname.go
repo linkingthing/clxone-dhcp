@@ -35,6 +35,8 @@ const (
 	ErrNameConfig                   ErrName = "config"
 	ErrNameClientClass              ErrName = "clientClass"
 	ErrNameClientClassStrategy      ErrName = "clientClassStrategy"
+	ErrNameClientClassStrategyAnd   ErrName = "clientClassStrategyAnd"
+	ErrNameClientClassStrategyOr    ErrName = "clientClassStrategyOr"
 	ErrNameDhcpNode                 ErrName = "dhcpNode"
 	ErrNameDhcpServerNode           ErrName = "dhcpServerNode"
 	ErrNameDhcpSentryNode           ErrName = "dhcpSentryNode"
@@ -196,6 +198,8 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameConfig:                   "配置",
 	ErrNameClientClass:              "OPTION",
 	ErrNameClientClassStrategy:      "OPTION策略",
+	ErrNameClientClassStrategyAnd:   "满足全部",
+	ErrNameClientClassStrategyOr:    "满足一个",
 	ErrNameDhcpNode:                 "DHCP节点",
 	ErrNameDhcpServerNode:           "服务器节点",
 	ErrNameDhcpSentryNode:           "哨兵节点",
