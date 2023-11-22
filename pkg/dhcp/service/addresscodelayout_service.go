@@ -36,7 +36,8 @@ func (d *AddressCodeLayoutService) Create(addressCodeId string, addressCodeLayou
 			addressCodeId, addressCodeLayout.Label, addressCodeLayout.EndBit, addressCodeLayout.BeginBit); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(addressCodeLayout.Label), pg.Error(err).Error())
 		} else if len(addressCodeLayouts) != 0 {
-			return errorno.ErrExistIntersection(addressCodeLayouts[0].Label, addressCodeLayout.Label)
+			return errorno.ErrConflict(errorno.ErrName(addressCodeLayouts[0].Label), errorno.ErrName(addressCodeLayout.Label),
+				string(addressCodeLayouts[0].Label), string(addressCodeLayout.Label))
 		}
 
 		addressCodeLayout.AddressCode = addressCodeId

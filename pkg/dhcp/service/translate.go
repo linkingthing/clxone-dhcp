@@ -23,26 +23,24 @@ const (
 	FieldNameRouters                  = "默认网关"
 	FieldNameDomainServers            = "DNS"
 	FieldNameIfaceName                = "网卡名字"
-	FieldNameOption60                 = "option60"
-	FieldNameOption82_suboption1      = "option82_suboption1"
-	FieldNameOption82_suboption2      = "option82_suboption2"
-	FieldNameOption82_suboption5      = "option82_suboption5"
 	FieldNameOption66                 = "option66"
 	FieldNameOption67                 = "option67"
 	FieldNameOption108                = "option108"
+	FieldNameOption138                = "option138"
 	FieldNameRelayCircuitId           = "中继路由电路标识"
 	FieldNameRelayRemoteId            = "中继路由远程标识"
 	FieldNameRelayAddresses           = "中继路由链路地址"
-	FieldNameCAPWAPACAddresses        = "AC地址列表"
 	FieldNameOption16                 = "option16"
 	FieldNameOption18                 = "option18"
+	FieldNameOption52                 = "option52"
 	FieldNameNodes                    = "节点列表"
 	FieldNameEUI64                    = "EUI64"
-	FieldNameAddressCode              = "地址编码模板"
-	FieldNameWhiteClientClassStrategy = "option白名单策略"
-	FieldNameWhiteClientClasses       = "option白名单"
-	FieldNameBlackClientClassStrategy = "option黑名单策略"
-	FieldNameBlackClientClasses       = "option黑名单"
+	FieldNameAddressCode              = "地址编码"
+	FieldNameWhiteClientClassStrategy = "白名单策略"
+	FieldNameWhiteClientClasses       = "白名单"
+	FieldNameBlackClientClassStrategy = "黑名单策略"
+	FieldNameBlackClientClasses       = "黑名单"
+	FieldNameNextServer               = "启动服务地址"
 
 	FieldNamePools         = "动态地址池"
 	FieldNameReservedPools = "保留地址池"
@@ -50,7 +48,7 @@ const (
 	FieldNamePdPools       = "前缀委派地址池"
 
 	FieldNameAssetName         = "资产名称*"
-	FieldNameHwAddress         = "硬件地址*"
+	FieldNameHwAddress         = "资产MAC*"
 	FieldNameAssetType         = "资产类型"
 	FieldNameManufacturer      = "资产厂商"
 	FieldNameModel             = "资产型号"
@@ -71,7 +69,7 @@ var (
 		FieldNameSubnetMask, FieldNameRouters, FieldNameDomainServers,
 		FieldNameOption66, FieldNameOption67,
 		FieldNameRelayCircuitId, FieldNameRelayRemoteId, FieldNameRelayAddresses,
-		FieldNameOption108, FieldNameCAPWAPACAddresses, FieldNameNodes,
+		FieldNameOption108, FieldNameOption138, FieldNameNodes, FieldNameNextServer,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations,
 	}
 
@@ -81,7 +79,7 @@ var (
 		FieldNameBlackClientClassStrategy, FieldNameBlackClientClasses,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameOption18, FieldNameDomainServers,
-		FieldNameCAPWAPACAddresses, FieldNameRelayAddresses, FieldNameNodes,
+		FieldNameOption52, FieldNameRelayAddresses, FieldNameNodes,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations, FieldNamePdPools,
 	}
 
@@ -116,7 +114,7 @@ var (
 		"满足一个", "option3\noption6",
 		"14400", "28800", "7200", "255.0.0.0", "127.0.0.1", "114.114.114.114\n8.8.8.8",
 		"linkingthing", "tftp.bin", "Gi1/1/1", "11:11:11:11:11:11", "127.0.0.1",
-		"1800", "127.0.0.1\n127.0.0.2", "127.0.0.2\n127.0.0.3",
+		"1800", "127.0.0.1\n127.0.0.2", "127.0.0.2\n127.0.0.3", "127.0.0.1",
 		"127.0.0.6-127.0.0.100-备注1\n127.0.0.106-127.0.0.200-备注2",
 		"127.0.0.1-127.0.0.5-备注3\n127.0.0.200-127.0.0.255-备注4",
 		"mac$11:11:11:11:11:11$127.0.0.66$备注5\nhostname$linking$127.0.0.101$备注6",
@@ -186,7 +184,7 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 		strings.Join(subnet4.RelayAgentAddresses, resource.CommonDelimiter),
 		uint32ToString(subnet4.Ipv6OnlyPreferred),
 		strings.Join(subnet4.CapWapACAddresses, resource.CommonDelimiter),
-		strings.Join(subnet4.Nodes, resource.CommonDelimiter),
+		strings.Join(subnet4.Nodes, resource.CommonDelimiter), subnet4.NextServer,
 	}
 }
 

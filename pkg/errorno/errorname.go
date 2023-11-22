@@ -98,10 +98,10 @@ const (
 	ErrNameRelayAgentAddresses      ErrName = "relayAgentAddresses"
 	ErrNameIfName                   ErrName = "ifName"
 	ErrNameCapWapACAddresses        ErrName = "capwapACAddresses"
-	ErrNameAssetType                ErrName = "assetType"
-	ErrNameManufacturer             ErrName = "manufacturer"
-	ErrNameModel                    ErrName = "model"
-	ErrNameAccessNetworkTime        ErrName = "accessNetworkTime"
+	ErrNameAssetType                ErrName = "AssetType"
+	ErrNameManufacturer             ErrName = "Manufacturer"
+	ErrNameModel                    ErrName = "Model"
+	ErrNameAccessNetworkTime        ErrName = "AccessNetworkTime"
 	ErrNameAsset                    ErrName = "asset"
 
 	ErrNameMetric      ErrName = "metric"
@@ -174,6 +174,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameManufacturer:            "资产厂商",
 	ErrNameModel:                   "资产型号",
 	ErrNameAccessNetworkTime:       "资产入网时间",
+	ErrNameAsset:                   "分配资产",
 
 	ErrDBNameInsert: "写入数据",
 	ErrDBNameUpdate: "更新数据",

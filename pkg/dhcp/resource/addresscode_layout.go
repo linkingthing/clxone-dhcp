@@ -12,10 +12,10 @@ var TableAddressCodeLayout = restdb.ResourceDBType(&AddressCodeLayout{})
 type LabelType string
 
 const (
-	LabelTypeAssetType         LabelType = "asset_type"
-	LabelTypeManufacturer      LabelType = "manufacturer"
-	LabelTypeModel             LabelType = "model"
-	LabelTypeAccessNetworkTime LabelType = "access_network_time"
+	LabelTypeAssetType         LabelType = "AssetType"
+	LabelTypeManufacturer      LabelType = "Manufacturer"
+	LabelTypeModel             LabelType = "Model"
+	LabelTypeAccessNetworkTime LabelType = "AccessNetworkTime"
 )
 
 func (l LabelType) Validate() bool {

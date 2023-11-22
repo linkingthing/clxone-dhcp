@@ -857,10 +857,12 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 				return subnet, pools, reservedPools, reservations,
 					errorno.ErrInvalidParams(FieldNameOption108, field)
 			}
-		case FieldNameCAPWAPACAddresses:
+		case FieldNameOption138:
 			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
 		case FieldNameNodes:
 			subnet.Nodes = splitFieldWithoutSpace(field)
+		case FieldNameNextServer:
+			subnet.NextServer = strings.TrimSpace(field)
 		case FieldNamePools:
 			if pools, err = parsePool4sFromString(strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations, err
