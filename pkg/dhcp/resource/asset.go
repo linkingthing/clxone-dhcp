@@ -2,6 +2,7 @@ package resource
 
 import (
 	"net"
+	"strings"
 
 	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
@@ -77,6 +78,7 @@ func (a *Asset) Validate() error {
 		return errorno.ErrInvalidParams(errorno.ErrNameAccessNetworkTime, a.AccessNetworkTime)
 	}
 
+	a.HwAddress = strings.ToUpper(a.HwAddress)
 	return nil
 }
 

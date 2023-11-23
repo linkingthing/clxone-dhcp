@@ -83,13 +83,6 @@ func getAddressCode(tx restdb.Transaction, addressCode string) (*resource.Addres
 
 func (d *AddressCodeService) Delete(id string) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if exists, err := tx.Exists(resource.TableSubnet6, map[string]interface{}{
-			"address_code": id}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameExists, id, pg.Error(err).Error())
-		} else if exists {
-			return errorno.ErrBeenUsed(errorno.ErrNameAddressCode, id)
-		}
-
 		var addressCodes []*resource.AddressCode
 		if err := tx.Fill(map[string]interface{}{restdb.IDField: id}, &addressCodes); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
@@ -97,9 +90,16 @@ func (d *AddressCodeService) Delete(id string) error {
 			return errorno.ErrNotFound(errorno.ErrNameAddressCode, id)
 		}
 
+		if exists, err := tx.Exists(resource.TableSubnet6, map[string]interface{}{
+			"address_code": id}); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameExists, addressCodes[0].Name, pg.Error(err).Error())
+		} else if exists {
+			return errorno.ErrBeenUsed(errorno.ErrNameAddressCode, addressCodes[0].Name)
+		}
+
 		if _, err := tx.Delete(resource.TableAddressCode,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, addressCodes[0].Name, pg.Error(err).Error())
 		}
 
 		return sendDeleteAddressCodeCmdToDHCPAgent(addressCodes[0])
