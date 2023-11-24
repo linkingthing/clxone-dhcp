@@ -152,6 +152,12 @@ var (
 			fmt.Sprintf(`reservation %s exists with same subnet, mac and hostname or ip`, ip),
 			fmt.Sprintf(`%s 已存在拥有相同子网、MAC和主机或IP的 %s`, ip, localizeErrName(ErrNameDhcpReservation)))
 	}
+	ErrGetNodeInfoFromPrometheus = func() *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("get nodes from prometheus failed"),
+			fmt.Sprintf("从Prometheus获取节点信息失败"),
+		)
+	}
 	ErrSubnetWithEui64OrCode = func(name string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`subnet6 %s has opened EUI64 or address code`, name),
@@ -264,6 +270,11 @@ var (
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf("%s exceeds max count: %d", target, maxCount),
 			fmt.Sprintf("%s 超过最大限制: %d", localizeErrName(target), maxCount))
+	}
+	ErrExceedResourceMaxCount = func(target, targetResource ErrName, maxCount int) *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("%s of %s exceeds max count: %d", target, targetResource, maxCount),
+			fmt.Sprintf("%s%s超过最大限制: %d", localizeErrName(target), localizeErrName(targetResource), maxCount))
 	}
 	ErrFileIsEmpty = func(file string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(

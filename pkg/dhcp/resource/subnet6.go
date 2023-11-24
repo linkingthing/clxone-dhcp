@@ -3,6 +3,7 @@ package resource
 import (
 	"math/big"
 	"net"
+	"unicode/utf8"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/clxone-utils/excel"
@@ -150,6 +151,9 @@ func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 }
 
 func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*AddressCode) error {
+	if utf8.RuneCountInString(s.Tags) > MaxNameLength {
+		return errorno.ErrExceedResourceMaxCount(errorno.ErrNameName, errorno.ErrNameCharacter, MaxNameLength)
+	}
 	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, s.Tags)
 	}

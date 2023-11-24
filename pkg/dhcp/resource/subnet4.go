@@ -3,6 +3,7 @@ package resource
 import (
 	"net"
 	"net/url"
+	"unicode/utf8"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/clxone-utils/excel"
@@ -18,6 +19,8 @@ import (
 const (
 	ClientClassStrategyAnd = "and"
 	ClientClassStrategyOr  = "or"
+
+	MaxNameLength = 50
 )
 
 var TableSubnet4 = restdb.ResourceDBType(&Subnet4{})
@@ -170,6 +173,11 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 	if err := util.ValidateStrings(util.RegexpTypeCommon, s.Tags); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, s.Tags)
 	}
+
+	if utf8.RuneCountInString(s.Tags) > MaxNameLength {
+		return errorno.ErrExceedResourceMaxCount(errorno.ErrNameName, errorno.ErrNameCharacter, MaxNameLength)
+	}
+
 	if err := util.ValidateStrings(util.RegexpTypeCommon, s.IfaceName); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameIfName, s.IfaceName)
 	}

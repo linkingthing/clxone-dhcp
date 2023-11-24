@@ -1521,7 +1521,7 @@ func (s *Subnet4Service) ListWithSubnets(subnetListInput *resource.SubnetListInp
 func ListSubnet4sByPrefixes(prefixes []string) ([]*resource.Subnet4, error) {
 	var subnet4s []*resource.Subnet4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.FillEx(&subnet4s, "SELECT * FROM gr_subnet4 WHERE subnet = ANY ($1)", prefixes)
+		return tx.FillEx(&subnet4s, "SELECT * FROM gr_subnet4 WHERE subnet = ANY ($1::TEXT[])", prefixes)
 	}); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 	}

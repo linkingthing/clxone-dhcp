@@ -12,7 +12,7 @@ import (
 )
 
 func GetDHCPNodes() (response *pbmonitor.GetDHCPNodesResponse, err error) {
-	if err = callMonitorGrpc(func(client pbmonitor.MonitorServiceClient) error {
+	if err = callWardenGrpc(func(client pbmonitor.MonitorServiceClient) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -25,7 +25,7 @@ func GetDHCPNodes() (response *pbmonitor.GetDHCPNodesResponse, err error) {
 }
 
 func IsNodeMaster(node string) (response *pbmonitor.IsNodeMasterResponse, err error) {
-	if err = callMonitorGrpc(func(client pbmonitor.MonitorServiceClient) error {
+	if err = callWardenGrpc(func(client pbmonitor.MonitorServiceClient) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -39,8 +39,8 @@ func IsNodeMaster(node string) (response *pbmonitor.IsNodeMasterResponse, err er
 	return
 }
 
-func callMonitorGrpc(f func(client pbmonitor.MonitorServiceClient) error) error {
-	conn, err := consulutil.NewGrpcConn(config.ConsulConfig, config.GetConfig().Consul.CallServices.Monitor)
+func callWardenGrpc(f func(client pbmonitor.MonitorServiceClient) error) error {
+	conn, err := consulutil.NewGrpcConn(config.ConsulConfig, config.GetConfig().Consul.CallServices.Warden)
 	if err != nil {
 		return err
 	}
