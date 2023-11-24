@@ -501,7 +501,7 @@ func setSubnetLease4sWithoutReclaimed(ipv4Infos map[string]*pbdhcp.Ipv4Informati
 	for _, lease4 := range resp.GetLeases() {
 		if subnetLease, ok := reclaimedSubnetLeases[lease4.Address]; ok &&
 			subnetLease.Address == lease4.GetAddress() &&
-			subnetLease.Expire == service.TimeFromUinx(lease4.GetExpire()) &&
+			subnetLease.ExpirationTime == lease4.GetExpirationTime() &&
 			subnetLease.HwAddress == lease4.GetHwAddress() &&
 			subnetLease.ClientId == lease4.GetClientId() {
 			continue
@@ -520,7 +520,7 @@ func pbDHCPLease4FromPbDHCPAgentDHCPLease4(lease *pbdhcpagent.DHCPLease4) *pbdhc
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ClientId:              lease.GetClientId(),
 		ValidLifetime:         lease.GetValidLifetime(),
-		Expire:                service.TimeFromUinx(lease.GetExpire()),
+		Expire:                lease.GetExpirationTime(),
 		Hostname:              lease.GetHostname(),
 		VendorId:              lease.GetVendorId(),
 		OperatingSystem:       lease.GetOperatingSystem(),
@@ -665,7 +665,7 @@ func setSubnetLease6sWithoutReclaimed(ipv6Infos map[string]*pbdhcp.Ipv6Informati
 	for _, lease := range resp.GetLeases() {
 		if subnetLease, ok := reclaimedSubnetLeases[lease.Address]; ok &&
 			subnetLease.Address == lease.GetAddress() &&
-			subnetLease.Expire == service.TimeFromUinx(lease.GetExpire()) &&
+			subnetLease.ExpirationTime == lease.GetExpirationTime() &&
 			subnetLease.Duid == lease.GetDuid() &&
 			subnetLease.HwAddress == lease.GetHwAddress() &&
 			subnetLease.LeaseType == lease.GetLeaseType() &&
@@ -691,7 +691,7 @@ func pbDHCPLease6FromPbDHCPAgentDHCPLease6(lease *pbdhcpagent.DHCPLease6) *pbdhc
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ValidLifetime:         lease.GetValidLifetime(),
 		PreferredLifetime:     lease.GetPreferredLifetime(),
-		Expire:                service.TimeFromUinx(lease.GetExpire()),
+		Expire:                lease.GetExpirationTime(),
 		LeaseType:             lease.GetLeaseType(),
 		Hostname:              lease.GetHostname(),
 		VendorId:              lease.GetVendorId(),

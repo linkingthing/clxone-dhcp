@@ -24,14 +24,19 @@ type SubnetLease4 struct {
 	HwAddress                 string      `json:"hwAddress"`
 	HwAddressOrganization     string      `json:"hwAddressOrganization"`
 	ClientId                  string      `json:"clientId"`
-	ValidLifetime             uint32      `json:"validLifetime"`
-	Expire                    string      `json:"expire"`
+	FqdnFwd                   bool        `json:"fqdnFwd"`
+	FqdnRev                   bool        `json:"fqdnRev"`
 	Hostname                  string      `json:"hostname"`
+	LeaseState                string      `json:"leaseState"`
+	RequestType               string      `json:"requestType"`
+	RequestTime               string      `json:"requestTime"`
+	ValidLifetime             uint32      `json:"validLifetime"`
+	ExpirationTime            string      `json:"expirationTime"`
 	Fingerprint               string      `json:"fingerprint"`
 	VendorId                  string      `json:"vendorId"`
 	OperatingSystem           string      `json:"operatingSystem"`
 	ClientType                string      `json:"clientType"`
-	LeaseState                string      `json:"leaseState"`
+	Subnet                    string      `json:"subnet"`
 }
 
 func (l SubnetLease4) GetParents() []restresource.ResourceKind {
@@ -40,7 +45,7 @@ func (l SubnetLease4) GetParents() []restresource.ResourceKind {
 
 func (l *SubnetLease4) Equal(another *SubnetLease4) bool {
 	return l.Address == another.Address &&
-		l.Expire == another.Expire &&
+		l.ExpirationTime == another.ExpirationTime &&
 		strings.EqualFold(l.HwAddress, another.HwAddress) &&
 		l.ClientId == another.ClientId &&
 		l.Hostname == another.Hostname

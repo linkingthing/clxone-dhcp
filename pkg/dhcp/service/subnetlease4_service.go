@@ -6,7 +6,6 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/log"
@@ -392,22 +391,23 @@ func SubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLea
 		HwAddress:             strings.ToUpper(lease.GetHwAddress()),
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ClientId:              lease.GetClientId(),
-		ValidLifetime:         lease.GetValidLifetime(),
-		Expire:                TimeFromUinx(lease.GetExpire()),
+		FqdnFwd:               lease.GetFqdnFwd(),
+		FqdnRev:               lease.GetFqdnRev(),
 		Hostname:              lease.GetHostname(),
+		LeaseState:            lease.GetLeaseState().String(),
+		RequestType:           lease.GetRequestType(),
+		RequestTime:           lease.GetRequestTime(),
+		ValidLifetime:         lease.GetValidLifetime(),
+		ExpirationTime:        lease.GetExpirationTime(),
 		Fingerprint:           lease.GetFingerprint(),
 		VendorId:              lease.GetVendorId(),
 		OperatingSystem:       lease.GetOperatingSystem(),
 		ClientType:            lease.GetClientType(),
-		LeaseState:            lease.GetLeaseState().String(),
+		Subnet:                lease.GetSubnet(),
 	}
 
 	lease4.SetID(lease.GetAddress())
 	return lease4
-}
-
-func TimeFromUinx(t int64) string {
-	return time.Unix(t, 0).Format(time.RFC3339)
 }
 
 func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, subnetLeases []*resource.SubnetLease4) ([]*resource.SubnetLease4, error) {
