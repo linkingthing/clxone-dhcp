@@ -1,6 +1,8 @@
 package resource
 
 import (
+	"unicode/utf8"
+
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -23,6 +25,8 @@ func (a *AddressCode) Validate() error {
 
 	if util.ValidateStrings(util.RegexpTypeComma, a.Comment) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameComment, a.Comment)
+	} else if utf8.RuneCountInString(a.Comment) > MaxCommentLength {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameComment, MaxCommentLength)
 	}
 
 	return nil
