@@ -274,10 +274,17 @@ func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses []str
 }
 
 func checkIpsValidWithVersion(isv4 bool, ips []string) error {
+	uniqueIps := make(map[string]struct{}, len(ips))
 	for _, ip := range ips {
+		if _, ok := uniqueIps[ip]; ok {
+			return errorno.ErrDuplicate(errorno.ErrNameIp, ip)
+		}
+
 		if _, err := gohelperip.ParseIP(ip, isv4); err != nil {
 			return errorno.ErrInvalidAddress(ip)
 		}
+
+		uniqueIps[ip] = struct{}{}
 	}
 
 	return nil
@@ -353,10 +360,17 @@ func checkClientClassesValid(clientClassNames []string, clientClassSet map[strin
 }
 
 func checkNodesValid(nodes []string) error {
+	uniqueNodes := make(map[string]struct{}, len(nodes))
 	for _, node := range nodes {
+		if _, ok := uniqueNodes[node]; ok {
+			return errorno.ErrDuplicate(errorno.ErrNameDhcpNode, node)
+		}
+
 		if net.ParseIP(node) == nil {
 			return errorno.ErrInvalidAddress(node)
 		}
+
+		uniqueNodes[node] = struct{}{}
 	}
 
 	return nil

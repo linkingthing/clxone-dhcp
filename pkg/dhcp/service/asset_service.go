@@ -218,7 +218,7 @@ func parseAssetsFromFile(fileName string, response *excel.ImportResult) (string,
 		} else if missingMandatory {
 			addFailDataToResponse(response, TableHeaderAssetFailLen,
 				localizationAssetToStrSlice(&resource.Asset{}),
-				errorno.ErrMissingMandatory(j+2, SubnetMandatoryFields).ErrorCN())
+				errorno.ErrMissingMandatory(j+2, AssetMandatoryFields).ErrorCN())
 			continue
 		}
 

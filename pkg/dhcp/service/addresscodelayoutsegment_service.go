@@ -261,7 +261,7 @@ func parseSegmentsFromFile(fileName, addressCodeId, layoutId string, response *e
 		} else if missingMandatory {
 			addFailDataToResponse(response, TableHeaderSegmentFailLen,
 				localizationSegmentToStrSlice(&resource.AddressCodeLayoutSegment{}),
-				errorno.ErrMissingMandatory(j+2, SubnetMandatoryFields).ErrorCN())
+				errorno.ErrMissingMandatory(j+2, SegmentMandatoryFields).ErrorCN())
 			continue
 		}
 
