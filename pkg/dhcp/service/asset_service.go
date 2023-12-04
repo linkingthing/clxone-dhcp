@@ -70,6 +70,12 @@ func assetToPbCreateAssetRequest(asset *resource.Asset) *pbdhcpagent.CreateAsset
 }
 
 func (a *AssetService) List(conditions map[string]interface{}) ([]*resource.Asset, error) {
+	if hwaddrInterface, ok := conditions[resource.SqlColumnHwAddress]; ok {
+		if hwaddr, ok := hwaddrInterface.(string); ok {
+			conditions[resource.SqlColumnHwAddress] = strings.ToUpper(hwaddr)
+		}
+	}
+
 	var assets []*resource.Asset
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(conditions, &assets)

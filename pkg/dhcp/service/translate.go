@@ -217,7 +217,23 @@ func localizationAssetToStrSlice(asset *resource.Asset) []string {
 }
 
 func localizationSegmentToStrSlice(segment *resource.AddressCodeLayoutSegment) []string {
-	return []string{segment.Value, segment.Code}
+	return []string{localizationSegmentValue(segment.Value), segment.Code}
+}
+
+func localizationSegmentValue(value string) string {
+	if value == "unknown" {
+		return "缺省"
+	} else {
+		return value
+	}
+}
+
+func internationalizationSegmentValue(value string) string {
+	if value == "缺省" {
+		return "unknown"
+	} else {
+		return value
+	}
 }
 
 func localizationClientClassStrategy(strategy string) string {

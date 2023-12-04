@@ -323,7 +323,7 @@ func parseSegment(tableHeaderFields, fields []string) *resource.AddressCodeLayou
 		case FieldNameCode:
 			segment.Code = strings.TrimSpace(field)
 		case FieldNameValue:
-			segment.Value = strings.TrimSpace(field)
+			segment.Value = internationalizationSegmentValue(strings.TrimSpace(field))
 		}
 	}
 

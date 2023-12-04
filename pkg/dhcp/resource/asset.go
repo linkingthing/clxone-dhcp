@@ -54,8 +54,10 @@ func (a Asset) GetActions() []restresource.Action {
 }
 
 func (a *Asset) Validate() error {
-	if _, err := net.ParseMAC(a.HwAddress); err != nil {
+	if hwaddr, err := net.ParseMAC(a.HwAddress); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
+	} else {
+		a.HwAddress = strings.ToUpper(hwaddr.String())
 	}
 
 	if util.ValidateStrings(util.RegexpTypeCommon, a.Name) != nil {
@@ -78,7 +80,6 @@ func (a *Asset) Validate() error {
 		return errorno.ErrInvalidParams(errorno.ErrNameAccessNetworkTime, a.AccessNetworkTime)
 	}
 
-	a.HwAddress = strings.ToUpper(a.HwAddress)
 	return nil
 }
 
