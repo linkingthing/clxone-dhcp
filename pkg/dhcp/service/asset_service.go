@@ -277,8 +277,7 @@ func parseAsset(tableHeaderFields, fields []string) *resource.Asset {
 func checkAssetConflictWithAssets(asset *resource.Asset, assets []*resource.Asset) error {
 	for _, a := range assets {
 		if a.HwAddress == asset.HwAddress {
-			return errorno.ErrConflict(errorno.ErrNameAsset, errorno.ErrNameAsset,
-				a.HwAddress, asset.HwAddress)
+			return errorno.ErrDuplicate(errorno.ErrNameAsset, a.HwAddress)
 		}
 	}
 
