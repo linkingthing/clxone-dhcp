@@ -279,35 +279,38 @@ func setAddressCode(subnets []*resource.Subnet6, addressCodes []*resource.Addres
 }
 
 func (s *Subnet6Service) Get(id string) (*resource.Subnet6, error) {
-	var subnets []*resource.Subnet6
-	var addressCodes []*resource.AddressCode
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := tx.Fill(map[string]interface{}{restdb.IDField: id}, &subnets); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, id, pg.Error(err).Error())
-		} else if len(subnets) == 0 {
-			return errorno.ErrNotFound(errorno.ErrNameNetworkV6, id)
+	var subnet6 *resource.Subnet6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) (err error) {
+		if subnet6, err = getSubnet6FromDB(tx, id); err != nil {
+			return
 		}
 
-		if subnets[0].AddressCode != "" {
-			if err := tx.Fill(map[string]interface{}{restdb.IDField: subnets[0].AddressCode}, &addressCodes); err != nil {
-				return errorno.ErrDBError(errorno.ErrDBNameQuery, subnets[0].AddressCode, pg.Error(err).Error())
-			}
-		}
-
-		return nil
+		return setSubnet6AddressCodeName(tx, subnet6)
 	}); err != nil {
 		return nil, err
 	}
 
-	setSubnet6LeasesUsedInfo(subnets[0])
+	setSubnet6LeasesUsedInfo(subnet6)
 	if nodeNames, err := GetAgentInfo(false, kafka.AgentRoleSentry6); err != nil {
 		log.Warnf("get node names failed: %s", err.Error())
 	} else {
-		subnets[0].NodeNames, subnets[0].NodeIds = getSubnetNodeNamesAndIds(subnets[0].Nodes, nodeNames)
+		subnet6.NodeNames, subnet6.NodeIds = getSubnetNodeNamesAndIds(subnet6.Nodes, nodeNames)
 	}
 
-	setAddressCode(subnets, addressCodes)
-	return subnets[0], nil
+	return subnet6, nil
+}
+
+func setSubnet6AddressCodeName(tx restdb.Transaction, subnet *resource.Subnet6) error {
+	if subnet.AddressCode != "" {
+		var addressCodes []*resource.AddressCode
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: subnet.AddressCode}, &addressCodes); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, subnet.AddressCode, pg.Error(err).Error())
+		} else if len(addressCodes) != 0 {
+			subnet.AddressCodeName = addressCodes[0].Name
+		}
+	}
+
+	return nil
 }
 
 func setSubnet6LeasesUsedInfo(subnet *resource.Subnet6) {
@@ -1505,6 +1508,10 @@ func genCreateSubnets6AndPoolsRequestWithSubnet6(tx restdb.Transaction, subnet6 
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()},
 		&reservedPdPools); err != nil {
 		return nil, "", errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameReservedPdPool), pg.Error(err).Error())
+	}
+
+	if err := setSubnet6AddressCodeName(tx, subnet6); err != nil {
+		return nil, "", err
 	}
 
 	if len(pools) == 0 && len(reservedPools) == 0 && len(reservations) == 0 &&
