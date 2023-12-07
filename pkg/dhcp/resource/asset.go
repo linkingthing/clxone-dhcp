@@ -3,6 +3,7 @@ package resource
 import (
 	"net"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
@@ -16,6 +17,8 @@ var TableAsset = restdb.ResourceDBType(&Asset{})
 
 const (
 	ActionNameBatchDelete = "batch_delete"
+
+	InputMaxLength = 30
 )
 
 type Asset struct {
@@ -66,14 +69,20 @@ func (a *Asset) Validate() error {
 
 	if util.ValidateStrings(util.RegexpTypeSpace, a.AssetType) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameAssetType, a.AssetType)
+	} else if utf8.RuneCountInString(a.AssetType) > InputMaxLength {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameAssetType, InputMaxLength)
 	}
 
 	if util.ValidateStrings(util.RegexpTypeSpace, a.Manufacturer) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameManufacturer, a.Manufacturer)
+	} else if utf8.RuneCountInString(a.Manufacturer) > InputMaxLength {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameManufacturer, InputMaxLength)
 	}
 
 	if util.ValidateStrings(util.RegexpTypeSpace, a.Model) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameModel, a.Model)
+	} else if utf8.RuneCountInString(a.Model) > InputMaxLength {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameModel, InputMaxLength)
 	}
 
 	if util.ValidateStrings(util.RegexpTypeSpace, a.AccessNetworkTime) != nil {

@@ -229,10 +229,10 @@ func parseAssetsFromFile(fileName string, response *excel.ImportResult) (string,
 		}
 
 		asset := parseAsset(tableHeaderFields, fields)
-		if err := asset.Validate(); err != nil {
+		if err = asset.Validate(); err != nil {
 			addFailDataToResponse(response, TableHeaderAssetFailLen, localizationAssetToStrSlice(asset),
 				errorno.TryGetErrorCNMsg(err))
-		} else if err := checkAssetConflictWithAssets(asset, append(oldAssets, assets...)); err != nil {
+		} else if err = checkAssetConflictWithAssets(asset, append(oldAssets, assets...)); err != nil {
 			addFailDataToResponse(response, TableHeaderAssetFailLen, localizationAssetToStrSlice(asset),
 				errorno.TryGetErrorCNMsg(err))
 		} else {
