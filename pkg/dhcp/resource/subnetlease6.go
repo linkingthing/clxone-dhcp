@@ -38,6 +38,7 @@ type SubnetLease6 struct {
 	AddressCodeEnds           []uint32    `json:"addressCodeEnds"`
 	Subnet                    string      `json:"subnet"`
 	BelongEui64Subnet         bool        `json:"-" db:"-"`
+	BelongAddrCodeSubnet      bool        `json:"-" db:"-"`
 }
 
 func (l SubnetLease6) GetParents() []restresource.ResourceKind {
@@ -63,7 +64,7 @@ func (s SubnetLease6) GetActions() []restresource.Action {
 		{
 			Name:   ActionListToReservation,
 			Input:  &ConvToReservationInput{},
-			Output: &ConvToReservationOutput{},
+			Output: &ConvToReservationInput{},
 		},
 		{
 			Name:  ActionDynamicToReservation,

@@ -38,9 +38,9 @@ func (l *SubnetLease4Service) List(subnet *resource.Subnet4, ip string) ([]*reso
 }
 
 func (l *SubnetLease4Service) ActionListToReservation(subnet *resource.Subnet4, input *resource.ConvToReservationInput) (
-	*resource.ConvToReservationOutput, error) {
+	*resource.ConvToReservationInput, error) {
 	if len(input.Addresses) == 0 {
-		return &resource.ConvToReservationOutput{Data: []resource.ConvToReservationItem{}}, nil
+		return &resource.ConvToReservationInput{Data: []resource.ConvToReservationItem{}}, nil
 	}
 
 	leases, err := ListSubnetLease4(subnet, "")
@@ -66,7 +66,12 @@ func (l *SubnetLease4Service) ActionListToReservation(subnet *resource.Subnet4, 
 }
 
 func (l *SubnetLease4Service) filterAbleToReservation(subnetId string, leases []*resource.SubnetLease4,
-	addresses []string) ([]*resource.SubnetLease4, []string, error) {
+	items []resource.ConvToReservationItem) ([]*resource.SubnetLease4, []string, error) {
+	addresses := make([]string, len(items))
+	for i, item := range items {
+		addresses[i] = item.Address
+	}
+
 	var reservations []*resource.Reservation4
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.FillEx(&reservations, `select * from gr_reservation4 where subnet4 = $1 and ip_address = any($2::text[])`,
@@ -75,12 +80,12 @@ func (l *SubnetLease4Service) filterAbleToReservation(subnetId string, leases []
 		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
-	reservationLeases := make([]*resource.SubnetLease4, 0, len(addresses))
-	hwAddresses := make([]string, 0, len(addresses))
+	reservationLeases := make([]*resource.SubnetLease4, 0, len(items))
+	hwAddresses := make([]string, 0, len(items))
 outer:
-	for _, address := range addresses {
+	for _, item := range items {
 		for _, lease := range leases {
-			if lease.Address != address {
+			if lease.Address != item.Address {
 				continue
 			}
 			if lease.AddressType == resource.AddressTypeDynamic {
@@ -93,7 +98,7 @@ outer:
 		}
 
 		for _, reservation := range reservations {
-			if reservation.IpAddress != address {
+			if reservation.IpAddress != item.Address {
 				continue
 			} else if reservation.HwAddress != "" {
 				hwAddresses = append(hwAddresses, reservation.HwAddress)
@@ -101,20 +106,24 @@ outer:
 			continue outer
 		}
 
-		return nil, nil, errorno.ErrNotFound(errorno.ErrNameLease, address)
+		return nil, nil, errorno.ErrNotFound(errorno.ErrNameLease, item.Address)
 	}
 
 	return reservationLeases, hwAddresses, nil
 }
 
 func (l *SubnetLease4Service) listToReservationWithMac(leases []*resource.SubnetLease4) (
-	*resource.ConvToReservationOutput, error) {
+	*resource.ConvToReservationInput, error) {
 	reservationLeases := make([]*resource.SubnetLease4, 0, len(leases))
 	hwAddresses := make([]string, 0, len(leases))
+	seen := make(map[string]bool, len(leases))
 	for _, lease := range leases {
 		if lease.HwAddress != "" {
 			reservationLeases = append(reservationLeases, lease)
-			hwAddresses = append(hwAddresses, lease.HwAddress)
+			if !seen[lease.HwAddress] {
+				seen[lease.HwAddress] = true
+				hwAddresses = append(hwAddresses, lease.HwAddress)
+			}
 		}
 	}
 
@@ -127,12 +136,9 @@ func (l *SubnetLease4Service) listToReservationWithMac(leases []*resource.Subnet
 	for _, lease := range reservationLeases {
 		dualStack := make([]string, 0, len(lease6s))
 		for _, lease6 := range lease6s {
-			if lease6.HwAddress == lease.HwAddress {
-				if lease6.BelongEui64Subnet {
-					dualStack = append(dualStack, fmt.Sprintf("%s(EUI64)", lease6.Address))
-				} else {
-					dualStack = append(dualStack, lease6.Address)
-				}
+			if lease6.HwAddress == lease.HwAddress &&
+				!lease6.BelongEui64Subnet && !lease6.BelongAddrCodeSubnet {
+				dualStack = append(dualStack, lease6.Address)
 			}
 		}
 
@@ -144,11 +150,11 @@ func (l *SubnetLease4Service) listToReservationWithMac(leases []*resource.Subnet
 		})
 	}
 
-	return &resource.ConvToReservationOutput{Data: result}, nil
+	return &resource.ConvToReservationInput{Data: result}, nil
 }
 
 func (l *SubnetLease4Service) listToReservationWithHostname(leases []*resource.SubnetLease4) (
-	*resource.ConvToReservationOutput, error) {
+	*resource.ConvToReservationInput, error) {
 	result := make([]resource.ConvToReservationItem, 0, len(leases))
 	for _, lease := range leases {
 		if lease.Hostname != "" {
@@ -160,11 +166,11 @@ func (l *SubnetLease4Service) listToReservationWithHostname(leases []*resource.S
 		}
 	}
 
-	return &resource.ConvToReservationOutput{Data: result}, nil
+	return &resource.ConvToReservationInput{Data: result}, nil
 }
 
 func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet4, input *resource.ConvToReservationInput) error {
-	if len(input.Addresses) == 0 {
+	if len(input.Data) == 0 {
 		return nil
 	}
 
@@ -173,7 +179,8 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 		return err
 	}
 
-	leases, hwAddresses, err := l.filterAbleToReservation(subnet.GetID(), leases, input.Addresses)
+	// todo:
+	leases, hwAddresses, err := l.filterAbleToReservation(subnet.GetID(), leases, input.Data)
 	if err != nil {
 		return err
 	}
@@ -384,11 +391,12 @@ func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 }
 
 func SubnetLease4FromPbLease4(lease *pbdhcpagent.DHCPLease4) *resource.SubnetLease4 {
+	hwAddress, _ := util.NormalizeMac(lease.GetHwAddress())
 	lease4 := &resource.SubnetLease4{
 		Subnet4:               strconv.FormatUint(lease.GetSubnetId(), 10),
 		Address:               lease.GetAddress(),
 		AddressType:           resource.AddressTypeDynamic,
-		HwAddress:             strings.ToUpper(lease.GetHwAddress()),
+		HwAddress:             hwAddress,
 		HwAddressOrganization: lease.GetHwAddressOrganization(),
 		ClientId:              lease.GetClientId(),
 		FqdnFwd:               lease.GetFqdnFwd(),

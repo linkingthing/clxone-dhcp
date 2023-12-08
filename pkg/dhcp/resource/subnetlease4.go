@@ -1,9 +1,10 @@
 package resource
 
 import (
+	"strings"
+
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
-	"strings"
 )
 
 type ReservationType string
@@ -60,7 +61,7 @@ func (s SubnetLease4) GetActions() []restresource.Action {
 		{
 			Name:   ActionListToReservation,
 			Input:  &ConvToReservationInput{},
-			Output: &ConvToReservationOutput{},
+			Output: &ConvToReservationInput{},
 		},
 		{
 			Name:  ActionDynamicToReservation,
@@ -71,4 +72,19 @@ func (s SubnetLease4) GetActions() []restresource.Action {
 
 type BatchDeleteLeasesInput struct {
 	Addresses []string `json:"addresses"`
+}
+
+type ConvToReservationInput struct {
+	Addresses       []string                `json:"addresses"`
+	ReservationType ReservationType         `json:"reservationType"`
+	BothV4V6        bool                    `json:"bothV4V6"`
+	Data            []ConvToReservationItem `json:"data"`
+}
+
+type ConvToReservationItem struct {
+	Address    string   `json:"address"`
+	DualStacks []string `json:"dualStacks"`
+	HwAddress  string   `json:"hwAddress"`
+	Hostname   string   `json:"hostname"`
+	Duid       string   `json:"duid"`
 }
