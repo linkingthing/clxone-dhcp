@@ -163,10 +163,10 @@ var (
 			fmt.Sprintf(`subnet6 %s has opened EUI64 or address code`, name),
 			fmt.Sprintf(`%s 已经设置了EUI64 或者地址编码`, name))
 	}
-	ErrAddressWithEui64 = func(address string) *goresterr.ErrorMessage {
+	ErrAddressWithEui64OrCode = func(address string) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf(`address of subnet has opened EUI64`, address),
-			fmt.Sprintf(`%s 所属DHCP子网是EUI64`, address))
+			fmt.Sprintf("subnet of %s has opened EUI64 or address code", address),
+			fmt.Sprintf("%s所属DHCP子网已设置EUI64或者地址编码", address))
 	}
 	ErrBiggerThan = func(target ErrName, obj1, obj2 interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
@@ -177,6 +177,16 @@ var (
 		return goresterr.NewErrorMessage(
 			fmt.Sprintf(`%s %v is less than %v`, target, obj1, obj2),
 			fmt.Sprintf(`%s %v 小于了 %v`, localizeErrName(target), obj1, obj2))
+	}
+	ErrChanged = func(target ErrName, obj, before, now interface{}) *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("%s of %v changed from %v to %v", target, obj, before, now),
+			fmt.Sprintf("%v的%s已从%v变更为%v", obj, localizeErrName(target), before, now))
+	}
+	ErrNoResourceWith = func(objKind, condKind ErrName, obj, cond interface{}) *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("cannot find %s %s with %s %s", objKind, obj, condKind, cond),
+			fmt.Sprintf("找不到拥有%s%v的%s%v", localizeErrName(objKind), obj, localizeErrName(condKind), cond))
 	}
 
 	ErrDuplicate = func(errName ErrName, value string) *goresterr.ErrorMessage {

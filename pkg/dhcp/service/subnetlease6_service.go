@@ -160,21 +160,11 @@ func (l *SubnetLease6Service) listToReservationWithHostname(leases []*resource.S
 }
 
 func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet6, input *resource.ConvToReservationInput) error {
-	if len(input.Addresses) == 0 {
+	if len(input.Data) == 0 {
 		return nil
 	}
 
-	leases, err := ListSubnetLease6(subnet, "")
-	if err != nil {
-		return err
-	}
-
-	leases, hwAddresses, err := l.filterAbleToReservation(subnet.GetID(), leases, input.Addresses)
-	if err != nil {
-		return err
-	}
-
-	reservations, err := l.getReservationFromLease(leases, input.ReservationType)
+	reservations, hwAddresses, ipv4MacMap, err := l.getReservationFromLease(input)
 	if err != nil {
 		return err
 	}
@@ -192,7 +182,15 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 
 	v4ReservationMap := make(map[string][]*resource.Reservation4, len(lease4s))
 	for _, lease4 := range lease4s {
-		if lease4.HwAddress == "" || lease4.AddressType != resource.AddressTypeDynamic {
+		expectMac, exist := ipv4MacMap[lease4.Address]
+		if !exist {
+			continue
+		} else if lease4.HwAddress != expectMac {
+			return errorno.ErrChanged(errorno.ErrNameMac, lease4.Address, expectMac, lease4.HwAddress)
+		}
+
+		delete(ipv4MacMap, lease4.Address)
+		if lease4.AddressType != resource.AddressTypeDynamic {
 			continue
 		}
 		v4ReservationMap[lease4.Subnet4] = append(v4ReservationMap[lease4.Subnet4], &resource.Reservation4{
@@ -201,37 +199,47 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 		})
 	}
 
+	for ipv4, mac := range ipv4MacMap {
+		return errorno.ErrNoResourceWith(errorno.ErrNameLease, errorno.ErrNameMac, ipv4, mac)
+	}
+
 	return createReservationsBySubnet(v4ReservationMap, v6ReservationMap)
 }
 
-func (l *SubnetLease6Service) getReservationFromLease(leases []*resource.SubnetLease6, reservationType resource.ReservationType) (
-	[]*resource.Reservation6, error) {
-	reservations := make([]*resource.Reservation6, 0, len(leases))
-	seen := make(map[string][]string, len(leases))
-	for _, lease := range leases {
+func (l *SubnetLease6Service) getReservationFromLease(input *resource.ConvToReservationInput) (
+	[]*resource.Reservation6, []string, map[string]string, error) {
+	reservations := make([]*resource.Reservation6, 0, len(input.Data))
+	hwAddresses := make([]string, 0, len(input.Data))
+	ipv4MacMap := make(map[string]string, len(input.Data))
+	seen := make(map[string][]string, len(input.Data))
+	for _, item := range input.Data {
 		var key string
-		switch reservationType {
+		switch input.ReservationType {
 		case resource.ReservationTypeMac:
-			key = lease.HwAddress
+			key = item.HwAddress
 			if key == "" {
-				return nil, errorno.ErrNotFound(errorno.ErrNameMac, lease.Address)
+				return nil, nil, nil, errorno.ErrNotFound(errorno.ErrNameMac, item.Address)
 			}
+			hwAddresses = append(hwAddresses, key)
 		case resource.ReservationTypeHostname:
-			key = lease.Hostname
+			key = item.Hostname
 			if key == "" {
-				return nil, errorno.ErrNotFound(errorno.ErrNameHostname, lease.Address)
+				return nil, nil, nil, errorno.ErrNotFound(errorno.ErrNameHostname, item.Address)
 			}
 		default:
-			return nil, fmt.Errorf("unsupported type %q", reservationType)
+			return nil, nil, nil, fmt.Errorf("unsupported type %q", input.ReservationType)
 		}
 
-		seen[key] = append(seen[key], lease.Address)
+		seen[key] = append(seen[key], item.Address)
+		for _, ipv4 := range item.DualStacks {
+			ipv4MacMap[ipv4] = item.HwAddress
+		}
 	}
 
 	for key, addresses := range seen {
 		item := &resource.Reservation6{IpAddresses: addresses}
 
-		switch reservationType {
+		switch input.ReservationType {
 		case resource.ReservationTypeMac:
 			item.HwAddress = key
 		case resource.ReservationTypeHostname:
@@ -241,7 +249,7 @@ func (l *SubnetLease6Service) getReservationFromLease(leases []*resource.SubnetL
 		reservations = append(reservations, item)
 	}
 
-	return reservations, nil
+	return reservations, hwAddresses, ipv4MacMap, nil
 }
 
 func ListSubnetLease6(subnet *resource.Subnet6, ip string) ([]*resource.SubnetLease6, error) {
