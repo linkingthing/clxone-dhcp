@@ -190,9 +190,6 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 		}
 
 		delete(ipv4MacMap, lease4.Address)
-		if lease4.AddressType != resource.AddressTypeDynamic {
-			continue
-		}
 		v4ReservationMap[lease4.Subnet4] = append(v4ReservationMap[lease4.Subnet4], &resource.Reservation4{
 			IpAddress: lease4.Address,
 			HwAddress: lease4.HwAddress,

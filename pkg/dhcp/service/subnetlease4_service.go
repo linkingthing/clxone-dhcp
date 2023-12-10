@@ -199,13 +199,11 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 			return errorno.ErrChanged(errorno.ErrNameMac, lease6.Address, expectMac, lease6.HwAddress)
 		}
 
-		delete(ipv6MacMap, lease6.Address)
-		if lease6.AddressType != resource.AddressTypeDynamic {
-			continue
-		} else if lease6.BelongEui64Subnet || lease6.BelongAddrCodeSubnet {
+		if lease6.BelongEui64Subnet || lease6.BelongAddrCodeSubnet {
 			return errorno.ErrAddressWithEui64OrCode(lease6.Address)
 		}
 
+		delete(ipv6MacMap, lease6.Address)
 		if _, ok := seenMac[lease6.HwAddress]; !ok {
 			seenMac[lease6.HwAddress] = map[string][]string{}
 		}
