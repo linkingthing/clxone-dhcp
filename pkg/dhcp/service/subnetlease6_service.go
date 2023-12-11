@@ -125,7 +125,8 @@ func (l *SubnetLease6Service) listToReservationWithMac(leases []*resource.Subnet
 	for _, lease := range reservationLeases {
 		dualStack := make([]string, 0, len(lease4s))
 		for _, lease4 := range lease4s {
-			if lease4.HwAddress == lease.HwAddress {
+			if lease4.HwAddress == lease.HwAddress &&
+				lease4.AddressType == resource.AddressTypeDynamic {
 				dualStack = append(dualStack, lease4.Address)
 			}
 		}
