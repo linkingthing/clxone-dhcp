@@ -175,7 +175,12 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 		return nil
 	}
 
-	reservations, hwAddresses, ipv6MacMap, err := l.getReservationFromLease(input)
+	leases, err := ListSubnetLease4(subnet, "")
+	if err != nil {
+		return err
+	}
+
+	reservations, hwAddresses, ipv6MacMap, err := l.getReservationFromLease(leases, input)
 	if err != nil {
 		return err
 	}
@@ -228,24 +233,38 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 	return createReservationsBySubnet(v4ReservationMap, v6ReservationMap)
 }
 
-func (l *SubnetLease4Service) getReservationFromLease(input *resource.ConvToReservationInput) (
+func (l *SubnetLease4Service) getReservationFromLease(leases []*resource.SubnetLease4, input *resource.ConvToReservationInput) (
 	[]*resource.Reservation4, []string, map[string]string, error) {
+	ipLeaseMap := make(map[string]*resource.SubnetLease4, len(leases))
+	for _, item := range leases {
+		ipLeaseMap[item.Address] = item
+	}
+
 	reservations := make([]*resource.Reservation4, 0, len(input.Data))
 	hwAddresses := make([]string, 0, len(input.Data))
 	ipv6MacMap := make(map[string]string, len(input.Data))
 	for _, item := range input.Data {
+		lease := ipLeaseMap[item.Address]
+		if lease == nil {
+			return nil, nil, nil, errorno.ErrNotFound(errorno.ErrNameLease, item.Address)
+		}
+
 		var hwAddress, hostname string
 		switch input.ReservationType {
 		case resource.ReservationTypeMac:
 			hwAddress = item.HwAddress
 			if hwAddress == "" {
 				return nil, nil, nil, errorno.ErrNotFound(errorno.ErrNameMac, item.Address)
+			} else if hwAddress != lease.HwAddress {
+				return nil, nil, nil, errorno.ErrChanged(errorno.ErrNameMac, item.Address, hwAddress, lease.HwAddress)
 			}
 			hwAddresses = append(hwAddresses, hwAddress)
 		case resource.ReservationTypeHostname:
 			hostname = item.Hostname
 			if hostname == "" {
 				return nil, nil, nil, errorno.ErrNotFound(errorno.ErrNameHostname, item.Address)
+			} else if hostname != lease.Hostname {
+				return nil, nil, nil, errorno.ErrChanged(errorno.ErrNameHostname, item.Address, hostname, lease.Hostname)
 			}
 		default:
 			return nil, nil, nil, fmt.Errorf("unsupported type %q", input.ReservationType)
