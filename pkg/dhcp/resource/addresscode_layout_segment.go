@@ -2,6 +2,7 @@ package resource
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
@@ -68,5 +69,6 @@ func (a *AddressCodeLayoutSegment) Validate(layout *AddressCodeLayout) error {
 		return errorno.ErrMismatchAddressCode(a.Code, layout.BeginBit, layout.EndBit)
 	}
 
+	a.Code = strings.ToLower(a.Code)
 	return nil
 }
