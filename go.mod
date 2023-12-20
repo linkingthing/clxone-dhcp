@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/Ullaakut/nmap/v2 v2.2.0
-	github.com/cuityhj/gohelper v1.1.5
+	github.com/cuityhj/gohelper v1.1.8
 	github.com/gin-gonic/gin v1.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/consul/api v1.12.0
@@ -13,8 +13,8 @@ require (
 	github.com/linkingthing/clxone-utils v1.2.9
 	github.com/linkingthing/gorest v1.2.4-0.20230315120018-858efa2e11b3
 	github.com/segmentio/kafka-go v0.4.31
-	golang.org/x/net v0.0.0-20220812174116-3211cb980234
-	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8
+	golang.org/x/net v0.6.0
+	golang.org/x/sys v0.5.0
 	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.0
 )
@@ -61,8 +61,8 @@ require (
 	github.com/xuri/nfp v0.0.0-20220409054826-5e722a1d9e22 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
-	golang.org/x/sync v0.0.0-20220923202941-7f9b1623fab7 // indirect
-	golang.org/x/text v0.3.8 // indirect
+	golang.org/x/sync v0.1.0 // indirect
+	golang.org/x/text v0.7.0 // indirect
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

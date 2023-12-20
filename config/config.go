@@ -19,7 +19,7 @@ type DHCPConfig struct {
 	Kafka      KafkaConf      `yaml:"kafka"`
 	Prometheus PrometheusConf `yaml:"prometheus"`
 	Consul     ConsulConf     `yaml:"consul"`
-	DHCPScan   DHCPScanConf   `yaml:"dhcp_scan"`
+	DHCP       DHCPConf       `yaml:"dhcp"`
 }
 
 type DBConf struct {
@@ -34,6 +34,7 @@ type ServerConf struct {
 	IP              string `yaml:"ip"`
 	Port            int    `yaml:"port"`
 	GrpcPort        int    `yaml:"grpc_port"`
+	AgentGrpcPort   int    `yaml:"agent_grpc_port"`
 	Hostname        string `yaml:"hostname"`
 	KeyFactoryPath  string `yaml:"key_factory_path"`
 	WorkKeyPath     string `yaml:"work_key_path"`
@@ -60,8 +61,9 @@ type CallServiceConf struct {
 	Alarm     string `yaml:"alarm"`
 }
 
-type DHCPScanConf struct {
-	Interval uint32 `yaml:"interval"`
+type DHCPConf struct {
+	MaxSubnetsCount uint32 `yaml:"max-subnets-count"`
+	ScanInterval    uint32 `yaml:"scan-interval"`
 }
 type PrometheusConf struct {
 	Addr       string `yaml:"addr"`
@@ -127,6 +129,14 @@ func (c *DHCPConfig) Reload() error {
 		TLSConfig: consulapi.TLSConfig{InsecureSkipVerify: true},
 	}
 
+	if newConf.DHCP.MaxSubnetsCount == 0 {
+		newConf.DHCP.MaxSubnetsCount = 1000
+	}
+
+	if newConf.DHCP.ScanInterval == 0 {
+		newConf.DHCP.ScanInterval = 750
+	}
+
 	newConf.Path = c.Path
 	*c = newConf
 	gConf = &newConf
@@ -167,6 +177,10 @@ func readConfFromFile(path string) (string, error) {
 
 func GetConfig() *DHCPConfig {
 	return gConf
+}
+
+func GetMaxSubnetsCount() int {
+	return int(gConf.DHCP.MaxSubnetsCount)
 }
 
 func (c *DHCPConfig) parsePrometheusTlsConfig() error {

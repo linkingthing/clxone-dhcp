@@ -25,23 +25,27 @@ type Subnet6 struct {
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
 	Ipnet                     net.IPNet `json:"-" db:"suk"`
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
+	Tags                      string    `json:"tags"`
+	IfaceName                 string    `json:"ifaceName"`
+	WhiteClientClassStrategy  string    `json:"whiteClientClassStrategy"`
+	WhiteClientClasses        []string  `json:"whiteClientClasses"`
+	BlackClientClassStrategy  string    `json:"blackClientClassStrategy"`
+	BlackClientClasses        []string  `json:"blackClientClasses"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
 	PreferredLifetime         uint32    `json:"preferredLifetime"`
-	DomainServers             []string  `json:"domainServers"`
-	WhiteClientClasses        []string  `json:"whiteClientClasses"`
-	BlackClientClasses        []string  `json:"blackClientClasses"`
-	IfaceName                 string    `json:"ifaceName"`
-	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
-	Tags                      string    `json:"tags"`
-	NodeIds                   []string  `json:"nodeIds" db:"-"`
-	NodeNames                 []string  `json:"nodeNames" db:"-"`
-	Nodes                     []string  `json:"nodes"`
+	DomainServers             []string  `json:"domainServers"`
+	CapWapACAddresses         []string  `json:"capWapACAddresses"`
+	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RapidCommit               bool      `json:"rapidCommit"`
 	UseEui64                  bool      `json:"useEui64"`
-	UseAddressCode            bool      `json:"useAddressCode"`
+	AddressCode               string    `json:"addressCode"`
+	AddressCodeName           string    `json:"addressCodeName" db:"-"`
+	Nodes                     []string  `json:"nodes"`
+	NodeIds                   []string  `json:"nodeIds" db:"-"`
+	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Capacity                  string    `json:"capacity" rest:"description=readonly"`
 	UsedRatio                 string    `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64    `json:"usedCount" rest:"description=readonly" db:"-"`
@@ -89,7 +93,7 @@ func (s *Subnet6) Contains(ip string) bool {
 	}
 }
 
-func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6) error {
+func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6, addressCodes []*AddressCode) error {
 	ipnet, err := gohelperip.ParseCIDRv6(s.Subnet)
 	if err != nil {
 		return errorno.ErrParseCIDR(s.Subnet)
@@ -97,37 +101,17 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 
 	s.Ipnet = *ipnet
 	s.Subnet = ipnet.String()
-	maskSize, _ := s.Ipnet.Mask.Size()
-	if s.UseEui64 {
-		if s.UseAddressCode {
-			return errorno.ErrEui64Conflict()
-		}
-
-		if maskSize != 64 {
-			return errorno.ErrExpect("EUI64", 64, maskSize)
-		}
-		s.Capacity = MaxUint64String
-	} else {
-		if s.UseAddressCode {
-			if maskSize < 64 {
-				return errorno.ErrAddressCodeMask()
-			}
-
-			if maskSize == 64 {
-				s.Capacity = MaxUint64String
-			} else {
-				s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
-			}
-		} else {
-			s.Capacity = "0"
-		}
-	}
 
 	if err := s.setSubnet6DefaultValue(dhcpConfig); err != nil {
 		return err
 	}
 
-	return s.ValidateParams(clientClass6s)
+	if err := s.ValidateParams(clientClass6s, addressCodes); err != nil {
+		return err
+	}
+
+	maskSize, _ := s.Ipnet.Mask.Size()
+	return s.checkEUI64AndAddressCode(maskSize)
 }
 
 func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
@@ -166,7 +150,7 @@ func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 	return
 }
 
-func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6) error {
+func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*AddressCode) error {
 	if utf8.RuneCountInString(s.Tags) > MaxNameLength {
 		return errorno.ErrExceedResourceMaxCount(errorno.ErrNameName, errorno.ErrNameCharacter, MaxNameLength)
 	}
@@ -181,16 +165,27 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6) error {
 		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentIf, s.RelayAgentInterfaceId)
 	}
 
-	if err := checkIpsValidWithVersion(false, s.DomainServers); err != nil {
-		return errorno.ErrInvalidParams("DNS", s.DomainServers[0])
+	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
+		return err
 	}
 
-	if err := checkIpsValidWithVersion(false, s.RelayAgentAddresses); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentAddr, s.RelayAgentAddresses[0])
+	if err := checkClientClassStrategy(s.WhiteClientClassStrategy, len(s.WhiteClientClasses) != 0); err != nil {
+		return err
+	}
+
+	if err := checkClientClassStrategy(s.BlackClientClassStrategy, len(s.BlackClientClasses) != 0); err != nil {
+		return err
 	}
 
 	if err := checkClientClass6s(s.WhiteClientClasses, s.BlackClientClasses, clientClass6s); err != nil {
 		return err
+	}
+
+	if addrCodeId, addrCodeName, err := checkAddressCode(s.AddressCode, s.AddressCodeName, addressCodes); err != nil {
+		return err
+	} else {
+		s.AddressCode = addrCodeId
+		s.AddressCodeName = addrCodeName
 	}
 
 	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
@@ -213,6 +208,10 @@ func checkClientClass6s(whiteClientClasses, blackClientClasses []string, clientC
 		clientClass6s, err = GetClientClass6s()
 	}
 
+	if err != nil {
+		return
+	}
+
 	clientClass6Set := make(map[string]struct{}, len(clientClass6s))
 	for _, clientClass6 := range clientClass6s {
 		clientClass6Set[clientClass6.Name] = struct{}{}
@@ -230,16 +229,86 @@ func GetClientClass6s() ([]*ClientClass6, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &clientClass6s)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameClientClass), pg.Error(err).Error())
 	} else {
 		return clientClass6s, nil
 	}
 }
 
+func checkAddressCode(addressCodeId, addressCodeName string, addressCodes []*AddressCode) (string, string, error) {
+	if addressCodeId == "" && addressCodeName == "" {
+		return addressCodeId, addressCodeName, nil
+	}
+
+	var err error
+	if len(addressCodes) == 0 {
+		if addressCodeId != "" {
+			addressCodes, err = GetAddressCodes(map[string]interface{}{restdb.IDField: addressCodeId})
+		} else {
+			addressCodes, err = GetAddressCodes(map[string]interface{}{SqlColumnName: addressCodeName})
+		}
+	}
+
+	if err != nil {
+		return addressCodeId, addressCodeName, err
+	}
+
+	for _, addressCode := range addressCodes {
+		if addressCode.GetID() == addressCodeId || addressCode.Name == addressCodeName {
+			return addressCode.GetID(), addressCode.Name, nil
+		}
+	}
+
+	return addressCodeId, addressCodeName, errorno.ErrNotFound(errorno.ErrNameAddressCode, addressCodeName)
+}
+
+func GetAddressCodes(condition map[string]interface{}) ([]*AddressCode, error) {
+	var addressCodes []*AddressCode
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.Fill(condition, &addressCodes)
+	}); err != nil {
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameAddressCode), pg.Error(err).Error())
+	}
+
+	return addressCodes, nil
+}
+
 func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime uint32) error {
 	if preferredLifetime > validLifetime || preferredLifetime < minValidLifetime {
-		return errorno.ErrNotInScope(errorno.ErrNameLifetime,
+		return errorno.ErrNotInRange(errorno.ErrNamePreferLifetime,
 			minValidLifetime, validLifetime)
+	}
+
+	return nil
+}
+
+func (s *Subnet6) checkEUI64AndAddressCode(maskSize int) error {
+	if s.UseEui64 {
+		if s.AddressCode != "" {
+			return errorno.ErrEui64Conflict()
+		}
+
+		if maskSize != 64 {
+			return errorno.ErrExpect(errorno.ErrNameEUI64, 64, maskSize)
+		}
+
+		s.Capacity = MaxUint64String
+	} else {
+		if s.AddressCode != "" {
+			if maskSize < 64 {
+				return errorno.ErrAddressCodeMask()
+			}
+
+			if maskSize == 64 {
+				s.Capacity = MaxUint64String
+			} else {
+				s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
+			}
+		} else {
+			s.Capacity = "0"
+		}
 	}
 
 	return nil

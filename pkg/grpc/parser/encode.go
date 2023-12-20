@@ -90,7 +90,7 @@ func SubnetLease4ToPbDHCPLease4(lease *resource.SubnetLease4) *pbdhcp.Lease4 {
 		HwAddressOrganization: lease.HwAddressOrganization,
 		ClientId:              lease.ClientId,
 		ValidLifetime:         lease.ValidLifetime,
-		Expire:                lease.Expire,
+		Expire:                lease.ExpirationTime,
 		Hostname:              lease.Hostname,
 		VendorId:              lease.VendorId,
 		OperatingSystem:       lease.OperatingSystem,
@@ -111,14 +111,14 @@ func Subnet6sToPbDHCPSubnet6s(subnets []*resource.Subnet6) []*pbdhcp.Subnet6 {
 
 func Subnet6ToPbDHCPSubnet6(subnet *resource.Subnet6, leasesCount uint64) *pbdhcp.Subnet6 {
 	return &pbdhcp.Subnet6{
-		Id:             subnet.GetID(),
-		SubnetId:       subnet.SubnetId,
-		Subnet:         subnet.Subnet,
-		Capacity:       subnet.Capacity,
-		DomainServers:  subnet.DomainServers,
-		UseEui64:       subnet.UseEui64,
-		UsedCount:      leasesCount,
-		UseAddressCode: subnet.UseAddressCode,
+		Id:            subnet.GetID(),
+		SubnetId:      subnet.SubnetId,
+		Subnet:        subnet.Subnet,
+		Capacity:      subnet.Capacity,
+		DomainServers: subnet.DomainServers,
+		UseEui64:      subnet.UseEui64,
+		UsedCount:     leasesCount,
+		AddressCode:   subnet.AddressCode,
 	}
 }
 
@@ -202,7 +202,7 @@ func SubnetLease6ToPbDHCPLease6(lease *resource.SubnetLease6) *pbdhcp.Lease6 {
 		Iaid:                  lease.Iaid,
 		PreferredLifetime:     lease.PreferredLifetime,
 		ValidLifetime:         lease.ValidLifetime,
-		Expire:                lease.Expire,
+		Expire:                lease.ExpirationTime,
 		HwAddress:             lease.HwAddress,
 		HwAddressType:         lease.HwAddressType,
 		HwAddressSource:       lease.HwAddressSource,
@@ -214,6 +214,8 @@ func SubnetLease6ToPbDHCPLease6(lease *resource.SubnetLease6) *pbdhcp.Lease6 {
 		ClientType:            lease.ClientType,
 		LeaseState:            lease.LeaseState,
 		AddressType:           lease.AddressType.String(),
-		AddressCode:           lease.AddressCode,
+		AddressCodes:          lease.AddressCodes,
+		AddressCodeBegins:     lease.AddressCodeBegins,
+		AddressCodeEnds:       lease.AddressCodeEnds,
 	}
 }

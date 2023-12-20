@@ -34,7 +34,7 @@ func (s *SharedNetwork4Service) Create(sharedNetwork4 *resource.SharedNetwork4) 
 }
 
 func sendCreateSharedNetwork4CmdToDHCPAgent(sharedNetwork4 *resource.SharedNetwork4) error {
-	return kafka.SendDHCPCmd(kafka.CreateSharedNetwork4,
+	return kafka.SendDHCP4Cmd(kafka.CreateSharedNetwork4,
 		sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4),
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
@@ -84,10 +84,10 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 		}
 
 		if _, err := tx.Update(resource.TableSharedNetwork4, map[string]interface{}{
-			resource.SqlColumnName:       sharedNetwork4.Name,
-			resource.SqlColumnsSubnetIds: sharedNetwork4.SubnetIds,
-			resource.SqlColumnsSubnets:   sharedNetwork4.Subnets,
-			resource.SqlColumnComment:    sharedNetwork4.Comment,
+			resource.SqlColumnName:      sharedNetwork4.Name,
+			resource.SqlColumnSubnetIds: sharedNetwork4.SubnetIds,
+			resource.SqlColumnSubnets:   sharedNetwork4.Subnets,
+			resource.SqlColumnComment:   sharedNetwork4.Comment,
 		}, map[string]interface{}{
 			restdb.IDField: sharedNetwork4.GetID()}); err != nil {
 			return util.FormatDbInsertError(errorno.ErrNameNetwork, sharedNetwork4.Name, err)
@@ -98,7 +98,7 @@ func (s *SharedNetwork4Service) Update(sharedNetwork4 *resource.SharedNetwork4) 
 }
 
 func sendUpdateSharedNetwork4CmdToDHCPAgent(name string, sharedNetwork4 *resource.SharedNetwork4) error {
-	return kafka.SendDHCPCmd(kafka.UpdateSharedNetwork4,
+	return kafka.SendDHCP4Cmd(kafka.UpdateSharedNetwork4,
 		&pbdhcpagent.UpdateSharedNetwork4Request{
 			Old: sharedNetworkNameToDeleteSharedNetwork4Request(name),
 			New: sharedNetwork4ToCreateSharedNetwork4Request(sharedNetwork4),
@@ -134,7 +134,7 @@ func getOldSharedNetwork(tx restdb.Transaction, id string) (*resource.SharedNetw
 }
 
 func sendDeleteSharedNetwork4CmdToDHCPAgent(name string) error {
-	return kafka.SendDHCPCmd(kafka.DeleteSharedNetwork4,
+	return kafka.SendDHCP4Cmd(kafka.DeleteSharedNetwork4,
 		sharedNetworkNameToDeleteSharedNetwork4Request(name), nil)
 }
 

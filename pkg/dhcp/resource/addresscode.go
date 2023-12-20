@@ -1,7 +1,7 @@
 package resource
 
 import (
-	"strconv"
+	"unicode/utf8"
 
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -14,56 +14,19 @@ var TableAddressCode = restdb.ResourceDBType(&AddressCode{})
 
 type AddressCode struct {
 	restresource.ResourceBase `json:",inline"`
-	HwAddress                 string `json:"hwAddress" db:"uk"`
-	Duid                      string `json:"duid" db:"uk"`
-	Code                      string `json:"code" rest:"required=true"`
-	CodeBegin                 uint32 `json:"codeBegin" rest:"required=true"`
-	CodeEnd                   uint32 `json:"codeEnd" rest:"required=true"`
+	Name                      string `json:"name" db:"uk" rest:"required=true"`
 	Comment                   string `json:"comment"`
 }
 
 func (a *AddressCode) Validate() error {
-	if err := util.ValidateStrings(util.RegexpTypeComma, a.Comment); err != nil {
+	if util.ValidateStrings(util.RegexpTypeCommon, a.Name) != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameName, a.Name)
+	}
+
+	if util.ValidateStrings(util.RegexpTypeComma, a.Comment) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameComment, a.Comment)
-	}
-
-	if (a.HwAddress == "" && a.Duid == "") || (a.HwAddress != "" && a.Duid != "") {
-		return errorno.ErrOnlyOne(string(errorno.ErrNameMac), string(errorno.ErrNameDuid))
-	}
-
-	if a.HwAddress != "" {
-		if hw, err := util.NormalizeMac(a.HwAddress); err != nil {
-			return errorno.ErrInvalidParams(errorno.ErrNameMac, a.HwAddress)
-		} else {
-			a.HwAddress = hw
-		}
-	} else {
-		if err := parseDUID(a.Duid); err != nil {
-			return err
-		}
-	}
-
-	return a.ValidateCode()
-}
-
-func (a *AddressCode) ValidateCode() error {
-	if a.Code == "" {
-		return errorno.ErrEmpty(string(errorno.ErrNameAddressCode))
-	}
-
-	for i := range a.Code {
-		if _, err := strconv.ParseUint(a.Code[i:i+1], 16, 4); err != nil {
-			return errorno.ErrInvalidParams(errorno.ErrNameAddressCode, a.Code)
-		}
-	}
-
-	if a.CodeBegin < 65 || a.CodeBegin > 128 ||
-		a.CodeEnd < a.CodeBegin || a.CodeEnd > 128 || a.CodeEnd%4 != 0 {
-		return errorno.ErrInvalidAddressCode()
-	}
-
-	if a.CodeEnd-a.CodeBegin+1 != uint32(len(a.Code))*4-(3-(a.CodeEnd-a.CodeBegin)%4) {
-		return errorno.ErrMismatchAddressCode(a.Code, a.CodeBegin, a.CodeEnd)
+	} else if utf8.RuneCountInString(a.Comment) > MaxCommentLength {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameComment, MaxCommentLength)
 	}
 
 	return nil

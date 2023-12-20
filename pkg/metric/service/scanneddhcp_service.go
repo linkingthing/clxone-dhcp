@@ -16,28 +16,19 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
-const (
-	DefaultSearchInterval uint32 = 750 //12 min 30s
-)
-
 type ScannedDHCPService struct {
 	dhcpClient *dhcpclient.DHCPClient
 	localIp    string
 }
 
 func InitScannedDHCPService(conf *config.DHCPConfig) error {
-	searchInterval := DefaultSearchInterval
-	if conf.DHCPScan.Interval != 0 {
-		searchInterval = conf.DHCPScan.Interval
-	}
-
 	dhcpClient, err := dhcpclient.New()
 	if err != nil {
 		return err
 	}
 
 	h := &ScannedDHCPService{dhcpClient: dhcpClient, localIp: conf.Server.IP}
-	go h.scanIllegalDHCPServer(searchInterval)
+	go h.scanIllegalDHCPServer(conf.DHCP.ScanInterval)
 
 	return nil
 }

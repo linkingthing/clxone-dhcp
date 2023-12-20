@@ -11,28 +11,34 @@ type SubnetLease6 struct {
 	Subnet6                   string      `json:"-" db:"ownby"`
 	Address                   string      `json:"address" db:"uk"`
 	AddressType               AddressType `json:"addressType"`
-	PrefixLen                 uint32      `json:"prefixLen"`
 	Duid                      string      `json:"duid"`
-	Iaid                      uint32      `json:"iaid"`
-	PreferredLifetime         uint32      `json:"preferredLifetime"`
-	ValidLifetime             uint32      `json:"validLifetime"`
-	Expire                    string      `json:"expire"`
 	HwAddress                 string      `json:"hwAddress"`
 	HwAddressType             string      `json:"hwAddressType"`
 	HwAddressSource           string      `json:"hwAddressSource"`
 	HwAddressOrganization     string      `json:"hwAddressOrganization"`
-	LeaseType                 string      `json:"leaseType"`
+	FqdnFwd                   bool        `json:"fqdnFwd"`
+	FqdnRev                   bool        `json:"fqdnRev"`
 	Hostname                  string      `json:"hostname"`
+	Iaid                      uint32      `json:"iaid"`
+	LeaseState                string      `json:"leaseState"`
+	LeaseType                 string      `json:"leaseType"`
+	PrefixLen                 uint32      `json:"prefixLen"`
+	RequestType               string      `json:"requestType"`
+	RequestTime               string      `json:"requestTime"`
+	ValidLifetime             uint32      `json:"validLifetime"`
+	PreferredLifetime         uint32      `json:"preferredLifetime"`
+	ExpirationTime            string      `json:"expirationTime"`
 	Fingerprint               string      `json:"fingerprint"`
 	VendorId                  string      `json:"vendorId"`
 	OperatingSystem           string      `json:"operatingSystem"`
 	ClientType                string      `json:"clientType"`
-	LeaseState                string      `json:"leaseState"`
 	RequestSourceAddr         string      `json:"requestSourceAddr"`
-	AddressCode               string      `json:"addressCode"`
-	AddressCodeBegin          uint32      `json:"addressCodeBegin"`
-	AddressCodeEnd            uint32      `json:"addressCodeEnd"`
+	AddressCodes              []string    `json:"addressCodes"`
+	AddressCodeBegins         []uint32    `json:"addressCodeBegins"`
+	AddressCodeEnds           []uint32    `json:"addressCodeEnds"`
+	Subnet                    string      `json:"subnet"`
 	BelongEui64Subnet         bool        `json:"-" db:"-"`
+	BelongAddrCodeSubnet      bool        `json:"-" db:"-"`
 }
 
 func (l SubnetLease6) GetParents() []restresource.ResourceKind {
@@ -41,7 +47,7 @@ func (l SubnetLease6) GetParents() []restresource.ResourceKind {
 
 func (l *SubnetLease6) Equal(another *SubnetLease6) bool {
 	return l.Address == another.Address &&
-		l.Expire == another.Expire &&
+		l.ExpirationTime == another.ExpirationTime &&
 		l.Duid == another.Duid &&
 		strings.EqualFold(l.HwAddress, another.HwAddress) &&
 		l.LeaseType == another.LeaseType &&
@@ -58,7 +64,7 @@ func (s SubnetLease6) GetActions() []restresource.Action {
 		{
 			Name:   ActionListToReservation,
 			Input:  &ConvToReservationInput{},
-			Output: &ConvToReservationOutput{},
+			Output: &ConvToReservationInput{},
 		},
 		{
 			Name:  ActionDynamicToReservation,

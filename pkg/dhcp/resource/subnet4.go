@@ -17,6 +17,9 @@ import (
 )
 
 const (
+	ClientClassStrategyAnd = "and"
+	ClientClassStrategyOr  = "or"
+
 	MaxNameLength = 50
 )
 
@@ -27,21 +30,26 @@ type Subnet4 struct {
 	Subnet                    string    `json:"subnet" rest:"required=true,description=immutable" db:"suk"`
 	Ipnet                     net.IPNet `json:"-" db:"suk"`
 	SubnetId                  uint64    `json:"subnetId" rest:"description=readonly" db:"suk"`
+	Tags                      string    `json:"tags"`
+	IfaceName                 string    `json:"ifaceName"`
+	WhiteClientClassStrategy  string    `json:"whiteClientClassStrategy"`
+	WhiteClientClasses        []string  `json:"whiteClientClasses"`
+	BlackClientClassStrategy  string    `json:"blackClientClassStrategy"`
+	BlackClientClasses        []string  `json:"blackClientClasses"`
 	ValidLifetime             uint32    `json:"validLifetime"`
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
+	NextServer                string    `json:"nextServer"`
 	SubnetMask                string    `json:"subnetMask"`
-	DomainServers             []string  `json:"domainServers"`
 	Routers                   []string  `json:"routers"`
-	WhiteClientClasses        []string  `json:"whiteClientClasses"`
-	BlackClientClasses        []string  `json:"blackClientClasses"`
+	DomainServers             []string  `json:"domainServers"`
 	TftpServer                string    `json:"tftpServer"`
 	Bootfile                  string    `json:"bootfile"`
+	RelayAgentCircuitId       string    `json:"relayAgentCircuitId"`
+	RelayAgentRemoteId        string    `json:"relayAgentRemoteId"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
-	IfaceName                 string    `json:"ifaceName"`
-	NextServer                string    `json:"nextServer"`
 	Ipv6OnlyPreferred         uint32    `json:"ipv6OnlyPreferred"`
-	Tags                      string    `json:"tags"`
+	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Nodes                     []string  `json:"nodes"`
@@ -190,7 +198,23 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 		return errorno.ErrIpv6Preferred()
 	}
 
-	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses); err != nil {
+	if err := util.ValidateStrings(util.RegexpTypeSpace, s.RelayAgentCircuitId); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentCircuitId, s.RelayAgentCircuitId)
+	}
+
+	if err := util.ValidateStrings(util.RegexpTypeSpace, s.RelayAgentRemoteId); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentRemoteId, s.RelayAgentRemoteId)
+	}
+
+	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
+		return err
+	}
+
+	if err := checkClientClassStrategy(s.WhiteClientClassStrategy, len(s.WhiteClientClasses) != 0); err != nil {
+		return err
+	}
+
+	if err := checkClientClassStrategy(s.BlackClientClassStrategy, len(s.BlackClientClasses) != 0); err != nil {
 		return err
 	}
 
@@ -199,7 +223,7 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 	}
 
 	if err := checkIpsValidWithVersion(true, s.Routers); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameGateway, s.Routers[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameGateway, s.Routers)
 	}
 
 	if err := checkLifetimeValid(s.ValidLifetime, s.MinValidLifetime, s.MaxValidLifetime); err != nil {
@@ -233,22 +257,44 @@ func checkTFTPValid(tftpServer, bootfile string) error {
 	return nil
 }
 
-func checkCommonOptions(isv4 bool, domainServers, relayAgents []string) error {
+func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses []string) error {
 	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
-		return errorno.ErrInvalidParams("DNS", domainServers[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameDNS, domainServers)
 	}
 
 	if err := checkIpsValidWithVersion(isv4, relayAgents); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgent, relayAgents[0])
+		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentAddresses, relayAgents)
+	}
+
+	if err := checkIpsValidWithVersion(isv4, acAddresses); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameCapWapACAddresses, acAddresses)
 	}
 
 	return nil
 }
 
 func checkIpsValidWithVersion(isv4 bool, ips []string) error {
+	uniqueIps := make(map[string]struct{}, len(ips))
 	for _, ip := range ips {
+		if _, ok := uniqueIps[ip]; ok {
+			return errorno.ErrDuplicate(errorno.ErrNameIp, ip)
+		}
+
 		if _, err := gohelperip.ParseIP(ip, isv4); err != nil {
 			return errorno.ErrInvalidAddress(ip)
+		}
+
+		uniqueIps[ip] = struct{}{}
+	}
+
+	return nil
+}
+
+func checkClientClassStrategy(strategy string, needCheck bool) error {
+	if needCheck {
+		if strategy != ClientClassStrategyAnd && strategy != ClientClassStrategyOr {
+			return errorno.ErrNotInScope(errorno.ErrNameClientClassStrategy,
+				string(errorno.ErrNameClientClassStrategyAnd), string(errorno.ErrNameClientClassStrategyOr))
 		}
 	}
 
@@ -262,6 +308,10 @@ func checkClientClass4s(whiteClientClasses, blackClientClasses []string, clientC
 
 	if len(clientClass4s) == 0 {
 		clientClass4s, err = GetClientClass4s()
+	}
+
+	if err != nil {
+		return
 	}
 
 	clientClass4Set := make(map[string]struct{}, len(clientClass4s))
@@ -281,7 +331,8 @@ func GetClientClass4s() ([]*ClientClass4, error) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return tx.Fill(nil, &clientClass4s)
 	}); err != nil {
-		return nil, pg.Error(err)
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameClientClass), pg.Error(err).Error())
 	} else {
 		return clientClass4s, nil
 	}
@@ -294,6 +345,10 @@ func checkClientClassesValid(clientClassNames []string, clientClassSet map[strin
 
 	clientClassNameSet := make(map[string]struct{}, len(clientClassNames))
 	for _, clientClassName := range clientClassNames {
+		if _, ok := clientClassSet[clientClassName]; !ok {
+			return errorno.ErrNotFound(errorno.ErrNameClientClass, clientClassName)
+		}
+
 		if _, ok := clientClassNameSet[clientClassName]; ok {
 			return errorno.ErrDuplicate(errorno.ErrNameClientClass, clientClassName)
 		} else {
@@ -301,20 +356,21 @@ func checkClientClassesValid(clientClassNames []string, clientClassSet map[strin
 		}
 	}
 
-	for _, clientClassName := range clientClassNames {
-		if _, ok := clientClassSet[clientClassName]; !ok {
-			return errorno.ErrNotFound(errorno.ErrNameClientClass, clientClassName)
-		}
-	}
-
 	return nil
 }
 
 func checkNodesValid(nodes []string) error {
+	uniqueNodes := make(map[string]struct{}, len(nodes))
 	for _, node := range nodes {
+		if _, ok := uniqueNodes[node]; ok {
+			return errorno.ErrDuplicate(errorno.ErrNameDhcpNode, node)
+		}
+
 		if net.ParseIP(node) == nil {
 			return errorno.ErrInvalidAddress(node)
 		}
+
+		uniqueNodes[node] = struct{}{}
 	}
 
 	return nil

@@ -38,7 +38,7 @@ func (c *ClientClass6Service) Create(clientClass *resource.ClientClass6) error {
 }
 
 func sendCreateClientClass6CmdToAgent(clientClass *resource.ClientClass6) error {
-	return kafka.SendDHCPCmd(kafka.CreateClientClass6,
+	return kafka.SendDHCP6Cmd(kafka.CreateClientClass6,
 		&pbdhcpagent.CreateClientClass6Request{
 			Name:   clientClass.Name,
 			Code:   uint32(clientClass.Code),
@@ -111,7 +111,7 @@ func (c *ClientClass6Service) Update(clientClass *resource.ClientClass6) error {
 }
 
 func sendUpdateClientClass6CmdToDHCPAgent(clientClass *resource.ClientClass6) error {
-	return kafka.SendDHCPCmd(kafka.UpdateClientClass6,
+	return kafka.SendDHCP6Cmd(kafka.UpdateClientClass6,
 		&pbdhcpagent.UpdateClientClass6Request{
 			Name:   clientClass.Name,
 			Code:   uint32(clientClass.Code),
@@ -141,6 +141,6 @@ func (c *ClientClass6Service) Delete(id string) error {
 }
 
 func sendDeleteClientClass6CmdToDHCPAgent(clientClassID string) error {
-	return kafka.SendDHCPCmd(kafka.DeleteClientClass6,
+	return kafka.SendDHCP6Cmd(kafka.DeleteClientClass6,
 		&pbdhcpagent.DeleteClientClass6Request{Name: clientClassID}, nil)
 }

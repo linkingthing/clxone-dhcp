@@ -18,6 +18,7 @@ import (
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
+	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
@@ -28,8 +29,6 @@ import (
 )
 
 const (
-	MaxSubnetsCount = 10000
-
 	Subnet4FileNamePrefix       = "subnet4-"
 	Subnet4TemplateFileName     = "subnet4-template"
 	Subnet4ImportFileNamePrefix = "subnet4-import"
@@ -70,8 +69,8 @@ func (s *Subnet4Service) Create(subnet *resource.Subnet4) error {
 func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
 	if count, err := tx.Count(resource.TableSubnet4, nil); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
-	} else if count >= MaxSubnetsCount {
-		return errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, MaxSubnetsCount)
+	} else if count >= int64(config.GetMaxSubnetsCount()) {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, config.GetMaxSubnetsCount())
 	}
 
 	var subnets []*resource.Subnet4
@@ -119,19 +118,23 @@ func sendCreateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 
 func subnet4ToCreateSubnet4Request(subnet *resource.Subnet4) *pbdhcpagent.CreateSubnet4Request {
 	return &pbdhcpagent.CreateSubnet4Request{
-		Id:                  subnet.SubnetId,
-		Subnet:              subnet.Subnet,
-		ValidLifetime:       subnet.ValidLifetime,
-		MaxValidLifetime:    subnet.MaxValidLifetime,
-		MinValidLifetime:    subnet.MinValidLifetime,
-		RenewTime:           subnet.ValidLifetime / 2,
-		RebindTime:          subnet.ValidLifetime * 3 / 4,
-		WhiteClientClasses:  subnet.WhiteClientClasses,
-		BlackClientClasses:  subnet.BlackClientClasses,
-		IfaceName:           subnet.IfaceName,
-		RelayAgentAddresses: subnet.RelayAgentAddresses,
-		NextServer:          subnet.NextServer,
-		SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
+		Id:                       subnet.SubnetId,
+		Subnet:                   subnet.Subnet,
+		ValidLifetime:            subnet.ValidLifetime,
+		MaxValidLifetime:         subnet.MaxValidLifetime,
+		MinValidLifetime:         subnet.MinValidLifetime,
+		RenewTime:                subnet.ValidLifetime / 2,
+		RebindTime:               subnet.ValidLifetime * 3 / 4,
+		WhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+		WhiteClientClasses:       subnet.WhiteClientClasses,
+		BlackClientClassStrategy: subnet.BlackClientClassStrategy,
+		BlackClientClasses:       subnet.BlackClientClasses,
+		IfaceName:                subnet.IfaceName,
+		RelayAgentCircuitId:      subnet.RelayAgentCircuitId,
+		RelayAgentRemoteId:       subnet.RelayAgentRemoteId,
+		RelayAgentAddresses:      subnet.RelayAgentAddresses,
+		NextServer:               subnet.NextServer,
+		SubnetOptions:            pbSubnetOptionsFromSubnet4(subnet),
 	}
 }
 
@@ -182,6 +185,14 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 			Name: "ipv6-only-perferred",
 			Code: 108,
 			Data: uint32ToString(subnet.Ipv6OnlyPreferred),
+		})
+	}
+
+	if len(subnet.CapWapACAddresses) != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "cap-wap-access-controller-addresses",
+			Code: 138,
+			Data: strings.Join(subnet.CapWapACAddresses, ","),
 		})
 	}
 
@@ -463,21 +474,26 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 		}
 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
-			resource.SqlColumnValidLifetime:       subnet.ValidLifetime,
-			resource.SqlColumnMaxValidLifetime:    subnet.MaxValidLifetime,
-			resource.SqlColumnMinValidLifetime:    subnet.MinValidLifetime,
-			resource.SqlColumnSubnetMask:          subnet.SubnetMask,
-			resource.SqlColumnDomainServers:       subnet.DomainServers,
-			resource.SqlColumnRouters:             subnet.Routers,
-			resource.SqlColumnWhiteClientClasses:  subnet.WhiteClientClasses,
-			resource.SqlColumnBlackClientClasses:  subnet.BlackClientClasses,
-			resource.SqlColumnIfaceName:           subnet.IfaceName,
-			resource.SqlColumnRelayAgentAddresses: subnet.RelayAgentAddresses,
-			resource.SqlColumnNextServer:          subnet.NextServer,
-			resource.SqlColumnTftpServer:          subnet.TftpServer,
-			resource.SqlColumnBootfile:            subnet.Bootfile,
-			resource.SqlColumnIpv6OnlyPreferred:   subnet.Ipv6OnlyPreferred,
-			resource.SqlColumnTags:                subnet.Tags,
+			resource.SqlColumnValidLifetime:            subnet.ValidLifetime,
+			resource.SqlColumnMaxValidLifetime:         subnet.MaxValidLifetime,
+			resource.SqlColumnMinValidLifetime:         subnet.MinValidLifetime,
+			resource.SqlColumnSubnetMask:               subnet.SubnetMask,
+			resource.SqlColumnDomainServers:            subnet.DomainServers,
+			resource.SqlColumnRouters:                  subnet.Routers,
+			resource.SqlColumnWhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+			resource.SqlColumnWhiteClientClasses:       subnet.WhiteClientClasses,
+			resource.SqlColumnBlackClientClassStrategy: subnet.BlackClientClassStrategy,
+			resource.SqlColumnBlackClientClasses:       subnet.BlackClientClasses,
+			resource.SqlColumnIfaceName:                subnet.IfaceName,
+			resource.SqlColumnRelayAgentCircuitId:      subnet.RelayAgentCircuitId,
+			resource.SqlColumnRelayAgentRemoteId:       subnet.RelayAgentRemoteId,
+			resource.SqlColumnRelayAgentAddresses:      subnet.RelayAgentAddresses,
+			resource.SqlColumnNextServer:               subnet.NextServer,
+			resource.SqlColumnTftpServer:               subnet.TftpServer,
+			resource.SqlColumnBootfile:                 subnet.Bootfile,
+			resource.SqlColumnIpv6OnlyPreferred:        subnet.Ipv6OnlyPreferred,
+			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
+			resource.SqlColumnTags:                     subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, subnet.GetID(), pg.Error(err).Error())
 		}
@@ -515,19 +531,23 @@ func getSubnet4FromDB(tx restdb.Transaction, subnetId string) (*resource.Subnet4
 func sendUpdateSubnet4CmdToDHCPAgent(subnet *resource.Subnet4) error {
 	return kafka.SendDHCPCmdWithNodes(true, subnet.Nodes, kafka.UpdateSubnet4,
 		&pbdhcpagent.UpdateSubnet4Request{
-			Id:                  subnet.SubnetId,
-			Subnet:              subnet.Subnet,
-			ValidLifetime:       subnet.ValidLifetime,
-			MaxValidLifetime:    subnet.MaxValidLifetime,
-			MinValidLifetime:    subnet.MinValidLifetime,
-			RenewTime:           subnet.ValidLifetime / 2,
-			RebindTime:          subnet.ValidLifetime * 3 / 4,
-			WhiteClientClasses:  subnet.WhiteClientClasses,
-			BlackClientClasses:  subnet.BlackClientClasses,
-			IfaceName:           subnet.IfaceName,
-			RelayAgentAddresses: subnet.RelayAgentAddresses,
-			NextServer:          subnet.NextServer,
-			SubnetOptions:       pbSubnetOptionsFromSubnet4(subnet),
+			Id:                       subnet.SubnetId,
+			Subnet:                   subnet.Subnet,
+			ValidLifetime:            subnet.ValidLifetime,
+			MaxValidLifetime:         subnet.MaxValidLifetime,
+			MinValidLifetime:         subnet.MinValidLifetime,
+			RenewTime:                subnet.ValidLifetime / 2,
+			RebindTime:               subnet.ValidLifetime * 3 / 4,
+			WhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+			WhiteClientClasses:       subnet.WhiteClientClasses,
+			BlackClientClassStrategy: subnet.BlackClientClassStrategy,
+			BlackClientClasses:       subnet.BlackClientClasses,
+			IfaceName:                subnet.IfaceName,
+			RelayAgentCircuitId:      subnet.RelayAgentCircuitId,
+			RelayAgentRemoteId:       subnet.RelayAgentRemoteId,
+			RelayAgentAddresses:      subnet.RelayAgentAddresses,
+			NextServer:               subnet.NextServer,
+			SubnetOptions:            pbSubnetOptionsFromSubnet4(subnet),
 		}, nil)
 }
 
@@ -576,8 +596,8 @@ func (s *Subnet4Service) ImportExcel(file *excel.ImportFile) (interface{}, error
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV4), err.Error())
 	}
 
-	if len(oldSubnet4s) >= MaxSubnetsCount {
-		return nil, errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, MaxSubnetsCount)
+	if len(oldSubnet4s) >= config.GetMaxSubnetsCount() {
+		return nil, errorno.ErrExceedMaxCount(errorno.ErrNameNetworkV4, config.GetMaxSubnetsCount())
 	}
 
 	sentryNodes, serverNodes, sentryVip, err := kafka.GetDHCPNodes(kafka.AgentStack4)
@@ -675,7 +695,7 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		if emptyLine {
 			continue
 		} else if missingMandatory {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen,
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen,
 				localizationSubnet4ToStrSlice(&resource.Subnet4{}),
 				errorno.ErrMissingMandatory(j+2, SubnetMandatoryFields).ErrorCN())
 			continue
@@ -684,25 +704,25 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 		subnet, pools, reservedPools, reservations, err := parseSubnet4sAndPools(
 			tableHeaderFields, fields)
 		if err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := subnet.Validate(dhcpConfig, clientClass4s); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkSubnetNodesValid(subnet.Nodes, sentryNodesForCheck); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkSubnet4ConflictWithSubnet4s(subnet, append(oldSubnets, subnets...)); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkReservation4sValid(subnet, reservations); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkReservedPool4sValid(subnet, reservedPools, reservations); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else if err := checkPool4sValid(subnet, pools, reservedPools, reservations); err != nil {
-			addSubnetFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
+			addFailDataToResponse(response, TableHeaderSubnet4FailLen, localizationSubnet4ToStrSlice(subnet),
 				errorno.TryGetErrorCNMsg(err))
 		} else {
 			subnet.SubnetId = maxOldSubnetId + uint64(len(subnets)) + 1
@@ -752,11 +772,11 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 	return sqls, reqsForSentryCreate, reqsForSentryDelete, reqForServerCreate, reqForServerDelete, nil
 }
 
-func addSubnetFailDataToResponse(response *excel.ImportResult, headerLen int, subnetSlices []string, errStr string) {
-	slices := make([]string, headerLen)
-	copy(slices, subnetSlices)
-	slices[headerLen-1] = errStr
-	response.AddFailedData(slices)
+func addFailDataToResponse(response *excel.ImportResult, headerLen int, resourceSlices []string, errStr string) {
+	errSlices := make([]string, headerLen)
+	copy(errSlices, resourceSlices)
+	errSlices[headerLen-1] = errStr
+	response.AddFailedData(errSlices)
 }
 
 func parseUint32FromString(field string) (uint32, error) {
@@ -813,11 +833,19 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.DomainServers = splitFieldWithoutSpace(field)
 		case FieldNameIfaceName:
 			subnet.IfaceName = strings.TrimSpace(field)
+		case FieldNameWhiteClientClassStrategy:
+			subnet.WhiteClientClassStrategy = internationalizationClientClassStrategy(strings.TrimSpace(field))
 		case FieldNameWhiteClientClasses:
 			subnet.WhiteClientClasses = splitFieldWithoutSpace(field)
+		case FieldNameBlackClientClassStrategy:
+			subnet.BlackClientClassStrategy = internationalizationClientClassStrategy(strings.TrimSpace(field))
 		case FieldNameBlackClientClasses:
 			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
-		case FieldNameOption82:
+		case FieldNameRelayCircuitId:
+			subnet.RelayAgentCircuitId = strings.TrimSpace(field)
+		case FieldNameRelayRemoteId:
+			subnet.RelayAgentRemoteId = strings.TrimSpace(field)
+		case FieldNameRelayAddresses:
 			subnet.RelayAgentAddresses = splitFieldWithoutSpace(field)
 		case FieldNameOption66:
 			subnet.TftpServer = strings.TrimSpace(field)
@@ -829,8 +857,12 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 				return subnet, pools, reservedPools, reservations,
 					errorno.ErrInvalidParams(FieldNameOption108, field)
 			}
+		case FieldNameOption138:
+			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
 		case FieldNameNodes:
 			subnet.Nodes = splitFieldWithoutSpace(field)
+		case FieldNameNextServer:
+			subnet.NextServer = strings.TrimSpace(field)
 		case FieldNamePools:
 			if pools, err = parsePool4sFromString(strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations, err

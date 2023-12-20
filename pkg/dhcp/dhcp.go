@@ -73,6 +73,9 @@ func RegisterApi(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.RateLimitDuid{}, api.NewRateLimitDuidApi())
 
 	apiServer.Schemas.MustImport(&Version, resource.AddressCode{}, api.NewAddressCodeApi())
+	apiServer.Schemas.MustImport(&Version, resource.AddressCodeLayout{}, api.NewAddressCodeLayoutApi())
+	apiServer.Schemas.MustImport(&Version, resource.AddressCodeLayoutSegment{}, api.NewAddressCodeLayoutSegmentApi())
+	apiServer.Schemas.MustImport(&Version, resource.Asset{}, api.NewAssetApi())
 	apiServer.Schemas.MustImport(&Version, resource.DhcpOui{}, api.NewDhcpOuiApi())
 	return nil
 }
@@ -108,5 +111,8 @@ func PersistentResources() []restresource.Resource {
 		&resource.RateLimitMac{},
 		&resource.RateLimitDuid{},
 		&resource.AddressCode{},
+		&resource.AddressCodeLayout{},
+		&resource.AddressCodeLayoutSegment{},
+		&resource.Asset{},
 	}
 }

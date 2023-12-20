@@ -166,7 +166,7 @@ func listReservation4s(subnet *resource.Subnet4) ([]*resource.Reservation4, erro
 
 		if err := tx.Fill(map[string]interface{}{
 			resource.SqlColumnSubnet4: subnet.GetID(),
-			resource.SqlOrderBy:       resource.SqlColumnsIp}, &reservations); err != nil {
+			resource.SqlOrderBy:       resource.SqlColumnIp}, &reservations); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 
@@ -188,7 +188,7 @@ func listReservation4s(subnet *resource.Subnet4) ([]*resource.Reservation4, erro
 func getReservation4sLeasesCount(subnetId uint64, reservations []*resource.Reservation4) map[string]uint64 {
 	resp, err := getSubnet4Leases(subnetId)
 	if err != nil {
-		log.Warnf("get subnet4 %s leases failed: %s", subnetId, err.Error())
+		log.Warnf("get subnet4 %d leases failed: %s", subnetId, err.Error())
 		return nil
 	}
 
@@ -628,14 +628,6 @@ func (s *Reservation4Service) parseReservation4sFromFields(fields, tableHeaderFi
 		}
 	}
 	return reservation4, err
-}
-
-func addFailDataToResponse(response *excel.ImportResult,
-	headerLen int, subnetSlices []string, errStr string) {
-	slices := make([]string, headerLen)
-	copy(slices, subnetSlices)
-	slices[headerLen-1] = errStr
-	response.AddFailedData(slices)
 }
 
 func (s *Reservation4Service) ExportExcel(subnetId string) (*excel.ExportFile, error) {
