@@ -493,7 +493,7 @@ func sendUpdateSubnet6CmdToDHCPAgent(subnet *resource.Subnet6) error {
 			MinPreferredLifetime:     subnet.PreferredLifetime,
 			MaxPreferredLifetime:     subnet.PreferredLifetime,
 			RenewTime:                subnet.PreferredLifetime / 2,
-			RebindTime:               subnet.PreferredLifetime * 3 / 4,
+			RebindTime:               subnet.PreferredLifetime * 4 / 5,
 			WhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
 			WhiteClientClasses:       subnet.WhiteClientClasses,
 			BlackClientClassStrategy: subnet.BlackClientClassStrategy,
