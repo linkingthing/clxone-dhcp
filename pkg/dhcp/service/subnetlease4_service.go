@@ -129,7 +129,7 @@ func (l *SubnetLease4Service) listToReservationWithMac(leases []*resource.Subnet
 
 	lease6s, err := GetSubnets6LeasesWithMacs(hwAddresses)
 	if err != nil {
-		return nil, err
+		log.Warnf("get leases of subnets with macs failed: %s", err.Error())
 	}
 
 	result := make([]resource.ConvToReservationItem, 0, len(reservationLeases))
