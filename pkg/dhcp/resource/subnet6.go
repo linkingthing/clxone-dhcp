@@ -37,6 +37,7 @@ type Subnet6 struct {
 	PreferredLifetime         uint32    `json:"preferredLifetime"`
 	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
 	DomainServers             []string  `json:"domainServers"`
+	InformationRefreshTime    uint32    `json:"informationRefreshTime"`
 	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RapidCommit               bool      `json:"rapidCommit"`
@@ -163,6 +164,10 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*
 
 	if err := util.ValidateStrings(util.RegexpTypeSlash, s.RelayAgentInterfaceId); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentIf, s.RelayAgentInterfaceId)
+	}
+
+	if s.InformationRefreshTime != 0 && s.InformationRefreshTime < 600 {
+		return errorno.ErrInformationRefreshTime()
 	}
 
 	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {

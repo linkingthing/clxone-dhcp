@@ -30,8 +30,8 @@ const (
 	FieldNameRelayCircuitId           = "中继路由电路标识"
 	FieldNameRelayRemoteId            = "中继路由远程标识"
 	FieldNameRelayAddresses           = "中继路由链路地址"
-	FieldNameOption16                 = "option16"
 	FieldNameOption18                 = "option18"
+	FieldNameOption32                 = "option32"
 	FieldNameOption52                 = "option52"
 	FieldNameNodes                    = "节点列表"
 	FieldNameEUI64                    = "EUI64"
@@ -79,7 +79,7 @@ var (
 		FieldNameBlackClientClassStrategy, FieldNameBlackClientClasses,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameOption18, FieldNameDomainServers,
-		FieldNameOption52, FieldNameRelayAddresses, FieldNameNodes,
+		FieldNameOption32, FieldNameOption52, FieldNameRelayAddresses, FieldNameNodes,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations, FieldNamePdPools,
 	}
 
@@ -125,14 +125,14 @@ var (
 			"满足全部", "option60\noption61",
 			"满足一个", "option3\noption6",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/1", "2400:3200::1\n2400:3200::baba:1", "2001::255",
+			"Gi0/0/1", "2400:3200::1\n2400:3200::baba:1", "3600", "2001::255",
 			"2001::1\n2001::2", "127.0.0.2\n127.0.0.3", "", "", "",
 			"2001:0:2001::-48-64-备注1\n2001:0:2002::-48-64-备注2"},
 		[]string{"2002::/64", "template2", "关闭", "", "eno1",
 			"满足全部", "option16-1",
 			"满足一个", "option17-1",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/2", "2400:3200::1", "2002::255",
+			"Gi0/0/2", "2400:3200::1", "3600", "2002::255",
 			"2002::1\n2002::2", "127.0.0.3\n127.0.0.4",
 			"2002::6-2002::1f-备注1\n2002::26-2002::3f-备注2",
 			"2002::1-2002::5-备注3\n2002::20-2002::25-备注4",
@@ -142,13 +142,13 @@ var (
 			"满足全部", "option16-2",
 			"满足一个", "option17-2",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/3", "2400:3200::baba:1", "2003::255",
+			"Gi0/0/3", "2400:3200::baba:1", "3600", "2003::255",
 			"2003::1\n2003::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
 		[]string{"2004::/64", "template4", "关闭", "a1", "eth0",
 			"满足全部", "option16-3",
 			"满足一个", "option17-3",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/3", "2400:3200::baba:1", "2003::255",
+			"Gi0/0/3", "2400:3200::baba:1", "3600", "2003::255",
 			"2004::1\n2004::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
 	}
 
@@ -203,6 +203,7 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 		uint32ToString(subnet6.PreferredLifetime),
 		subnet6.RelayAgentInterfaceId,
 		strings.Join(subnet6.DomainServers, resource.CommonDelimiter),
+		uint32ToString(subnet6.InformationRefreshTime),
 		strings.Join(subnet6.CapWapACAddresses, resource.CommonDelimiter),
 		strings.Join(subnet6.RelayAgentAddresses, resource.CommonDelimiter),
 		strings.Join(subnet6.Nodes, resource.CommonDelimiter),
@@ -443,7 +444,9 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	buf.WriteString(subnet6.RelayAgentInterfaceId)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.DomainServers, ","))
-	buf.WriteString("}','{")
+	buf.WriteString("}','")
+	buf.WriteString(uint32ToString(subnet6.InformationRefreshTime))
+	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.CapWapACAddresses, ","))
 	buf.WriteString("}','{")
 	buf.WriteString(strings.Join(subnet6.RelayAgentAddresses, ","))
