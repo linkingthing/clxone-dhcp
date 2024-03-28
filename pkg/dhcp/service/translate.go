@@ -52,6 +52,7 @@ const (
 	FieldNameAssetType         = "资产类型"
 	FieldNameManufacturer      = "资产厂商"
 	FieldNameModel             = "资产型号"
+	FieldNameOperatingSystem   = "操作系统"
 	FieldNameAccessNetworkTime = "入网时间"
 
 	FieldNameCode  = "编码值（十六进制）*"
@@ -85,7 +86,7 @@ var (
 
 	TableHeaderAsset = []string{
 		FieldNameAssetName, FieldNameHwAddress, FieldNameAssetType, FieldNameManufacturer,
-		FieldNameModel, FieldNameAccessNetworkTime,
+		FieldNameModel, FieldNameOperatingSystem, FieldNameAccessNetworkTime,
 	}
 
 	TableHeaderSegment = []string{FieldNameValue, FieldNameCode}
@@ -153,8 +154,8 @@ var (
 	}
 
 	TemplateAsset = [][]string{
-		[]string{"a1", "11:11:11:11:11:11", "mobile", "huawei", "p40", "2023-10-31"},
-		[]string{"a2", "22:22:22:22:22:22", "pc", "huawei", "matebook pro", "2023-10-31"},
+		[]string{"a1", "11:11:11:11:11:11", "mobile", "huawei", "p40", "android", "2023-10-31"},
+		[]string{"a2", "22:22:22:22:22:22", "pc", "huawei", "matebook pro", "windows11", "2023-10-31"},
 	}
 
 	TemplateSegment = [][]string{
@@ -213,7 +214,8 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 func localizationAssetToStrSlice(asset *resource.Asset) []string {
 	return []string{
 		asset.Name, asset.HwAddress, asset.AssetType,
-		asset.Manufacturer, asset.Model, asset.AccessNetworkTime,
+		asset.Manufacturer, asset.Model, asset.OperatingSystem,
+		asset.AccessNetworkTime,
 	}
 }
 
@@ -612,6 +614,8 @@ func assetToInsertDBSqlString(asset *resource.Asset) string {
 	buf.WriteString(asset.Manufacturer)
 	buf.WriteString("','")
 	buf.WriteString(asset.Model)
+	buf.WriteString("','")
+	buf.WriteString(asset.OperatingSystem)
 	buf.WriteString("','")
 	buf.WriteString(asset.AccessNetworkTime)
 	buf.WriteString("'),")

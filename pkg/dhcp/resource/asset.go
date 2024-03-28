@@ -28,6 +28,7 @@ type Asset struct {
 	AssetType                 string `json:"assetType"`
 	Manufacturer              string `json:"manufacturer"`
 	Model                     string `json:"model"`
+	OperatingSystem           string `json:"operatingSystem"`
 	AccessNetworkTime         string `json:"accessNetworkTime"`
 }
 
@@ -85,6 +86,10 @@ func (a *Asset) Validate() error {
 		return errorno.ErrExceedMaxCount(errorno.ErrNameModel, InputMaxLength)
 	}
 
+	if err := util.ValidateStrings(util.RegexpTypeSpace, a.OperatingSystem); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameOperatingSystem, a.OperatingSystem)
+	}
+
 	if util.ValidateStrings(util.RegexpTypeSpace, a.AccessNetworkTime) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameAccessNetworkTime, a.AccessNetworkTime)
 	}
@@ -97,5 +102,6 @@ func (a *Asset) Diff(another *Asset) bool {
 		a.AssetType != another.AssetType ||
 		a.Manufacturer != another.Manufacturer ||
 		a.Model != another.Model ||
+		a.OperatingSystem != another.OperatingSystem ||
 		a.AccessNetworkTime != another.AccessNetworkTime
 }

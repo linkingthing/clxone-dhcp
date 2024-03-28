@@ -15,12 +15,14 @@ const (
 	LabelTypeAssetType         LabelType = "AssetType"
 	LabelTypeManufacturer      LabelType = "Manufacturer"
 	LabelTypeModel             LabelType = "Model"
+	LabelOperatingSystem       LabelType = "OperatingSystem"
 	LabelTypeAccessNetworkTime LabelType = "AccessNetworkTime"
 )
 
 func (l LabelType) Validate() bool {
 	return l == LabelTypeAssetType || l == LabelTypeManufacturer ||
-		l == LabelTypeModel || l == LabelTypeAccessNetworkTime
+		l == LabelTypeModel || l == LabelOperatingSystem ||
+		l == LabelTypeAccessNetworkTime
 }
 
 type AddressCodeLayout struct {
@@ -40,7 +42,8 @@ func (a *AddressCodeLayout) Validate() error {
 	if !a.Label.Validate() {
 		return errorno.ErrNotInScope(errorno.ErrNameLabel,
 			string(errorno.ErrNameAssetType), string(errorno.ErrNameManufacturer),
-			string(errorno.ErrNameModel), string(errorno.ErrNameAccessNetworkTime))
+			string(errorno.ErrNameModel), string(errorno.ErrNameOperatingSystem),
+			string(errorno.ErrNameAccessNetworkTime))
 	}
 
 	if a.BeginBit < 65 || a.BeginBit > 128 ||
