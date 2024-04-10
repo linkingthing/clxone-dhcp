@@ -70,4 +70,5 @@ const (
 	SqlColumnModel                    = "model"
 	SqlColumnAccessNetworkTime        = "access_network_time"
 	SqlColumnInformationRefreshTime   = "information_refresh_time"
+	SqlColumnIsAdmitted               = "is_admitted"
 )

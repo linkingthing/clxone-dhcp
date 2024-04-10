@@ -36,7 +36,10 @@ func (d *AdmitDuidService) Create(admitDuid *resource.AdmitDuid) error {
 
 func sendCreateAdmitDuidCmdToDHCPAgent(admitDuid *resource.AdmitDuid) error {
 	return kafka.SendDHCPCmd(kafka.CreateAdmitDuid,
-		&pbdhcpagent.CreateAdmitDuidRequest{Duid: admitDuid.Duid},
+		&pbdhcpagent.CreateAdmitDuidRequest{
+			Duid:       admitDuid.Duid,
+			IsAdmitted: admitDuid.IsAdmitted,
+		},
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				nodesForSucceed, kafka.DeleteAdmitDuid,
@@ -95,14 +98,35 @@ func (d *AdmitDuidService) Update(admitDuid *resource.AdmitDuid) error {
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Update(resource.TableAdmitDuid,
-			map[string]interface{}{resource.SqlColumnComment: admitDuid.Comment},
-			map[string]interface{}{restdb.IDField: admitDuid.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameUpdate, admitDuid.GetID(), pg.Error(err).Error())
-		} else if rows == 0 {
+		var admitDuids []*resource.AdmitDuid
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: admitDuid.GetID()},
+			&admitDuids); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, admitDuid.GetID(), pg.Error(err).Error())
+		} else if len(admitDuids) == 0 {
 			return errorno.ErrNotFound(errorno.ErrNameAdmit, admitDuid.GetID())
 		}
 
-		return nil
+		if _, err := tx.Update(resource.TableAdmitDuid,
+			map[string]interface{}{
+				resource.SqlColumnIsAdmitted: admitDuid.IsAdmitted,
+				resource.SqlColumnComment:    admitDuid.Comment,
+			},
+			map[string]interface{}{restdb.IDField: admitDuid.GetID()}); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, admitDuid.GetID(), pg.Error(err).Error())
+		}
+
+		if admitDuids[0].IsAdmitted != admitDuid.IsAdmitted {
+			return sendUpdateAdmitDuidCmdToDHCPAgent(admitDuid)
+		} else {
+			return nil
+		}
 	})
+}
+
+func sendUpdateAdmitDuidCmdToDHCPAgent(admitDuid *resource.AdmitDuid) error {
+	return kafka.SendDHCPCmd(kafka.UpdateAdmitDuid,
+		&pbdhcpagent.UpdateAdmitDuidRequest{
+			Duid:       admitDuid.Duid,
+			IsAdmitted: admitDuid.IsAdmitted,
+		}, nil)
 }
