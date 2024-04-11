@@ -88,7 +88,7 @@ var (
 	}
 	FormNameRegexps = []*StringRegexp{
 		{
-			Regexp:       regexp.MustCompile(`^[0-9a-zA-Z_]+$`),
+			Regexp:       regexp.MustCompile(`^[0-9a-zA-Z_\p{Han}]+$`),
 			ErrMsg:       "is illegal",
 			ExpectResult: true,
 		},
