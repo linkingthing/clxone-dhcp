@@ -21,8 +21,7 @@ type AddressCode struct {
 func (a *AddressCode) Validate() error {
 	if a.Name == "" {
 		return errorno.ErrMissingParams(errorno.ErrNameName, a.Name)
-	}
-	if util.ValidateStrings(util.RegexpTypeCommon, a.Name) != nil {
+	} else if util.ValidateStrings(util.RegexpTypeCommon, a.Name) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, a.Name)
 	}
 
