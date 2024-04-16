@@ -17,17 +17,17 @@ func NewAdmitFingerprintApi() *AdmitFingerprintApi {
 	return &AdmitFingerprintApi{Service: service.NewAdmitFingerprintService()}
 }
 
-func (d *AdmitFingerprintApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (a *AdmitFingerprintApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitFingerprint := ctx.Resource.(*resource.AdmitFingerprint)
-	if err := d.Service.Create(admitFingerprint); err != nil {
+	if err := a.Service.Create(admitFingerprint); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return admitFingerprint, nil
 }
 
-func (d *AdmitFingerprintApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	fingerprints, err := d.Service.List()
+func (a *AdmitFingerprintApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	fingerprints, err := a.Service.List()
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -35,8 +35,8 @@ func (d *AdmitFingerprintApi) List(ctx *restresource.Context) (interface{}, *res
 	return fingerprints, nil
 }
 
-func (d *AdmitFingerprintApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admitFingerprint, err := d.Service.Get(ctx.Resource.GetID())
+func (a *AdmitFingerprintApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	admitFingerprint, err := a.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -44,10 +44,19 @@ func (d *AdmitFingerprintApi) Get(ctx *restresource.Context) (restresource.Resou
 	return admitFingerprint, nil
 }
 
-func (d *AdmitFingerprintApi) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
+func (a *AdmitFingerprintApi) Delete(ctx *restresource.Context) *resterror.APIError {
+	if err := a.Service.Delete(ctx.Resource.GetID()); err != nil {
 		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
+}
+
+func (a *AdmitFingerprintApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	admitFingerprint := ctx.Resource.(*resource.AdmitFingerprint)
+	if err := a.Service.Update(admitFingerprint); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	}
+
+	return admitFingerprint, nil
 }
