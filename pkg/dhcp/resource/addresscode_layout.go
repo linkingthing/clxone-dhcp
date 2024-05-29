@@ -42,7 +42,7 @@ func (a *AddressCodeLayout) Validate() error {
 	if !a.Label.Validate() {
 		return errorno.ErrNotInScope(errorno.ErrNameLabel,
 			string(errorno.ErrNameAssetType), string(errorno.ErrNameManufacturer),
-			string(errorno.ErrNameModel), string(errorno.ErrNameOperatingSystem),
+			string(errorno.ErrNameModel), string(errorno.ErrNameAssetOperatingSystem),
 			string(errorno.ErrNameAccessNetworkTime))
 	}
 

@@ -101,6 +101,7 @@ const (
 	ErrNameAssetType                ErrName = "AssetType"
 	ErrNameManufacturer             ErrName = "Manufacturer"
 	ErrNameModel                    ErrName = "Model"
+	ErrNameAssetOperatingSystem     ErrName = "OperatingSystem"
 	ErrNameAccessNetworkTime        ErrName = "AccessNetworkTime"
 	ErrNameAsset                    ErrName = "asset"
 
@@ -173,7 +174,8 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameAssetType:               "资产类型",
 	ErrNameManufacturer:            "资产厂商",
 	ErrNameModel:                   "资产型号",
-	ErrNameAccessNetworkTime:       "资产入网时间",
+	ErrNameAssetOperatingSystem:    "操作系统",
+	ErrNameAccessNetworkTime:       "入网时间",
 	ErrNameAsset:                   "分配资产",
 
 	ErrDBNameInsert: "写入数据",

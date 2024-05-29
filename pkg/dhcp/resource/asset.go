@@ -87,7 +87,7 @@ func (a *Asset) Validate() error {
 	}
 
 	if err := util.ValidateStrings(util.RegexpTypeSpace, a.OperatingSystem); err != nil {
-		return errorno.ErrInvalidParams(errorno.ErrNameOperatingSystem, a.OperatingSystem)
+		return errorno.ErrInvalidParams(errorno.ErrNameAssetOperatingSystem, a.OperatingSystem)
 	}
 
 	if util.ValidateStrings(util.RegexpTypeSpace, a.AccessNetworkTime) != nil {
