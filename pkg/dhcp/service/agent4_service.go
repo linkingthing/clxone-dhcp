@@ -120,23 +120,25 @@ func GetAgentInfo(alive bool, role ...kafka.AgentRole) (map[string]Agent, error)
 		if alive && !node.GetServiceAlive() || !kafka.IsAgentService(node.GetServiceTags(), role...) {
 			continue
 		}
-		if vip := node.VirtualIp; vip != "" {
-			agent := Agent{
-				Id:   vip,
-				Name: vip,
-				Ips:  []string{vip},
-			}
-			return map[string]Agent{agent.Id: agent}, nil
-		}
 
-		if node.Deploy == DeployModelAnycast {
+		switch node.Deploy {
+		case DeployModelHa:
+			if vip := node.VirtualIp; vip != "" {
+				agent := Agent{
+					Id:   vip,
+					Name: vip,
+					Ips:  []string{vip},
+				}
+				return map[string]Agent{agent.Id: agent}, nil
+			}
+		case DeployModelAnycast:
 			id := node.Name
 			agent := nodeMap[id]
 			agent.Id = id
 			agent.Name = node.Name
 			agent.Ips = append(agent.Ips, node.Ipv4)
 			nodeMap[id] = agent
-		} else {
+		default:
 			nodeMap[node.Ipv4] = Agent{
 				Id:   node.Ipv4,
 				Name: node.Name,
