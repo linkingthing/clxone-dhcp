@@ -31,7 +31,7 @@ build-package-arm:
 	docker save -o clxone-dhcp-${VERSION}.tar.gz linkingthing/clxone-dhcp:${VERSION}
 
 build-harbor:
-	docker build --build-arg go_image=${go_harbor_image} --build-arg base_image=${base_image} -t linkingthing/clxone-dhcp:${VERSION} .
+	docker build  --platform linux/amd64 --build-arg go_image=${go_harbor_image} --build-arg base_image=${base_image} -t linkingthing/clxone-dhcp:${VERSION} .
 	docker image prune -f
 	docker save -o clxone-dhcp-${VERSION}.tar.gz linkingthing/clxone-dhcp:${VERSION}
 
