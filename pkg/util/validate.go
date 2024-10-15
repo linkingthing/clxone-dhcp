@@ -86,6 +86,13 @@ var (
 			ExpectResult: false,
 		},
 	}
+	FormNameRegexps = []*StringRegexp{
+		{
+			Regexp:       regexp.MustCompile(`^[0-9a-zA-Z_\p{Han}]+$`),
+			ErrMsg:       "is illegal",
+			ExpectResult: true,
+		},
+	}
 )
 
 type RegexpType string
@@ -167,4 +174,18 @@ func IsSubnetMask(addr string) bool {
 		}
 	}
 	return true
+}
+
+func CheckFormName(name string) error {
+	if name == "" {
+		return nil
+	}
+
+	for _, reg := range FormNameRegexps {
+		if ret := reg.Regexp.MatchString(name); ret != reg.ExpectResult {
+			return errorno.ErrInvalidParams(errorno.ErrNameName, name)
+		}
+	}
+
+	return nil
 }

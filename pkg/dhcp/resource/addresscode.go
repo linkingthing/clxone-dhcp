@@ -19,8 +19,12 @@ type AddressCode struct {
 }
 
 func (a *AddressCode) Validate() error {
-	if util.ValidateStrings(util.RegexpTypeCommon, a.Name) != nil {
+	if a.Name == "" {
+		return errorno.ErrMissingParams(errorno.ErrNameName, a.Name)
+	} else if util.CheckFormName(a.Name) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, a.Name)
+	} else if utf8.RuneCountInString(a.Name) > 50 {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameName, 50)
 	}
 
 	if util.ValidateStrings(util.RegexpTypeComma, a.Comment) != nil {
