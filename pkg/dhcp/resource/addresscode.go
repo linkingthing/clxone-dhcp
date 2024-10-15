@@ -21,10 +21,10 @@ type AddressCode struct {
 func (a *AddressCode) Validate() error {
 	if a.Name == "" {
 		return errorno.ErrMissingParams(errorno.ErrNameName, a.Name)
-	} else if util.CheckFormName(a.Name) != nil {
+	} else if util.ValidateStrings(util.RegexpTypeBasic, a.Name) != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameName, a.Name)
-	} else if utf8.RuneCountInString(a.Name) > 50 {
-		return errorno.ErrExceedMaxCount(errorno.ErrNameName, 50)
+	} else if utf8.RuneCountInString(a.Name) > MaxNameLength {
+		return errorno.ErrExceedMaxCount(errorno.ErrNameName, MaxNameLength)
 	}
 
 	if util.ValidateStrings(util.RegexpTypeComma, a.Comment) != nil {

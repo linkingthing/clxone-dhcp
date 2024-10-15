@@ -15,6 +15,23 @@ type StringRegexp struct {
 }
 
 var (
+	StringsRegexpsBasic = []*StringRegexp{
+		{
+			Regexp:       regexp.MustCompile(`^[0-9a-zA-Z_\p{Han}]+$`),
+			ErrMsg:       "is illegal",
+			ExpectResult: true,
+		},
+		{
+			Regexp:       regexp.MustCompile(`(^_)`),
+			ErrMsg:       "is illegal",
+			ExpectResult: false,
+		},
+		{
+			Regexp:       regexp.MustCompile(`_$`),
+			ErrMsg:       "is illegal",
+			ExpectResult: false,
+		},
+	}
 	StringRegexpsCommon = []*StringRegexp{
 		{
 			Regexp:       regexp.MustCompile(`^[0-9a-zA-Z-\.:_\p{Han}]+$`),
@@ -86,18 +103,12 @@ var (
 			ExpectResult: false,
 		},
 	}
-	FormNameRegexps = []*StringRegexp{
-		{
-			Regexp:       regexp.MustCompile(`^[0-9a-zA-Z_\p{Han}]+$`),
-			ErrMsg:       "is illegal",
-			ExpectResult: true,
-		},
-	}
 )
 
 type RegexpType string
 
 const (
+	RegexpTypeBasic  RegexpType = "basic"
 	RegexpTypeCommon RegexpType = "common"
 	RegexpTypeSlash  RegexpType = "slash"
 	RegexpTypeSpace  RegexpType = "space"
@@ -107,6 +118,8 @@ const (
 func ValidateStrings(typ RegexpType, ss ...string) error {
 	var regexps []*StringRegexp
 	switch typ {
+	case RegexpTypeBasic:
+		regexps = StringsRegexpsBasic
 	case RegexpTypeCommon:
 		regexps = StringRegexpsCommon
 	case RegexpTypeSlash:
@@ -174,18 +187,4 @@ func IsSubnetMask(addr string) bool {
 		}
 	}
 	return true
-}
-
-func CheckFormName(name string) error {
-	if name == "" {
-		return nil
-	}
-
-	for _, reg := range FormNameRegexps {
-		if ret := reg.Regexp.MatchString(name); ret != reg.ExpectResult {
-			return errorno.ErrInvalidParams(errorno.ErrNameName, name)
-		}
-	}
-
-	return nil
 }
