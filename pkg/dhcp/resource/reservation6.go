@@ -5,10 +5,12 @@ import (
 	"math/big"
 	"net"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
+	"github.com/linkingthing/cement/uuid"
 	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -28,6 +30,7 @@ const (
 
 var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 
+type Reservation6s []*Reservation6
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string      `json:"-" db:"ownby"`
@@ -66,6 +69,43 @@ func (s Reservation6) GetActions() []restresource.Action {
 			Name:  ActionBatchDelete,
 			Input: &BatchDeleteInput{},
 		},
+	}
+}
+
+func (r *Reservation6) GenCopyValues() []interface{} {
+	if r.GetID() == "" {
+		r.ID, _ = uuid.Gen()
+	}
+
+	if len(r.IpAddresses) == 0 {
+		r.IpAddresses = []string{}
+	}
+
+	if len(r.Ips) == 0 {
+		r.Ips = []net.IP{}
+	}
+
+	if len(r.Prefixes) == 0 {
+		r.Prefixes = []string{}
+	}
+
+	if len(r.Ipnets) == 0 {
+		r.Ipnets = []net.IPNet{}
+	}
+
+	return []interface{}{
+		r.GetID(),
+		time.Now(),
+		r.Subnet6,
+		r.Duid,
+		r.HwAddress,
+		r.Hostname,
+		r.IpAddresses,
+		r.Ips,
+		r.Prefixes,
+		r.Ipnets,
+		r.Capacity,
+		r.Comment,
 	}
 }
 
@@ -219,4 +259,20 @@ func parseDUID(duid string) error {
 
 	_, err = dhcp6.DuidFromBytes(duidbytes)
 	return err
+}
+
+func (reservation6s Reservation6s) GetIps() []net.IP {
+	result := make([]net.IP, 0, len(reservation6s))
+	for _, reservation6 := range reservation6s {
+		result = append(result, reservation6.Ips...)
+	}
+	return result
+}
+
+func (reservation6s Reservation6s) GetIpNets() []net.IPNet {
+	result := make([]net.IPNet, 0, len(reservation6s))
+	for _, reservation6 := range reservation6s {
+		result = append(result, reservation6.Ipnets...)
+	}
+	return result
 }

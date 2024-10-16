@@ -1,10 +1,15 @@
 package resource
 
 import (
+	"github.com/linkingthing/cement/uuid"
+	restdb "github.com/linkingthing/gorest/db"
 	"strings"
+	"time"
 
 	restresource "github.com/linkingthing/gorest/resource"
 )
+
+var TableSubnetLease6 = restdb.ResourceDBType(&SubnetLease6{})
 
 type SubnetLease6 struct {
 	restresource.ResourceBase `json:",inline"`
@@ -39,6 +44,58 @@ type SubnetLease6 struct {
 	Subnet                    string      `json:"subnet"`
 	BelongEui64Subnet         bool        `json:"-" db:"-"`
 	BelongAddrCodeSubnet      bool        `json:"-" db:"-"`
+}
+
+func (l *SubnetLease6) GenCopyValues() []interface{} {
+	if l.GetID() == "" {
+		l.ID, _ = uuid.Gen()
+	}
+
+	if len(l.AddressCodes) == 0 {
+		l.AddressCodes = []string{}
+	}
+
+	if len(l.AddressCodeBegins) == 0 {
+		l.AddressCodeBegins = []uint32{}
+	}
+
+	if len(l.AddressCodeEnds) == 0 {
+		l.AddressCodeEnds = []uint32{}
+	}
+
+	return []interface{}{
+		l.GetID(),
+		time.Now(),
+		l.Subnet6,
+		l.Address,
+		l.AddressType,
+		l.Duid,
+		l.HwAddress,
+		l.HwAddressType,
+		l.HwAddressSource,
+		l.HwAddressOrganization,
+		l.FqdnFwd,
+		l.FqdnRev,
+		l.Hostname,
+		l.Iaid,
+		l.LeaseState,
+		l.LeaseType,
+		l.PrefixLen,
+		l.RequestType,
+		l.RequestTime,
+		l.ValidLifetime,
+		l.PreferredLifetime,
+		l.ExpirationTime,
+		l.Fingerprint,
+		l.VendorId,
+		l.OperatingSystem,
+		l.ClientType,
+		l.RequestSourceAddr,
+		l.AddressCodes,
+		l.AddressCodeBegins,
+		l.AddressCodeEnds,
+		l.Subnet,
+	}
 }
 
 func (l SubnetLease6) GetParents() []restresource.ResourceKind {

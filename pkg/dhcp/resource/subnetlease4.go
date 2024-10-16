@@ -2,7 +2,9 @@ package resource
 
 import (
 	"strings"
+	"time"
 
+	"github.com/linkingthing/cement/uuid"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
@@ -38,6 +40,35 @@ type SubnetLease4 struct {
 	OperatingSystem           string      `json:"operatingSystem"`
 	ClientType                string      `json:"clientType"`
 	Subnet                    string      `json:"subnet"`
+}
+
+func (l *SubnetLease4) GenCopyValues() []interface{} {
+	if l.GetID() == "" {
+		l.ID, _ = uuid.Gen()
+	}
+	return []interface{}{
+		l.GetID(),
+		time.Now(),
+		l.Subnet4,
+		l.Address,
+		l.AddressType,
+		l.HwAddress,
+		l.HwAddressOrganization,
+		l.ClientId,
+		l.FqdnFwd,
+		l.FqdnRev,
+		l.Hostname,
+		l.LeaseState,
+		l.RequestType,
+		l.RequestTime,
+		l.ValidLifetime,
+		l.ExpirationTime,
+		l.Fingerprint,
+		l.VendorId,
+		l.OperatingSystem,
+		l.ClientType,
+		l.Subnet,
+	}
 }
 
 func (l SubnetLease4) GetParents() []restresource.ResourceKind {
