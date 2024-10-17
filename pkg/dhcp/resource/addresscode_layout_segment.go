@@ -69,6 +69,11 @@ func (a *AddressCodeLayoutSegment) Validate(layout *AddressCodeLayout) error {
 		return errorno.ErrMismatchAddressCode(a.Code, layout.BeginBit, layout.EndBit)
 	}
 
+	if firstHexBitWidth := (layout.EndBit - layout.BeginBit + 1) % 4; firstHexBitWidth != 0 &&
+		int(a.Code[0])-48 > (1<<firstHexBitWidth)-1 {
+		return errorno.ErrMismatchAddressCode(a.Code, layout.BeginBit, layout.EndBit)
+	}
+
 	a.Code = strings.ToLower(a.Code)
 	return nil
 }
