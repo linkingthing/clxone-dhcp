@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"net"
 	"time"
 	"unicode/utf8"
@@ -124,6 +125,10 @@ func (r *Reservation4) GenCopyValues() []interface{} {
 		r.Capacity,
 		r.Comment,
 	}
+}
+
+func (r *Reservation4) GetUniqueKey() string {
+	return fmt.Sprintf("%s-%s-%s", r.HwAddress, r.Hostname, r.IpAddress)
 }
 
 func (rs Reservation4s) GetIds() []string {

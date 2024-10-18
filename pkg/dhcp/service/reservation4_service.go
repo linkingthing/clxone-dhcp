@@ -34,6 +34,10 @@ func NewReservation4Service() *Reservation4Service {
 
 func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *resource.Reservation4) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet4FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		if err := batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet); err != nil {
 			return err
 		}
@@ -42,33 +46,40 @@ func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *reso
 }
 
 func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
-	if err := setSubnet4FromDB(tx, subnet); err != nil {
-		return err
-	}
-
 	if !subnet.Ipnet.Contains(reservation.Ip) {
 		return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservation, errorno.ErrNameNetworkV4,
 			reservation.IpAddress, subnet.Subnet)
 	}
 
-	if err := checkReservation4InUsed(tx, subnet.GetID(), reservation); err != nil {
+	if err := checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(), reservation); err != nil {
 		return err
 	}
 
-	return checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(), reservation)
+	return nil
 }
 
-func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
+func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservations ...*resource.Reservation4) error {
 	// TODO 待校验导入的是不是有subnet4、hw_address、hostname或者ip_address一样的
-	if count, err := tx.CountEx(resource.TableReservation4,
-		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 and hostname = $3 or ip_address = $4)",
-		subnetId, reservation.HwAddress, reservation.Hostname, reservation.IpAddress); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-	} else if count != 0 {
-		return errorno.ErrUsedReservation(reservation.IpAddress)
-	} else {
-		return nil
+	var dbReservations resource.Reservation4s
+	if err := tx.Fill(map[string]interface{}{
+		resource.SqlColumnSubnet4: subnetId,
+	}, &dbReservations); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
+
+	reservationMap := make(map[string]struct{}, len(dbReservations)+len(reservations))
+	for _, reservation := range dbReservations {
+		reservationMap[reservation.GetUniqueKey()] = struct{}{}
+	}
+
+	for _, reservation := range reservations {
+		key := reservation.GetUniqueKey()
+		if _, ok := reservationMap[key]; ok {
+			return errorno.ErrUsedReservation(reservation.IpAddress)
+		}
+		reservationMap[key] = struct{}{}
+	}
+	return nil
 }
 
 func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
@@ -445,18 +456,32 @@ func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.R
 		if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
 			return err
 		}
+	}
 
-		if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
-			reservation, true); err != nil {
+	if err := checkReservation4InUsed(tx, subnet.GetID(), reservations...); err != nil {
+		return err
+	}
+
+	updatePool4Map := make(map[string]*resource.Pool4, len(reservations))
+	values := make([][]interface{}, 0, len(reservations))
+	for _, reservation := range reservations {
+		if err := updateSubnet4OrPool4CapacityWithReservation4s(tx, subnet,
+			reservation, true, updatePool4Map); err != nil {
 			return err
 		}
 
 		reservation.Subnet4 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-		}
-
+		values = append(values, reservation.GenCopyValues())
 	}
+
+	if err := updateSubnet4AndPool4Capacity(tx, subnet, updatePool4Map); err != nil {
+		return err
+	}
+
+	if _, err := tx.CopyFrom(resource.TableReservation4, values); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+	}
+
 	return nil
 }
 
@@ -554,6 +579,10 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile, subnetId strin
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, reservation := range reservations {
 			if err = checkReservation4CouldBeCreated(tx, subnet4s[0], reservation); err != nil {
+				addFailDataToResponse(response, TableHeaderReservation4FailLen,
+					localizationReservation4ToStrSlice(reservation), errorno.TryGetErrorCNMsg(err))
+				continue
+			} else if err = checkReservation4InUsed(tx, subnet4s[0].GetID(), reservation); err != nil {
 				addFailDataToResponse(response, TableHeaderReservation4FailLen,
 					localizationReservation4ToStrSlice(reservation), errorno.TryGetErrorCNMsg(err))
 				continue
