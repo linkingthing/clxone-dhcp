@@ -96,6 +96,18 @@ func checkReservation6sInUsed(tx restdb.Transaction, subnetId string, newReserva
 		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
+	for i, reservation := range newReservations {
+		for j, tempReservation := range newReservations {
+			if i == j {
+				continue
+			}
+			if reservation.CheckConflictWithAnother(tempReservation) {
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
+					reservation.String(), tempReservation.String())
+			}
+		}
+	}
+
 	for _, reservation_ := range reservations {
 		for _, reservation := range newReservations {
 			if reservation_.CheckConflictWithAnother(reservation) {
@@ -696,6 +708,7 @@ func batchCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, r
 		if err := reservation.Validate(); err != nil {
 			return err
 		}
+
 		reservation.Subnet6 = subnet.GetID()
 		values = append(values, reservation.GenCopyValues())
 	}
@@ -791,6 +804,7 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 			validReservations = append(validReservations, reservation)
 			values = append(values, reservation.GenCopyValues())
 		}
+
 		if err = updateSubnet6AndPoolsCapacityWithReservation6s(tx, subnet6s[0],
 			validReservations, true); err != nil {
 			return err
@@ -969,19 +983,21 @@ func updateSubnet6AndPoolsCapacityWithReservation6s(tx restdb.Transaction, subne
 		return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
 	}
 
-	for affectedPoolId, capacity := range affectedPools {
-		if _, err = tx.Update(resource.TablePool6, map[string]interface{}{
-			resource.SqlColumnCapacity: capacity,
-		}, map[string]interface{}{restdb.IDField: affectedPoolId}); err != nil {
+	if len(affectedPools) > 0 {
+		for affectedId, capacity := range affectedPools {
+			affectedPools[affectedId] = strings.Join([]string{"('", affectedId, "',", capacity, ")"}, "")
+		}
+		if err = util.BatchUpdateById(tx, string(resource.TablePool6), []string{resource.SqlColumnCapacity}, affectedPools); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
 		}
 	}
 
-	for affectedPdPoolId, capacity := range affectedPdPools {
-		if _, err = tx.Update(resource.TablePdPool, map[string]interface{}{
-			resource.SqlColumnCapacity: capacity,
-		}, map[string]interface{}{restdb.IDField: affectedPdPoolId}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNamePdPool), pg.Error(err).Error())
+	if len(affectedPdPools) > 0 {
+		for affectedId, capacity := range affectedPdPools {
+			affectedPdPools[affectedId] = strings.Join([]string{"('", affectedId, "',", capacity, ")"}, "")
+		}
+		if err = util.BatchUpdateById(tx, string(resource.TablePdPool), []string{resource.SqlColumnCapacity}, affectedPdPools); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNamePdPool), pg.Error(err).Error())
 		}
 	}
 

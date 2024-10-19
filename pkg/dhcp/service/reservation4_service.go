@@ -58,8 +58,19 @@ func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Sub
 	return nil
 }
 
-func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservations ...*resource.Reservation4) error {
-	// TODO 待校验导入的是不是有subnet4、hw_address、hostname或者ip_address一样的
+func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
+	if count, err := tx.CountEx(resource.TableReservation4,
+		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 and hostname = $3 or ip_address = $4)",
+		subnetId, reservation.HwAddress, reservation.Hostname, reservation.IpAddress); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+	} else if count != 0 {
+		return errorno.ErrUsedReservation(reservation.IpAddress)
+	} else {
+		return nil
+	}
+}
+
+func checkReservation4sInUsed(tx restdb.Transaction, subnetId string, reservations ...*resource.Reservation4) error {
 	var dbReservations resource.Reservation4s
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlColumnSubnet4: subnetId,
@@ -458,7 +469,7 @@ func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.R
 		}
 	}
 
-	if err := checkReservation4InUsed(tx, subnet.GetID(), reservations...); err != nil {
+	if err := checkReservation4sInUsed(tx, subnet.GetID(), reservations...); err != nil {
 		return err
 	}
 

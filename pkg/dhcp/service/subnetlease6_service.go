@@ -585,7 +585,7 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 			return err
 		}
 
-		lease6s, err := GetSubnetLease6sWithoutReclaimed(subnet6.SubnetId, subnetLeases)
+		lease6s, err := GetSubnetLease6sWithoutReclaimed(subnet6.SubnetId, leaseIds, subnetLeases)
 		if err != nil {
 			return err
 		} else if len(lease6s) == 0 {
@@ -654,13 +654,21 @@ func getReservation6sAndSubnetLease6sWithIps(tx restdb.Transaction, subnet6 *res
 	return reservations, subnetLeases, nil
 }
 
-func GetSubnetLease6sWithoutReclaimed(subnetId uint64, subnetLeases []*resource.SubnetLease6) (
+func GetSubnetLease6sWithoutReclaimed(subnetId uint64, ips []string, subnetLeases []*resource.SubnetLease6) (
 	[]*resource.SubnetLease6, error) {
+	reqs := make([]*pbdhcpagent.GetSubnet6LeaseRequest, 0, len(ips))
+	for _, ip := range ips {
+		reqs = append(reqs, &pbdhcpagent.GetSubnet6LeaseRequest{
+			Id:      subnetId,
+			Address: ip,
+		})
+	}
+
 	var err error
 	var resp *pbdhcpagent.GetLeases6Response
 	if err = transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
-		resp, err = client.GetSubnet6Leases(ctx,
-			&pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
+		resp, err = client.GetSubnet6LeasesWithIps(ctx,
+			&pbdhcpagent.GetSubnet6LeasesWithIpsRequest{Addresses: reqs})
 		if err != nil {
 			err = errorno.ErrNetworkError(errorno.ErrNameLease, err.Error())
 		}
