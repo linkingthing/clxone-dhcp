@@ -71,32 +71,34 @@ func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation
 }
 
 func checkReservation4sInUsed(tx restdb.Transaction, subnetId string, reservations ...*resource.Reservation4) error {
+	reservationInfoMap, reservationAddressMap, err := getReservation4UniqueMap(tx, subnetId)
+	if err != nil {
+		return err
+	}
+
+	for _, reservation := range reservations {
+		if err = reservation.CheckUnique(reservationInfoMap, reservationAddressMap); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getReservation4UniqueMap(tx restdb.Transaction, subnetId string) (map[string]struct{}, map[string]struct{}, error) {
 	var dbReservations resource.Reservation4s
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlColumnSubnet4: subnetId,
 	}, &dbReservations); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
-	reservationInfoMap := make(map[string]struct{}, len(dbReservations)+len(reservations))
-	reservationAddressMap := make(map[string]struct{}, len(dbReservations)+len(reservations))
+	reservationInfoMap := make(map[string]struct{}, len(dbReservations))
+	reservationAddressMap := make(map[string]struct{}, len(dbReservations))
 	for _, reservation := range dbReservations {
 		reservationInfoMap[reservation.GetUniqueKey()] = struct{}{}
 		reservationAddressMap[reservation.IpAddress] = struct{}{}
 	}
-
-	for _, reservation := range reservations {
-		key := reservation.GetUniqueKey()
-		if _, ok := reservationInfoMap[key]; ok {
-			return errorno.ErrUsedReservation(reservation.IpAddress)
-		}
-		if _, ok := reservationAddressMap[reservation.IpAddress]; ok {
-			return errorno.ErrUsedReservation(reservation.IpAddress)
-		}
-		reservationInfoMap[key] = struct{}{}
-		reservationAddressMap[reservation.IpAddress] = struct{}{}
-	}
-	return nil
+	return reservationInfoMap, reservationAddressMap, nil
 }
 
 func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
@@ -591,16 +593,21 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile, subnetId strin
 		return response, nil
 	}
 
+	var reservationInfoMap, reservationAddressMap map[string]struct{}
 	validReservations := make([]*resource.Reservation4, 0, len(reservations))
 	updatePool4Map := make(map[string]*resource.Pool4, len(reservations))
 	values := make([][]interface{}, 0, len(reservations))
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if reservationInfoMap, reservationAddressMap, err = getReservation4UniqueMap(tx, subnetId); err != nil {
+			return err
+		}
+
 		for _, reservation := range reservations {
 			if err = checkReservation4CouldBeCreated(tx, subnet4s[0], reservation); err != nil {
 				addFailDataToResponse(response, TableHeaderReservation4FailLen,
 					localizationReservation4ToStrSlice(reservation), errorno.TryGetErrorCNMsg(err))
 				continue
-			} else if err = checkReservation4InUsed(tx, subnet4s[0].GetID(), reservation); err != nil {
+			} else if err = reservation.CheckUnique(reservationInfoMap, reservationAddressMap); err != nil {
 				addFailDataToResponse(response, TableHeaderReservation4FailLen,
 					localizationReservation4ToStrSlice(reservation), errorno.TryGetErrorCNMsg(err))
 				continue

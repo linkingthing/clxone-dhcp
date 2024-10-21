@@ -113,6 +113,19 @@ func (r *Reservation4) Validate() error {
 	return nil
 }
 
+func (r *Reservation4) CheckUnique(reservationInfoMap, reservationAddressMap map[string]struct{}) error {
+	key := r.GetUniqueKey()
+	if _, ok := reservationInfoMap[key]; ok {
+		return errorno.ErrUsedReservation(r.IpAddress)
+	}
+	if _, ok := reservationAddressMap[r.IpAddress]; ok {
+		return errorno.ErrUsedReservation(r.IpAddress)
+	}
+	reservationInfoMap[key] = struct{}{}
+	reservationAddressMap[r.IpAddress] = struct{}{}
+	return nil
+}
+
 func (r *Reservation4) GenCopyValues() []interface{} {
 	if r.GetID() == "" {
 		r.ID, _ = uuid.Gen()
