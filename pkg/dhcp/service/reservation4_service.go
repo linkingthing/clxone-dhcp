@@ -78,17 +78,23 @@ func checkReservation4sInUsed(tx restdb.Transaction, subnetId string, reservatio
 		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
-	reservationMap := make(map[string]struct{}, len(dbReservations)+len(reservations))
+	reservationInfoMap := make(map[string]struct{}, len(dbReservations)+len(reservations))
+	reservationAddressMap := make(map[string]struct{}, len(dbReservations)+len(reservations))
 	for _, reservation := range dbReservations {
-		reservationMap[reservation.GetUniqueKey()] = struct{}{}
+		reservationInfoMap[reservation.GetUniqueKey()] = struct{}{}
+		reservationAddressMap[reservation.IpAddress] = struct{}{}
 	}
 
 	for _, reservation := range reservations {
 		key := reservation.GetUniqueKey()
-		if _, ok := reservationMap[key]; ok {
+		if _, ok := reservationInfoMap[key]; ok {
 			return errorno.ErrUsedReservation(reservation.IpAddress)
 		}
-		reservationMap[key] = struct{}{}
+		if _, ok := reservationAddressMap[reservation.IpAddress]; ok {
+			return errorno.ErrUsedReservation(reservation.IpAddress)
+		}
+		reservationInfoMap[key] = struct{}{}
+		reservationAddressMap[reservation.IpAddress] = struct{}{}
 	}
 	return nil
 }

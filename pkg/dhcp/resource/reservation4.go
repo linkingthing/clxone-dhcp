@@ -131,7 +131,7 @@ func (r *Reservation4) GenCopyValues() []interface{} {
 }
 
 func (r *Reservation4) GetUniqueKey() string {
-	return fmt.Sprintf("%s-%s-%s", r.HwAddress, r.Hostname, r.IpAddress)
+	return fmt.Sprintf("%s-%s", r.HwAddress, r.Hostname)
 }
 
 func (rs Reservation4s) GetIds() []string {
