@@ -620,7 +620,7 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile, subnetId strin
 			return err
 		}
 
-		if _, err = tx.CopyFrom(resource.TableReservation4, values); err != nil {
+		if _, err = tx.CopyFromEx(resource.TableReservation4, resource.Reservation4Columns, values); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 
