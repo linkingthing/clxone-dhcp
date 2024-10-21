@@ -489,7 +489,7 @@ func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.R
 		return err
 	}
 
-	if _, err := tx.CopyFrom(resource.TableReservation4, values); err != nil {
+	if _, err := tx.CopyFromEx(resource.TableReservation4, resource.Reservation4Columns, values); err != nil {
 		log.Warnf("%s", err.Error())
 		return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}

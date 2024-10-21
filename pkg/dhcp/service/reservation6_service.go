@@ -722,7 +722,7 @@ func batchCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, r
 		return err
 	}
 
-	if _, err := tx.CopyFrom(resource.TableReservation6, values); err != nil {
+	if _, err := tx.CopyFromEx(resource.TableReservation6, resource.Reservation6Columns, values); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 	return nil
@@ -808,6 +808,10 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 		if err = updateSubnet6AndPoolsCapacityWithReservation6s(tx, subnet6s[0],
 			validReservations, true); err != nil {
 			return err
+		}
+
+		if _, err = tx.CopyFromEx(resource.TableReservation6, resource.Reservation6Columns, values); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 
 		return sendCreateReservation6CmdToDHCPAgent(subnet6s[0].SubnetId, subnet6s[0].Nodes, validReservations...)

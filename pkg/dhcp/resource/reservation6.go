@@ -30,6 +30,10 @@ const (
 
 var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 
+var Reservation6Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet6, SqlColumnDuid, SqlColumnHwAddress,
+	SqlColumnHostname, SqlColumnIpAddresses, SqlColumnIps, SqlColumnPrefixes, SqlColumnIpNets, SqlColumnCapacity,
+	SqlColumnComment}
+
 type Reservation6s []*Reservation6
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
