@@ -117,13 +117,13 @@ func (r *Reservation4) GenCopyValues() []interface{} {
 	return []interface{}{
 		r.GetID(),
 		time.Now(),
-		r.Subnet4,
 		r.HwAddress,
 		r.Hostname,
 		r.IpAddress,
 		r.Ip,
 		r.Capacity,
 		r.Comment,
+		r.Subnet4,
 	}
 }
 
