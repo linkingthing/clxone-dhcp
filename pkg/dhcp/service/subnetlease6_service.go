@@ -681,16 +681,19 @@ func GetSubnetLease6sWithoutReclaimed(subnetId uint64, ips []string, subnetLease
 		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
 	}
 
+	subLeaseMap := make(map[string]struct{}, len(subnetLeases))
+	for _, subnetLease := range subnetLeases {
+		subLeaseMap[subnetLease.GetUniqueKey()] = struct{}{}
+	}
+
 	validLeases := make([]*resource.SubnetLease6, 0, len(resp.GetLeases()))
 	for _, lease := range resp.GetLeases() {
 		subnetLease6 := SubnetLease6FromPbLease6(lease)
-		for _, reclaimSubnetLease6 := range subnetLeases {
-			if !reclaimSubnetLease6.Equal(subnetLease6) {
-				validLeases = append(validLeases, subnetLease6)
-			}
+		if _, ok := subLeaseMap[subnetLease6.GetUniqueKey()]; ok {
+			continue
 		}
+		validLeases = append(validLeases, subnetLease6)
 	}
-
 	return validLeases, nil
 }
 
