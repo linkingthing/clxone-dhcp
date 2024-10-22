@@ -599,7 +599,7 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 			values = append(values, lease6.GenCopyValues())
 		}
 
-		if _, err = tx.CopyFrom(resource.TableSubnetLease6, values); err != nil {
+		if _, err = tx.CopyFromEx(resource.TableSubnetLease6, resource.SubnetLease6Columns, values); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameLease), pg.Error(err).Error())
 		}
 

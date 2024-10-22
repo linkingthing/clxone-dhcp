@@ -2,15 +2,25 @@ package resource
 
 import (
 	"fmt"
-	"github.com/linkingthing/cement/uuid"
-	restdb "github.com/linkingthing/gorest/db"
 	"strings"
 	"time"
+
+	"github.com/linkingthing/cement/uuid"
+	restdb "github.com/linkingthing/gorest/db"
 
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
 var TableSubnetLease6 = restdb.ResourceDBType(&SubnetLease6{})
+
+var SubnetLease6Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet6,
+	SqlColumnAddress, SqlColumnAddressType, SqlColumnDuid, SqlColumnHwAddress, SqlColumnHwAddressType,
+	SqlColumnHwAddressSource, SqlColumnHwAddressOrganization, SqlColumnFqdnFwd, SqlColumnFqdnRev, SqlColumnHostname,
+	SqlColumnIaid, SqlColumnLeaseState, SqlColumnLeaseType, SqlColumnPrefixLen, SqlColumnRequestType, SqlColumnRequestTime,
+	SqlColumnValidLifetime, SqlColumnPreferredLifetime, SqlColumnExpirationTime, SqlColumnFingerprint, SqlColumnVendorId,
+	SqlColumnOperatingSystem, SqlColumnClientType, SqlColumnRequestSourceAddr, SqlColumnAddressCodes, SqlColumnAddressCodeBegins,
+	SqlColumnAddressCodeEnds, SqlColumnSubnet,
+}
 
 type SubnetLease6 struct {
 	restresource.ResourceBase `json:",inline"`

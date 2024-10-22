@@ -10,6 +10,13 @@ import (
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
+var SubnetLease4Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet4,
+	SqlColumnAddress, SqlColumnAddressType, SqlColumnHwAddress, SqlColumnHwAddressOrganization, SqlColumnClientId,
+	SqlColumnFqdnFwd, SqlColumnFqdnRev, SqlColumnHostname, SqlColumnLeaseState, SqlColumnRequestType, SqlColumnRequestTime,
+	SqlColumnValidLifetime, SqlColumnExpirationTime, SqlColumnFingerprint, SqlColumnVendorId, SqlColumnOperatingSystem,
+	SqlColumnClientType, SqlColumnSubnet,
+}
+
 type ReservationType string
 
 const (
