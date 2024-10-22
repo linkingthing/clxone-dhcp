@@ -2,6 +2,7 @@ package resource
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"net"
 	"strings"
@@ -121,6 +122,10 @@ func (r *Reservation6) String() string {
 	} else {
 		return ReservationIdHostname + ReservationDelimiter + r.Hostname
 	}
+}
+
+func (r *Reservation6) GetUniqueKey() string {
+	return fmt.Sprintf("%s-%s-%s-%s-%s", r.Duid, r.HwAddress, r.Hostname, strings.Join(r.IpAddresses, ","), strings.Join(r.Prefixes, ","))
 }
 
 func (r *Reservation6) AddrString() string {

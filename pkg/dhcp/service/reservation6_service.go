@@ -123,17 +123,17 @@ func checkReservation6sInUsed(tx restdb.Transaction, subnetId string,
 
 	failedMap := make(map[string]error)
 	for i, reservation := range newReservations {
-		if _, ok := failedMap[reservation.String()]; ok {
+		if _, ok := failedMap[reservation.GetUniqueKey()]; ok {
 			continue
 		}
 
 		for j, tempReservation := range newReservations {
-			if _, ok := failedMap[tempReservation.String()]; ok || i == j {
+			if _, ok := failedMap[tempReservation.GetUniqueKey()]; ok || i == j {
 				continue
 			}
 
 			if reservation.CheckConflictWithAnother(tempReservation) {
-				failedMap[tempReservation.String()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
+				failedMap[tempReservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
 					reservation.String(), tempReservation.String())
 			}
 		}
@@ -231,7 +231,7 @@ func checkReservation6sConflictWithPools(tx restdb.Transaction, subnetId string,
 		for _, reservedpool := range reservedpools {
 			if reservedpool.ContainsIp(ip) {
 				if reservation, ok := reservationMap[ip.String()]; ok {
-					failedMap[reservation.String()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservedPool,
+					failedMap[reservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservedPool,
 						reservation.String(), reservedpool.String())
 				}
 			}
@@ -242,7 +242,7 @@ func checkReservation6sConflictWithPools(tx restdb.Transaction, subnetId string,
 		for _, reservedpdpool := range reservedpdpools {
 			if reservedpdpool.IntersectIpnet(ipnet) {
 				if reservation, ok := reservationMap[ipnet.String()]; ok {
-					failedMap[reservation.String()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameReservedPdPool,
+					failedMap[reservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameReservedPdPool,
 						reservation.String(), reservedpdpool.String())
 				}
 			}
@@ -839,13 +839,13 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 		}
 
 		for _, reservation := range reservations {
-			if tempErr, ok := failedUsedMap[reservation.String()]; ok {
+			if tempErr, ok := failedUsedMap[reservation.GetUniqueKey()]; ok {
 				addFailDataToResponse(response, TableHeaderReservation6FailLen,
 					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(tempErr))
 				continue
 			}
 
-			if tempErr, ok := failedPoolMap[reservation.String()]; ok {
+			if tempErr, ok := failedPoolMap[reservation.GetUniqueKey()]; ok {
 				addFailDataToResponse(response, TableHeaderReservation6FailLen,
 					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(tempErr))
 				continue
