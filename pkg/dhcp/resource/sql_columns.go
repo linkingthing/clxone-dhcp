@@ -94,4 +94,6 @@ const (
 	SqlColumnRequestType              = "request_type"
 	SqlColumnRequestTime              = "request_time"
 	SqlColumnRequestSourceAddr        = "request_source_addr"
+	SqlColumnInformationRefreshTime   = "information_refresh_time"
+	SqlColumnIsAdmitted               = "is_admitted"
 )

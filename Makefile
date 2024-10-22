@@ -1,6 +1,6 @@
 GOSRC = $(shell find . -type f -name '*.go')
 
-VERSION=v3.0.1
+VERSION=v3.0.2
 go_image=golang:1.18.10-alpine3.16
 base_image=alpine:3.16
 go_harbor_image=harbor.linkingipam.com/linkingthing/golang-base:1.18.10-alpine3.16
@@ -12,6 +12,11 @@ build: clxone_dhcp
 
 clxone_dhcp: $(GOSRC)
 	CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/dhcp/dhcp.go
+
+build-amd64: clxone_dhcp_amd64
+
+clxone_dhcp_amd64: $(GOSRC)
+	GOARCH=amd64 CGO_ENABLED=0 GOOS=linux go build -o clxone_dhcp cmd/dhcp/dhcp.go
 
 build-cgo: $(GOSRC)
 	CGO_ENABLED=1 CGO_CFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2" CGO_CPPFLAGS="-fstack-protector-all -ftrapv -D_FORTIFY_SOURCE=2 -O2" CGO_LDFLAGS="-Wl,-z,relro,-z,now" go build -trimpath -buildmode=pie --ldflags '-linkmode=external -extldflags "-Wl,-z,now"' -o clxone_dhcp cmd/dhcp/dhcp.go && strip -s clxone_dhcp 

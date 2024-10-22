@@ -52,12 +52,17 @@ var (
 	}
 	ErrIpv6Preferred = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("ipv6-only preferred must not be less than 300"),
+			fmt.Sprintf("ipv6-only preferred must not be smaller than 300"),
 			fmt.Sprintf("提供的IPv6偏好值不能小于300"))
+	}
+	ErrInformationRefreshTime = func() *goresterr.ErrorMessage {
+		return goresterr.NewErrorMessage(
+			fmt.Sprintf("information refresh time must not be smaller than 600"),
+			fmt.Sprintf("提供的子网信息刷新时间不能小于600"))
 	}
 	ErrMinLifetime = func(min uint32) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("min-lifetime must not less than %d, and less than max-lifetime", min),
+			fmt.Sprintf("min-lifetime must not be smaller than %d, and must be smaller than max-lifetime", min),
 			fmt.Sprintf("最短租约时长不能小于 %d，且不超过最长租约", min))
 	}
 	ErrDefaultLifetime = func() *goresterr.ErrorMessage {
@@ -72,7 +77,7 @@ var (
 	}
 	ErrAddressCodeMask = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("the mask size of subnet use address code must not less than 64"),
+			fmt.Sprintf("the mask size of subnet use address code must not be smaller than 64"),
 			fmt.Sprintf("开启了地址编码的子网的前缀长度不能小于64"))
 	}
 	ErrHasPool = func() *goresterr.ErrorMessage {
@@ -175,7 +180,7 @@ var (
 	}
 	ErrLessThan = func(target ErrName, obj1, obj2 interface{}) *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf(`%s %v is less than %v`, target, obj1, obj2),
+			fmt.Sprintf(`%s %v is smaller than %v`, target, obj1, obj2),
 			fmt.Sprintf(`%s %v 小于了 %v`, localizeErrName(target), obj1, obj2))
 	}
 	ErrChanged = func(target ErrName, obj, before, now interface{}) *goresterr.ErrorMessage {

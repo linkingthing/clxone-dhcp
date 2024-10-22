@@ -36,7 +36,10 @@ func (d *AdmitMacService) Create(admitMac *resource.AdmitMac) error {
 
 func sendCreateAdmitMacCmdToDHCPAgent(admitMac *resource.AdmitMac) error {
 	return kafka.SendDHCPCmd(kafka.CreateAdmitMac,
-		&pbdhcpagent.CreateAdmitMacRequest{HwAddress: admitMac.HwAddress},
+		&pbdhcpagent.CreateAdmitMacRequest{
+			HwAddress:  admitMac.HwAddress,
+			IsAdmitted: admitMac.IsAdmitted,
+		},
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				nodesForSucceed, kafka.DeleteAdmitMac,
@@ -102,14 +105,35 @@ func (d *AdmitMacService) Update(admitMac *resource.AdmitMac) error {
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Update(resource.TableAdmitMac,
-			map[string]interface{}{resource.SqlColumnComment: admitMac.Comment},
-			map[string]interface{}{restdb.IDField: admitMac.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameUpdate, admitMac.GetID(), pg.Error(err).Error())
-		} else if rows == 0 {
+		var admitMacs []*resource.AdmitMac
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: admitMac.GetID()},
+			&admitMacs); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, admitMac.GetID(), pg.Error(err).Error())
+		} else if len(admitMacs) == 0 {
 			return errorno.ErrNotFound(errorno.ErrNameAdmit, admitMac.GetID())
 		}
 
-		return nil
+		if _, err := tx.Update(resource.TableAdmitMac,
+			map[string]interface{}{
+				resource.SqlColumnIsAdmitted: admitMac.IsAdmitted,
+				resource.SqlColumnComment:    admitMac.Comment,
+			},
+			map[string]interface{}{restdb.IDField: admitMac.GetID()}); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, admitMac.GetID(), pg.Error(err).Error())
+		}
+
+		if admitMacs[0].IsAdmitted != admitMac.IsAdmitted {
+			return sendUpdateAdmitMacCmdToDHCPAgent(admitMac)
+		} else {
+			return nil
+		}
 	})
+}
+
+func sendUpdateAdmitMacCmdToDHCPAgent(admitMac *resource.AdmitMac) error {
+	return kafka.SendDHCPCmd(kafka.UpdateAdmitMac,
+		&pbdhcpagent.UpdateAdmitMacRequest{
+			HwAddress:  admitMac.HwAddress,
+			IsAdmitted: admitMac.IsAdmitted,
+		}, nil)
 }

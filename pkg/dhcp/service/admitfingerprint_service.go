@@ -36,7 +36,10 @@ func (d *AdmitFingerprintService) Create(admitFingerprint *resource.AdmitFingerp
 
 func sendCreateAdmitFingerprintCmdToDHCPAgent(admitFingerprint *resource.AdmitFingerprint) error {
 	return kafka.SendDHCPCmd(kafka.CreateAdmitFingerprint,
-		&pbdhcpagent.CreateAdmitFingerprintRequest{ClientType: admitFingerprint.ClientType},
+		&pbdhcpagent.CreateAdmitFingerprintRequest{
+			ClientType: admitFingerprint.ClientType,
+			IsAdmitted: admitFingerprint.IsAdmitted,
+		},
 		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
 				nodesForSucceed, kafka.DeleteAdmitFingerprint,
@@ -90,4 +93,43 @@ func (d *AdmitFingerprintService) Delete(id string) error {
 func sendDeleteAdmitFingerprintCmdToDHCPAgent(admitFingerprintId string) error {
 	return kafka.SendDHCPCmd(kafka.DeleteAdmitFingerprint,
 		&pbdhcpagent.DeleteAdmitFingerprintRequest{ClientType: admitFingerprintId}, nil)
+}
+
+func (d *AdmitFingerprintService) Update(admitFingerprint *resource.AdmitFingerprint) error {
+	if err := admitFingerprint.Validate(); err != nil {
+		return err
+	}
+
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		var admitFingerprints []*resource.AdmitFingerprint
+		if err := tx.Fill(map[string]interface{}{restdb.IDField: admitFingerprint.GetID()},
+			&admitFingerprints); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, admitFingerprint.GetID(), pg.Error(err).Error())
+		} else if len(admitFingerprints) == 0 {
+			return errorno.ErrNotFound(errorno.ErrNameAdmit, admitFingerprint.GetID())
+		}
+
+		if _, err := tx.Update(resource.TableAdmitFingerprint,
+			map[string]interface{}{
+				resource.SqlColumnIsAdmitted: admitFingerprint.IsAdmitted,
+				resource.SqlColumnComment:    admitFingerprint.Comment,
+			},
+			map[string]interface{}{restdb.IDField: admitFingerprint.GetID()}); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, admitFingerprint.GetID(), pg.Error(err).Error())
+		}
+
+		if admitFingerprints[0].IsAdmitted != admitFingerprint.IsAdmitted {
+			return sendUpdateAdmitFingerprintCmdToDHCPAgent(admitFingerprint)
+		} else {
+			return nil
+		}
+	})
+}
+
+func sendUpdateAdmitFingerprintCmdToDHCPAgent(admitFingerprint *resource.AdmitFingerprint) error {
+	return kafka.SendDHCPCmd(kafka.UpdateAdmitFingerprint,
+		&pbdhcpagent.UpdateAdmitFingerprintRequest{
+			ClientType: admitFingerprint.ClientType,
+			IsAdmitted: admitFingerprint.IsAdmitted,
+		}, nil)
 }

@@ -16,23 +16,23 @@ const (
 	FieldNameSubnet                   = "子网地址*"
 	FieldNameSubnetName               = "子网名称"
 	FieldNameValidLifetime            = "租约时长"
-	FieldNameMaxValidLifetime         = "最大租约时长"
-	FieldNameMinValidLifetime         = "最小租约时长"
+	FieldNameMaxValidLifetime         = "最长租约时长"
+	FieldNameMinValidLifetime         = "最短租约时长"
 	FieldNamePreferredLifetime        = "首选租约时长"
 	FieldNameSubnetMask               = "子网掩码"
 	FieldNameRouters                  = "默认网关"
 	FieldNameDomainServers            = "DNS"
 	FieldNameIfaceName                = "网卡名字"
-	FieldNameOption66                 = "option66"
-	FieldNameOption67                 = "option67"
-	FieldNameOption108                = "option108"
-	FieldNameOption138                = "option138"
-	FieldNameRelayCircuitId           = "中继路由电路标识"
-	FieldNameRelayRemoteId            = "中继路由远程标识"
-	FieldNameRelayAddresses           = "中继路由链路地址"
-	FieldNameOption16                 = "option16"
-	FieldNameOption18                 = "option18"
-	FieldNameOption52                 = "option52"
+	FieldNameOption66                 = "TFTP服务地址"
+	FieldNameOption67                 = "启动文件名称"
+	FieldNameOption108                = "IPv6-Only时长"
+	FieldNameOption138                = "AC地址列表"
+	FieldNameRelayCircuitId           = "中继电路标识"
+	FieldNameRelayRemoteId            = "中继远程标识"
+	FieldNameRelayAddresses           = "中继路由地址"
+	FieldNameOption18                 = "中继网卡名称"
+	FieldNameOption32                 = "信息刷新时长"
+	FieldNameOption52                 = "AC地址列表"
 	FieldNameNodes                    = "节点列表"
 	FieldNameEUI64                    = "EUI64"
 	FieldNameAddressCode              = "地址编码"
@@ -45,13 +45,14 @@ const (
 	FieldNamePools         = "动态地址池"
 	FieldNameReservedPools = "保留地址池"
 	FieldNameReservations  = "固定地址池"
-	FieldNamePdPools       = "前缀委派地址池"
+	FieldNamePdPools       = "前缀委派"
 
 	FieldNameAssetName         = "资产名称*"
 	FieldNameHwAddress         = "资产MAC*"
 	FieldNameAssetType         = "资产类型"
 	FieldNameManufacturer      = "资产厂商"
 	FieldNameModel             = "资产型号"
+	FieldNameOperatingSystem   = "操作系统"
 	FieldNameAccessNetworkTime = "入网时间"
 
 	FieldNameCode  = "编码值（十六进制）*"
@@ -79,13 +80,13 @@ var (
 		FieldNameBlackClientClassStrategy, FieldNameBlackClientClasses,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameOption18, FieldNameDomainServers,
-		FieldNameOption52, FieldNameRelayAddresses, FieldNameNodes,
+		FieldNameOption32, FieldNameOption52, FieldNameRelayAddresses, FieldNameNodes,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations, FieldNamePdPools,
 	}
 
 	TableHeaderAsset = []string{
 		FieldNameAssetName, FieldNameHwAddress, FieldNameAssetType, FieldNameManufacturer,
-		FieldNameModel, FieldNameAccessNetworkTime,
+		FieldNameModel, FieldNameOperatingSystem, FieldNameAccessNetworkTime,
 	}
 
 	TableHeaderSegment = []string{FieldNameValue, FieldNameCode}
@@ -125,14 +126,14 @@ var (
 			"满足全部", "option60\noption61",
 			"满足一个", "option3\noption6",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/1", "2400:3200::1\n2400:3200::baba:1", "2001::255",
+			"Gi0/0/1", "2400:3200::1\n2400:3200::baba:1", "3600", "2001::255",
 			"2001::1\n2001::2", "127.0.0.2\n127.0.0.3", "", "", "",
 			"2001:0:2001::-48-64-备注1\n2001:0:2002::-48-64-备注2"},
 		[]string{"2002::/64", "template2", "关闭", "", "eno1",
 			"满足全部", "option16-1",
 			"满足一个", "option17-1",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/2", "2400:3200::1", "2002::255",
+			"Gi0/0/2", "2400:3200::1", "3600", "2002::255",
 			"2002::1\n2002::2", "127.0.0.3\n127.0.0.4",
 			"2002::6-2002::1f-备注1\n2002::26-2002::3f-备注2",
 			"2002::1-2002::5-备注3\n2002::20-2002::25-备注4",
@@ -142,19 +143,19 @@ var (
 			"满足全部", "option16-2",
 			"满足一个", "option17-2",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/3", "2400:3200::baba:1", "2003::255",
+			"Gi0/0/3", "2400:3200::baba:1", "3600", "2003::255",
 			"2003::1\n2003::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
 		[]string{"2004::/64", "template4", "关闭", "a1", "eth0",
 			"满足全部", "option16-3",
 			"满足一个", "option17-3",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/3", "2400:3200::baba:1", "2003::255",
+			"Gi0/0/3", "2400:3200::baba:1", "3600", "2003::255",
 			"2004::1\n2004::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
 	}
 
 	TemplateAsset = [][]string{
-		[]string{"a1", "11:11:11:11:11:11", "mobile", "huawei", "p40", "2023-10-31"},
-		[]string{"a2", "22:22:22:22:22:22", "pc", "huawei", "matebook pro", "2023-10-31"},
+		[]string{"a1", "11:11:11:11:11:11", "mobile", "huawei", "p40", "android", "2023-10-31"},
+		[]string{"a2", "22:22:22:22:22:22", "pc", "huawei", "matebook pro", "windows11", "2023-10-31"},
 	}
 
 	TemplateSegment = [][]string{
@@ -203,6 +204,7 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 		uint32ToString(subnet6.PreferredLifetime),
 		subnet6.RelayAgentInterfaceId,
 		strings.Join(subnet6.DomainServers, resource.CommonDelimiter),
+		uint32ToString(subnet6.InformationRefreshTime),
 		strings.Join(subnet6.CapWapACAddresses, resource.CommonDelimiter),
 		strings.Join(subnet6.RelayAgentAddresses, resource.CommonDelimiter),
 		strings.Join(subnet6.Nodes, resource.CommonDelimiter),
@@ -212,7 +214,8 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 func localizationAssetToStrSlice(asset *resource.Asset) []string {
 	return []string{
 		asset.Name, asset.HwAddress, asset.AssetType,
-		asset.Manufacturer, asset.Model, asset.AccessNetworkTime,
+		asset.Manufacturer, asset.Model, asset.OperatingSystem,
+		asset.AccessNetworkTime,
 	}
 }
 
@@ -443,7 +446,9 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	buf.WriteString(subnet6.RelayAgentInterfaceId)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.DomainServers, ","))
-	buf.WriteString("}','{")
+	buf.WriteString("}','")
+	buf.WriteString(uint32ToString(subnet6.InformationRefreshTime))
+	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.CapWapACAddresses, ","))
 	buf.WriteString("}','{")
 	buf.WriteString(strings.Join(subnet6.RelayAgentAddresses, ","))
@@ -609,6 +614,8 @@ func assetToInsertDBSqlString(asset *resource.Asset) string {
 	buf.WriteString(asset.Manufacturer)
 	buf.WriteString("','")
 	buf.WriteString(asset.Model)
+	buf.WriteString("','")
+	buf.WriteString(asset.OperatingSystem)
 	buf.WriteString("','")
 	buf.WriteString(asset.AccessNetworkTime)
 	buf.WriteString("'),")

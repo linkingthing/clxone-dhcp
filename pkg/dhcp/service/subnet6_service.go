@@ -145,6 +145,14 @@ func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetO
 		})
 	}
 
+	if subnet.InformationRefreshTime != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "information-refresh-time",
+			Code: 32,
+			Data: uint32ToString(subnet.InformationRefreshTime),
+		})
+	}
+
 	if len(subnet.CapWapACAddresses) != 0 {
 		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "cap-wap-access-controller-addresses",
@@ -370,6 +378,7 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 			resource.SqlColumnIfaceName:                subnet.IfaceName,
 			resource.SqlColumnRelayAgentAddresses:      subnet.RelayAgentAddresses,
 			resource.SqlColumnRelayAgentInterfaceId:    subnet.RelayAgentInterfaceId,
+			resource.SqlColumnInformationRefreshTime:   subnet.InformationRefreshTime,
 			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
 			resource.SqlColumnTags:                     subnet.Tags,
 			resource.SqlColumnRapidCommit:              subnet.RapidCommit,
@@ -813,6 +822,12 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameOption18:
 			subnet.RelayAgentInterfaceId = strings.TrimSpace(field)
+		case FieldNameOption32:
+			if subnet.InformationRefreshTime, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
+				return subnet, pools, reservedPools, reservations, pdpools,
+					errorno.ErrInvalidParams(FieldNameOption32, field)
+			}
 		case FieldNameOption52:
 			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
 		case FieldNameNodes:

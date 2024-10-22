@@ -65,6 +65,7 @@ func assetToPbCreateAssetRequest(asset *resource.Asset) *pbdhcpagent.CreateAsset
 		AssetType:         asset.AssetType,
 		Manufacturer:      asset.Manufacturer,
 		Model:             asset.Model,
+		OperatingSystem:   asset.OperatingSystem,
 		AccessNetworkTime: asset.AccessNetworkTime,
 	}
 }
@@ -137,6 +138,7 @@ func (a *AssetService) Update(asset *resource.Asset) error {
 				resource.SqlColumnAssetType:         asset.AssetType,
 				resource.SqlColumnManufacturer:      asset.Manufacturer,
 				resource.SqlColumnModel:             asset.Model,
+				resource.SqlColumnOperatingSystem:   asset.OperatingSystem,
 				resource.SqlColumnAccessNetworkTime: asset.AccessNetworkTime,
 			},
 			map[string]interface{}{restdb.IDField: asset.GetID()}); err != nil {
@@ -157,6 +159,7 @@ func sendUpdateAssetCmdToDHCPAgent(asset *resource.Asset) error {
 		AssetType:         asset.AssetType,
 		Manufacturer:      asset.Manufacturer,
 		Model:             asset.Model,
+		OperatingSystem:   asset.OperatingSystem,
 		AccessNetworkTime: asset.AccessNetworkTime,
 	}, nil)
 }
@@ -266,6 +269,8 @@ func parseAsset(tableHeaderFields, fields []string) *resource.Asset {
 			asset.Manufacturer = strings.TrimSpace(field)
 		case FieldNameModel:
 			asset.Model = strings.TrimSpace(field)
+		case FieldNameOperatingSystem:
+			asset.OperatingSystem = strings.TrimSpace(field)
 		case FieldNameAccessNetworkTime:
 			asset.AccessNetworkTime = strings.TrimSpace(field)
 		}
