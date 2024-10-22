@@ -627,17 +627,19 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 }
 
 func getReservation6sAndSubnetLease6sWithIps(tx restdb.Transaction, subnet6 *resource.Subnet6, ips ...string) ([]*resource.Reservation6, []*resource.SubnetLease6, error) {
+	ipsStr := make([]string, 0, len(ips))
 	for _, ip := range ips {
 		if !subnet6.Ipnet.Contains(net.ParseIP(ip)) {
 			return nil, nil, ErrorIpNotBelongToSubnet
 		}
+		ipsStr = append(ipsStr, strings.Join([]string{"'", ip, "'"}, ""))
 	}
 
 	var reservations []*resource.Reservation6
 	var subnetLeases []*resource.SubnetLease6
 	if err := tx.FillEx(&reservations,
-		"select * from gr_reservation6 where subnet6 = $1 and ip_addresses = any($2::TEXT[])",
-		subnet6.GetID(), ips); err != nil {
+		"select * from gr_reservation6 where subnet6 = $1 and ip_addresses && ARRAY[$2]",
+		subnet6.GetID(), strings.Join(ipsStr, ",")); err != nil {
 		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
