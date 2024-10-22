@@ -123,12 +123,17 @@ func checkReservation6sInUsed(tx restdb.Transaction, subnetId string,
 
 	failedMap := make(map[string]error)
 	for i, reservation := range newReservations {
+		if _, ok := failedMap[reservation.String()]; ok {
+			continue
+		}
+
 		for j, tempReservation := range newReservations {
-			if i == j {
+			if _, ok := failedMap[tempReservation.String()]; ok || i == j {
 				continue
 			}
+
 			if reservation.CheckConflictWithAnother(tempReservation) {
-				failedMap[reservation.String()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
+				failedMap[tempReservation.String()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
 					reservation.String(), tempReservation.String())
 			}
 		}
@@ -839,11 +844,13 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(tempErr))
 				continue
 			}
+
 			if tempErr, ok := failedPoolMap[reservation.String()]; ok {
 				addFailDataToResponse(response, TableHeaderReservation6FailLen,
 					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(tempErr))
 				continue
 			}
+
 			if err = checkReservation6CouldBeCreated(tx, subnet6s[0], reservation); err != nil {
 				addFailDataToResponse(response, TableHeaderReservation6FailLen,
 					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(err))
