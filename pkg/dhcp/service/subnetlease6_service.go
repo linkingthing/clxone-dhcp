@@ -12,7 +12,6 @@ import (
 	"github.com/linkingthing/cement/slice"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 	restdb "github.com/linkingthing/gorest/db"
-	"google.golang.org/grpc/status"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
@@ -402,11 +401,7 @@ func GetSubnetLease6WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 		}
 		return err
 	}); err != nil {
-		errMsg := err.Error()
-		if s, ok := status.FromError(err); ok {
-			errMsg = s.Message()
-		}
-		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, formatGrpc(err))
 	}
 
 	subnetLease6 := SubnetLease6FromPbLease6(resp.GetLease())
@@ -548,15 +543,7 @@ func (l *SubnetLease6Service) Delete(subnetId, leaseId string) error {
 			if _, err = client.DeleteLease6(ctx,
 				&pbdhcpagent.DeleteLease6Request{SubnetId: subnet6.SubnetId,
 					LeaseType: lease6.LeaseType, Address: leaseId}); err != nil {
-				errMsg := err.Error()
-				if s, ok := status.FromError(err); ok {
-					errMsg = s.Message()
-					if strings.Contains(errMsg, "failed:") {
-						msgs := strings.Split(errMsg, "failed:")
-						errMsg = msgs[len(msgs)-1]
-					}
-				}
-				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
+				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), formatGrpcError(err, "failed:"))
 			}
 			return nil
 		})
@@ -610,15 +597,7 @@ func (l *SubnetLease6Service) BatchDeleteLease6s(subnetId string, leaseIds []str
 						LeaseType: leaseType, Addresses: addrs})
 				return err
 			}); err != nil {
-				errMsg := err.Error()
-				if s, ok := status.FromError(err); ok {
-					errMsg = s.Message()
-					if strings.Contains(errMsg, "failed:") {
-						msgs := strings.Split(errMsg, "failed:")
-						errMsg = msgs[len(msgs)-1]
-					}
-				}
-				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
+				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), formatGrpcError(err, "failed:"))
 			}
 		}
 
@@ -676,11 +655,7 @@ func GetSubnetLease6sWithoutReclaimed(subnetId uint64, ips []string, subnetLease
 		}
 		return err
 	}); err != nil {
-		errMsg := err.Error()
-		if s, ok := status.FromError(err); ok {
-			errMsg = s.Message()
-		}
-		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, formatGrpc(err))
 	}
 
 	subLeaseMap := make(map[string]struct{}, len(subnetLeases))
@@ -709,11 +684,7 @@ func GetSubnets6LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease6, 
 			})
 		return err
 	}); err != nil {
-		errMsg := err.Error()
-		if s, ok := status.FromError(err); ok {
-			errMsg = s.Message()
-		}
-		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, formatGrpc(err))
 	}
 
 	subnetIds := make([]string, 0, len(resp.Leases))

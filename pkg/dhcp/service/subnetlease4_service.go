@@ -399,11 +399,7 @@ func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, subnetLeases []
 			&pbdhcpagent.GetSubnet4LeaseRequest{Id: subnetId, Address: ip})
 		return err
 	}); err != nil {
-		errMsg := err.Error()
-		if s, ok := status.FromError(err); ok {
-			errMsg = s.Message()
-		}
-		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, formatGrpc(err))
 	}
 
 	subnetLease4 := SubnetLease4FromPbLease4(resp.GetLease())
@@ -538,19 +534,23 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIps []str
 				&pbdhcpagent.DeleteLeases4Request{SubnetId: subnet4.SubnetId, Addresses: leaseIps})
 			return err
 		}); err != nil {
-			errMsg := err.Error()
-			if s, ok := status.FromError(err); ok {
-				errMsg = s.Message()
-				if strings.Contains(errMsg, ":") {
-					msgs := strings.Split(errMsg, ":")
-					errMsg = msgs[len(msgs)-1]
-				}
-			}
-			return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), errMsg)
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameLease), formatGrpcError(err, ":"))
 		}
 
 		return nil
 	})
+}
+
+func formatGrpcError(err error, failedStr string) string {
+	errMsg := err.Error()
+	if s, ok := status.FromError(err); ok {
+		errMsg = s.Message()
+		if strings.Contains(errMsg, failedStr) {
+			msgs := strings.Split(errMsg, failedStr)
+			errMsg = msgs[len(msgs)-1]
+		}
+	}
+	return errMsg
 }
 
 func getSubnetLease4sWithIps(tx restdb.Transaction, subnet4 *resource.Subnet4, ips ...string) ([]*resource.SubnetLease4, error) {
@@ -591,11 +591,7 @@ func GetSubnetLease4sWithoutReclaimed(subnetId uint64, subnetLeases []*resource.
 			&pbdhcpagent.GetSubnet4LeasesWithIpsRequest{Addresses: reqs})
 		return err
 	}); err != nil {
-		errMsg := err.Error()
-		if s, ok := status.FromError(err); ok {
-			errMsg = s.Message()
-		}
-		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, formatGrpc(err))
 	}
 
 	subLeaseMap := make(map[string]struct{}, len(subnetLeases))
@@ -614,6 +610,14 @@ func GetSubnetLease4sWithoutReclaimed(subnetId uint64, subnetLeases []*resource.
 	return validLease4s, nil
 }
 
+func formatGrpc(err error) string {
+	errMsg := err.Error()
+	if s, ok := status.FromError(err); ok {
+		errMsg = s.Message()
+	}
+	return errMsg
+}
+
 func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, error) {
 	var err error
 	var resp *pbdhcpagent.GetLeases4Response
@@ -624,11 +628,7 @@ func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, 
 			})
 		return err
 	}); err != nil {
-		errMsg := err.Error()
-		if s, ok := status.FromError(err); ok {
-			errMsg = s.Message()
-		}
-		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, errMsg)
+		return nil, errorno.ErrNetworkError(errorno.ErrNameLease, formatGrpc(err))
 	}
 
 	addresses := make([]string, len(resp.Leases))
