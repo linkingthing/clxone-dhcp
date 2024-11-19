@@ -59,51 +59,6 @@ func (l *SubnetLease6Service) ActionListToReservation(subnet *resource.Subnet6, 
 	}
 }
 
-func (l *SubnetLease6Service) filterAbleToReservation(subnetId string, leases []*resource.SubnetLease6,
-	addresses []string) ([]*resource.SubnetLease6, []string, error) {
-	var reservations []*resource.Reservation6
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{
-			resource.SqlColumnSubnet6: subnetId,
-		}, &reservations)
-	}); err != nil {
-		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-	}
-
-	reservationLeases := make([]*resource.SubnetLease6, 0, len(addresses))
-	hwAddresses := make([]string, 0, len(addresses))
-outer:
-	for _, address := range addresses {
-		for _, lease := range leases {
-			if lease.Address != address {
-				continue
-			}
-			if lease.AddressType == resource.AddressTypeDynamic {
-				reservationLeases = append(reservationLeases, lease)
-			}
-			if lease.HwAddress != "" {
-				hwAddresses = append(hwAddresses, lease.HwAddress)
-			}
-			continue outer
-		}
-
-		for _, reservation := range reservations {
-			for _, addr := range reservation.IpAddresses {
-				if addr != address {
-					continue
-				} else if reservation.HwAddress != "" {
-					hwAddresses = append(hwAddresses, reservation.HwAddress)
-				}
-				continue outer
-			}
-		}
-
-		return nil, nil, errorno.ErrNotFound(errorno.ErrNameLease, address)
-	}
-
-	return reservationLeases, hwAddresses, nil
-}
-
 func (l *SubnetLease6Service) listToReservationWithMac(leases []*resource.SubnetLease6) (
 	*resource.ConvToReservationInput, error) {
 	reservationLeases := make([]*resource.SubnetLease6, 0, len(leases))
