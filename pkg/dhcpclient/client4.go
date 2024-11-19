@@ -75,6 +75,8 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 
 	var dhcpServers []*DHCPServer
 	errCh := make(chan error, 1)
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 	go func(errch chan<- error) {
 		timeout := unix.NsecToTimeval(DefaultReadTimeout.Nanoseconds())
 		if err := unix.SetsockoptTimeval(recvfd, unix.SOL_SOCKET, unix.SO_RCVTIMEO, &timeout); err != nil {
@@ -84,10 +86,16 @@ func (cli *Client4) Exchange() ([]*DHCPServer, error) {
 		}
 
 		for {
+			select {
+			case <-stopCh:
+				return
+			default:
+			}
+
 			buf := make([]byte, MaxUDPReceivedPacketSize)
 			n, _, err := unix.Recvfrom(recvfd, buf, 0)
 			if err != nil {
-				if err == unix.EINTR {
+				if err == unix.EINTR || err == unix.EWOULDBLOCK {
 					continue
 				}
 
