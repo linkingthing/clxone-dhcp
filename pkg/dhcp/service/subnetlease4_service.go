@@ -496,14 +496,14 @@ func subnetLease4FromPbLease4AndReservations(lease *pbdhcpagent.DHCPLease4, rese
 	return subnetLease4
 }
 
-func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []string) error {
-	for _, leaseId := range leaseIds {
+func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIps []string) error {
+	for _, leaseId := range leaseIps {
 		if _, err := gohelperip.ParseIPv4(leaseId); err != nil {
 			return errorno.ErrInvalidParams(errorno.ErrNameIp, leaseId)
 		}
 	}
 
-	values := make([][]interface{}, 0, len(leaseIds))
+	values := make([][]interface{}, 0, len(leaseIps))
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		subnet4, err := getSubnet4FromDB(tx, subnetId)
 		if err != nil {
@@ -511,12 +511,12 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 		}
 
 		_, subnetLeases, err := getReservation4sAndSubnetLease4sWithIps(
-			tx, subnet4, leaseIds...)
+			tx, subnet4, leaseIps...)
 		if err != nil {
 			return err
 		}
 
-		lease4s, err := GetSubnetLease4sWithoutReclaimed(subnet4.SubnetId, subnetLeases, leaseIds...)
+		lease4s, err := GetSubnetLease4sWithoutReclaimed(subnet4.SubnetId, subnetLeases, leaseIps...)
 		if err != nil {
 			return err
 		} else if len(lease4s) == 0 {
@@ -535,7 +535,7 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 
 		if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
 			_, err = client.DeleteLeases4(ctx,
-				&pbdhcpagent.DeleteLeases4Request{SubnetId: subnet4.SubnetId, Addresses: leaseIds})
+				&pbdhcpagent.DeleteLeases4Request{SubnetId: subnet4.SubnetId, Addresses: leaseIps})
 			return err
 		}); err != nil {
 			errMsg := err.Error()
