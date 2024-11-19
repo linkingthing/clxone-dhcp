@@ -38,7 +38,7 @@ func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *reso
 			return err
 		}
 
-		if err := batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet); err != nil {
+		if err := batchCreateReservationV4s(tx, subnet, reservation); err != nil {
 			return err
 		}
 		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
@@ -447,14 +447,14 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err = batchCreateReservationV4s(tx, reservations, subnet); err != nil {
+		if err = batchCreateReservationV4s(tx, subnet, reservations...); err != nil {
 			return err
 		}
 		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservations...)
 	})
 }
 
-func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.Reservation4, subnet *resource.Subnet4) error {
+func batchCreateReservationV4s(tx restdb.Transaction, subnet *resource.Subnet4, reservations ...*resource.Reservation4) error {
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
 			return err
@@ -768,7 +768,7 @@ func createReservationsBySubnet(v4Map map[string][]*resource.Reservation4, v6Map
 			if err != nil {
 				return err
 			}
-			if err = batchCreateReservationV4s(tx, reservation4s, subnet4); err != nil {
+			if err = batchCreateReservationV4s(tx, subnet4, reservation4s...); err != nil {
 				return err
 			}
 			v4SubnetMap[subnetId] = subnet4
