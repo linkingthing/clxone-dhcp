@@ -510,7 +510,7 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIps []str
 			return err
 		}
 
-		_, subnetLeases, err := getReservation4sAndSubnetLease4sWithIps(
+		subnetLeases, err := getSubnetLease4sWithIps(
 			tx, subnet4, leaseIps...)
 		if err != nil {
 			return err
@@ -553,25 +553,14 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIps []str
 	})
 }
 
-func getReservation4sAndSubnetLease4sWithIps(tx restdb.Transaction, subnet4 *resource.Subnet4, ips ...string) ([]*resource.Reservation4, []*resource.SubnetLease4, error) {
+func getSubnetLease4sWithIps(tx restdb.Transaction, subnet4 *resource.Subnet4, ips ...string) ([]*resource.SubnetLease4, error) {
 	for _, ip := range ips {
 		if !subnet4.Ipnet.Contains(net.ParseIP(ip)) {
-			return nil, nil, ErrorIpNotBelongToSubnet
+			return nil, ErrorIpNotBelongToSubnet
 		}
 	}
 
-	var reservations []*resource.Reservation4
 	var subnetLeases []*resource.SubnetLease4
-	if err := tx.Fill(map[string]interface{}{
-		resource.SqlColumnIpAddress: restdb.FillValue{
-			Operator: restdb.OperatorAny,
-			Value:    ips,
-		},
-		resource.SqlColumnSubnet4: subnet4.GetID()},
-		&reservations); err != nil {
-		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-	}
-
 	if err := tx.Fill(map[string]interface{}{
 		resource.SqlColumnAddress: restdb.FillValue{
 			Operator: restdb.OperatorAny,
@@ -579,10 +568,10 @@ func getReservation4sAndSubnetLease4sWithIps(tx restdb.Transaction, subnet4 *res
 		},
 		resource.SqlColumnSubnet4: subnet4.GetID()},
 		&subnetLeases); err != nil {
-		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameLease), pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameLease), pg.Error(err).Error())
 	}
 
-	return reservations, subnetLeases, nil
+	return subnetLeases, nil
 }
 
 func GetSubnetLease4sWithoutReclaimed(subnetId uint64, subnetLeases []*resource.SubnetLease4, ips ...string) (
