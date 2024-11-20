@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -38,36 +40,26 @@ func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *reso
 			return err
 		}
 
-		if err := batchCreateReservationV4s(tx, []*resource.Reservation4{reservation}, subnet); err != nil {
+		if err := batchCreateReservationV4s(tx, subnet, reservation); err != nil {
 			return err
 		}
 		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 	})
 }
 
-func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
-	if !subnet.Ipnet.Contains(reservation.Ip) {
-		return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservation, errorno.ErrNameNetworkV4,
-			reservation.IpAddress, subnet.Subnet)
+func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, reservations ...*resource.Reservation4) error {
+	for _, reservation := range reservations {
+		if !subnet.Ipnet.Contains(reservation.Ip) {
+			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservation, errorno.ErrNameNetworkV4,
+				reservation.IpAddress, subnet.Subnet)
+		}
 	}
 
-	if err := checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(), reservation); err != nil {
+	if err := checkReservation4ConflictWithReservedPool4(tx, subnet.GetID(), reservations...); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func checkReservation4InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
-	if count, err := tx.CountEx(resource.TableReservation4,
-		"select count(*) from gr_reservation4 where subnet4 = $1 and (hw_address = $2 and hostname = $3 or ip_address = $4)",
-		subnetId, reservation.HwAddress, reservation.Hostname, reservation.IpAddress); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-	} else if count != 0 {
-		return errorno.ErrUsedReservation(reservation.IpAddress)
-	} else {
-		return nil
-	}
 }
 
 func checkReservation4sInUsed(tx restdb.Transaction, subnetId string, reservations ...*resource.Reservation4) error {
@@ -101,16 +93,39 @@ func getReservation4UniqueMap(tx restdb.Transaction, subnetId string) (map[strin
 	return reservationInfoMap, reservationAddressMap, nil
 }
 
-func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId string, reservation *resource.Reservation4) error {
-	if reservedpools, err := getReservedPool4sWithBeginAndEndIp(tx, subnetId,
-		reservation.Ip, reservation.Ip); err != nil {
-		return err
-	} else if len(reservedpools) != 0 {
-		return errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservedPool,
-			reservation.String(), reservedpools[0].String())
-	} else {
-		return nil
+func checkReservation4ConflictWithReservedPool4(tx restdb.Transaction, subnetId string, reservations ...*resource.Reservation4) error {
+	var reservedpools []*resource.ReservedPool4
+	if err := tx.FillEx(&reservedpools,
+		"select * from gr_reserved_pool4 where subnet4 = $1",
+		subnetId); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 	}
+
+	for _, reservation := range reservations {
+		for _, reservationPool := range reservedpools {
+			if isIPInRange(reservation.Ip, reservationPool.BeginIp, reservationPool.EndIp) {
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservedPool,
+					reservation.String(), reservationPool.String())
+			}
+		}
+	}
+	return nil
+}
+
+func ipToUint32(ip net.IP) uint32 {
+	if ipv4_ := ip.To4(); ipv4_ == nil {
+		return 0
+	} else {
+		return binary.BigEndian.Uint32(ipv4_)
+	}
+}
+
+func isIPInRange(ip, start, end net.IP) bool {
+	ipNum := ipToUint32(ip)
+	startNum := ipToUint32(start)
+	endNum := ipToUint32(end)
+
+	return ipNum >= startNum && ipNum <= endNum
 }
 
 func updateSubnet4OrPool4CapacityWithReservation4(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4, isCreate bool) error {
@@ -459,22 +474,22 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err = batchCreateReservationV4s(tx, reservations, subnet); err != nil {
+		if err = batchCreateReservationV4s(tx, subnet, reservations...); err != nil {
 			return err
 		}
 		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservations...)
 	})
 }
 
-func batchCreateReservationV4s(tx restdb.Transaction, reservations []*resource.Reservation4, subnet *resource.Subnet4) error {
+func batchCreateReservationV4s(tx restdb.Transaction, subnet *resource.Subnet4, reservations ...*resource.Reservation4) error {
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
 			return err
 		}
+	}
 
-		if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
-			return err
-		}
+	if err := checkReservation4CouldBeCreated(tx, subnet, reservations...); err != nil {
+		return err
 	}
 
 	if err := checkReservation4sInUsed(tx, subnet.GetID(), reservations...); err != nil {
@@ -780,7 +795,7 @@ func createReservationsBySubnet(v4Map map[string][]*resource.Reservation4, v6Map
 			if err != nil {
 				return err
 			}
-			if err = batchCreateReservationV4s(tx, reservation4s, subnet4); err != nil {
+			if err = batchCreateReservationV4s(tx, subnet4, reservation4s...); err != nil {
 				return err
 			}
 			v4SubnetMap[subnetId] = subnet4
