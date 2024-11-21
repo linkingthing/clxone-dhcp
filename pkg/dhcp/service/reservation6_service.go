@@ -140,7 +140,7 @@ func checkReservation6sInUsed(tx restdb.Transaction, subnetId string,
 	}
 
 	for i := 0; i < len(newReservations); i++ {
-		if _, ok := failedMap[newReservations[i].String()]; ok {
+		if _, ok := failedMap[newReservations[i].GetUniqueKey()]; ok {
 			newReservations = append(newReservations[:i], newReservations[i+1:]...)
 			i--
 		}
@@ -149,7 +149,7 @@ func checkReservation6sInUsed(tx restdb.Transaction, subnetId string,
 	for _, reservation_ := range reservations {
 		for _, reservation := range newReservations {
 			if reservation_.CheckConflictWithAnother(reservation) {
-				failedMap[reservation.String()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
+				failedMap[reservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
 					reservation.String(), reservation_.String())
 			}
 		}
