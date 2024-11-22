@@ -86,8 +86,8 @@ func checkPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, p
 }
 
 func checkSubnet6IfCanCreateDynamicPool(subnet *resource.Subnet6) error {
-	if subnet.UseEui64 || subnet.AddressCode != "" {
-		return errorno.ErrSubnetWithEui64OrCode(subnet.Subnet)
+	if subnet.CanNotHasPools() {
+		return errorno.ErrSubnetCanNotHasPools(subnet.Subnet)
 	}
 
 	if ones, _ := subnet.Ipnet.Mask.Size(); ones < 64 {

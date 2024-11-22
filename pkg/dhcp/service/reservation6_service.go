@@ -41,8 +41,8 @@ func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *reso
 func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
 	if err := setSubnet6FromDB(tx, subnet); err != nil {
 		return err
-	} else if subnet.UseEui64 || subnet.AddressCode != "" {
-		return errorno.ErrSubnetWithEui64OrCode(subnet.Subnet)
+	} else if subnet.CanNotHasPools() {
+		return errorno.ErrSubnetCanNotHasPools(subnet.Subnet)
 	}
 
 	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation); err != nil {

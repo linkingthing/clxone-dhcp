@@ -35,6 +35,7 @@ const (
 	FieldNameOption52                 = "AC地址列表"
 	FieldNameNodes                    = "节点列表"
 	FieldNameEUI64                    = "EUI64"
+	FieldNameEmbedIPv4                = "嵌入IPv4"
 	FieldNameAddressCode              = "地址编码"
 	FieldNameWhiteClientClassStrategy = "白名单策略"
 	FieldNameWhiteClientClasses       = "白名单"
@@ -75,7 +76,9 @@ var (
 	}
 
 	TableHeaderSubnet6 = []string{
-		FieldNameSubnet, FieldNameSubnetName, FieldNameEUI64, FieldNameAddressCode, FieldNameIfaceName,
+		FieldNameSubnet, FieldNameSubnetName,
+		FieldNameEUI64, FieldNameEmbedIPv4,
+		FieldNameAddressCode, FieldNameIfaceName,
 		FieldNameWhiteClientClassStrategy, FieldNameWhiteClientClasses,
 		FieldNameBlackClientClassStrategy, FieldNameBlackClientClasses,
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
@@ -122,14 +125,14 @@ var (
 	}}
 
 	TemplateSubnet6 = [][]string{
-		[]string{"2001::/32", "template1", "关闭", "", "ens33",
+		[]string{"2001::/32", "template1", "关闭", "关闭", "", "ens33",
 			"满足全部", "option60\noption61",
 			"满足一个", "option3\noption6",
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/1", "2400:3200::1\n2400:3200::baba:1", "3600", "2001::255",
 			"2001::1\n2001::2", "127.0.0.2\n127.0.0.3", "", "", "",
 			"2001:0:2001::-48-64-备注1\n2001:0:2002::-48-64-备注2"},
-		[]string{"2002::/64", "template2", "关闭", "", "eno1",
+		[]string{"2002::/64", "template2", "关闭", "关闭", "", "eno1",
 			"满足全部", "option16-1",
 			"满足一个", "option17-1",
 			"14400", "28800", "7200", "14400",
@@ -139,18 +142,24 @@ var (
 			"2002::1-2002::5-备注3\n2002::20-2002::25-备注4",
 			"duid$0102$ips$2002::11_2002::12$备注5\nmac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6\nhostname$linking$ips$2002::34_2002::35$备注7",
 			""},
-		[]string{"2003::/64", "template3", "开启", "", "eth0",
+		[]string{"2003::/64", "template3", "开启", "关闭", "", "eth0",
 			"满足全部", "option16-2",
 			"满足一个", "option17-2",
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/3", "2400:3200::baba:1", "3600", "2003::255",
 			"2003::1\n2003::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
-		[]string{"2004::/64", "template4", "关闭", "a1", "eth0",
+		[]string{"2004::/64", "template3", "关闭", "开启", "", "eth0",
+			"满足全部", "option16-2",
+			"满足一个", "option17-2",
+			"14400", "28800", "7200", "14400",
+			"Gi0/0/3", "2400:3200::baba:1", "3600", "2004::255",
+			"2004::1\n2004::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
+		[]string{"2005::/64", "template4", "关闭", "关闭", "a1", "eth0",
 			"满足全部", "option16-3",
 			"满足一个", "option17-3",
 			"14400", "28800", "7200", "14400",
-			"Gi0/0/3", "2400:3200::baba:1", "3600", "2003::255",
-			"2004::1\n2004::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
+			"Gi0/0/3", "2400:3200::baba:1", "3600", "2005::255",
+			"2005::1\n2005::2", "127.0.0.4\n127.0.0.5", "", "", "", ""},
 	}
 
 	TemplateAsset = [][]string{
@@ -192,8 +201,9 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 	return []string{
 		subnet6.Subnet, subnet6.Tags,
-		localizationBoolSwitch(subnet6.UseEui64), subnet6.AddressCodeName,
-		subnet6.IfaceName,
+		localizationBoolSwitch(subnet6.EmbedIpv4),
+		localizationBoolSwitch(subnet6.UseEui64),
+		subnet6.AddressCodeName, subnet6.IfaceName,
 		localizationClientClassStrategy(subnet6.WhiteClientClassStrategy),
 		strings.Join(subnet6.WhiteClientClasses, resource.CommonDelimiter),
 		localizationClientClassStrategy(subnet6.BlackClientClassStrategy),
@@ -454,6 +464,12 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	buf.WriteString(strings.Join(subnet6.RelayAgentAddresses, ","))
 	buf.WriteString("}','")
 	if subnet6.RapidCommit {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+	buf.WriteString("','")
+	if subnet6.EmbedIpv4 {
 		buf.WriteString("true")
 	} else {
 		buf.WriteString("false")

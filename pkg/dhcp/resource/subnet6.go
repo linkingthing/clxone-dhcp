@@ -41,6 +41,7 @@ type Subnet6 struct {
 	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RapidCommit               bool      `json:"rapidCommit"`
+	EmbedIpv4                 bool      `json:"embedIpv4"`
 	UseEui64                  bool      `json:"useEui64"`
 	AddressCode               string    `json:"addressCode"`
 	AddressCodeName           string    `json:"addressCodeName" db:"-"`
@@ -112,7 +113,7 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 	}
 
 	maskSize, _ := s.Ipnet.Mask.Size()
-	return s.checkEUI64AndAddressCode(maskSize)
+	return s.checkAutoGenAddrFactor(maskSize)
 }
 
 func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
@@ -289,34 +290,42 @@ func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime u
 	return nil
 }
 
-func (s *Subnet6) checkEUI64AndAddressCode(maskSize int) error {
-	if s.UseEui64 {
-		if s.AddressCode != "" {
-			return errorno.ErrEui64Conflict()
-		}
+func (s *Subnet6) checkAutoGenAddrFactor(maskSize int) error {
+	if s.CheckAutoGenAddrFactorConflict() {
+		return errorno.ErrAutoGenAddrFactorConflict()
+	}
 
+	if s.UseEui64 || s.EmbedIpv4 {
 		if maskSize != 64 {
 			return errorno.ErrExpect(errorno.ErrNameEUI64, 64, maskSize)
 		}
 
 		s.Capacity = MaxUint64String
-	} else {
-		if s.AddressCode != "" {
-			if maskSize < 64 {
-				return errorno.ErrAddressCodeMask()
-			}
-
-			if maskSize == 64 {
-				s.Capacity = MaxUint64String
-			} else {
-				s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
-			}
-		} else {
-			s.Capacity = "0"
+	} else if s.AddressCode != "" {
+		if maskSize < 64 {
+			return errorno.ErrAddressCodeMask()
 		}
+
+		s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
+	} else {
+		s.Capacity = "0"
 	}
 
 	return nil
+}
+
+func (s *Subnet6) CheckAutoGenAddrFactorConflict() bool {
+	return (s.UseEui64 && s.EmbedIpv4) ||
+		(s.UseEui64 && s.AddressCode != "") ||
+		(s.EmbedIpv4 && s.AddressCode != "")
+}
+
+func (s *Subnet6) CanNotHasPools() bool {
+	return s.UseEui64 || s.EmbedIpv4 || s.AddressCode != ""
+}
+
+func (s *Subnet6) UseAddressCode() bool {
+	return s.AddressCode != ""
 }
 
 func (s *Subnet6) CheckConflictWithAnother(another *Subnet6) bool {

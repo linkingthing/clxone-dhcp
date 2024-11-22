@@ -49,8 +49,8 @@ func (p *ReservedPdPoolService) Create(subnet *resource.Subnet6, pdpool *resourc
 func checkReservedPdPoolCouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, pdpool *resource.ReservedPdPool) error {
 	if err := setSubnet6FromDB(tx, subnet); err != nil {
 		return err
-	} else if subnet.UseEui64 || subnet.AddressCode != "" {
-		return errorno.ErrSubnetWithEui64OrCode(subnet.Subnet)
+	} else if subnet.CanNotHasPools() {
+		return errorno.ErrSubnetCanNotHasPools(subnet.Subnet)
 	}
 
 	if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpool.PrefixIpnet,
