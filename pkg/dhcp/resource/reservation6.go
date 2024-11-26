@@ -7,8 +7,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	dhcp6 "github.com/cuityhj/g67/dhcpv6"
 	gohelperip "github.com/cuityhj/gohelper/ip"
-	dhcp6 "github.com/insomniacslk/dhcp/dhcpv6"
 	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -217,6 +217,6 @@ func parseDUID(duid string) error {
 		return errorno.ErrInvalidParams(errorno.ErrNameDuid, duid)
 	}
 
-	_, err = dhcp6.DuidFromBytes(duidbytes)
+	_, err = dhcp6.DUIDFromBytes(duidbytes)
 	return err
 }

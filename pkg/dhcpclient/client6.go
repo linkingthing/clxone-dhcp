@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/insomniacslk/dhcp/dhcpv6"
+	"github.com/cuityhj/g67/dhcpv6"
 )
 
 var AllDHCPv6ServerAddr = &net.UDPAddr{IP: dhcpv6.AllDHCPRelayAgentsAndServers, Port: dhcpv6.DefaultServerPort}
@@ -102,8 +102,14 @@ func getServerMac(packet dhcpv6.DHCPv6) (net.HardwareAddr, error) {
 		msg = packet.(*dhcpv6.Message)
 	}
 
-	if serverId := msg.Options.ServerID(); serverId != nil && serverId.LinkLayerAddr != nil {
-		return serverId.LinkLayerAddr, nil
+	if serverId := msg.Options.ServerID(); serverId != nil {
+		if duidllt, ok := serverId.(*dhcpv6.DUIDLLT); ok && duidllt.LinkLayerAddr != nil {
+			return duidllt.LinkLayerAddr, nil
+		}
+
+		if duidll, ok := serverId.(*dhcpv6.DUIDLL); ok && duidll.LinkLayerAddr != nil {
+			return duidll.LinkLayerAddr, nil
+		}
 	}
 
 	return nil, fmt.Errorf("no found server mac")

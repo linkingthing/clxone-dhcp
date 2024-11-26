@@ -1,20 +1,20 @@
 module github.com/linkingthing/clxone-dhcp
 
-go 1.18
+go 1.22.4
 
 require (
 	github.com/Ullaakut/nmap/v2 v2.2.0
+	github.com/cuityhj/g67 v1.1.0
 	github.com/cuityhj/gohelper v1.1.8
 	github.com/gin-gonic/gin v1.8.0
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/consul/api v1.12.0
-	github.com/insomniacslk/dhcp v0.0.0-20210621130208-1cac67f12b1e
 	github.com/linkingthing/cement v1.0.0
 	github.com/linkingthing/clxone-utils v1.2.9
 	github.com/linkingthing/gorest v1.2.4-0.20230315120018-858efa2e11b3
 	github.com/segmentio/kafka-go v0.4.31
-	golang.org/x/net v0.6.0
-	golang.org/x/sys v0.5.0
+	golang.org/x/net v0.31.0
+	golang.org/x/sys v0.27.0
 	google.golang.org/grpc v1.47.0
 	google.golang.org/protobuf v1.28.0
 )
@@ -54,15 +54,15 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.3 // indirect
-	github.com/u-root/uio v0.0.0-20210528114334-82958018845c // indirect
+	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	github.com/xuri/efp v0.0.0-20220603152613-6918739fd470 // indirect
 	github.com/xuri/excelize/v2 v2.6.1 // indirect
 	github.com/xuri/nfp v0.0.0-20220409054826-5e722a1d9e22 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
-	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/crypto v0.29.0 // indirect
+	golang.org/x/sync v0.9.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
