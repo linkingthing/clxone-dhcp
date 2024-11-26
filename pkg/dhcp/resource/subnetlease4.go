@@ -3,7 +3,6 @@ package resource
 import (
 	"strings"
 
-	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
 
@@ -15,29 +14,27 @@ const (
 	ReservationTypeDuid     ReservationType = "duid"
 )
 
-var TableSubnetLease4 = restdb.ResourceDBType(&SubnetLease4{})
-
 type SubnetLease4 struct {
 	restresource.ResourceBase `json:",inline"`
-	Subnet4                   string      `json:"-" db:"ownby"`
-	Address                   string      `json:"address" db:"uk"`
-	AddressType               AddressType `json:"addressType"`
-	HwAddress                 string      `json:"hwAddress"`
-	HwAddressOrganization     string      `json:"hwAddressOrganization"`
-	ClientId                  string      `json:"clientId"`
-	FqdnFwd                   bool        `json:"fqdnFwd"`
-	FqdnRev                   bool        `json:"fqdnRev"`
-	Hostname                  string      `json:"hostname"`
-	LeaseState                string      `json:"leaseState"`
-	RequestType               string      `json:"requestType"`
-	RequestTime               string      `json:"requestTime"`
-	ValidLifetime             uint32      `json:"validLifetime"`
-	ExpirationTime            string      `json:"expirationTime"`
-	Fingerprint               string      `json:"fingerprint"`
-	VendorId                  string      `json:"vendorId"`
-	OperatingSystem           string      `json:"operatingSystem"`
-	ClientType                string      `json:"clientType"`
-	Subnet                    string      `json:"subnet"`
+	Subnet4                   string `json:"-" db:"ownby"`
+	Address                   string `json:"address" db:"uk"`
+	HwAddress                 string `json:"hwAddress"`
+	HwAddressOrganization     string `json:"hwAddressOrganization"`
+	ClientId                  string `json:"clientId"`
+	FqdnFwd                   bool   `json:"fqdnFwd"`
+	FqdnRev                   bool   `json:"fqdnRev"`
+	Hostname                  string `json:"hostname"`
+	LeaseState                string `json:"leaseState"`
+	RequestType               string `json:"requestType"`
+	RequestTime               string `json:"requestTime"`
+	ValidLifetime             uint32 `json:"validLifetime"`
+	ExpirationTime            string `json:"expirationTime"`
+	Fingerprint               string `json:"fingerprint"`
+	VendorId                  string `json:"vendorId"`
+	OperatingSystem           string `json:"operatingSystem"`
+	ClientType                string `json:"clientType"`
+	Subnet                    string `json:"subnet"`
+	AllocateMode              string `json:"allocateMode"`
 }
 
 func (l SubnetLease4) GetParents() []restresource.ResourceKind {

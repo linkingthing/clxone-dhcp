@@ -10,6 +10,7 @@ import (
 	"github.com/linkingthing/cement/uuid"
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
 )
 
 const (
@@ -281,8 +282,25 @@ func internationalizationClientClassStrategy(strategy string) string {
 	}
 }
 
-func uint32ToString(lifetime uint32) string {
-	return strconv.FormatUint(uint64(lifetime), 10)
+func uint32ToString(u32 uint32) string {
+	return strconv.FormatUint(uint64(u32), 10)
+}
+
+func uint32SliceToString(u32s []uint32) string {
+	u32Strs := make([]string, 0, len(u32s))
+	for _, u32 := range u32s {
+		u32Strs = append(u32Strs, strconv.FormatUint(uint64(u32), 10))
+	}
+
+	return strings.Join(u32Strs, ",")
+}
+
+func boolToString(b bool) string {
+	if b {
+		return "true"
+	} else {
+		return "false"
+	}
 }
 
 func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
@@ -463,23 +481,11 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	buf.WriteString("}','{")
 	buf.WriteString(strings.Join(subnet6.RelayAgentAddresses, ","))
 	buf.WriteString("}','")
-	if subnet6.RapidCommit {
-		buf.WriteString("true")
-	} else {
-		buf.WriteString("false")
-	}
+	buf.WriteString(boolToString(subnet6.RapidCommit))
 	buf.WriteString("','")
-	if subnet6.EmbedIpv4 {
-		buf.WriteString("true")
-	} else {
-		buf.WriteString("false")
-	}
+	buf.WriteString(boolToString(subnet6.EmbedIpv4))
 	buf.WriteString("','")
-	if subnet6.UseEui64 {
-		buf.WriteString("true")
-	} else {
-		buf.WriteString("false")
-	}
+	buf.WriteString(boolToString(subnet6.UseEui64))
 	buf.WriteString("','")
 	buf.WriteString(subnet6.AddressCode)
 	buf.WriteString("','{")
@@ -652,6 +658,120 @@ func segmentToInsertDBSqlString(layoutId string, segment *resource.AddressCodeLa
 	buf.WriteString(segment.Value)
 	buf.WriteString("','")
 	buf.WriteString(layoutId)
+	buf.WriteString("'),")
+	return buf.String()
+}
+
+func subnetLease4ToInsertDBSqlString(subnetId string, lease4 *resource.SubnetLease4) string {
+	var buf bytes.Buffer
+	buf.WriteString("('")
+	buf.WriteString(lease4.GetID())
+	buf.WriteString("','")
+	buf.WriteString(time.Now().Format(time.RFC3339))
+	buf.WriteString("','")
+	buf.WriteString(lease4.Address)
+	buf.WriteString("','")
+	buf.WriteString(lease4.HwAddress)
+	buf.WriteString("','")
+	buf.WriteString(lease4.HwAddressOrganization)
+	buf.WriteString("','")
+	buf.WriteString(lease4.ClientId)
+	buf.WriteString("','")
+	buf.WriteString(boolToString(lease4.FqdnFwd))
+	buf.WriteString("','")
+	buf.WriteString(boolToString(lease4.FqdnRev))
+	buf.WriteString("','")
+	buf.WriteString(lease4.Hostname)
+	buf.WriteString("','")
+	buf.WriteString(pbdhcpagent.LeaseState_RECLAIMED.String())
+	buf.WriteString("','")
+	buf.WriteString(lease4.RequestType)
+	buf.WriteString("','")
+	buf.WriteString(lease4.RequestTime)
+	buf.WriteString("','")
+	buf.WriteString(uint32ToString(lease4.ValidLifetime))
+	buf.WriteString("','")
+	buf.WriteString(lease4.ExpirationTime)
+	buf.WriteString("','")
+	buf.WriteString(lease4.Fingerprint)
+	buf.WriteString("','")
+	buf.WriteString(lease4.VendorId)
+	buf.WriteString("','")
+	buf.WriteString(lease4.OperatingSystem)
+	buf.WriteString("','")
+	buf.WriteString(lease4.ClientType)
+	buf.WriteString("','")
+	buf.WriteString(lease4.Subnet)
+	buf.WriteString("','")
+	buf.WriteString(lease4.AllocateMode)
+	buf.WriteString("','")
+	buf.WriteString(subnetId)
+	buf.WriteString("'),")
+	return buf.String()
+}
+
+func subnetLease6ToInsertDBSqlString(subnetId string, lease6 *resource.SubnetLease6) string {
+	var buf bytes.Buffer
+	buf.WriteString("('")
+	buf.WriteString(lease6.GetID())
+	buf.WriteString("','")
+	buf.WriteString(time.Now().Format(time.RFC3339))
+	buf.WriteString("','")
+	buf.WriteString(lease6.Address)
+	buf.WriteString("','")
+	buf.WriteString(lease6.HwAddress)
+	buf.WriteString("','")
+	buf.WriteString(lease6.HwAddressType)
+	buf.WriteString("','")
+	buf.WriteString(lease6.HwAddressSource)
+	buf.WriteString("','")
+	buf.WriteString(lease6.HwAddressOrganization)
+	buf.WriteString("','")
+	buf.WriteString(boolToString(lease6.FqdnFwd))
+	buf.WriteString("','")
+	buf.WriteString(boolToString(lease6.FqdnRev))
+	buf.WriteString("','")
+	buf.WriteString(lease6.Hostname)
+	buf.WriteString("','")
+	buf.WriteString(uint32ToString(lease6.Iaid))
+	buf.WriteString("','")
+	buf.WriteString(pbdhcpagent.LeaseState_RECLAIMED.String())
+	buf.WriteString("','")
+	buf.WriteString(lease6.LeaseType)
+	buf.WriteString("','")
+	buf.WriteString(uint32ToString(lease6.PrefixLen))
+	buf.WriteString("','")
+	buf.WriteString(lease6.RequestType)
+	buf.WriteString("','")
+	buf.WriteString(lease6.RequestTime)
+	buf.WriteString("','")
+	buf.WriteString(uint32ToString(lease6.ValidLifetime))
+	buf.WriteString("','")
+	buf.WriteString(uint32ToString(lease6.PreferredLifetime))
+	buf.WriteString("','")
+	buf.WriteString(lease6.ExpirationTime)
+	buf.WriteString("','")
+	buf.WriteString(lease6.Fingerprint)
+	buf.WriteString("','")
+	buf.WriteString(lease6.VendorId)
+	buf.WriteString("','")
+	buf.WriteString(lease6.OperatingSystem)
+	buf.WriteString("','")
+	buf.WriteString(lease6.ClientType)
+	buf.WriteString("','")
+	buf.WriteString(lease6.RequestSourceAddr)
+	buf.WriteString("','")
+	buf.WriteString(strings.Join(lease6.AddressCodes, ","))
+	buf.WriteString("','")
+	buf.WriteString(uint32SliceToString(lease6.AddressCodeBegins))
+	buf.WriteString("','")
+	buf.WriteString(uint32SliceToString(lease6.AddressCodeEnds))
+	buf.WriteString("','")
+	buf.WriteString(lease6.Subnet)
+	buf.WriteString("','")
+	buf.WriteString(lease6.AllocateMode)
+	buf.WriteString("','")
+	buf.WriteString(subnetId)
 	buf.WriteString("'),")
 	return buf.String()
 }
