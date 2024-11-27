@@ -200,7 +200,7 @@ func getReservation4sLeasesCount(subnetId uint64, reservations []*resource.Reser
 	leasesCount := make(map[string]uint64)
 	for _, lease := range resp.GetLeases() {
 		if reservation, ok := reservationMap[lease.GetAddress()]; ok &&
-			(reservation.HwAddress == "" || reservation.HwAddress == lease.GetHwAddress()) &&
+			(reservation.HwAddress == "" || strings.EqualFold(reservation.HwAddress, lease.GetHwAddress())) &&
 			(reservation.Hostname == "" || reservation.Hostname == lease.GetHostname()) {
 			leasesCount[lease.GetAddress()] = 1
 		}

@@ -383,7 +383,7 @@ func getReservation6sLeasesCount(subnetId uint64, reservations []*resource.Reser
 		if reservation, ok := reservationMap[prefixFromAddressAndPrefixLen(lease.GetAddress(),
 			lease.GetPrefixLen())]; ok &&
 			(reservation.Duid == "" || reservation.Duid == lease.GetDuid()) &&
-			(reservation.HwAddress == "" || reservation.HwAddress == lease.GetHwAddress()) &&
+			(reservation.HwAddress == "" || strings.EqualFold(reservation.HwAddress, lease.GetHwAddress())) &&
 			(reservation.Hostname == "" || reservation.Hostname == lease.GetHostname()) {
 			leasesCount[reservation.GetID()] += 1
 		}
