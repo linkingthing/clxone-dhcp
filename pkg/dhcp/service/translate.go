@@ -202,8 +202,8 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 	return []string{
 		subnet6.Subnet, subnet6.Tags,
-		localizationBoolSwitch(subnet6.EmbedIpv4),
 		localizationBoolSwitch(subnet6.UseEui64),
+		localizationBoolSwitch(subnet6.EmbedIpv4),
 		subnet6.AddressCodeName, subnet6.IfaceName,
 		localizationClientClassStrategy(subnet6.WhiteClientClassStrategy),
 		strings.Join(subnet6.WhiteClientClasses, resource.CommonDelimiter),
