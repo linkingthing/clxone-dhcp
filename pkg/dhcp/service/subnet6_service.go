@@ -462,7 +462,9 @@ func checkUpdateAutoGenAddrFactor(tx restdb.Transaction, subnet, newSubnet *reso
 		if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
 			return err
 		}
+	}
 
+	if !newSubnet.CanNotHasPools() {
 		subnet.Capacity = "0"
 	}
 
