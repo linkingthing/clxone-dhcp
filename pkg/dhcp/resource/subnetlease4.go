@@ -1,10 +1,21 @@
 package resource
 
 import (
+	"fmt"
 	"strings"
+	"time"
 
+	"github.com/linkingthing/cement/uuid"
+	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 )
+
+var SubnetLease4Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet4,
+	SqlColumnAddress, SqlColumnAddressType, SqlColumnHwAddress, SqlColumnHwAddressOrganization, SqlColumnClientId,
+	SqlColumnFqdnFwd, SqlColumnFqdnRev, SqlColumnHostname, SqlColumnLeaseState, SqlColumnRequestType, SqlColumnRequestTime,
+	SqlColumnValidLifetime, SqlColumnExpirationTime, SqlColumnFingerprint, SqlColumnVendorId, SqlColumnOperatingSystem,
+	SqlColumnClientType, SqlColumnSubnet,
+}
 
 type ReservationType string
 
@@ -37,6 +48,35 @@ type SubnetLease4 struct {
 	AllocateMode              string `json:"allocateMode"`
 }
 
+func (l *SubnetLease4) GenCopyValues() []interface{} {
+	if l.GetID() == "" {
+		l.ID, _ = uuid.Gen()
+	}
+	return []interface{}{
+		l.GetID(),
+		time.Now(),
+		l.Subnet4,
+		l.Address,
+		l.HwAddress,
+		l.HwAddressOrganization,
+		l.ClientId,
+		l.FqdnFwd,
+		l.FqdnRev,
+		l.Hostname,
+		l.LeaseState,
+		l.RequestType,
+		l.RequestTime,
+		l.ValidLifetime,
+		l.ExpirationTime,
+		l.Fingerprint,
+		l.VendorId,
+		l.OperatingSystem,
+		l.ClientType,
+		l.Subnet,
+		l.AllocateMode,
+	}
+}
+
 func (l SubnetLease4) GetParents() []restresource.ResourceKind {
 	return []restresource.ResourceKind{Subnet4{}}
 }
@@ -47,6 +87,10 @@ func (l *SubnetLease4) Equal(another *SubnetLease4) bool {
 		strings.EqualFold(l.HwAddress, another.HwAddress) &&
 		l.ClientId == another.ClientId &&
 		l.Hostname == another.Hostname
+}
+
+func (l *SubnetLease4) GetUniqueKey() string {
+	return fmt.Sprintf("%s-%s-%s-%s-%s", l.Address, l.ExpirationTime, strings.ToUpper(l.HwAddress), l.ClientId, l.Hostname)
 }
 
 func (s SubnetLease4) GetActions() []restresource.Action {

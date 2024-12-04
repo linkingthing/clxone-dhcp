@@ -2,13 +2,16 @@ package resource
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"net"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	dhcp6 "github.com/cuityhj/g67/dhcpv6"
 	gohelperip "github.com/cuityhj/gohelper/ip"
+	"github.com/linkingthing/cement/uuid"
 	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
@@ -28,6 +31,11 @@ const (
 
 var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 
+var Reservation6Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet6, SqlColumnDuid, SqlColumnHwAddress,
+	SqlColumnHostname, SqlColumnIpAddresses, SqlColumnIps, SqlColumnPrefixes, SqlColumnIpNets, SqlColumnCapacity,
+	SqlColumnComment}
+
+type Reservation6s []*Reservation6
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string      `json:"-" db:"ownby"`
@@ -69,6 +77,43 @@ func (s Reservation6) GetActions() []restresource.Action {
 	}
 }
 
+func (r *Reservation6) GenCopyValues() []interface{} {
+	if r.GetID() == "" {
+		r.ID, _ = uuid.Gen()
+	}
+
+	if len(r.IpAddresses) == 0 {
+		r.IpAddresses = []string{}
+	}
+
+	if len(r.Ips) == 0 {
+		r.Ips = []net.IP{}
+	}
+
+	if len(r.Prefixes) == 0 {
+		r.Prefixes = []string{}
+	}
+
+	if len(r.Ipnets) == 0 {
+		r.Ipnets = []net.IPNet{}
+	}
+
+	return []interface{}{
+		r.GetID(),
+		time.Now(),
+		r.Subnet6,
+		r.Duid,
+		r.HwAddress,
+		r.Hostname,
+		r.IpAddresses,
+		r.Ips,
+		r.Prefixes,
+		r.Ipnets,
+		r.Capacity,
+		r.Comment,
+	}
+}
+
 func (r *Reservation6) String() string {
 	if r.Duid != "" {
 		return ReservationIdDUID + ReservationDelimiter + r.Duid
@@ -77,6 +122,10 @@ func (r *Reservation6) String() string {
 	} else {
 		return ReservationIdHostname + ReservationDelimiter + r.Hostname
 	}
+}
+
+func (r *Reservation6) GetUniqueKey() string {
+	return fmt.Sprintf("%s-%s-%s-%s-%s", r.Duid, r.HwAddress, r.Hostname, strings.Join(r.IpAddresses, ","), strings.Join(r.Prefixes, ","))
 }
 
 func (r *Reservation6) AddrString() string {
@@ -219,4 +268,20 @@ func parseDUID(duid string) error {
 
 	_, err = dhcp6.DUIDFromBytes(duidbytes)
 	return err
+}
+
+func (reservation6s Reservation6s) GetIps() []net.IP {
+	result := make([]net.IP, 0, len(reservation6s))
+	for _, reservation6 := range reservation6s {
+		result = append(result, reservation6.Ips...)
+	}
+	return result
+}
+
+func (reservation6s Reservation6s) GetIpNets() []net.IPNet {
+	result := make([]net.IPNet, 0, len(reservation6s))
+	for _, reservation6 := range reservation6s {
+		result = append(result, reservation6.Ipnets...)
+	}
+	return result
 }

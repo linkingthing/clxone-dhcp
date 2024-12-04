@@ -31,6 +31,10 @@ func NewReservation6Service() *Reservation6Service {
 
 func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *resource.Reservation6) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if err := setSubnet6FromDB(tx, subnet); err != nil {
+			return err
+		}
+
 		if err := batchCreateReservation6s(tx, subnet, []*resource.Reservation6{reservation}); err != nil {
 			return err
 		}
@@ -38,42 +42,66 @@ func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *reso
 	})
 }
 
-func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
-	if err := setSubnet6FromDB(tx, subnet); err != nil {
-		return err
-	} else if subnet.CanNotHasPools() {
+func checkReservation6sCouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, reservations ...*resource.Reservation6) error {
+	if subnet.CanNotHasPools() {
 		return errorno.ErrSubnetCanNotHasPools(subnet.Subnet)
 	}
 
-	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation); err != nil {
+	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservations...); err != nil {
 		return err
 	}
 
-	if err := checkReservation6InUsed(tx, subnet.GetID(), reservation); err != nil {
+	if failedMap, err := checkReservation6sInUsed(tx, subnet.GetID(), reservations...); err != nil {
 		return err
+	} else if len(failedMap) > 0 {
+		for _, err = range failedMap {
+			return err
+		}
 	}
 
-	return checkReservation6ConflictWithPools(tx, subnet.GetID(), reservation)
+	if failedMap, err := checkReservation6sConflictWithPools(tx, subnet.GetID(), reservations...); err != nil {
+		return err
+	} else if len(failedMap) > 0 {
+		for _, err = range failedMap {
+			return err
+		}
+	}
+
+	return nil
 }
 
-func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Reservation6) error {
+func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, reservation ...*resource.Reservation6) error {
+	if subnet.CanNotHasPools() {
+		return errorno.ErrSubnetCanNotHasPools(subnet.Subnet)
+	}
+
+	if err := checkReservation6BelongsToIpnet(subnet.Ipnet, reservation...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservations ...*resource.Reservation6) error {
 	subnetMaskLen, _ := ipnet.Mask.Size()
-	if subnetMaskLen < 64 && len(reservation.Ips) != 0 {
+	ips := resource.Reservation6s(reservations).GetIps()
+	ipnets := resource.Reservation6s(reservations).GetIpNets()
+	if subnetMaskLen < 64 && len(ips) != 0 {
 		return errorno.ErrLessThan(errorno.ErrNamePrefix, ipnet.String(), 64)
 	}
 
-	if subnetMaskLen > 64 && len(reservation.Ipnets) != 0 {
+	if subnetMaskLen > 64 && len(ipnets) != 0 {
 		return errorno.ErrBiggerThan(errorno.ErrNamePrefix, ipnet.String(), 64)
 	}
 
-	for _, ip := range reservation.Ips {
+	for _, ip := range ips {
 		if !ipnet.Contains(ip) {
 			return errorno.ErrNotBelongTo(errorno.ErrNameIp, errorno.ErrNamePrefix,
 				ip.String(), ipnet.String())
 		}
 	}
 
-	for _, ipnet_ := range reservation.Ipnets {
+	for _, ipnet_ := range ipnets {
 		if !ipnet.Contains(ipnet_.IP) {
 			return errorno.ErrNotBelongTo(errorno.ErrNameIp, errorno.ErrNamePrefix,
 				ipnet_.String(), ipnet.String())
@@ -85,21 +113,49 @@ func checkReservation6BelongsToIpnet(ipnet net.IPNet, reservation *resource.Rese
 	return nil
 }
 
-func checkReservation6InUsed(tx restdb.Transaction, subnetId string, reservation *resource.Reservation6) error {
+func checkReservation6sInUsed(tx restdb.Transaction, subnetId string,
+	newReservations ...*resource.Reservation6) (map[string]error, error) {
 	var reservations []*resource.Reservation6
 	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
 		&reservations); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
-	for _, reservation_ := range reservations {
-		if reservation_.CheckConflictWithAnother(reservation) {
-			return errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
-				reservation.String(), reservation_.String())
+	failedMap := make(map[string]error)
+	for i, reservation := range newReservations {
+		if _, ok := failedMap[reservation.GetUniqueKey()]; ok {
+			continue
+		}
+
+		for j, tempReservation := range newReservations {
+			if _, ok := failedMap[tempReservation.GetUniqueKey()]; ok || i == j {
+				continue
+			}
+
+			if reservation.CheckConflictWithAnother(tempReservation) {
+				failedMap[tempReservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
+					reservation.String(), tempReservation.String())
+			}
 		}
 	}
 
-	return nil
+	for i := 0; i < len(newReservations); i++ {
+		if _, ok := failedMap[newReservations[i].GetUniqueKey()]; ok {
+			newReservations = append(newReservations[:i], newReservations[i+1:]...)
+			i--
+		}
+	}
+
+	for _, reservation_ := range reservations {
+		for _, reservation := range newReservations {
+			if reservation_.CheckConflictWithAnother(reservation) {
+				failedMap[reservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservation,
+					reservation.String(), reservation_.String())
+			}
+		}
+	}
+
+	return failedMap, nil
 }
 
 func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, reservation *resource.Reservation6) error {
@@ -138,6 +194,62 @@ func checkReservation6ConflictWithPools(tx restdb.Transaction, subnetId string, 
 	}
 
 	return nil
+}
+
+func checkReservation6sConflictWithPools(tx restdb.Transaction, subnetId string,
+	reservations ...*resource.Reservation6) (map[string]error, error) {
+	ips := resource.Reservation6s(reservations).GetIps()
+	ipNets := resource.Reservation6s(reservations).GetIpNets()
+	reservationMap := make(map[string]*resource.Reservation6)
+	for _, reservation := range reservations {
+		for _, ip := range ips {
+			reservationMap[ip.String()] = reservation
+		}
+
+		for _, ipnet := range reservation.Ipnets {
+			reservationMap[ipnet.String()] = reservation
+		}
+	}
+	var reservedpools []*resource.ReservedPool6
+	failedMap := make(map[string]error, len(reservations))
+	if len(ips) != 0 {
+		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
+			&reservedpools); err != nil {
+			return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
+		}
+	}
+
+	var reservedpdpools []*resource.ReservedPdPool
+	if len(ipNets) != 0 {
+		if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnetId},
+			&reservedpdpools); err != nil {
+			return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameReservedPdPool), pg.Error(err).Error())
+		}
+	}
+
+	for _, ip := range ips {
+		for _, reservedpool := range reservedpools {
+			if reservedpool.ContainsIp(ip) {
+				if reservation, ok := reservationMap[ip.String()]; ok {
+					failedMap[reservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameDhcpReservedPool,
+						reservation.String(), reservedpool.String())
+				}
+			}
+		}
+	}
+
+	for _, ipnet := range ipNets {
+		for _, reservedpdpool := range reservedpdpools {
+			if reservedpdpool.IntersectIpnet(ipnet) {
+				if reservation, ok := reservationMap[ipnet.String()]; ok {
+					failedMap[reservation.GetUniqueKey()] = errorno.ErrConflict(errorno.ErrNameDhcpReservation, errorno.ErrNameReservedPdPool,
+						reservation.String(), reservedpdpool.String())
+				}
+			}
+		}
+	}
+
+	return failedMap, nil
 }
 
 func updateSubnet6AndPoolsCapacityWithReservation6(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6, isCreate bool) error {
@@ -627,25 +739,28 @@ func BatchCreateReservation6s(prefix string, reservations []*resource.Reservatio
 }
 
 func batchCreateReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservations []*resource.Reservation6) error {
+	values := make([][]interface{}, 0, len(reservations))
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
 			return err
 		}
-		if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
-			return err
-		}
-
-		if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-			reservation, true); err != nil {
-			return err
-		}
 
 		reservation.Subnet6 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-		}
+		values = append(values, reservation.GenCopyValues())
 	}
 
+	if err := checkReservation6sCouldBeCreated(tx, subnet, reservations...); err != nil {
+		return err
+	}
+
+	if err := updateSubnet6AndPoolsCapacityWithReservation6s(tx, subnet,
+		reservations, true); err != nil {
+		return err
+	}
+
+	if _, err := tx.CopyFromEx(resource.TableReservation6, resource.Reservation6Columns, values); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+	}
 	return nil
 }
 
@@ -654,7 +769,7 @@ func (s *Reservation6Service) BatchDeleteReservation6s(subnetId string, ids []st
 		return nil
 	}
 
-	var reservations []*resource.Reservation6
+	var reservations resource.Reservation6s
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		subnet, err := getSubnet6FromDB(tx, subnetId)
 		if err != nil {
@@ -665,26 +780,26 @@ func (s *Reservation6Service) BatchDeleteReservation6s(subnetId string, ids []st
 			Operator: restdb.OperatorAny, Value: ids}},
 			&reservations); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+		} else if len(ids) != len(reservations) {
+			return errorno.ErrResourceNotFound(errorno.ErrNameDhcpReservation)
 		}
 
 		for _, reservation := range reservations {
-			if err = setReservation6FromDB(tx, reservation); err != nil {
-				return err
-			}
-
 			if err = checkReservation6WithLease(subnet, reservation); err != nil {
 				return err
 			}
+		}
 
-			if err = updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-				reservation, false); err != nil {
-				return err
-			}
+		if err = updateSubnet6AndPoolsCapacityWithReservation6s(tx, subnet, reservations, false); err != nil {
+			return err
+		}
 
-			if _, err = tx.Delete(resource.TableReservation6,
-				map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
-				return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-			}
+		if _, err = tx.Delete(resource.TableReservation6,
+			map[string]interface{}{restdb.IDField: restdb.FillValue{
+				Operator: restdb.OperatorAny,
+				Value:    ids,
+			}}); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 
 		return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservations...)
@@ -711,20 +826,49 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 		return response, nil
 	}
 
+	var failedUsedMap, failedPoolMap map[string]error
 	validReservations := make([]*resource.Reservation6, 0, len(reservations))
+	values := make([][]interface{}, 0, len(reservations))
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if failedUsedMap, err = checkReservation6sInUsed(tx, subnet6s[0].GetID(), reservations...); err != nil {
+			return err
+		}
+
+		if failedPoolMap, err = checkReservation6sConflictWithPools(tx, subnet6s[0].GetID(), reservations...); err != nil {
+			return err
+		}
+
 		for _, reservation := range reservations {
+			if tempErr, ok := failedUsedMap[reservation.GetUniqueKey()]; ok {
+				addFailDataToResponse(response, TableHeaderReservation6FailLen,
+					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(tempErr))
+				continue
+			}
+
+			if tempErr, ok := failedPoolMap[reservation.GetUniqueKey()]; ok {
+				addFailDataToResponse(response, TableHeaderReservation6FailLen,
+					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(tempErr))
+				continue
+			}
+
 			if err = checkReservation6CouldBeCreated(tx, subnet6s[0], reservation); err != nil {
 				addFailDataToResponse(response, TableHeaderReservation6FailLen,
 					localizationReservation6ToStrSlice(reservation), errorno.TryGetErrorCNMsg(err))
 				continue
 			}
 
-			if err = batchInsertReservation6s(tx, subnet6s[0], reservation); err != nil {
-				return err
-			}
-
+			reservation.Subnet6 = subnetId
 			validReservations = append(validReservations, reservation)
+			values = append(values, reservation.GenCopyValues())
+		}
+
+		if err = updateSubnet6AndPoolsCapacityWithReservation6s(tx, subnet6s[0],
+			validReservations, true); err != nil {
+			return err
+		}
+
+		if _, err = tx.CopyFromEx(resource.TableReservation6, resource.Reservation6Columns, values); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 		}
 
 		return sendCreateReservation6CmdToDHCPAgent(subnet6s[0].SubnetId, subnet6s[0].Nodes, validReservations...)
@@ -733,20 +877,6 @@ func (s *Reservation6Service) ImportExcel(file *excel.ImportFile, subnetId strin
 	}
 
 	return response, nil
-}
-
-func batchInsertReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
-	if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-		reservation, true); err != nil {
-		return err
-	}
-
-	reservation.Subnet6 = subnet.GetID()
-	if _, err := tx.Insert(reservation); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-	}
-
-	return nil
 }
 
 func (s *Reservation6Service) parseReservation6sFromFile(fileName string, subnet6 *resource.Subnet6,
@@ -899,4 +1029,59 @@ func (s *Reservation6Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 	} else {
 		return &excel.ExportFile{Path: filepath}, nil
 	}
+}
+
+func updateSubnet6AndPoolsCapacityWithReservation6s(tx restdb.Transaction, subnet *resource.Subnet6, reservations resource.Reservation6s, isCreate bool) error {
+	affectedPools, affectedPdPools, err := recalculatePoolsCapacityWithReservation6s(
+		tx, isCreate, subnet, reservations...)
+	if err != nil {
+		return err
+	}
+
+	if _, err = tx.Update(resource.TableSubnet6, map[string]interface{}{
+		resource.SqlColumnCapacity: subnet.Capacity,
+	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
+	}
+
+	if len(affectedPools) > 0 {
+		for affectedId, capacity := range affectedPools {
+			affectedPools[affectedId] = strings.Join([]string{"('", affectedId, "',", capacity, ")"}, "")
+		}
+		if err = util.BatchUpdateById(tx, string(resource.TablePool6), []string{resource.SqlColumnCapacity}, affectedPools); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
+		}
+	}
+
+	if len(affectedPdPools) > 0 {
+		for affectedId, capacity := range affectedPdPools {
+			affectedPdPools[affectedId] = strings.Join([]string{"('", affectedId, "',", capacity, ")"}, "")
+		}
+		if err = util.BatchUpdateById(tx, string(resource.TablePdPool), []string{resource.SqlColumnCapacity}, affectedPdPools); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNamePdPool), pg.Error(err).Error())
+		}
+	}
+
+	return nil
+}
+
+func recalculatePoolsCapacityWithReservation6s(tx restdb.Transaction, isCreate bool, subnet *resource.Subnet6,
+	reservation6s ...*resource.Reservation6) (affectedPool6s map[string]string, affectedPdPools map[string]string, err error) {
+	ips := make([]net.IP, 0, len(reservation6s))
+	for _, reservation6 := range reservation6s {
+		ips = append(ips, reservation6.Ips...)
+	}
+
+	if affectedPool6s, err = recalculatePool6sCapacityWithIps(tx, subnet,
+		ips, isCreate); err != nil {
+		return nil, nil, err
+	}
+
+	ipnets := make([]net.IPNet, 0, len(reservation6s))
+	for _, reservation6 := range reservation6s {
+		ipnets = append(ipnets, reservation6.Ipnets...)
+	}
+	affectedPdPools, err = recalculatePdPoolsCapacityWithPrefixes(tx,
+		subnet, ipnets, isCreate)
+	return affectedPool6s, affectedPdPools, err
 }

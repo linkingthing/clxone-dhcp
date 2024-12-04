@@ -618,9 +618,9 @@ func (s *Subnet4Service) ImportExcel(file *excel.ImportFile) (interface{}, error
 		return response, nil
 	}
 
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		for _, validSql := range validSqls {
-			if _, err := tx.Exec(validSql); err != nil {
+			if _, err = tx.Exec(validSql); err != nil {
 				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameNetworkV4), pg.Error(err).Error())
 			}
 		}
