@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -119,11 +118,6 @@ func (l *SubnetLease6) Equal(another *SubnetLease6) bool {
 		l.LeaseType == another.LeaseType &&
 		l.Iaid == another.Iaid &&
 		l.Hostname == another.Hostname
-}
-
-func (l *SubnetLease6) GetUniqueKey() string {
-	return fmt.Sprintf("%s-%s-%s-%s-%d-%s", l.Address, l.ExpirationTime, l.Duid, strings.ToUpper(l.HwAddress),
-		l.LeaseType, l.Iaid, l.Hostname)
 }
 
 func (s SubnetLease6) GetActions() []restresource.Action {
