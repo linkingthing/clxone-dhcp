@@ -96,7 +96,7 @@ func SubnetLease4ToPbDHCPLease4(lease *resource.SubnetLease4) *pbdhcp.Lease4 {
 		OperatingSystem:       lease.OperatingSystem,
 		ClientType:            lease.ClientType,
 		LeaseState:            lease.LeaseState,
-		AddressType:           lease.AllocateMode,
+		AllocateMode:          lease.AllocateMode,
 	}
 }
 
@@ -119,6 +119,7 @@ func Subnet6ToPbDHCPSubnet6(subnet *resource.Subnet6, leasesCount uint64) *pbdhc
 		UseEui64:      subnet.UseEui64,
 		UsedCount:     leasesCount,
 		AddressCode:   subnet.AddressCode,
+		EmbedIpv4:     subnet.EmbedIpv4,
 	}
 }
 
@@ -213,7 +214,7 @@ func SubnetLease6ToPbDHCPLease6(lease *resource.SubnetLease6) *pbdhcp.Lease6 {
 		OperatingSystem:       lease.OperatingSystem,
 		ClientType:            lease.ClientType,
 		LeaseState:            lease.LeaseState,
-		AddressType:           lease.AllocateMode,
+		AllocateMode:          lease.AllocateMode,
 		AddressCodes:          lease.AddressCodes,
 		AddressCodeBegins:     lease.AddressCodeBegins,
 		AddressCodeEnds:       lease.AddressCodeEnds,
