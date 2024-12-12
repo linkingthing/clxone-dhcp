@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -87,10 +86,6 @@ func (l *SubnetLease4) Equal(another *SubnetLease4) bool {
 		strings.EqualFold(l.HwAddress, another.HwAddress) &&
 		l.ClientId == another.ClientId &&
 		l.Hostname == another.Hostname
-}
-
-func (l *SubnetLease4) GetUniqueKey() string {
-	return fmt.Sprintf("%s-%s-%s-%s-%s", l.Address, l.ExpirationTime, strings.ToUpper(l.HwAddress), l.ClientId, l.Hostname)
 }
 
 func (s SubnetLease4) GetActions() []restresource.Action {
