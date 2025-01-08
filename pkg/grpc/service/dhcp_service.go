@@ -433,7 +433,7 @@ func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 
 	for ip := range unfoundIps {
 		for _, reservedPool := range reservedPools {
-			if reservedPool.Contains(ip) {
+			if reservedPool.ContainsIpstr(ip) {
 				ipv4Infos[ip].AddressType = resource.AddressTypeReserve.String()
 				delete(unfoundIps, ip)
 				break
@@ -453,7 +453,7 @@ func setIpv4InfosAddressType(tx restdb.Transaction, subnetIdsArgs, ipsArgs strin
 
 	for ip := range unfoundIps {
 		for _, pool := range pools {
-			if pool.Contains(ip) {
+			if pool.ContainsIpstr(ip) {
 				ipv4Infos[ip].AddressType = resource.AddressTypeDynamic.String()
 				delete(unfoundIps, ip)
 				break
@@ -597,7 +597,7 @@ func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoun
 
 	for ip := range unfoundIps {
 		for _, reservedPool := range reservedPools {
-			if reservedPool.ContainsIpString(ip) {
+			if reservedPool.ContainsIpstr(ip) {
 				ipv6Infos[ip].AddressType = resource.AddressTypeReserve.String()
 				delete(unfoundIps, ip)
 				break
@@ -617,7 +617,7 @@ func setIpv6InfosAddressType(tx restdb.Transaction, subnetIdsArgs string, unfoun
 
 	for ip := range unfoundIps {
 		for _, pool := range pools {
-			if pool.ContainsIpString(ip) {
+			if pool.ContainsIpstr(ip) {
 				ipv6Infos[ip].AddressType = resource.AddressTypeDynamic.String()
 				delete(unfoundIps, ip)
 				break
@@ -741,10 +741,10 @@ func (d *DHCPService) GetReservedPool4sBySubnet(prefix string) ([]*pbdhcp.Reserv
 }
 
 func (d *DHCPService) GetReservation4sBySubnet(prefix string) ([]*pbdhcp.Reservation4, error) {
-	if pools, err := service.GetReservationPool4sByPrefix(prefix); err != nil {
+	if reservation4s, err := service.GetReservation4sByPrefix(prefix); err != nil {
 		return nil, err
 	} else {
-		return parser.Reservation4sToPbDHCPReservation4s(pools), nil
+		return parser.Reservation4sToPbDHCPReservation4s(reservation4s), nil
 	}
 }
 
@@ -835,7 +835,7 @@ func (d *DHCPService) GetReservedPool6sBySubnet(prefix string) ([]*pbdhcp.Reserv
 }
 
 func (d *DHCPService) GetReservation6sBySubnet(prefix string) ([]*pbdhcp.Reservation6, error) {
-	if pools, err := service.GetReservationPool6sByPrefix(prefix); err != nil {
+	if pools, err := service.GetReservation6sByPrefix(prefix); err != nil {
 		return nil, err
 	} else {
 		return parser.Reservation6sToPbDHCPReservation6s(pools), nil

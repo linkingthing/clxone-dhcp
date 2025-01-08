@@ -1,7 +1,6 @@
 package resource
 
 import (
-	"fmt"
 	"net"
 	"time"
 	"unicode/utf8"
@@ -29,7 +28,6 @@ var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
 var Reservation4Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet4, SqlColumnHwAddress,
 	SqlColumnHostname, SqlColumnIpAddress, SqlColumnIp, SqlColumnCapacity, SqlColumnComment}
 
-type Reservation4s []*Reservation4
 type Reservation4 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet4                   string `json:"-" db:"ownby"`
@@ -113,19 +111,6 @@ func (r *Reservation4) Validate() error {
 	return nil
 }
 
-func (r *Reservation4) CheckUnique(reservationInfoMap, reservationAddressMap map[string]struct{}) error {
-	key := r.GetUniqueKey()
-	if _, ok := reservationInfoMap[key]; ok {
-		return errorno.ErrUsedReservation(r.IpAddress)
-	}
-	if _, ok := reservationAddressMap[r.IpAddress]; ok {
-		return errorno.ErrUsedReservation(r.IpAddress)
-	}
-	reservationInfoMap[key] = struct{}{}
-	reservationAddressMap[r.IpAddress] = struct{}{}
-	return nil
-}
-
 func (r *Reservation4) GenCopyValues() []interface{} {
 	if r.GetID() == "" {
 		r.ID, _ = uuid.Gen()
@@ -141,16 +126,4 @@ func (r *Reservation4) GenCopyValues() []interface{} {
 		r.Capacity,
 		r.Comment,
 	}
-}
-
-func (r *Reservation4) GetUniqueKey() string {
-	return fmt.Sprintf("%s-%s", r.HwAddress, r.Hostname)
-}
-
-func (rs Reservation4s) GetIds() []string {
-	result := make([]string, 0, len(rs))
-	for _, r := range rs {
-		result = append(result, r.GetID())
-	}
-	return result
 }

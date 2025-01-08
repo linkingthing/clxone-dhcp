@@ -8,3 +8,4 @@ generate.go
 .idea
 build
 clxone-dhcp-v*
+*.bak

@@ -41,7 +41,8 @@ func (p *ReservedPool6Service) Create(subnet *resource.Subnet6, pool *resource.R
 
 		pool.Subnet6 = subnet.GetID()
 		if _, err := tx.Insert(pool); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameInsert,
+				string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 		}
 
 		return sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
@@ -64,16 +65,16 @@ func checkReservedPool6CouldBeCreated(tx restdb.Transaction, subnet *resource.Su
 	}
 
 	if !checkIPsBelongsToIpnet(subnet.Ipnet, pool.BeginIp, pool.EndIp) {
-		return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool, errorno.ErrNameNetworkV6,
-			pool.String(), subnet.Subnet)
+		return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool,
+			errorno.ErrNameNetworkV6, pool.String(), subnet.Subnet)
 	}
 
 	return checkReservedPool6ConflictWithSubnet6Pools(tx, subnet.GetID(), pool)
 }
 
 func checkReservedPool6ConflictWithSubnet6Pools(tx restdb.Transaction, subnetID string, pool *resource.ReservedPool6) error {
-	if err := checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx,
-		subnetID, pool); err != nil {
+	if err := checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx, subnetID,
+		pool); err != nil {
 		return err
 	}
 
@@ -85,8 +86,8 @@ func checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx restdb.Transaction, 
 		pool.BeginIp, pool.EndIp); err != nil {
 		return err
 	} else if len(pools) != 0 {
-		return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservedPool,
-			pool.String(), pools[0].String())
+		return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool,
+			errorno.ErrNameDhcpReservedPool, pool.String(), pools[0].String())
 	} else {
 		return nil
 	}
@@ -95,9 +96,11 @@ func checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx restdb.Transaction, 
 func getReservedPool6sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, begin, end net.IP) ([]*resource.ReservedPool6, error) {
 	var reservedpools []*resource.ReservedPool6
 	if err := tx.FillEx(&reservedpools,
-		"select * from gr_reserved_pool6 where subnet6 = $1 and begin_ip <= $2 and end_ip >= $3",
+		`select * from gr_reserved_pool6 where 
+			subnet6 = $1 and begin_ip <= $2 and end_ip >= $3`,
 		subnetID, end, begin); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
 	} else {
 		return reservedpools, nil
 	}
@@ -115,8 +118,8 @@ func checkReservedPool6ConflictWithReservation6s(pool *resource.ReservedPool6, r
 	for _, reservation := range reservations {
 		for _, ip := range reservation.Ips {
 			if pool.ContainsIp(ip) {
-				return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool, errorno.ErrNameDhcpReservation,
-					pool.String(), reservation.String())
+				return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool,
+					errorno.ErrNameDhcpReservation, pool.String(), reservation.String())
 			}
 		}
 	}
@@ -125,45 +128,31 @@ func checkReservedPool6ConflictWithReservation6s(pool *resource.ReservedPool6, r
 }
 
 func updateSubnet6AndPool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *resource.Subnet6, reservedPool *resource.ReservedPool6, isCreate bool) error {
-	affectPools, err := recalculatePool6sCapacityWithReservedPool6(tx, subnet,
-		reservedPool, isCreate)
+	pools, err := getPool6sWithBeginAndEndIp(tx, subnet.GetID(),
+		reservedPool.BeginIp, reservedPool.EndIp)
 	if err != nil {
 		return err
 	}
 
-	if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-		resource.SqlColumnCapacity: subnet.Capacity,
-	}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
-	}
-
-	for affectPoolID, capacity := range affectPools {
-		if _, err := tx.Update(resource.TablePool6, map[string]interface{}{
-			resource.SqlColumnCapacity: capacity,
-		}, map[string]interface{}{restdb.IDField: affectPoolID}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
-		}
-	}
-
-	return nil
+	poolsCapacity := make(map[string]string, len(pools))
+	recalculateSubnet6AndPool6sCapacityWithReservedPool6(subnet, pools,
+		reservedPool, poolsCapacity, true)
+	return updateSubnet6AndPoolsCapacity(tx, subnet, poolsCapacity, nil)
 }
 
-func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *resource.Subnet6, reservedPool *resource.ReservedPool6, isCreate bool) (map[string]string, error) {
-	pools, err := getPool6sWithBeginAndEndIp(tx, subnet.GetID(),
-		reservedPool.BeginIp, reservedPool.EndIp)
-	if err != nil {
-		return nil, err
-	}
-
+func recalculateSubnet6AndPool6sCapacityWithReservedPool6(subnet *resource.Subnet6, pools []*resource.Pool6, reservedPool *resource.ReservedPool6, poolsCapacity map[string]string, isCreate bool) {
 	allReservedCount := new(big.Int)
-	affectedPool6s := make(map[string]string)
 	for _, pool := range pools {
 		reservedCount := getPool6ReservedCountWithReservedPool6(pool, reservedPool)
+		if reservedCount == nil || reservedCount.Sign() == 0 {
+			continue
+		}
+
 		allReservedCount.Add(allReservedCount, reservedCount)
 		if isCreate {
-			affectedPool6s[pool.GetID()] = pool.SubCapacityWithBigInt(reservedCount)
+			poolsCapacity[pool.GetID()] = pool.SubCapacityWithBigInt(reservedCount)
 		} else {
-			affectedPool6s[pool.GetID()] = pool.AddCapacityWithBigInt(reservedCount)
+			poolsCapacity[pool.GetID()] = pool.AddCapacityWithBigInt(reservedCount)
 		}
 	}
 
@@ -172,8 +161,6 @@ func recalculatePool6sCapacityWithReservedPool6(tx restdb.Transaction, subnet *r
 	} else {
 		subnet.AddCapacityWithBigInt(allReservedCount)
 	}
-
-	return affectedPool6s, nil
 }
 
 func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *resource.ReservedPool6) *big.Int {
@@ -193,34 +180,51 @@ func getPool6ReservedCountWithReservedPool6(pool *resource.Pool6, reservedPool *
 	return count
 }
 
-func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.ReservedPool6) error {
-	if len(pools) == 0 {
+func batchUpdateResource6sCapacity(tx restdb.Transaction, resourceType restdb.ResourceType, resourcesCapacity map[string]string) error {
+	if len(resourcesCapacity) == 0 {
 		return nil
 	}
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPool6s,
-		reservedPool6sToCreateReservedPools6Request(subnetID, pools), func(nodesForSucceed []string) {
+
+	for resourceId, capacity := range resourcesCapacity {
+		resourcesCapacity[resourceId] = "('" + resourceId + "'," + capacity + ")"
+	}
+
+	if err := util.BatchUpdateById(tx, string(resourceType),
+		[]string{resource.SqlColumnCapacity}, resourcesCapacity); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameUpdate,
+			string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
+	}
+
+	return nil
+}
+
+func sendCreateReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.CreateReservedPool6,
+		reservedPool6ToCreateReservedPool6Request(subnetID, pool),
+		func(nodesForSucceed []string) {
 			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
-				nodesForSucceed, kafka.DeleteReservedPool6s,
-				reservedPool6sToDeleteReservedPools6Request(subnetID, pools)); err != nil {
-				log.Errorf("create subnet6 %d reserved pool6 %s failed, rollback with nodes %v failed: %s",
-					subnetID, pools[0].String(), nodesForSucceed, err.Error())
+				nodesForSucceed, kafka.DeleteReservedPool6,
+				reservedPool6ToDeleteReservedPool6Request(subnetID, pool)); err != nil {
+				log.Errorf("create subnet6 %d reservedpool6 %s failed, rollback %v failed: %s",
+					subnetID, pool.String(), nodesForSucceed, err.Error())
 			}
 		})
 }
 
-func reservedPool6sToCreateReservedPools6Request(subnetID uint64, pools []*resource.ReservedPool6) *pbdhcpagent.CreateReservedPools6Request {
-	pbPools := make([]*pbdhcpagent.CreateReservedPool6Request, len(pools))
-	for i, pool := range pools {
-		pbPools[i] = reservedPool6ToCreateReservedPool6Request(subnetID, pool)
-	}
-	return &pbdhcpagent.CreateReservedPools6Request{
-		SubnetId:      subnetID,
-		ReservedPools: pbPools,
+func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.CreateReservedPool6Request {
+	return &pbdhcpagent.CreateReservedPool6Request{
+		SubnetId:     subnetID,
+		BeginAddress: pool.BeginAddress,
+		EndAddress:   pool.EndAddress,
 	}
 }
 
-func reservedPool6ToCreateReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.CreateReservedPool6Request {
-	return &pbdhcpagent.CreateReservedPool6Request{
+func reservedPool6ToDeleteReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.DeleteReservedPool6Request {
+	return &pbdhcpagent.DeleteReservedPool6Request{
 		SubnetId:     subnetID,
 		BeginAddress: pool.BeginAddress,
 		EndAddress:   pool.EndAddress,
@@ -233,12 +237,23 @@ func (p *ReservedPool6Service) List(subnetId string) ([]*resource.ReservedPool6,
 
 func listReservedPool6s(subnetId string) ([]*resource.ReservedPool6, error) {
 	var pools []*resource.ReservedPool6
-	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		return tx.Fill(map[string]interface{}{
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) (err error) {
+		pools, err = getReservedPool6sWithCondition(tx, map[string]interface{}{
 			resource.SqlColumnSubnet6: subnetId,
-			resource.SqlOrderBy:       resource.SqlColumnBeginIp}, &pools)
+			resource.SqlOrderBy:       resource.SqlColumnBeginIp})
+		return
 	}); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
+		return nil, err
+	}
+
+	return pools, nil
+}
+
+func getReservedPool6sWithCondition(tx restdb.Transaction, condition map[string]interface{}) ([]*resource.ReservedPool6, error) {
+	var pools []*resource.ReservedPool6
+	if err := tx.Fill(condition, &pools); err != nil {
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameDhcpPool), pg.Error(err).Error())
 	}
 
 	return pools, nil
@@ -274,7 +289,8 @@ func (p *ReservedPool6Service) Delete(subnet *resource.Subnet6, pool *resource.R
 
 		if _, err := tx.Delete(resource.TableReservedPool6, map[string]interface{}{
 			restdb.IDField: pool.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameDelete, pool.GetID(), pg.Error(err).Error())
+			return errorno.ErrDBError(errorno.ErrDBNameDelete, pool.GetID(),
+				pg.Error(err).Error())
 		}
 
 		return sendDeleteReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pool)
@@ -282,10 +298,10 @@ func (p *ReservedPool6Service) Delete(subnet *resource.Subnet6, pool *resource.R
 }
 
 func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6) error {
-	var pools []*resource.ReservedPool6
-	if err := tx.Fill(map[string]interface{}{restdb.IDField: pool.GetID()},
-		&pools); err != nil {
-		return errorno.ErrDBError(errorno.ErrDBNameQuery, pool.GetID(), pg.Error(err).Error())
+	pools, err := getReservedPool6sWithCondition(tx,
+		map[string]interface{}{restdb.IDField: pool.GetID()})
+	if err != nil {
+		return err
 	} else if len(pools) == 0 {
 		return errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, pool.GetID())
 	}
@@ -299,32 +315,16 @@ func setReservedPool6FromDB(tx restdb.Transaction, pool *resource.ReservedPool6)
 	return nil
 }
 
-func sendDeleteReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pools ...*resource.ReservedPool6) error {
-	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPool6s,
-		reservedPool6sToDeleteReservedPools6Request(subnetID, pools), nil)
+func sendDeleteReservedPool6CmdToDHCPAgent(subnetID uint64, nodes []string, pool *resource.ReservedPool6) error {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	return kafka.SendDHCPCmdWithNodes(false, nodes, kafka.DeleteReservedPool6,
+		reservedPool6ToDeleteReservedPool6Request(subnetID, pool), nil)
 }
 
-func reservedPool6sToDeleteReservedPools6Request(subnetID uint64, pools []*resource.ReservedPool6) *pbdhcpagent.DeleteReservedPools6Request {
-	pbPools := make([]*pbdhcpagent.DeleteReservedPool6Request, len(pools))
-	for i, pool := range pools {
-		pbPools[i] = reservedPool6ToDeleteReservedPool6Request(subnetID, pool)
-	}
-	return &pbdhcpagent.DeleteReservedPools6Request{
-		SubnetId:      subnetID,
-		ReservedPools: pbPools,
-	}
-}
-
-func reservedPool6ToDeleteReservedPool6Request(subnetID uint64, pool *resource.ReservedPool6) *pbdhcpagent.DeleteReservedPool6Request {
-	return &pbdhcpagent.DeleteReservedPool6Request{
-		SubnetId:     subnetID,
-		BeginAddress: pool.BeginAddress,
-		EndAddress:   pool.EndAddress,
-	}
-}
-
-func (p *ReservedPool6Service) ActionValidTemplate(subnet *resource.Subnet6, pool *resource.ReservedPool6,
-	templateInfo *resource.TemplateInfo) (*resource.TemplatePool, error) {
+func (p *ReservedPool6Service) ActionValidTemplate(subnet *resource.Subnet6, pool *resource.ReservedPool6, templateInfo *resource.TemplateInfo) (*resource.TemplatePool, error) {
 	pool.Template = templateInfo.Template
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		return checkReservedPool6CouldBeCreated(tx, subnet, pool)
@@ -343,10 +343,11 @@ func (p *ReservedPool6Service) Update(subnetId string, pool *resource.ReservedPo
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if rows, err := tx.Update(resource.TableReservedPool6, map[string]interface{}{
-			resource.SqlColumnComment: pool.Comment,
-		}, map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, pool.GetID(), pg.Error(err).Error())
+		if rows, err := tx.Update(resource.TableReservedPool6,
+			map[string]interface{}{resource.SqlColumnComment: pool.Comment},
+			map[string]interface{}{restdb.IDField: pool.GetID()}); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery, pool.GetID(),
+				pg.Error(err).Error())
 		} else if rows == 0 {
 			return errorno.ErrNotFound(errorno.ErrNameDhcpReservedPool, pool.GetID())
 		}
@@ -361,42 +362,135 @@ func GetReservedPool6sByPrefix(prefix string) ([]*resource.ReservedPool6, error)
 		return nil, err
 	}
 
-	if pools, err := listReservedPool6s(subnet6.GetID()); err != nil {
-		return nil, err
-	} else {
-		return pools, nil
-	}
+	return listReservedPool6s(subnet6.GetID())
 }
 
-func BatchCreateReservedPool6s(prefix string, pools []*resource.ReservedPool6) error {
-	subnet, err := GetSubnet6ByPrefix(prefix)
-	if err != nil {
-		return err
-	}
+func BatchCreateReservedPool6s(prefix string, reservedpools []*resource.ReservedPool6) error {
+	for i, reservedpool := range reservedpools {
+		if err := reservedpool.Validate(); err != nil {
+			return err
+		}
 
-	for _, pool := range pools {
-		if err := pool.Validate(); err != nil {
+		if err := checkReservedPool6ConflictWithReservedPool6s(reservedpool,
+			reservedpools[i+1:]); err != nil {
 			return err
 		}
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		for _, pool := range pools {
-			if err := checkReservedPool6CouldBeCreated(tx, subnet, pool); err != nil {
-				return err
-			}
-
-			if err := updateSubnet6AndPool6sCapacityWithReservedPool6(tx, subnet,
-				pool, true); err != nil {
-				return err
-			}
-
-			pool.Subnet6 = subnet.GetID()
-			if _, err := tx.Insert(pool); err != nil {
-				return errorno.ErrDBError(errorno.ErrDBNameInsert, string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
-			}
+		subnet, err := getSubnet6WithPrefix(tx, prefix)
+		if err != nil {
+			return err
 		}
 
-		return sendCreateReservedPool6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, pools...)
+		if err := checkSubnet6IfCanCreateDynamicPool(subnet); err != nil {
+			return err
+		}
+
+		pools, err := getPool6sWithSubnetId(tx, subnet.GetID())
+		if err != nil {
+			return err
+		}
+
+		reservations, err := getReservation6sWithSubnetId(tx, subnet.GetID())
+		if err != nil {
+			return err
+		}
+
+		oldReservedpools, err := getReservedPool6sWithSubnetId(tx, subnet.GetID())
+		if err != nil {
+			return err
+		}
+
+		poolsCapacity := make(map[string]string, len(pools))
+		reservedPoolValues := make([][]interface{}, 0, len(reservedpools))
+		for _, reservedpool := range reservedpools {
+			if !checkIPsBelongsToIpnet(subnet.Ipnet,
+				reservedpool.BeginIp, reservedpool.EndIp) {
+				return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool,
+					errorno.ErrNameNetworkV6, reservedpool.String(), subnet.Subnet)
+			}
+
+			if err := checkReservedPool6ConflictWithReservedPool6s(reservedpool,
+				oldReservedpools); err != nil {
+				return err
+			}
+
+			if err := checkReservedPool6ConflictWithReservation6s(reservedpool,
+				reservations); err != nil {
+				return err
+			}
+
+			recalculateSubnet6AndPool6sCapacityWithReservedPool6(subnet, pools,
+				reservedpool, poolsCapacity, true)
+			reservedpool.Subnet6 = subnet.GetID()
+			reservedPoolValues = append(reservedPoolValues, reservedpool.GenCopyValues())
+		}
+
+		if err := updateSubnet6AndPoolsCapacity(tx, subnet, poolsCapacity, nil); err != nil {
+			return err
+		}
+
+		if _, err := tx.CopyFromEx(resource.TableReservedPool6,
+			resource.ReservedPool6Columns, reservedPoolValues); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameInsert,
+				string(errorno.ErrNameDhcpReservedPool), pg.Error(err).Error())
+		}
+
+		return sendCreateReservedPool6sCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
+			reservedpools)
 	})
+}
+
+func checkReservedPool6ConflictWithReservedPool6s(reservedPool6 *resource.ReservedPool6, reservedpools []*resource.ReservedPool6) error {
+	for _, reservedpool := range reservedpools {
+		if reservedpool.CheckConflictWithAnother(reservedPool6) {
+			return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool,
+				errorno.ErrNameDhcpReservedPool, reservedpool.String(),
+				reservedPool6.String())
+		}
+	}
+
+	return nil
+}
+
+func sendCreateReservedPool6sCmdToDHCPAgent(subnetID uint64, nodes []string, pools []*resource.ReservedPool6) error {
+	if len(nodes) == 0 || len(pools) == 0 {
+		return nil
+	}
+
+	return kafka.SendDHCPCmdWithNodes(true, nodes, kafka.CreateReservedPool6s,
+		reservedPool6sToCreateReservedPool6sRequest(subnetID, pools),
+		func(nodesForSucceed []string) {
+			if _, err := kafka.GetDHCPAgentService().SendDHCPCmdWithNodes(
+				nodesForSucceed, kafka.DeleteReservedPool6s,
+				reservedPool6sToDeleteReservedPool6sRequest(subnetID, pools)); err != nil {
+				log.Errorf("create subnet6 %d reservedpool6 %s failed, rollback %v failed: %s",
+					subnetID, pools[0].String(), nodesForSucceed, err.Error())
+			}
+		})
+}
+
+func reservedPool6sToCreateReservedPool6sRequest(subnetID uint64, pools []*resource.ReservedPool6) *pbdhcpagent.CreateReservedPools6Request {
+	pbReservedPools := make([]*pbdhcpagent.CreateReservedPool6Request, len(pools))
+	for i, pool := range pools {
+		pbReservedPools[i] = reservedPool6ToCreateReservedPool6Request(subnetID, pool)
+	}
+
+	return &pbdhcpagent.CreateReservedPools6Request{
+		SubnetId:      subnetID,
+		ReservedPools: pbReservedPools,
+	}
+}
+
+func reservedPool6sToDeleteReservedPool6sRequest(subnetID uint64, pools []*resource.ReservedPool6) *pbdhcpagent.DeleteReservedPools6Request {
+	pbReservedPools := make([]*pbdhcpagent.DeleteReservedPool6Request, len(pools))
+	for i, pool := range pools {
+		pbReservedPools[i] = reservedPool6ToDeleteReservedPool6Request(subnetID, pool)
+	}
+
+	return &pbdhcpagent.DeleteReservedPools6Request{
+		SubnetId:      subnetID,
+		ReservedPools: pbReservedPools,
+	}
 }

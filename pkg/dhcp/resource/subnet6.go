@@ -112,8 +112,7 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 		return err
 	}
 
-	maskSize, _ := s.Ipnet.Mask.Size()
-	return s.checkAutoGenAddrFactor(maskSize)
+	return s.checkAutoGenAddrFactor(GetIpnetMaskSize(s.Ipnet))
 }
 
 func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
@@ -290,7 +289,12 @@ func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime u
 	return nil
 }
 
-func (s *Subnet6) checkAutoGenAddrFactor(maskSize int) error {
+func GetIpnetMaskSize(ipnet net.IPNet) uint32 {
+	size, _ := ipnet.Mask.Size()
+	return uint32(size)
+}
+
+func (s *Subnet6) checkAutoGenAddrFactor(maskSize uint32) error {
 	if s.CheckAutoGenAddrFactorConflict() {
 		return errorno.ErrAutoGenAddrFactorConflict()
 	}
@@ -347,8 +351,8 @@ func (s *Subnet6) AddCapacityWithBigInt(capacityForAdd *big.Int) string {
 }
 
 func AddCapacityWithBigInt(capacity string, capacityForAdd *big.Int) string {
-	if capacity == "" || capacityForAdd == nil {
-		return ""
+	if capacity == "" || capacityForAdd == nil || capacityForAdd.Sign() == 0 {
+		return capacity
 	} else {
 		capacityBigInt, _ := new(big.Int).SetString(capacity, 10)
 		return capacityBigInt.Add(capacityBigInt, capacityForAdd).String()
@@ -366,8 +370,8 @@ func (s *Subnet6) SubCapacityWithBigInt(capacityForSub *big.Int) string {
 }
 
 func SubCapacityWithBigInt(capacity string, capacityForSub *big.Int) string {
-	if capacity == "" || capacityForSub == nil {
-		return ""
+	if capacity == "" || capacityForSub == nil || capacityForSub.Sign() == 0 {
+		return capacity
 	} else {
 		capacityBigInt, _ := new(big.Int).SetString(capacity, 10)
 		return capacityBigInt.Sub(capacityBigInt, capacityForSub).String()

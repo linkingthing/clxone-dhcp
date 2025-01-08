@@ -68,8 +68,7 @@ func (pdpool *PdPool) Contains(prefix string) bool {
 	if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 		return false
 	} else {
-		prefixLen, _ := ipnet.Mask.Size()
-		return pdpool.DelegatedLen == uint32(prefixLen) &&
+		return pdpool.DelegatedLen == GetIpnetMaskSize(*ipnet) &&
 			pdpool.PrefixIpnet.Contains(ipnet.IP)
 	}
 }
@@ -114,8 +113,7 @@ func getPdPoolEndPrefix(prefixIpnet net.IPNet, delegatedLen uint32) string {
 	prefixTo16 := prefixIpnet.IP.To16()
 	prefixBytes := make([]byte, len(prefixTo16))
 	copy(prefixBytes, prefixTo16)
-	prefixLen, _ := prefixIpnet.Mask.Size()
-	beginIndex := uint32((prefixLen - 1) / 8)
+	beginIndex := (GetIpnetMaskSize(prefixIpnet) - 1) / 8
 	endIndex := (delegatedLen - 1) / 8
 	for i := endIndex; i > beginIndex; i-- {
 		if prefixBytes[i] == 0 {

@@ -63,12 +63,17 @@ func (p *Pool4) CheckConflictWithReservedPool4(reservedPool *ReservedPool4) bool
 		gohelperip.IP(reservedPool.BeginIp).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
-func (p *Pool4) Contains(ip string) bool {
-	if ip_, err := gohelperip.ParseIPv4(ip); err != nil {
+func (p *Pool4) ContainsIpstr(ipstr string) bool {
+	if ip, err := gohelperip.ParseIPv4(ipstr); err != nil {
 		return false
 	} else {
-		return p.CheckConflictWithAnother(&Pool4{BeginIp: ip_, EndIp: ip_})
+		return p.ContainsIp(ip)
 	}
+}
+
+func (p *Pool4) ContainsIp(ip net.IP) bool {
+	return ip != nil && gohelperip.IP(ip).Cmp(gohelperip.IP(p.BeginIp)) != -1 &&
+		gohelperip.IP(ip).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
 func (p *Pool4) Equals(another *Pool4) bool {

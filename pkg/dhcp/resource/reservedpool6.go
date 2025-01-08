@@ -1,8 +1,11 @@
 package resource
 
 import (
-	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"net"
+	"time"
+
+	"github.com/linkingthing/cement/uuid"
+	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	restdb "github.com/linkingthing/gorest/db"
@@ -12,6 +15,10 @@ import (
 )
 
 var TableReservedPool6 = restdb.ResourceDBType(&ReservedPool6{})
+
+var ReservedPool6Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet6,
+	SqlColumnBeginAddress, SqlColumnBeginIp, SqlColumnEndAddress, SqlColumnEndIp,
+	SqlColumnCapacity, SqlColumnComment}
 
 type ReservedPool6 struct {
 	restresource.ResourceBase `json:",inline"`
@@ -44,16 +51,17 @@ func (p *ReservedPool6) CheckConflictWithAnother(another *ReservedPool6) bool {
 		gohelperip.IP(another.BeginIp).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
-func (p *ReservedPool6) ContainsIpString(ip string) bool {
-	if ip_, err := gohelperip.ParseIPv6(ip); err != nil {
+func (p *ReservedPool6) ContainsIpstr(ipstr string) bool {
+	if ip, err := gohelperip.ParseIPv6(ipstr); err != nil {
 		return false
 	} else {
-		return p.CheckConflictWithAnother(&ReservedPool6{BeginIp: ip_, EndIp: ip_})
+		return p.ContainsIp(ip)
 	}
 }
 
 func (p *ReservedPool6) ContainsIp(ip net.IP) bool {
-	return ip != nil && p.CheckConflictWithAnother(&ReservedPool6{BeginIp: ip, EndIp: ip})
+	return ip != nil && gohelperip.IP(ip).Cmp(gohelperip.IP(p.BeginIp)) != -1 &&
+		gohelperip.IP(ip).Cmp(gohelperip.IP(p.EndIp)) != 1
 }
 
 func (p *ReservedPool6) Equals(another *ReservedPool6) bool {
@@ -112,4 +120,21 @@ func (p *ReservedPool6) ValidateAddress() error {
 
 	p.setAddrAndCapacity(beginIp, endIp, capacity)
 	return nil
+}
+
+func (p *ReservedPool6) GenCopyValues() []interface{} {
+	if p.GetID() == "" {
+		p.ID, _ = uuid.Gen()
+	}
+	return []interface{}{
+		p.GetID(),
+		time.Now(),
+		p.Subnet6,
+		p.BeginAddress,
+		p.BeginIp,
+		p.EndAddress,
+		p.EndIp,
+		p.Capacity,
+		p.Comment,
+	}
 }

@@ -134,7 +134,7 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 
 	v6ReservationMap := map[string][]*resource.Reservation6{subnet.GetID(): reservations}
 	if !input.BothV4V6 || input.ReservationType != resource.ReservationTypeMac {
-		return createReservationsBySubnet(nil, v6ReservationMap)
+		return createReservationsFromDynamicLeases(nil, v6ReservationMap)
 	}
 
 	lease4s, err := GetSubnets4LeasesWithMacs(hwAddresses)
@@ -166,7 +166,7 @@ func (l *SubnetLease6Service) ActionDynamicToReservation(subnet *resource.Subnet
 		return errorno.ErrNoResourceWith(errorno.ErrNameLease, errorno.ErrNameMac, ipv4, mac)
 	}
 
-	return createReservationsBySubnet(v4ReservationMap, v6ReservationMap)
+	return createReservationsFromDynamicLeases(v4ReservationMap, v6ReservationMap)
 }
 
 func (l *SubnetLease6Service) getReservationFromLease(leases []*resource.SubnetLease6, input *resource.ConvToReservationInput) ([]*resource.Reservation6, []string, map[string]string, error) {
@@ -322,20 +322,14 @@ func getSubnetLease6sWithIp(subnetId uint64, ip string, reservations []*resource
 	leasePrefix := prefixFromAddressAndPrefixLen(lease6.Address, lease6.PrefixLen)
 	for _, reservation := range reservations {
 		for _, ipaddress := range reservation.IpAddresses {
-			if ipaddress == lease6.Address &&
-				(reservation.HwAddress != "" && strings.EqualFold(reservation.HwAddress, lease6.HwAddress) ||
-					reservation.Hostname != "" && reservation.Hostname == lease6.Hostname ||
-					reservation.Duid != "" && reservation.Duid == lease6.Duid) {
+			if ipaddress == lease6.Address && subnetLease6AllocateToReservation6(reservation, lease6) {
 				lease6.AllocateMode = pbdhcpagent.LeaseAllocateMode_RESERVATION.String()
 				break
 			}
 		}
 
 		for _, prefix := range reservation.Prefixes {
-			if prefix == leasePrefix &&
-				(reservation.HwAddress != "" && strings.EqualFold(reservation.HwAddress, lease6.HwAddress) ||
-					reservation.Hostname != "" && reservation.Hostname == lease6.Hostname ||
-					reservation.Duid != "" && reservation.Duid == lease6.Duid) {
+			if prefix == leasePrefix && subnetLease6AllocateToReservation6(reservation, lease6) {
 				lease6.AllocateMode = pbdhcpagent.LeaseAllocateMode_RESERVATION.String()
 				break
 			}
@@ -406,6 +400,12 @@ func SubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.SubnetLea
 	return lease6
 }
 
+func subnetLease6AllocateToReservation6(reservation *resource.Reservation6, lease6 *resource.SubnetLease6) bool {
+	return (reservation.HwAddress != "" && strings.EqualFold(reservation.HwAddress, lease6.HwAddress)) ||
+		(reservation.Hostname != "" && reservation.Hostname == lease6.Hostname) ||
+		(reservation.Duid != "" && reservation.Duid == lease6.Duid)
+}
+
 func getSubnetLease6s(subnetId uint64, reservations []*resource.Reservation6, reclaimedSubnetLeases []*resource.SubnetLease6) ([]*resource.SubnetLease6, error) {
 	leases, reclaimleasesForRetain, err := getSubnetLease6sWithoutReclaimed(subnetId, reclaimedSubnetLeases,
 		reservationMapFromReservation6s(reservations))
@@ -473,10 +473,7 @@ func subnetLease6FromPbLease6AndReservations(lease *pbdhcpagent.DHCPLease6, rese
 	subnetLease6 := SubnetLease6FromPbLease6(lease)
 	if subnetLease6.AllocateMode == pbdhcpagent.LeaseAllocateMode_DYNAMIC.String() {
 		if reservation, ok := reservationMap[prefixFromAddressAndPrefixLen(subnetLease6.Address,
-			subnetLease6.PrefixLen)]; ok &&
-			(reservation.HwAddress != "" && strings.EqualFold(reservation.HwAddress, subnetLease6.HwAddress) ||
-				reservation.Hostname != "" && reservation.Hostname == subnetLease6.Hostname ||
-				reservation.Duid != "" && reservation.Duid == subnetLease6.Duid) {
+			subnetLease6.PrefixLen)]; ok && subnetLease6AllocateToReservation6(reservation, subnetLease6) {
 			subnetLease6.AllocateMode = pbdhcpagent.LeaseAllocateMode_RESERVATION.String()
 		}
 	}

@@ -2,7 +2,6 @@ package resource
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"net"
 	"strings"
@@ -35,7 +34,6 @@ var Reservation6Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlCo
 	SqlColumnHostname, SqlColumnIpAddresses, SqlColumnIps, SqlColumnPrefixes, SqlColumnIpNets, SqlColumnCapacity,
 	SqlColumnComment}
 
-type Reservation6s []*Reservation6
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
 	Subnet6                   string      `json:"-" db:"ownby"`
@@ -124,10 +122,6 @@ func (r *Reservation6) String() string {
 	}
 }
 
-func (r *Reservation6) GetUniqueKey() string {
-	return fmt.Sprintf("%s-%s-%s-%s-%s", r.Duid, r.HwAddress, r.Hostname, strings.Join(r.IpAddresses, ","), strings.Join(r.Prefixes, ","))
-}
-
 func (r *Reservation6) AddrString() string {
 	if len(r.IpAddresses) != 0 {
 		return ReservationTypeIps + ReservationDelimiter + strings.Join(r.IpAddresses, ReservationAddrDelimiter)
@@ -213,7 +207,7 @@ func (r *Reservation6) Validate() error {
 	for i, prefix := range r.Prefixes {
 		if ipnet, err := gohelperip.ParseCIDRv6(prefix); err != nil {
 			return errorno.ErrParseCIDR(prefix)
-		} else if ones, _ := ipnet.Mask.Size(); ones > 64 {
+		} else if GetIpnetMaskSize(*ipnet) > 64 {
 			return errorno.ErrExceedMaxCount(errorno.ErrNamePrefix, 64)
 		} else if prefix_, conflict := isIpnetIntersectPrefixes(r.Prefixes, ipnet, i); conflict {
 			return errorno.ErrConflict(errorno.ErrNamePrefix, errorno.ErrNamePrefix, prefix, prefix_)
@@ -268,20 +262,4 @@ func parseDUID(duid string) error {
 
 	_, err = dhcp6.DUIDFromBytes(duidbytes)
 	return err
-}
-
-func (reservation6s Reservation6s) GetIps() []net.IP {
-	result := make([]net.IP, 0, len(reservation6s))
-	for _, reservation6 := range reservation6s {
-		result = append(result, reservation6.Ips...)
-	}
-	return result
-}
-
-func (reservation6s Reservation6s) GetIpNets() []net.IPNet {
-	result := make([]net.IPNet, 0, len(reservation6s))
-	for _, reservation6 := range reservation6s {
-		result = append(result, reservation6.Ipnets...)
-	}
-	return result
 }
