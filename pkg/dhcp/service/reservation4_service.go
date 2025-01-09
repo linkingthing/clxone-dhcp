@@ -434,40 +434,38 @@ func BatchCreateReservation4s(prefix string, reservations []*resource.Reservatio
 			return err
 		}
 
-		_, err = batchCreateReservation4s(tx, subnet, reservations, CreateReservationModeCreate)
-		return err
+		return batchCreateReservation4s(tx, subnet, reservations, nil, CreateReservationModeCreate)
 	})
 }
 
-func batchCreateReservation4s(tx restdb.Transaction, subnet *resource.Subnet4, reservations []*resource.Reservation4, mode CreateReservationMode) (*excel.ImportResult, error) {
+func batchCreateReservation4s(tx restdb.Transaction, subnet *resource.Subnet4, reservations []*resource.Reservation4, result *excel.ImportResult, mode CreateReservationMode) error {
 	reservedpools, err := getReservedPool4sWithSubnetId(tx, subnet.GetID())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	oldReservations, err := getReservation4sWithSubnetId(tx, subnet.GetID())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	pools, err := getPool4sWithSubnetId(tx, subnet.GetID())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	reservation4Identifier := Reservation4IdentifierFromReservations(oldReservations)
 	reservationValues := make([][]interface{}, 0, len(reservations))
 	poolsCapacity := make(map[string]uint64, len(pools))
-	result := &excel.ImportResult{}
 	validReservations := make([]*resource.Reservation4, 0, len(reservations))
 	for _, reservation := range reservations {
 		if mode != CreateReservationModeImport {
 			if err := reservation.Validate(); err != nil {
-				return nil, err
+				return err
 			}
 
 			if !subnet.Ipnet.Contains(reservation.Ip) {
-				return nil, errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservation,
+				return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservation,
 					errorno.ErrNameNetworkV4, reservation.IpAddress, subnet.Subnet)
 			}
 		}
@@ -480,7 +478,7 @@ func batchCreateReservation4s(tx restdb.Transaction, subnet *resource.Subnet4, r
 					errorno.TryGetErrorCNMsg(err))
 				continue
 			} else {
-				return nil, err
+				return err
 			}
 		}
 
@@ -491,7 +489,7 @@ func batchCreateReservation4s(tx restdb.Transaction, subnet *resource.Subnet4, r
 					errorno.TryGetErrorCNMsg(err))
 				continue
 			} else {
-				return nil, err
+				return err
 			}
 		}
 
@@ -503,21 +501,16 @@ func batchCreateReservation4s(tx restdb.Transaction, subnet *resource.Subnet4, r
 	}
 
 	if err := updateSubnet4AndPool4sCapacity(tx, subnet, poolsCapacity); err != nil {
-		return nil, err
+		return err
 	}
 
 	if _, err := tx.CopyFromEx(resource.TableReservation4, resource.Reservation4Columns,
 		reservationValues); err != nil {
-		return nil, errorno.ErrDBError(errorno.ErrDBNameInsert,
+		return errorno.ErrDBError(errorno.ErrDBNameInsert,
 			string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
-	if err := sendCreateReservation4sCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-		validReservations); err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return sendCreateReservation4sCmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, validReservations)
 }
 
 func getReservedPool4sWithSubnetId(tx restdb.Transaction, subnetId string) ([]*resource.ReservedPool4, error) {
@@ -733,9 +726,8 @@ func (s *Reservation4Service) ImportExcel(file *excel.ImportFile, subnetId strin
 	}
 
 	if err = restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		response, err = batchCreateReservation4s(tx, subnet, reservations,
+		return batchCreateReservation4s(tx, subnet, reservations, response,
 			CreateReservationModeImport)
-		return err
 	}); err != nil {
 		return nil, err
 	}
@@ -877,7 +869,7 @@ func createReservationsFromDynamicLeases(v4Map map[string][]*resource.Reservatio
 				return err
 			}
 
-			if _, err = batchCreateReservation4s(tx, subnet4, reservation4s,
+			if err = batchCreateReservation4s(tx, subnet4, reservation4s, nil,
 				CreateReservationModeConvert); err != nil {
 				return err
 			}
@@ -892,7 +884,7 @@ func createReservationsFromDynamicLeases(v4Map map[string][]*resource.Reservatio
 				return err
 			}
 
-			if _, err = batchCreateReservation6s(tx, subnet6, reservation6s,
+			if err = batchCreateReservation6s(tx, subnet6, reservation6s, nil,
 				CreateReservationModeConvert); err != nil {
 				return err
 			}

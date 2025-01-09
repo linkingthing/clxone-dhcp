@@ -795,10 +795,12 @@ func parseSubnet4sFromFile(fileName string, oldSubnets []*resource.Subnet4, sent
 }
 
 func addFailDataToResponse(response *excel.ImportResult, headerLen int, resourceSlices []string, errStr string) {
-	errSlices := make([]string, headerLen)
-	copy(errSlices, resourceSlices)
-	errSlices[headerLen-1] = errStr
-	response.AddFailedData(errSlices)
+	if response != nil {
+		errSlices := make([]string, headerLen)
+		copy(errSlices, resourceSlices)
+		errSlices[headerLen-1] = errStr
+		response.AddFailedData(errSlices)
+	}
 }
 
 func parseUint32FromString(field string) (uint32, error) {
