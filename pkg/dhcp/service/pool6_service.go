@@ -480,10 +480,9 @@ func (p *Pool6Service) ActionValidTemplate(subnet *resource.Subnet6, pool *resou
 }
 
 func GetPool6sByPrefix(prefix string) ([]*resource.Pool6, error) {
-	subnet6, err := GetSubnet6ByPrefix(prefix)
-	if err != nil {
+	if subnet6, err := GetSubnet6ByPrefix(prefix); err != nil {
 		return nil, err
+	} else {
+		return listPool6s(subnet6, ListResourceModeGRPC)
 	}
-
-	return listPool6s(subnet6, ListResourceModeGRPC)
 }

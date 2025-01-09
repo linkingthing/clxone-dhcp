@@ -95,5 +95,6 @@ func (r *Reservation6Identifier) Add(reservation *resource.Reservation6) error {
 			r.Prefixes[prefix] = struct{}{}
 		}
 	}
+
 	return nil
 }

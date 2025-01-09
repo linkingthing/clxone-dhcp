@@ -96,7 +96,7 @@ func checkReservedPool6ConflictWithSubnet6ReservedPool6s(tx restdb.Transaction, 
 func getReservedPool6sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, begin, end net.IP) ([]*resource.ReservedPool6, error) {
 	var reservedpools []*resource.ReservedPool6
 	if err := tx.FillEx(&reservedpools,
-		`select * from gr_reserved_pool6 where 
+		`select * from gr_reserved_pool6 where
 			subnet6 = $1 and begin_ip <= $2 and end_ip >= $3`,
 		subnetID, end, begin); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
@@ -357,12 +357,11 @@ func (p *ReservedPool6Service) Update(subnetId string, pool *resource.ReservedPo
 }
 
 func GetReservedPool6sByPrefix(prefix string) ([]*resource.ReservedPool6, error) {
-	subnet6, err := GetSubnet6ByPrefix(prefix)
-	if err != nil {
+	if subnet6, err := GetSubnet6ByPrefix(prefix); err != nil {
 		return nil, err
+	} else {
+		return listReservedPool6s(subnet6.GetID())
 	}
-
-	return listReservedPool6s(subnet6.GetID())
 }
 
 func BatchCreateReservedPool6s(prefix string, reservedpools []*resource.ReservedPool6) error {

@@ -92,7 +92,7 @@ func checkReservedPool4ConflictWithSubnet4ReservedPool4s(tx restdb.Transaction, 
 func getReservedPool4sWithBeginAndEndIp(tx restdb.Transaction, subnetID string, begin, end net.IP) ([]*resource.ReservedPool4, error) {
 	var reservedpools []*resource.ReservedPool4
 	if err := tx.FillEx(&reservedpools,
-		`select * from gr_reserved_pool4 where 
+		`select * from gr_reserved_pool4 where
 			subnet4 = $1 and begin_ip <= $2 and end_ip >= $3`,
 		subnetID, end, begin); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
@@ -339,12 +339,11 @@ func (p *ReservedPool4Service) ActionValidTemplate(subnet *resource.Subnet4, poo
 }
 
 func GetReservedPool4sByPrefix(prefix string) ([]*resource.ReservedPool4, error) {
-	subnet4, err := GetSubnet4ByPrefix(prefix)
-	if err != nil {
+	if subnet4, err := GetSubnet4ByPrefix(prefix); err != nil {
 		return nil, err
+	} else {
+		return listReservedPool4s(subnet4.GetID())
 	}
-
-	return listReservedPool4s(subnet4.GetID())
 }
 
 func BatchCreateReservedPool4s(prefix string, reservedpools []*resource.ReservedPool4) error {

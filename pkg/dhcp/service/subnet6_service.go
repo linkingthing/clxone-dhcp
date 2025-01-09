@@ -502,12 +502,12 @@ func subnetHasPools(tx restdb.Transaction, subnet *resource.Subnet6) (bool, erro
 	}
 
 	if counts, err := tx.CountEx(resource.TableSubnet6,
-		`select count(*) from gr_pool6 p 
-		FULL JOIN gr_reservation6 r on p.subnet6 = r.subnet6 
-		FULL JOIN gr_pd_pool pd on p.subnet6 = pd.subnet6 
-		FULL JOIN gr_reserved_pool6 rp on p.subnet6 = rp.subnet6 
-		FULL JOIN gr_reserved_pd_pool rpd on p.subnet6 = rpd.subnet6 
-		where p.subnet6 = $1 or r.subnet6 = $1 or pd.subnet6 = $1 or 
+		`select count(*) from gr_pool6 p
+		FULL JOIN gr_reservation6 r on p.subnet6 = r.subnet6
+		FULL JOIN gr_pd_pool pd on p.subnet6 = pd.subnet6
+		FULL JOIN gr_reserved_pool6 rp on p.subnet6 = rp.subnet6
+		FULL JOIN gr_reserved_pd_pool rpd on p.subnet6 = rpd.subnet6
+		where p.subnet6 = $1 or r.subnet6 = $1 or pd.subnet6 = $1 or
 		rp.subnet6 = $1 or rpd.subnet6 = $1;`, subnet.GetID()); err != nil {
 		return false, errorno.ErrDBError(errorno.ErrDBNameQuery,
 			string(errorno.ErrNameDhcpPool), pg.Error(err).Error())

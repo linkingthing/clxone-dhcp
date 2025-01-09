@@ -474,10 +474,9 @@ func (p *PdPoolService) Update(subnetId string, pdpool *resource.PdPool) error {
 }
 
 func GetPdPool6sByPrefix(prefix string) ([]*resource.PdPool, error) {
-	subnet6, err := GetSubnet6ByPrefix(prefix)
-	if err != nil {
+	if subnet6, err := GetSubnet6ByPrefix(prefix); err != nil {
 		return nil, err
+	} else {
+		return listPdPools(subnet6, ListResourceModeGRPC)
 	}
-
-	return listPdPools(subnet6, ListResourceModeGRPC)
 }

@@ -357,12 +357,7 @@ func updateSubnet6AndPoolsCapacity(tx restdb.Transaction, subnet *resource.Subne
 		return err
 	}
 
-	if err := batchUpdateResource6sCapacity(tx, resource.TablePdPool,
-		pdpoolsCapacity); err != nil {
-		return err
-	}
-
-	return nil
+	return batchUpdateResource6sCapacity(tx, resource.TablePdPool, pdpoolsCapacity)
 }
 
 func sendCreateReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {

@@ -462,10 +462,9 @@ func (p *Pool4Service) ActionValidTemplate(subnet *resource.Subnet4, pool *resou
 }
 
 func GetPool4sByPrefix(prefix string) ([]*resource.Pool4, error) {
-	subnet4, err := GetSubnet4ByPrefix(prefix)
-	if err != nil {
+	if subnet4, err := GetSubnet4ByPrefix(prefix); err != nil {
 		return nil, err
+	} else {
+		return listPool4s(subnet4, ListResourceModeGRPC)
 	}
-
-	return listPool4s(subnet4, ListResourceModeGRPC)
 }
