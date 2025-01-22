@@ -862,7 +862,6 @@ func (s *Reservation4Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 
 func createReservationsFromDynamicLeases(v4Map map[string][]*resource.Reservation4, v6Map map[string][]*resource.Reservation6) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		v4SubnetMap := make(map[string]*resource.Subnet4, len(v4Map))
 		for subnetId, reservation4s := range v4Map {
 			subnet4, err := getSubnet4FromDB(tx, subnetId)
 			if err != nil {
@@ -873,11 +872,8 @@ func createReservationsFromDynamicLeases(v4Map map[string][]*resource.Reservatio
 				CreateReservationModeConvert); err != nil {
 				return err
 			}
-
-			v4SubnetMap[subnetId] = subnet4
 		}
 
-		v6SubnetMap := make(map[string]*resource.Subnet6, len(v6Map))
 		for subnetId, reservation6s := range v6Map {
 			subnet6, err := getSubnet6FromDB(tx, subnetId)
 			if err != nil {
@@ -886,22 +882,6 @@ func createReservationsFromDynamicLeases(v4Map map[string][]*resource.Reservatio
 
 			if err = batchCreateReservation6s(tx, subnet6, reservation6s, nil,
 				CreateReservationModeConvert); err != nil {
-				return err
-			}
-
-			v6SubnetMap[subnetId] = subnet6
-		}
-
-		for subnetId, subnet4 := range v4SubnetMap {
-			if err := sendCreateReservation4sCmdToDHCPAgent(subnet4.SubnetId, subnet4.Nodes,
-				v4Map[subnetId]); err != nil {
-				return err
-			}
-		}
-
-		for subnetId, subnet6 := range v6SubnetMap {
-			if err := sendCreateReservation6sCmdToDHCPAgent(subnet6.SubnetId, subnet6.Nodes,
-				v6Map[subnetId]); err != nil {
 				return err
 			}
 		}
