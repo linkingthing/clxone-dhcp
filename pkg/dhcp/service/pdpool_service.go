@@ -101,8 +101,8 @@ func checkPdPoolConflictWithSubnet6PdPools(tx restdb.Transaction, subnetID strin
 func getPdPoolsWithPrefix(tx restdb.Transaction, subnetID string, prefix net.IPNet) ([]*resource.PdPool, error) {
 	var pdpools []*resource.PdPool
 	if err := tx.FillEx(&pdpools,
-		"select * from gr_pd_pool where subnet6 = $1 and prefix_ipnet && $2",
-		subnetID, prefix); err != nil {
+		"SELECT * FROM gr_pd_pool WHERE subnet6 = $1 and (network($2::inet) >>= network(prefix_ipnet::inet) OR network(prefix_ipnet::inet) >>= network($3::inet))",
+		subnetID, prefix, prefix); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
 			string(errorno.ErrNamePdPool), pg.Error(err).Error())
 	} else {
@@ -141,8 +141,8 @@ func getReservation6sWithPrefixesExists(tx restdb.Transaction, subnetID string) 
 func getReservedPdPoolsWithPrefix(tx restdb.Transaction, subnetID string, prefix net.IPNet) ([]*resource.ReservedPdPool, error) {
 	var pdpools []*resource.ReservedPdPool
 	if err := tx.FillEx(&pdpools,
-		"select * from gr_reserved_pd_pool where subnet6 = $1 and prefix_ipnet && $2",
-		subnetID, prefix); err != nil {
+		"SELECT * FROM gr_reserved_pd_pool WHERE subnet6 = $1 and (network($2::inet) >>= network(prefix_ipnet::inet) OR network(prefix_ipnet::inet) >>= network($3::inet))",
+		subnetID, prefix, prefix); err != nil {
 		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
 			string(errorno.ErrNameReservedPdPool), pg.Error(err).Error())
 	} else {

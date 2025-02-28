@@ -80,7 +80,8 @@ func checkSubnet4CouldBeCreated(tx restdb.Transaction, subnet string) error {
 
 	var subnets []*resource.Subnet4
 	if err := tx.FillEx(&subnets,
-		"SELECT * FROM gr_subnet4 WHERE $1 && ipnet", subnet); err != nil {
+		"SELECT * FROM gr_subnet4 WHERE network($1::inet) >>= network(ipnet::inet) OR network(ipnet::inet) >>= network($2::inet)",
+		subnet, subnet); err != nil {
 		return errorno.ErrDBError(errorno.ErrDBNameQuery, subnet, pg.Error(err).Error())
 	} else if len(subnets) != 0 {
 		return errorno.ErrExistIntersection(subnet, subnets[0].Subnet)
