@@ -136,7 +136,7 @@ func updateSubnet6AndPool6sCapacityWithReservedPool6(tx restdb.Transaction, subn
 
 	poolsCapacity := make(map[string]string, len(pools))
 	recalculateSubnet6AndPool6sCapacityWithReservedPool6(subnet, pools,
-		reservedPool, poolsCapacity, true)
+		reservedPool, poolsCapacity, isCreate)
 	return updateSubnet6AndPoolsCapacity(tx, subnet, poolsCapacity, nil)
 }
 
