@@ -188,6 +188,7 @@ func SubnetLease6sToPbDHCPLease6s(leases []*resource.SubnetLease6) []*pbdhcp.Lea
 	for i, lease := range leases {
 		pbLeases[i] = SubnetLease6ToPbDHCPLease6(lease)
 	}
+	pbLeases[0].GetDuid()
 	return pbLeases
 }
 

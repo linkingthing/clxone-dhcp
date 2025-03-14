@@ -28,6 +28,146 @@ var baseThreshold = []*alarm.Threshold{
 		SendMail: true,
 		Enabled:  true,
 	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalPacketWithOpcodeAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalInformPacketWithoutSourceAddrAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalClientAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalClientWithHighQpsAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithUnexpectedMessageTypeAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithUltraShortLeaseTimeAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithUltraLongLeaseTimeAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithInvalidServerIdAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithUnexpectedServerIdAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithForbiddenServerIdAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithMandatoryServerIdAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithInvalidClientIdAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionWithMandatoryClientIdAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
+	{
+		BaseThreshold: &alarmProto.BaseThreshold{
+			Name:  alarmProto.ThresholdName_dhcpIllegalOptionsAlarm,
+			Level: alarmProto.ThresholdLevel_major,
+			Type:  alarmProto.ThresholdType_trigger,
+		},
+		Enabled:  true,
+		SendMail: false,
+		Value:    0,
+	},
 }
 
 var globalAlarm *alarm.Alarm
