@@ -46,6 +46,7 @@ type KafkaConf struct {
 	GroupUpdateThresholdEvent string   `yaml:"group_id_update_threshold_event"`
 	Username                  string   `yaml:"username"`
 	Password                  string   `yaml:"password"`
+	GroupID                   string   `yaml:"group_id"`
 }
 
 type CallServiceConf struct {

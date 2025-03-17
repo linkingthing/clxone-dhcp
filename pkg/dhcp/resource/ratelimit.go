@@ -7,9 +7,10 @@ import (
 
 var TableRateLimit = restdb.ResourceDBType(&RateLimit{})
 
-var DefaultRateLimit = &RateLimit{Enabled: false}
+var DefaultRateLimit = &RateLimit{Enabled: false, GlobalRateLimit: 0}
 
 type RateLimit struct {
 	restresource.ResourceBase `json:",inline"`
-	Enabled                   bool `json:"enabled" rest:"required=true"`
+	Enabled                   bool   `json:"enabled" rest:"required=true"`
+	GlobalRateLimit           uint32 `json:"globalRateLimit"`
 }

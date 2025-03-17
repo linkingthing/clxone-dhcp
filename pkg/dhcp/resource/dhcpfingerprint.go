@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -36,7 +37,7 @@ type DhcpFingerprint struct {
 	OperatingSystem           string       `json:"operatingSystem" db:"uk"`
 	ClientType                string       `json:"clientType" db:"uk"`
 	MatchPattern              MatchPattern `json:"matchPattern"`
-	IsReadOnly                bool         `json:"isReadOnly"`
+	DataSource                DataSource   `json:"dataSource"`
 }
 
 func (f *DhcpFingerprint) Validate() error {
@@ -63,6 +64,30 @@ func (f *DhcpFingerprint) Validate() error {
 	}
 
 	f.MatchPattern = MatchPatternEqual
-	f.IsReadOnly = false
+	f.DataSource = DataSourceManual
 	return nil
+}
+
+func (f DhcpFingerprint) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+	}
+}
+
+func (f *DhcpFingerprint) Equal(another *DhcpFingerprint) bool {
+	return f.Fingerprint == another.Fingerprint &&
+		f.VendorId == another.VendorId &&
+		f.OperatingSystem == another.OperatingSystem &&
+		f.ClientType == another.ClientType
 }

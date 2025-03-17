@@ -63,6 +63,7 @@ const (
 	SqlColumnTimeout                  = "timeout"
 	SqlColumnCapacity                 = "capacity"
 	SqlColumnDuid                     = "duid"
+	SqlColumnGlobalRateLimit          = "global_rate_limit"
 	SqlColumnRateLimit                = "rate_limit"
 	SqlColumnIp                       = "ip"
 	SqlColumnIps                      = "ips"

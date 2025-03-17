@@ -66,7 +66,8 @@ func (d *RateLimitService) Get(id string) (*resource.RateLimit, error) {
 func (d *RateLimitService) Update(rateLimit *resource.RateLimit) error {
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableRateLimit, map[string]interface{}{
-			resource.SqlColumnEnabled: rateLimit.Enabled,
+			resource.SqlColumnEnabled:         rateLimit.Enabled,
+			resource.SqlColumnGlobalRateLimit: rateLimit.GlobalRateLimit,
 		}, map[string]interface{}{restdb.IDField: rateLimit.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, rateLimit.GetID(), pg.Error(err).Error())
 		} else if rows == 0 {
@@ -79,5 +80,8 @@ func (d *RateLimitService) Update(rateLimit *resource.RateLimit) error {
 
 func sendUpdateRateLimitCmdToDHCPAgent(rateLimit *resource.RateLimit) error {
 	return kafka.SendDHCPCmd(kafka.UpdateRateLimit,
-		&pbdhcpagent.UpdateRateLimitRequest{Enabled: rateLimit.Enabled}, nil)
+		&pbdhcpagent.UpdateRateLimitRequest{
+			Enabled: rateLimit.Enabled,
+			Limit:   rateLimit.GlobalRateLimit,
+		}, nil)
 }

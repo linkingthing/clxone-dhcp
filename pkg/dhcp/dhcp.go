@@ -7,6 +7,7 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/api"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
+	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 )
 
 var (
@@ -77,6 +78,8 @@ func RegisterApi(apiServer *gorest.Server, router gin.IRoutes) error {
 	apiServer.Schemas.MustImport(&Version, resource.AddressCodeLayoutSegment{}, api.NewAddressCodeLayoutSegmentApi())
 	apiServer.Schemas.MustImport(&Version, resource.Asset{}, api.NewAssetApi())
 	apiServer.Schemas.MustImport(&Version, resource.DhcpOui{}, api.NewDhcpOuiApi())
+
+	service.ConsumeLease()
 	return nil
 }
 

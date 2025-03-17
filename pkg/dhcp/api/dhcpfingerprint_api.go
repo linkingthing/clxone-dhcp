@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/linkingthing/clxone-utils/excel"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -61,4 +62,48 @@ func (h *DhcpFingerprintHandler) Delete(ctx *restresource.Context) *resterror.AP
 	}
 
 	return nil
+}
+
+func (h *DhcpFingerprintHandler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case excel.ActionNameImport:
+		return h.actionImportExcel(ctx)
+	case excel.ActionNameExport:
+		return h.actionExportExcel()
+	case excel.ActionNameExportTemplate:
+		return h.actionExportExcelTemplate()
+	default:
+		return nil, errorno.HandleAPIError(resterror.InvalidAction,
+			errorno.ErrUnknownOpt(errorno.ErrNameFingerprint, ctx.Resource.GetAction().Name))
+	}
+}
+
+func (h *DhcpFingerprintHandler) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	file, ok := ctx.Resource.GetAction().Input.(*excel.ImportFile)
+	if !ok {
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameFingerprint, errorno.ErrNameImport))
+	}
+
+	if resp, err := h.Service.ImportExcel(file); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return resp, nil
+	}
+}
+
+func (h *DhcpFingerprintHandler) actionExportExcel() (interface{}, *resterror.APIError) {
+	if exportFile, err := h.Service.ExportExcel(); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return exportFile, nil
+	}
+}
+
+func (h *DhcpFingerprintHandler) actionExportExcelTemplate() (interface{}, *resterror.APIError) {
+	if file, err := h.Service.ExportExcelTemplate(); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return file, nil
+	}
 }

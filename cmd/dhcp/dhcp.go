@@ -6,6 +6,7 @@ import (
 	"github.com/linkingthing/cement/log"
 
 	"github.com/linkingthing/clxone-dhcp/config"
+	"github.com/linkingthing/clxone-dhcp/pkg/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric"
@@ -33,6 +34,7 @@ func main() {
 		log.Fatalf("init db failed: %s", err.Error())
 	}
 
+	alarm.Init(conf)
 	server, err := restserver.NewServer()
 	if err != nil {
 		log.Fatalf("new server failed: %s", err.Error())

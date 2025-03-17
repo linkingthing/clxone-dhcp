@@ -55,6 +55,8 @@ github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7/go.mod h1:F5haX7
 github.com/coreos/pkg v0.0.0-20160727233714-3ac0863d7acf/go.mod h1:E3G3o1h8I7cfcXa63jLwjI0eiQQMgzzUDFVpN/nH/eA=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsrgA7czyZG/E6dU=
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
+github.com/cuityhj/cement v1.0.0 h1:WqZFvZR1tNh6fsf2JWwPnmM0us/wsSQqDB+xI0XF0fQ=
+github.com/cuityhj/cement v1.0.0/go.mod h1:NvDeneNO2dd4KtoiFPujV1JWYGSGH0YebM/HzliYY9E=
 github.com/cuityhj/g67 v1.1.0 h1:hwiFKT14pBVb5q8rHhGhNzZRWnm3I1l3V0WRwV5ONlM=
 github.com/cuityhj/g67 v1.1.0/go.mod h1:fdCubZ5VBis00F3yr0W0qkk9HQ2TAlA9pxqsIa6QrN4=
 github.com/cuityhj/gohelper v1.2.0 h1:jLk5WEI6Me6BPsXxbLuJxOa+R0N8DjHBeVg/L2mCz/M=
@@ -249,6 +251,8 @@ github.com/linkingthing/cement v1.0.0 h1:WqL7evjsNEz8QQvfSoerNPjo5/z6Qe7hnuWx9aD
 github.com/linkingthing/cement v1.0.0/go.mod h1:dWhD3/5KEdOnwaSFeQD3Vb6NVRshW2LLISM3AiJJp7s=
 github.com/linkingthing/clxone-utils v1.2.9 h1:HzW/O2/snlK7R9uOiUlyLrrPD84Jz4uXMriRwwTl9ls=
 github.com/linkingthing/clxone-utils v1.2.9/go.mod h1:jSq8DQec5aWbK3nbsSGbusv7TVid2w00xXSAd7kAXr0=
+github.com/linkingthing/clxone-utils v1.3.6-0.20250314041129-a64e66bdf31e h1:34rZksrlsSvzHHrVK+d/PB/kZe9frTLJtsxSDOnWPk0=
+github.com/linkingthing/clxone-utils v1.3.6-0.20250314041129-a64e66bdf31e/go.mod h1:o1rAcTJWjeLN0i7TJskNzYK8IQ2Vj5un5GKoCRyOxnU=
 github.com/linkingthing/gorest v1.3.1 h1:Ak8wAX0+iBcUadA3MgOVp3zDzGpZ0+jqbpb8+HM7zHo=
 github.com/linkingthing/gorest v1.3.1/go.mod h1:3pHXbxfoR3oOOrw0mR8osWy/ph9MkYcraK3ETBeQeXk=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=

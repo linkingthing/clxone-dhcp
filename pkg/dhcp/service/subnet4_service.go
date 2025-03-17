@@ -603,6 +603,10 @@ func sendDeleteSubnet4CmdToDHCPAgent(subnet *resource.Subnet4, nodes []string) e
 }
 
 func (s *Subnet4Service) ImportExcel(file *excel.ImportFile) (interface{}, error) {
+	if len(file.Name) == 0 {
+		return nil, nil
+	}
+
 	var oldSubnet4s []*resource.Subnet4
 	if err := db.GetResources(map[string]interface{}{resource.SqlOrderBy: "subnet_id desc"},
 		&oldSubnet4s); err != nil {
