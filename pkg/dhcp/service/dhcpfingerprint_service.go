@@ -348,11 +348,11 @@ func (s *DhcpFingerprintService) ExportExcel() (interface{}, error) {
 
 	strMatrix := make([][]string, 0, len(fingerprints))
 	for _, fingerprint := range fingerprints {
-		strMatrix = append(strMatrix, localizationDhcpFingerprintToStrSlice(fingerprint))
+		strMatrix = append(strMatrix, localizationDhcpFingerprintForExport(fingerprint))
 	}
 
 	if filepath, err := excel.WriteExcelFile(DhcpFingerprintFileNamePrefix+
-		time.Now().Format(excel.TimeFormat), TableHeaderDhcpFingerprint, strMatrix); err != nil {
+		time.Now().Format(excel.TimeFormat), TableHeaderDhcpFingerprintForExport, strMatrix); err != nil {
 		return nil, errorno.ErrOperateResource(errorno.ErrNameExport,
 			string(errorno.ErrNameFingerprint), err.Error())
 	} else {
@@ -368,4 +368,65 @@ func (s *DhcpFingerprintService) ExportExcelTemplate() (*excel.ExportFile, error
 	} else {
 		return &excel.ExportFile{Path: filepath}, nil
 	}
+}
+
+func (s *DhcpFingerprintService) ListClientTypes() (*resource.DhcpFingerprintClientTypes, error) {
+	var fingerprints []*resource.DhcpFingerprint
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		return tx.FillEx(&fingerprints,
+			"select distinct(client_type) from gr_dhcp_fingerprint where client_type != '' order by client_type")
+	}); err != nil {
+		return nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameFingerprint), pg.Error(err).Error())
+	}
+
+	clientTypes := &resource.DhcpFingerprintClientTypes{
+		ClientTypes: make([]string, 0, len(fingerprints)),
+	}
+	for _, fingerprint := range fingerprints {
+		clientTypes.ClientTypes = append(clientTypes.ClientTypes, fingerprint.ClientType)
+	}
+
+	return clientTypes, nil
+}
+
+func (s *DhcpFingerprintService) BatchDelete(ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	idsStr := strings.Join(ids, "','")
+	deleteFingerprintRequests := make([]*pbdhcpagent.DeleteFingerprintRequest, 0, len(ids))
+	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		var fingerprints []*resource.DhcpFingerprint
+		if err := tx.FillEx(&fingerprints,
+			"select * from gr_dhcp_fingerprint where id in ('"+idsStr+"')"); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameQuery,
+				string(errorno.ErrNameFingerprint), pg.Error(err).Error())
+		} else if len(fingerprints) == 0 || len(fingerprints) != len(ids) {
+			return errorno.ErrNotFound(errorno.ErrNameFingerprint, ids[0])
+		}
+
+		for _, fingerprint := range fingerprints {
+			if fingerprint.DataSource == resource.DataSourceSystem {
+				return errorno.ErrReadOnly(fingerprint.Fingerprint)
+			} else {
+				deleteFingerprintRequests = append(deleteFingerprintRequests,
+					fingerprintToDeleteFingerprintRequest(fingerprint))
+			}
+		}
+
+		if _, err := tx.Exec("delete from gr_dhcp_fingerprint where id in ('" +
+			idsStr + "')"); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameDelete,
+				string(errorno.ErrNameFingerprint), pg.Error(err).Error())
+		}
+
+		return sendDeleteFingerprintsCmdToDHCPAgent(deleteFingerprintRequests)
+	})
+}
+
+func sendDeleteFingerprintsCmdToDHCPAgent(deleteFingerprintRequests []*pbdhcpagent.DeleteFingerprintRequest) error {
+	return kafka.SendDHCPCmd(kafka.DeleteFingerprints,
+		&pbdhcpagent.DeleteFingerprintsRequest{Fingerprints: deleteFingerprintRequests}, nil)
 }

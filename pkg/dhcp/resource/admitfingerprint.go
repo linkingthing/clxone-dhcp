@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -28,5 +29,30 @@ func (a *AdmitFingerprint) Validate() error {
 		return errorno.ErrInvalidParams(errorno.ErrNameComment, a.Comment)
 	} else {
 		return nil
+	}
+}
+
+type AdmitFingerprints struct {
+	Ids []string `json:"ids"`
+}
+
+func (a AdmitFingerprint) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionNameBatchDelete,
+			Input: &AdmitFingerprints{},
+		},
 	}
 }

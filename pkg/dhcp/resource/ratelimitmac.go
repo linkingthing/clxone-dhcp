@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -30,4 +31,29 @@ func (r *RateLimitMac) Validate() error {
 		r.HwAddress = hw
 	}
 	return nil
+}
+
+type RateLimitMacs struct {
+	Ids []string `json:"ids"`
+}
+
+func (r RateLimitMac) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionNameBatchDelete,
+			Input: &RateLimitMacs{},
+		},
+	}
 }

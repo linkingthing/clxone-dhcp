@@ -116,7 +116,7 @@ func (a *AssetApi) actionBatchDelete(ctx *restresource.Context) (interface{}, *r
 	asset, ok := ctx.Resource.GetAction().Input.(*resource.Assets)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
-			errorno.ErrInvalidFormat(errorno.ErrNameAsset, errorno.ErrNameImport))
+			errorno.ErrInvalidFormat(errorno.ErrNameAsset, errorno.ErrNameBatchDelete))
 	}
 
 	if err := a.Service.BatchDelete(asset.Ids); err != nil {

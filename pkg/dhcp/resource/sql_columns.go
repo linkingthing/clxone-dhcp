@@ -42,6 +42,7 @@ const (
 	SqlColumnVendorId                 = "vendor_id"
 	SqlColumnOperatingSystem          = "operating_system"
 	SqlColumnMatchPattern             = "match_pattern"
+	SqlColumnOui                      = "oui"
 	SqlColumnOuiOrganization          = "organization"
 	SqlColumnAddress                  = "address"
 	SqlColumnAddressType              = "address_type"

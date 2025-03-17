@@ -19,9 +19,9 @@ func NewAddressCodeLayoutSegmentApi() *AddressCodeLayoutSegmentApi {
 	return &AddressCodeLayoutSegmentApi{Service: service.NewAddressCodeLayoutSegmentService()}
 }
 
-func (d *AddressCodeLayoutSegmentApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (s *AddressCodeLayoutSegmentApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	addressCode := ctx.Resource.(*resource.AddressCodeLayoutSegment)
-	if err := d.Service.Create(ctx.Resource.GetParent().GetParent().GetID(),
+	if err := s.Service.Create(ctx.Resource.GetParent().GetParent().GetID(),
 		ctx.Resource.GetParent().GetID(), addressCode); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -29,8 +29,8 @@ func (d *AddressCodeLayoutSegmentApi) Create(ctx *restresource.Context) (restres
 	return addressCode, nil
 }
 
-func (d *AddressCodeLayoutSegmentApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	duids, err := d.Service.List(ctx.Resource.GetParent().GetID(),
+func (s *AddressCodeLayoutSegmentApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	duids, err := s.Service.List(ctx.Resource.GetParent().GetID(),
 		util.GenStrConditionsFromFilters(ctx.GetFilters(),
 			resource.SqlColumnCode, resource.SqlColumnCode, resource.SqlColumnValue))
 	if err != nil {
@@ -40,8 +40,8 @@ func (d *AddressCodeLayoutSegmentApi) List(ctx *restresource.Context) (interface
 	return duids, nil
 }
 
-func (d *AddressCodeLayoutSegmentApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	addressCode, err := d.Service.Get(ctx.Resource.GetID())
+func (s *AddressCodeLayoutSegmentApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	addressCode, err := s.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -49,8 +49,8 @@ func (d *AddressCodeLayoutSegmentApi) Get(ctx *restresource.Context) (restresour
 	return addressCode, nil
 }
 
-func (d *AddressCodeLayoutSegmentApi) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := d.Service.Delete(ctx.Resource.GetParent().GetParent().GetID(),
+func (s *AddressCodeLayoutSegmentApi) Delete(ctx *restresource.Context) *resterror.APIError {
+	if err := s.Service.Delete(ctx.Resource.GetParent().GetParent().GetID(),
 		ctx.Resource.GetParent().GetID(), ctx.Resource.GetID()); err != nil {
 		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -58,9 +58,9 @@ func (d *AddressCodeLayoutSegmentApi) Delete(ctx *restresource.Context) *resterr
 	return nil
 }
 
-func (d *AddressCodeLayoutSegmentApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (s *AddressCodeLayoutSegmentApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	addressCode := ctx.Resource.(*resource.AddressCodeLayoutSegment)
-	if err := d.Service.Update(ctx.Resource.GetParent().GetParent().GetID(),
+	if err := s.Service.Update(ctx.Resource.GetParent().GetParent().GetID(),
 		ctx.Resource.GetParent().GetID(), addressCode); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -68,30 +68,30 @@ func (d *AddressCodeLayoutSegmentApi) Update(ctx *restresource.Context) (restres
 	return addressCode, nil
 }
 
-func (a *AddressCodeLayoutSegmentApi) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *AddressCodeLayoutSegmentApi) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case excel.ActionNameImport:
-		return a.actionImportExcel(ctx)
+		return s.actionImportExcel(ctx)
 	case excel.ActionNameExport:
-		return a.actionExportExcel(ctx)
+		return s.actionExportExcel(ctx)
 	case excel.ActionNameExportTemplate:
-		return a.actionExportExcelTemplate(ctx)
+		return s.actionExportExcelTemplate(ctx)
 	case resource.ActionNameBatchDelete:
-		return a.actionBatchDelete(ctx)
+		return s.actionBatchDelete(ctx)
 	default:
 		return nil, errorno.HandleAPIError(resterror.InvalidAction,
 			errorno.ErrUnknownOpt(errorno.ErrNameAddressCodeLayoutSegment, ctx.Resource.GetAction().Name))
 	}
 }
 
-func (a *AddressCodeLayoutSegmentApi) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *AddressCodeLayoutSegmentApi) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	file, ok := ctx.Resource.GetAction().Input.(*excel.ImportFile)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
 			errorno.ErrInvalidFormat(errorno.ErrNameAddressCodeLayoutSegment, errorno.ErrNameImport))
 	}
 
-	if resp, err := a.Service.ImportExcel(ctx.Resource.GetParent().GetParent().GetID(),
+	if resp, err := s.Service.ImportExcel(ctx.Resource.GetParent().GetParent().GetID(),
 		ctx.Resource.GetParent().GetID(), file); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
@@ -99,30 +99,30 @@ func (a *AddressCodeLayoutSegmentApi) actionImportExcel(ctx *restresource.Contex
 	}
 }
 
-func (a *AddressCodeLayoutSegmentApi) actionExportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	if file, err := a.Service.ExportExcel(ctx.Resource.GetParent().GetID()); err != nil {
+func (s *AddressCodeLayoutSegmentApi) actionExportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if file, err := s.Service.ExportExcel(ctx.Resource.GetParent().GetID()); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return file, nil
 	}
 }
 
-func (a *AddressCodeLayoutSegmentApi) actionExportExcelTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	if file, err := a.Service.ExportExcelTemplate(); err != nil {
+func (s *AddressCodeLayoutSegmentApi) actionExportExcelTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	if file, err := s.Service.ExportExcelTemplate(); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
 		return file, nil
 	}
 }
 
-func (a *AddressCodeLayoutSegmentApi) actionBatchDelete(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *AddressCodeLayoutSegmentApi) actionBatchDelete(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	segments, ok := ctx.Resource.GetAction().Input.(*resource.AddressCodeLayoutSegments)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
-			errorno.ErrInvalidFormat(errorno.ErrNameAddressCodeLayoutSegment, errorno.ErrNameImport))
+			errorno.ErrInvalidFormat(errorno.ErrNameAddressCodeLayoutSegment, errorno.ErrNameBatchDelete))
 	}
 
-	if err := a.Service.BatchDelete(ctx.Resource.GetParent().GetParent().GetID(),
+	if err := s.Service.BatchDelete(ctx.Resource.GetParent().GetParent().GetID(),
 		ctx.Resource.GetParent().GetID(), segments.Codes); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {

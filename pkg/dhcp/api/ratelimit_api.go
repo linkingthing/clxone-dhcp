@@ -22,8 +22,8 @@ func NewRateLimitApi() (*RateLimitApi, error) {
 	return &RateLimitApi{Service: s}, nil
 }
 
-func (d *RateLimitApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	rateLimits, err := d.Service.List()
+func (r *RateLimitApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	rateLimits, err := r.Service.List()
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -31,8 +31,8 @@ func (d *RateLimitApi) List(ctx *restresource.Context) (interface{}, *resterror.
 	return rateLimits, nil
 }
 
-func (d *RateLimitApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	rateLimit, err := d.Service.Get(ctx.Resource.GetID())
+func (r *RateLimitApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	rateLimit, err := r.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -40,9 +40,9 @@ func (d *RateLimitApi) Get(ctx *restresource.Context) (restresource.Resource, *r
 	return rateLimit, nil
 }
 
-func (d *RateLimitApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (r *RateLimitApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	rateLimit := ctx.Resource.(*resource.RateLimit)
-	if err := d.Service.Update(rateLimit); err != nil {
+	if err := r.Service.Update(rateLimit); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 

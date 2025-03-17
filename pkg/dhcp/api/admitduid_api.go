@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/linkingthing/clxone-utils/excel"
 	resterror "github.com/linkingthing/gorest/error"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -18,17 +19,17 @@ func NewAdmitDuidApi() *AdmitDuidApi {
 	return &AdmitDuidApi{Service: service.NewAdmitDuidService()}
 }
 
-func (a *AdmitDuidApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (d *AdmitDuidApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitDuid := ctx.Resource.(*resource.AdmitDuid)
-	if err := a.Service.Create(admitDuid); err != nil {
+	if err := d.Service.Create(admitDuid); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return admitDuid, nil
 }
 
-func (a *AdmitDuidApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	duids, err := a.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
+func (d *AdmitDuidApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	duids, err := d.Service.List(util.GenStrConditionsFromFilters(ctx.GetFilters(),
 		resource.SqlColumnDuid, resource.SqlColumnDuid))
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -37,8 +38,8 @@ func (a *AdmitDuidApi) List(ctx *restresource.Context) (interface{}, *resterror.
 	return duids, nil
 }
 
-func (a *AdmitDuidApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admitDuid, err := a.Service.Get(ctx.Resource.GetID())
+func (d *AdmitDuidApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	admitDuid, err := d.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -46,19 +47,79 @@ func (a *AdmitDuidApi) Get(ctx *restresource.Context) (restresource.Resource, *r
 	return admitDuid, nil
 }
 
-func (a *AdmitDuidApi) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := a.Service.Delete(ctx.Resource.GetID()); err != nil {
+func (d *AdmitDuidApi) Delete(ctx *restresource.Context) *resterror.APIError {
+	if err := d.Service.Delete(ctx.Resource.GetID()); err != nil {
 		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
 }
 
-func (a *AdmitDuidApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (d *AdmitDuidApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admitDuid := ctx.Resource.(*resource.AdmitDuid)
-	if err := a.Service.Update(admitDuid); err != nil {
+	if err := d.Service.Update(admitDuid); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return admitDuid, nil
+}
+
+func (d *AdmitDuidApi) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	switch ctx.Resource.GetAction().Name {
+	case excel.ActionNameImport:
+		return d.actionImportExcel(ctx)
+	case excel.ActionNameExport:
+		return d.actionExportExcel()
+	case excel.ActionNameExportTemplate:
+		return d.actionExportExcelTemplate()
+	case resource.ActionNameBatchDelete:
+		return d.actionBatchDelete(ctx)
+	default:
+		return nil, errorno.HandleAPIError(resterror.InvalidAction,
+			errorno.ErrUnknownOpt(errorno.ErrNameDuid, ctx.Resource.GetAction().Name))
+	}
+}
+
+func (d *AdmitDuidApi) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	file, ok := ctx.Resource.GetAction().Input.(*excel.ImportFile)
+	if !ok {
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameDuid, errorno.ErrNameImport))
+	}
+
+	if resp, err := d.Service.ImportExcel(file); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return resp, nil
+	}
+}
+
+func (d *AdmitDuidApi) actionExportExcel() (interface{}, *resterror.APIError) {
+	if exportFile, err := d.Service.ExportExcel(); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return exportFile, nil
+	}
+}
+
+func (d *AdmitDuidApi) actionExportExcelTemplate() (interface{}, *resterror.APIError) {
+	if file, err := d.Service.ExportExcelTemplate(); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return file, nil
+	}
+}
+
+func (d *AdmitDuidApi) actionBatchDelete(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	duids, ok := ctx.Resource.GetAction().Input.(*resource.AdmitDuids)
+	if !ok {
+		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
+			errorno.ErrInvalidFormat(errorno.ErrNameDuid, errorno.ErrNameBatchDelete))
+	}
+
+	if err := d.Service.BatchDelete(duids.Ids); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return nil, nil
+	}
 }

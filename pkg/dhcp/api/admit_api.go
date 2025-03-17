@@ -22,8 +22,8 @@ func NewAdmitApi() (*AdmitApi, error) {
 	return &AdmitApi{Service: s}, nil
 }
 
-func (d *AdmitApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	admits, err := d.Service.List()
+func (a *AdmitApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	admits, err := a.Service.List()
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -31,8 +31,8 @@ func (d *AdmitApi) List(ctx *restresource.Context) (interface{}, *resterror.APIE
 	return admits, nil
 }
 
-func (d *AdmitApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	admit, err := d.Service.Get(ctx.Resource.GetID())
+func (a *AdmitApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	admit, err := a.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -40,9 +40,9 @@ func (d *AdmitApi) Get(ctx *restresource.Context) (restresource.Resource, *reste
 	return admit, nil
 }
 
-func (d *AdmitApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (a *AdmitApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	admit := ctx.Resource.(*resource.Admit)
-	if err := d.Service.Update(admit); err != nil {
+	if err := a.Service.Update(admit); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 

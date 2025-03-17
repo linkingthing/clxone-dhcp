@@ -22,8 +22,8 @@ func NewPingerApi() (*PingerApi, error) {
 	return &PingerApi{Service: s}, nil
 }
 
-func (d *PingerApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	pingers, err := d.Service.List()
+func (p *PingerApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	pingers, err := p.Service.List()
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -31,8 +31,8 @@ func (d *PingerApi) List(ctx *restresource.Context) (interface{}, *resterror.API
 	return pingers, nil
 }
 
-func (d *PingerApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	pinger, err := d.Service.Get(ctx.Resource.GetID())
+func (p *PingerApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	pinger, err := p.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -40,9 +40,9 @@ func (d *PingerApi) Get(ctx *restresource.Context) (restresource.Resource, *rest
 	return pinger, nil
 }
 
-func (d *PingerApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (p *PingerApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pinger := ctx.Resource.(*resource.Pinger)
-	if err := d.Service.Update(pinger); err != nil {
+	if err := p.Service.Update(pinger); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 

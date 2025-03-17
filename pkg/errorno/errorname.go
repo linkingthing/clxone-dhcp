@@ -20,6 +20,7 @@ const (
 	ErrNameTableHeader ErrName = "tableHeader"
 	ErrNameDNS         ErrName = "DNS"
 	ErrNameEUI64       ErrName = "EUI64"
+	ErrNameBatchDelete ErrName = "batchDelete"
 
 	ErrNameGateway                 ErrName = "gateway"
 	ErrNameResponsiblePerson       ErrName = "responsiblePerson"
@@ -177,6 +178,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameAssetOperatingSystem:    "操作系统",
 	ErrNameAccessNetworkTime:       "入网时间",
 	ErrNameAsset:                   "分配资产",
+	ErrNameBatchDelete:             "批量删除",
 
 	ErrDBNameInsert: "写入数据",
 	ErrDBNameUpdate: "更新数据",

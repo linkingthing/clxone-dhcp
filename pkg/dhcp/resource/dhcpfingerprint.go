@@ -68,6 +68,16 @@ func (f *DhcpFingerprint) Validate() error {
 	return nil
 }
 
+const ActionNameListClientTypes = "list_client_types"
+
+type DhcpFingerprintClientTypes struct {
+	ClientTypes []string `json:"clientTypes"`
+}
+
+type DhcpFingerprints struct {
+	Ids []string `json:"ids"`
+}
+
 func (f DhcpFingerprint) GetActions() []restresource.Action {
 	return []restresource.Action{
 		restresource.Action{
@@ -81,6 +91,14 @@ func (f DhcpFingerprint) GetActions() []restresource.Action {
 		restresource.Action{
 			Name:   excel.ActionNameExportTemplate,
 			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   ActionNameListClientTypes,
+			Output: &DhcpFingerprintClientTypes{},
+		},
+		restresource.Action{
+			Name:  ActionNameBatchDelete,
+			Input: &DhcpFingerprints{},
 		},
 	}
 }

@@ -2,6 +2,7 @@ package resource
 
 import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
+	"github.com/linkingthing/clxone-utils/excel"
 	restdb "github.com/linkingthing/gorest/db"
 	restresource "github.com/linkingthing/gorest/resource"
 
@@ -31,4 +32,29 @@ func (a *AdmitDuid) Validate() error {
 	}
 
 	return nil
+}
+
+type AdmitDuids struct {
+	Ids []string `json:"ids"`
+}
+
+func (a AdmitDuid) GetActions() []restresource.Action {
+	return []restresource.Action{
+		restresource.Action{
+			Name:  excel.ActionNameImport,
+			Input: &excel.ImportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExport,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:   excel.ActionNameExportTemplate,
+			Output: &excel.ExportFile{},
+		},
+		restresource.Action{
+			Name:  ActionNameBatchDelete,
+			Input: &AdmitDuids{},
+		},
+	}
 }

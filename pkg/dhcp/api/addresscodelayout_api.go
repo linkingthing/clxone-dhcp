@@ -18,17 +18,17 @@ func NewAddressCodeLayoutApi() *AddressCodeLayoutApi {
 	return &AddressCodeLayoutApi{Service: service.NewAddressCodeLayoutService()}
 }
 
-func (d *AddressCodeLayoutApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (l *AddressCodeLayoutApi) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	addressCode := ctx.Resource.(*resource.AddressCodeLayout)
-	if err := d.Service.Create(ctx.Resource.GetParent().GetID(), addressCode); err != nil {
+	if err := l.Service.Create(ctx.Resource.GetParent().GetID(), addressCode); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return addressCode, nil
 }
 
-func (d *AddressCodeLayoutApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	duids, err := d.Service.List(ctx.Resource.GetParent().GetID(),
+func (l *AddressCodeLayoutApi) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	duids, err := l.Service.List(ctx.Resource.GetParent().GetID(),
 		util.GenStrConditionsFromFilters(ctx.GetFilters(),
 			resource.SqlColumnBeginBit, resource.SqlColumnLabel))
 	if err != nil {
@@ -38,8 +38,8 @@ func (d *AddressCodeLayoutApi) List(ctx *restresource.Context) (interface{}, *re
 	return duids, nil
 }
 
-func (d *AddressCodeLayoutApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
-	addressCode, err := d.Service.Get(ctx.Resource.GetID())
+func (l *AddressCodeLayoutApi) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+	addressCode, err := l.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -47,17 +47,17 @@ func (d *AddressCodeLayoutApi) Get(ctx *restresource.Context) (restresource.Reso
 	return addressCode, nil
 }
 
-func (d *AddressCodeLayoutApi) Delete(ctx *restresource.Context) *resterror.APIError {
-	if err := d.Service.Delete(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID()); err != nil {
+func (l *AddressCodeLayoutApi) Delete(ctx *restresource.Context) *resterror.APIError {
+	if err := l.Service.Delete(ctx.Resource.GetParent().GetID(), ctx.Resource.GetID()); err != nil {
 		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
 
 	return nil
 }
 
-func (d *AddressCodeLayoutApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (l *AddressCodeLayoutApi) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	addressCode := ctx.Resource.(*resource.AddressCodeLayout)
-	if err := d.Service.Update(ctx.Resource.GetParent().GetID(), addressCode); err != nil {
+	if err := l.Service.Update(ctx.Resource.GetParent().GetID(), addressCode); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 

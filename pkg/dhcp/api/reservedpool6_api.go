@@ -9,15 +9,15 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
-type ReservedPool6Handler struct {
+type ReservedPool6Api struct {
 	Service *service.ReservedPool6Service
 }
 
-func NewReservedPool6Api() *ReservedPool6Handler {
-	return &ReservedPool6Handler{Service: service.NewReservedPool6Service()}
+func NewReservedPool6Api() *ReservedPool6Api {
+	return &ReservedPool6Api{Service: service.NewReservedPool6Service()}
 }
 
-func (p *ReservedPool6Handler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (p *ReservedPool6Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pool := ctx.Resource.(*resource.ReservedPool6)
 	if err := p.Service.Create(ctx.Resource.GetParent().(*resource.Subnet6), pool); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -26,7 +26,7 @@ func (p *ReservedPool6Handler) Create(ctx *restresource.Context) (restresource.R
 	return pool, nil
 }
 
-func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *ReservedPool6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	pools, err := p.Service.List(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -35,7 +35,7 @@ func (p *ReservedPool6Handler) List(ctx *restresource.Context) (interface{}, *re
 	return pools, nil
 }
 
-func (p *ReservedPool6Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (p *ReservedPool6Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pool, err := p.Service.Get(ctx.Resource.GetParent().(*resource.Subnet6), ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -44,7 +44,7 @@ func (p *ReservedPool6Handler) Get(ctx *restresource.Context) (restresource.Reso
 	return pool, nil
 }
 
-func (p *ReservedPool6Handler) Delete(ctx *restresource.Context) *resterror.APIError {
+func (p *ReservedPool6Api) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := p.Service.Delete(
 		ctx.Resource.GetParent().(*resource.Subnet6),
 		ctx.Resource.(*resource.ReservedPool6)); err != nil {
@@ -54,7 +54,7 @@ func (p *ReservedPool6Handler) Delete(ctx *restresource.Context) *resterror.APIE
 	return nil
 }
 
-func (p *ReservedPool6Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *ReservedPool6Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case resource.ActionNameValidTemplate:
 		return p.actionValidTemplate(ctx)
@@ -64,7 +64,7 @@ func (p *ReservedPool6Handler) Action(ctx *restresource.Context) (interface{}, *
 	}
 }
 
-func (p *ReservedPool6Handler) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (p *ReservedPool6Api) actionValidTemplate(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	templateInfo, ok := ctx.Resource.GetAction().Input.(*resource.TemplateInfo)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
@@ -80,7 +80,7 @@ func (p *ReservedPool6Handler) actionValidTemplate(ctx *restresource.Context) (i
 	return ret, nil
 }
 
-func (p *ReservedPool6Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (p *ReservedPool6Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	pool := ctx.Resource.(*resource.ReservedPool6)
 	if err := p.Service.Update(ctx.Resource.GetParent().GetID(), pool); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)

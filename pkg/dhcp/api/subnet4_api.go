@@ -10,15 +10,15 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 )
 
-type Subnet4Handler struct {
+type Subnet4Api struct {
 	Service *service.Subnet4Service
 }
 
-func NewSubnet4Api() *Subnet4Handler {
-	return &Subnet4Handler{Service: service.NewSubnet4Service()}
+func NewSubnet4Api() *Subnet4Api {
+	return &Subnet4Api{Service: service.NewSubnet4Service()}
 }
 
-func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (s *Subnet4Api) Create(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.(*resource.Subnet4)
 	if err := s.Service.Create(subnet); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -27,7 +27,7 @@ func (s *Subnet4Handler) Create(ctx *restresource.Context) (restresource.Resourc
 	return subnet, nil
 }
 
-func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnets, err := s.Service.List(ctx)
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -36,7 +36,7 @@ func (s *Subnet4Handler) List(ctx *restresource.Context) (interface{}, *resterro
 	return subnets, nil
 }
 
-func (s *Subnet4Handler) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (s *Subnet4Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet, err := s.Service.Get(ctx.Resource.GetID())
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -45,7 +45,7 @@ func (s *Subnet4Handler) Get(ctx *restresource.Context) (restresource.Resource, 
 	return subnet, nil
 }
 
-func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (s *Subnet4Api) Update(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	subnet := ctx.Resource.(*resource.Subnet4)
 	if err := s.Service.Update(subnet); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
@@ -54,7 +54,7 @@ func (s *Subnet4Handler) Update(ctx *restresource.Context) (restresource.Resourc
 	return subnet, nil
 }
 
-func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
+func (s *Subnet4Api) Delete(ctx *restresource.Context) *resterror.APIError {
 	if err := s.Service.Delete(ctx.Resource.(*resource.Subnet4)); err != nil {
 		return errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -62,7 +62,7 @@ func (s *Subnet4Handler) Delete(ctx *restresource.Context) *resterror.APIError {
 	return nil
 }
 
-func (s *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) Action(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	switch ctx.Resource.GetAction().Name {
 	case excel.ActionNameImport:
 		return s.actionImportExcel(ctx)
@@ -82,7 +82,7 @@ func (s *Subnet4Handler) Action(ctx *restresource.Context) (interface{}, *rester
 	}
 }
 
-func (s *Subnet4Handler) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) actionImportExcel(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	file, ok := ctx.Resource.GetAction().Input.(*excel.ImportFile)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
@@ -96,7 +96,7 @@ func (s *Subnet4Handler) actionImportExcel(ctx *restresource.Context) (interface
 	}
 }
 
-func (s *Subnet4Handler) actionExportExcel() (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) actionExportExcel() (interface{}, *resterror.APIError) {
 	if exportFile, err := s.Service.ExportExcel(); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
@@ -104,7 +104,7 @@ func (s *Subnet4Handler) actionExportExcel() (interface{}, *resterror.APIError) 
 	}
 }
 
-func (s *Subnet4Handler) actionExportExcelTemplate() (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) actionExportExcelTemplate() (interface{}, *resterror.APIError) {
 	if file, err := s.Service.ExportExcelTemplate(); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	} else {
@@ -112,7 +112,7 @@ func (s *Subnet4Handler) actionExportExcelTemplate() (interface{}, *resterror.AP
 	}
 }
 
-func (s *Subnet4Handler) actionUpdateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) actionUpdateNodes(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetID := ctx.Resource.GetID()
 	subnetNode, ok := ctx.Resource.GetAction().Input.(*resource.SubnetNode)
 	if !ok {
@@ -127,7 +127,7 @@ func (s *Subnet4Handler) actionUpdateNodes(ctx *restresource.Context) (interface
 	return nil, nil
 }
 
-func (s *Subnet4Handler) actionCouldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) actionCouldBeCreated(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	couldBeCreatedSubnet, ok := ctx.Resource.GetAction().Input.(*resource.CouldBeCreatedSubnet)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,
@@ -141,7 +141,7 @@ func (s *Subnet4Handler) actionCouldBeCreated(ctx *restresource.Context) (interf
 	return nil, nil
 }
 
-func (s *Subnet4Handler) actionListWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+func (s *Subnet4Api) actionListWithSubnets(ctx *restresource.Context) (interface{}, *resterror.APIError) {
 	subnetListInput, ok := ctx.Resource.GetAction().Input.(*resource.SubnetListInput)
 	if !ok {
 		return nil, errorno.HandleAPIError(resterror.InvalidFormat,

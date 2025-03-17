@@ -17,8 +17,8 @@ func NewAgent6Api() *Agent6Api {
 	return &Agent6Api{Service: service.NewAgent6Service()}
 }
 
-func (h *Agent6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
-	agents, err := h.Service.List()
+func (a *Agent6Api) List(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	agents, err := a.Service.List()
 	if err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
@@ -26,9 +26,9 @@ func (h *Agent6Api) List(ctx *restresource.Context) (interface{}, *resterror.API
 	return agents, nil
 }
 
-func (h *Agent6Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
+func (a *Agent6Api) Get(ctx *restresource.Context) (restresource.Resource, *resterror.APIError) {
 	agent := ctx.Resource.(*resource.Agent6)
-	if err := h.Service.Get(agent); err != nil {
+	if err := a.Service.Get(agent); err != nil {
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 

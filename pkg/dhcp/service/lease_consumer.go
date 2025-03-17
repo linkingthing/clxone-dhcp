@@ -39,6 +39,7 @@ func consumeLease4() {
 		}
 
 		addFingerprintWithLease4(lease4)
+		addOuiWithLease4(lease4)
 	}
 }
 
@@ -57,13 +58,10 @@ func addFingerprintWithLease4(lease4 pbdhcp.Lease4) {
 
 func addFingerprintIfNeed(fingerprint *resource.DhcpFingerprint) {
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		var fingerprints []*resource.DhcpFingerprint
-		if err := tx.Fill(map[string]interface{}{resource.SqlColumnFingerprint: fingerprint.Fingerprint},
-			&fingerprints); err != nil {
+		if exists, err := tx.Exists(resource.TableDhcpFingerprint,
+			map[string]interface{}{resource.SqlColumnFingerprint: fingerprint.Fingerprint}); err != nil {
 			return err
-		}
-
-		if len(fingerprints) != 0 {
+		} else if exists {
 			return nil
 		}
 
@@ -74,6 +72,34 @@ func addFingerprintIfNeed(fingerprint *resource.DhcpFingerprint) {
 		return sendCreateFingerprintCmdToAgent(fingerprint)
 	}); err != nil {
 		log.Warnf("add fingerprint %s failed: %s", fingerprint.Fingerprint, err.Error())
+	}
+}
+
+func addOuiWithLease4(lease4 pbdhcp.Lease4) {
+	if lease4.GetHwAddress() != "" && lease4.GetHwAddressOrganization() == "" {
+		addOuiIfNeed(&resource.DhcpOui{
+			Oui:        lease4.GetHwAddress()[:8],
+			DataSource: resource.DataSourceAuto,
+		})
+	}
+}
+
+func addOuiIfNeed(oui *resource.DhcpOui) {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		if exists, err := tx.Exists(resource.TableDhcpOui,
+			map[string]interface{}{resource.SqlColumnOui: oui.Oui}); err != nil {
+			return err
+		} else if exists {
+			return nil
+		}
+
+		if _, err := tx.Insert(oui); err != nil {
+			return err
+		}
+
+		return sendCreateOuiCmdToDHCPAgent(oui)
+	}); err != nil {
+		log.Warnf("add oui %s failed: %s", oui.Oui, err.Error())
 	}
 }
 
@@ -98,6 +124,7 @@ func consumeLease6() {
 		}
 
 		addFingerprintWithLease6(lease6)
+		addOuiWithLease6(lease6)
 	}
 }
 
@@ -110,6 +137,15 @@ func addFingerprintWithLease6(lease6 pbdhcp.Lease6) {
 			ClientType:      lease6.GetClientType(),
 			MatchPattern:    resource.MatchPatternEqual,
 			DataSource:      resource.DataSourceAuto,
+		})
+	}
+}
+
+func addOuiWithLease6(lease6 pbdhcp.Lease6) {
+	if lease6.GetHwAddress() != "" && lease6.GetHwAddressOrganization() == "" {
+		addOuiIfNeed(&resource.DhcpOui{
+			Oui:        lease6.GetHwAddress()[:8],
+			DataSource: resource.DataSourceAuto,
 		})
 	}
 }
