@@ -17,11 +17,11 @@ const (
 )
 
 var (
-	TableHeaderDhcpOui          = []string{FieldNameOui, FieldNameOperatingSystem}
+	TableHeaderDhcpOui          = []string{FieldNameOui, FieldNameOrganization}
 	TableHeaderDhcpOuiFail      = append(TableHeaderDhcpOui, FailReasonLocalization)
 	TableHeaderDhcpOuiFailLen   = len(TableHeaderDhcpOuiFail)
 	DhcpOuiMandatoryFields      = []string{FieldNameOui, FieldNameOrganization}
-	TableHeaderDhcpOuiForExport = []string{FieldNameOui, FieldNameOperatingSystem, FieldNameDataSource}
+	TableHeaderDhcpOuiForExport = []string{FieldNameOui, FieldNameOrganization, FieldNameDataSource}
 
 	TemplateDhcpOui = [][]string{
 		[]string{"01:02:03", "LINKINGTHING.COM"},

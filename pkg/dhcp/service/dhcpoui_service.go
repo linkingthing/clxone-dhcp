@@ -111,7 +111,7 @@ func genGetOUIContext(ctx *restresource.Context) listOUIContext {
 
 	listCtx.countSql = strings.Replace(listCtx.sql, "*", "count(*)", 1)
 	if !listCtx.hasFilterOUI {
-		listCtx.sql += " order by oui"
+		listCtx.sql += " order by create_time desc "
 		if pagination := ctx.GetPagination(); pagination.PageSize > 0 &&
 			pagination.PageNum > 0 {
 			listCtx.hasPagination = true

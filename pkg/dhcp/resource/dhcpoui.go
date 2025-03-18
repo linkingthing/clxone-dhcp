@@ -29,7 +29,7 @@ func (d *DhcpOui) Validate() error {
 	} else {
 		d.Oui = strings.ToUpper(d.Oui)
 		d.DataSource = DataSourceManual
-		return util.ValidateStrings(util.RegexpTypeCommon, d.Organization)
+		return util.ValidateStrings(util.RegexpTypeSpace, d.Organization)
 	}
 }
 

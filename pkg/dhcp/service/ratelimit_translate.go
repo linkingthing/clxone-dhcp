@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/linkingthing/cement/uuid"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 )
 
@@ -46,10 +45,9 @@ func localizationRateLimitMacToStrSlice(mac *resource.RateLimitMac) []string {
 }
 
 func rateLimitDuidToInsertDBSqlString(duid *resource.RateLimitDuid) string {
-	id, _ := uuid.Gen()
 	var buf bytes.Buffer
 	buf.WriteString("('")
-	buf.WriteString(id)
+	buf.WriteString(duid.Duid)
 	buf.WriteString("','")
 	buf.WriteString(time.Now().Format(time.RFC3339))
 	buf.WriteString("','")
@@ -63,10 +61,9 @@ func rateLimitDuidToInsertDBSqlString(duid *resource.RateLimitDuid) string {
 }
 
 func rateLimitMacToInsertDBSqlString(mac *resource.RateLimitMac) string {
-	id, _ := uuid.Gen()
 	var buf bytes.Buffer
 	buf.WriteString("('")
-	buf.WriteString(id)
+	buf.WriteString(mac.HwAddress)
 	buf.WriteString("','")
 	buf.WriteString(time.Now().Format(time.RFC3339))
 	buf.WriteString("','")
