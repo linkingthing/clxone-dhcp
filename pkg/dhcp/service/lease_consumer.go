@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/linkingthing/cement/log"
@@ -21,6 +22,7 @@ func ConsumeLease() {
 func consumeLease4() {
 	readerLease4 := alarm.GetKafkaConsumer().GetReaderLease4()
 	if readerLease4 == nil {
+		log.Warnf("lease4 reader had not been init, can`t comsume lease4")
 		return
 	}
 
@@ -85,6 +87,7 @@ func addOuiWithLease4(lease4 pbdhcp.Lease4) {
 }
 
 func addOuiIfNeed(oui *resource.DhcpOui) {
+	oui.Oui = strings.ToUpper(oui.Oui)
 	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if exists, err := tx.Exists(resource.TableDhcpOui,
 			map[string]interface{}{resource.SqlColumnOui: oui.Oui}); err != nil {
@@ -93,6 +96,7 @@ func addOuiIfNeed(oui *resource.DhcpOui) {
 			return nil
 		}
 
+		oui.SetID(oui.Oui)
 		if _, err := tx.Insert(oui); err != nil {
 			return err
 		}
@@ -106,6 +110,7 @@ func addOuiIfNeed(oui *resource.DhcpOui) {
 func consumeLease6() {
 	readerLease6 := alarm.GetKafkaConsumer().GetReaderLease6()
 	if readerLease6 == nil {
+		log.Warnf("lease6 reader had not been init, can`t comsume lease6")
 		return
 	}
 

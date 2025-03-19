@@ -44,7 +44,7 @@ func Init(conf *config.DHCPConfig) {
 		return
 	}
 
-	globalKafkaConsumer := &KafkaConsumer{}
+	globalKafkaConsumer = &KafkaConsumer{}
 	globalKafkaConsumer.readerLease4 = initKafkaReader(conf, DHCPTopicLease4)
 	globalKafkaConsumer.readerLease6 = initKafkaReader(conf, DHCPTopicLease6)
 	globalKafkaConsumer.readerPacket4 = initKafkaReader(conf, DHCPTopicPacket4)
@@ -96,6 +96,7 @@ func (kc *KafkaConsumer) run() {
 
 func (kc *KafkaConsumer) consumePacket4() {
 	if kc.readerPacket4 == nil {
+		log.Warnf("packet4 reader had not been init, can`t comsume packet4")
 		return
 	}
 
@@ -178,6 +179,7 @@ func pbPacket4ToAlarmDHCPClient4(packet4 pbdhcp.Packet4) *utils.DHCPClient4 {
 
 func (kc *KafkaConsumer) consumePacket6() {
 	if kc.readerPacket6 == nil {
+		log.Warnf("packet6 reader had not been init, can`t comsume packet6")
 		return
 	}
 
