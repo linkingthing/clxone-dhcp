@@ -2,8 +2,10 @@ package server
 
 import (
 	"fmt"
+	"google.golang.org/grpc/keepalive"
 	"net"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/linkingthing/clxone-utils/excel"
@@ -114,7 +116,16 @@ func (s *Server) Run(conf *config.DHCPConfig) error {
 			return
 		}
 
-		grpcServer := grpc.NewServer()
+		grpcServer := grpc.NewServer(
+			grpc.KeepaliveParams(keepalive.ServerParameters{
+				MaxConnectionIdle: 5 * time.Minute,
+				Time:              time.Second * 30,
+				Timeout:           time.Second * 5,
+			}),
+			grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+				MinTime:             time.Second * 30,
+				PermitWithoutStream: true,
+			}))
 		hv1.RegisterHealthServer(grpcServer, health.NewServer())
 		pbdhcp.RegisterDhcpServiceServer(grpcServer, service.NewGrpcService())
 		errch <- grpcServer.Serve(grpcListener)
