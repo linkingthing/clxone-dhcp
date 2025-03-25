@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/linkingthing/cement v1.0.0
 	github.com/linkingthing/clxone-utils v1.3.6-0.20250319010324-9f03c7d92c81
-	github.com/linkingthing/gorest v1.3.1
+	github.com/linkingthing/gorest v1.3.2
 	github.com/segmentio/kafka-go v0.4.31
 	golang.org/x/net v0.31.0
 	golang.org/x/sys v0.27.0
@@ -21,6 +21,7 @@ require (
 )
 
 require (
+	gitee.com/opengauss/openGauss-connector-go-pq v1.0.7 // indirect
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
@@ -61,6 +62,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/richardlehane/mscfb v1.0.4 // indirect
 	github.com/richardlehane/msoleps v1.0.3 // indirect
+	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
@@ -71,6 +73,7 @@ require (
 	golang.org/x/crypto v0.29.0 // indirect
 	golang.org/x/sync v0.9.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+
 	pg "github.com/linkingthing/clxone-utils/postgresql"
 
 	restdb "github.com/linkingthing/gorest/db"
@@ -34,7 +35,7 @@ func Init(conf *config.DHCPConfig) error {
 
 	globalDB, err = restdb.NewRStore(fmt.Sprintf(ConnStr,
 		conf.DB.User, conf.DB.Password, conf.DB.Host, conf.DB.Port, conf.DB.Name),
-		meta)
+		meta, restdb.Driver(conf.DB.Driver))
 	return err
 }
 

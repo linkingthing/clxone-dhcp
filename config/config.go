@@ -27,7 +27,8 @@ type DBConf struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	Port     int    `yaml:"port"`
-	Host     string `json:"host"`
+	Host     string `yaml:"host"`
+	Driver   string `yaml:"driver"`
 }
 
 type ServerConf struct {
