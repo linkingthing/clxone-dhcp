@@ -255,6 +255,8 @@ github.com/linkingthing/clxone-utils v1.3.6-0.20250319010324-9f03c7d92c81 h1:u4H
 github.com/linkingthing/clxone-utils v1.3.6-0.20250319010324-9f03c7d92c81/go.mod h1:o1rAcTJWjeLN0i7TJskNzYK8IQ2Vj5un5GKoCRyOxnU=
 github.com/linkingthing/gorest v1.3.2 h1:ZWNaKfHwuV5Wvr8py5rr6Vjpc1rbPNRnlOGBfa+Yp1I=
 github.com/linkingthing/gorest v1.3.2/go.mod h1:fE43CkQMAYmsQCnhS04IPLXI/tAvNYqzjBkQWCqVrOU=
+github.com/linkingthing/gorest v1.3.3-0.20250325080204-bf4981bd33f3 h1:9PJiRQ/WBF2Ix+2zGKWW2Wq5GyjuIV8Y71Jnv2nUpB0=
+github.com/linkingthing/gorest v1.3.3-0.20250325080204-bf4981bd33f3/go.mod h1:fE43CkQMAYmsQCnhS04IPLXI/tAvNYqzjBkQWCqVrOU=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.4/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=

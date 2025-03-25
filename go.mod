@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/consul/api v1.12.0
 	github.com/linkingthing/cement v1.0.0
 	github.com/linkingthing/clxone-utils v1.3.6-0.20250319010324-9f03c7d92c81
-	github.com/linkingthing/gorest v1.3.2
+	github.com/linkingthing/gorest v1.3.3-0.20250325080204-bf4981bd33f3
 	github.com/segmentio/kafka-go v0.4.31
 	golang.org/x/net v0.31.0
 	golang.org/x/sys v0.27.0
