@@ -6,7 +6,7 @@ require (
 	github.com/Ullaakut/nmap/v2 v2.2.0
 	github.com/cuityhj/cement v1.0.0
 	github.com/cuityhj/g67 v1.1.0
-	github.com/cuityhj/gohelper v1.2.0
+	github.com/cuityhj/gohelper v1.2.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang/protobuf v1.5.2
 	github.com/hashicorp/consul/api v1.12.0

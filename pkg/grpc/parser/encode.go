@@ -215,8 +215,8 @@ func SubnetLease6ToPbDHCPLease6(lease *resource.SubnetLease6) *pbdhcp.Lease6 {
 		ClientType:            lease.ClientType,
 		LeaseState:            lease.LeaseState,
 		AllocateMode:          lease.AllocateMode,
-		AddressCodes:          lease.AddressCodes,
-		AddressCodeBegins:     lease.AddressCodeBegins,
-		AddressCodeEnds:       lease.AddressCodeEnds,
+		AddressCode:           lease.AddressCode,
+		AddressCodeBegin:      lease.AddressCodeBegin,
+		AddressCodeEnd:        lease.AddressCodeEnd,
 	}
 }

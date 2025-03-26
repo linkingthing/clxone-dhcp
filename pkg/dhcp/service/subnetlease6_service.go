@@ -389,9 +389,9 @@ func SubnetLease6FromPbLease6(lease *pbdhcpagent.DHCPLease6) *resource.SubnetLea
 		OperatingSystem:       lease.GetOperatingSystem(),
 		ClientType:            lease.GetClientType(),
 		RequestSourceAddr:     lease.GetRequestSourceAddr(),
-		AddressCodes:          lease.GetAddressCodes(),
-		AddressCodeBegins:     lease.GetAddressCodeBegins(),
-		AddressCodeEnds:       lease.GetAddressCodeEnds(),
+		AddressCode:           lease.GetAddressCode(),
+		AddressCodeBegin:      lease.GetAddressCodeBegin(),
+		AddressCodeEnd:        lease.GetAddressCodeEnd(),
 		Subnet:                lease.GetSubnet(),
 		AllocateMode:          lease.GetAllocateMode().String(),
 	}

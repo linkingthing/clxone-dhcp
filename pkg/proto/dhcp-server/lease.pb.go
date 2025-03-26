@@ -221,35 +221,35 @@ type Lease6 struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Address               string   `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Duid                  string   `protobuf:"bytes,2,opt,name=duid,proto3" json:"duid,omitempty"`
-	HwAddress             string   `protobuf:"bytes,3,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
-	HwAddressType         string   `protobuf:"bytes,4,opt,name=hw_address_type,json=hwAddressType,proto3" json:"hw_address_type,omitempty"`
-	HwAddressSource       string   `protobuf:"bytes,5,opt,name=hw_address_source,json=hwAddressSource,proto3" json:"hw_address_source,omitempty"`
-	HwAddressOrganization string   `protobuf:"bytes,6,opt,name=hw_address_organization,json=hwAddressOrganization,proto3" json:"hw_address_organization,omitempty"`
-	FqdnFwd               bool     `protobuf:"varint,7,opt,name=fqdn_fwd,json=fqdnFwd,proto3" json:"fqdn_fwd,omitempty"`
-	FqdnRev               bool     `protobuf:"varint,8,opt,name=fqdn_rev,json=fqdnRev,proto3" json:"fqdn_rev,omitempty"`
-	Hostname              string   `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	Iaid                  uint32   `protobuf:"varint,10,opt,name=iaid,proto3" json:"iaid,omitempty"`
-	SubnetId              uint64   `protobuf:"varint,11,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
-	Subnet                string   `protobuf:"bytes,12,opt,name=subnet,proto3" json:"subnet,omitempty"`
-	LeaseState            uint32   `protobuf:"varint,13,opt,name=lease_state,json=leaseState,proto3" json:"lease_state,omitempty"`
-	LeaseType             string   `protobuf:"bytes,14,opt,name=lease_type,json=leaseType,proto3" json:"lease_type,omitempty"`
-	PrefixLen             uint32   `protobuf:"varint,15,opt,name=prefix_len,json=prefixLen,proto3" json:"prefix_len,omitempty"`
-	RequestType           string   `protobuf:"bytes,16,opt,name=request_type,json=requestType,proto3" json:"request_type,omitempty"`
-	RequestTime           string   `protobuf:"bytes,17,opt,name=request_time,json=requestTime,proto3" json:"request_time,omitempty"`
-	ValidLifetime         uint32   `protobuf:"varint,18,opt,name=valid_lifetime,json=validLifetime,proto3" json:"valid_lifetime,omitempty"`
-	PreferredLifetime     uint32   `protobuf:"varint,19,opt,name=preferred_lifetime,json=preferredLifetime,proto3" json:"preferred_lifetime,omitempty"`
-	ExpirationTime        string   `protobuf:"bytes,20,opt,name=expiration_time,json=expirationTime,proto3" json:"expiration_time,omitempty"`
-	Fingerprint           string   `protobuf:"bytes,21,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
-	VendorId              string   `protobuf:"bytes,22,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty"`
-	OperatingSystem       string   `protobuf:"bytes,23,opt,name=operating_system,json=operatingSystem,proto3" json:"operating_system,omitempty"`
-	ClientType            string   `protobuf:"bytes,24,opt,name=client_type,json=clientType,proto3" json:"client_type,omitempty"`
-	RequestSourceAddr     string   `protobuf:"bytes,25,opt,name=request_source_addr,json=requestSourceAddr,proto3" json:"request_source_addr,omitempty"`
-	AddressCodes          []string `protobuf:"bytes,26,rep,name=address_codes,json=addressCodes,proto3" json:"address_codes,omitempty"`
-	AddressCodeBegins     []uint32 `protobuf:"varint,27,rep,packed,name=address_code_begins,json=addressCodeBegins,proto3" json:"address_code_begins,omitempty"`
-	AddressCodeEnds       []uint32 `protobuf:"varint,28,rep,packed,name=address_code_ends,json=addressCodeEnds,proto3" json:"address_code_ends,omitempty"`
-	AllocateMode          uint32   `protobuf:"varint,29,opt,name=allocate_mode,json=allocateMode,proto3" json:"allocate_mode,omitempty"`
+	Address               string `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
+	Duid                  string `protobuf:"bytes,2,opt,name=duid,proto3" json:"duid,omitempty"`
+	HwAddress             string `protobuf:"bytes,3,opt,name=hw_address,json=hwAddress,proto3" json:"hw_address,omitempty"`
+	HwAddressType         string `protobuf:"bytes,4,opt,name=hw_address_type,json=hwAddressType,proto3" json:"hw_address_type,omitempty"`
+	HwAddressSource       string `protobuf:"bytes,5,opt,name=hw_address_source,json=hwAddressSource,proto3" json:"hw_address_source,omitempty"`
+	HwAddressOrganization string `protobuf:"bytes,6,opt,name=hw_address_organization,json=hwAddressOrganization,proto3" json:"hw_address_organization,omitempty"`
+	FqdnFwd               bool   `protobuf:"varint,7,opt,name=fqdn_fwd,json=fqdnFwd,proto3" json:"fqdn_fwd,omitempty"`
+	FqdnRev               bool   `protobuf:"varint,8,opt,name=fqdn_rev,json=fqdnRev,proto3" json:"fqdn_rev,omitempty"`
+	Hostname              string `protobuf:"bytes,9,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Iaid                  uint32 `protobuf:"varint,10,opt,name=iaid,proto3" json:"iaid,omitempty"`
+	SubnetId              uint64 `protobuf:"varint,11,opt,name=subnet_id,json=subnetId,proto3" json:"subnet_id,omitempty"`
+	Subnet                string `protobuf:"bytes,12,opt,name=subnet,proto3" json:"subnet,omitempty"`
+	LeaseState            uint32 `protobuf:"varint,13,opt,name=lease_state,json=leaseState,proto3" json:"lease_state,omitempty"`
+	LeaseType             string `protobuf:"bytes,14,opt,name=lease_type,json=leaseType,proto3" json:"lease_type,omitempty"`
+	PrefixLen             uint32 `protobuf:"varint,15,opt,name=prefix_len,json=prefixLen,proto3" json:"prefix_len,omitempty"`
+	RequestType           string `protobuf:"bytes,16,opt,name=request_type,json=requestType,proto3" json:"request_type,omitempty"`
+	RequestTime           string `protobuf:"bytes,17,opt,name=request_time,json=requestTime,proto3" json:"request_time,omitempty"`
+	ValidLifetime         uint32 `protobuf:"varint,18,opt,name=valid_lifetime,json=validLifetime,proto3" json:"valid_lifetime,omitempty"`
+	PreferredLifetime     uint32 `protobuf:"varint,19,opt,name=preferred_lifetime,json=preferredLifetime,proto3" json:"preferred_lifetime,omitempty"`
+	ExpirationTime        string `protobuf:"bytes,20,opt,name=expiration_time,json=expirationTime,proto3" json:"expiration_time,omitempty"`
+	Fingerprint           string `protobuf:"bytes,21,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	VendorId              string `protobuf:"bytes,22,opt,name=vendor_id,json=vendorId,proto3" json:"vendor_id,omitempty"`
+	OperatingSystem       string `protobuf:"bytes,23,opt,name=operating_system,json=operatingSystem,proto3" json:"operating_system,omitempty"`
+	ClientType            string `protobuf:"bytes,24,opt,name=client_type,json=clientType,proto3" json:"client_type,omitempty"`
+	RequestSourceAddr     string `protobuf:"bytes,25,opt,name=request_source_addr,json=requestSourceAddr,proto3" json:"request_source_addr,omitempty"`
+	AddressCode           string `protobuf:"bytes,26,opt,name=address_code,json=addressCode,proto3" json:"address_code,omitempty"`
+	AddressCodeBegin      uint32 `protobuf:"varint,27,opt,name=address_code_begin,json=addressCodeBegin,proto3" json:"address_code_begin,omitempty"`
+	AddressCodeEnd        uint32 `protobuf:"varint,28,opt,name=address_code_end,json=addressCodeEnd,proto3" json:"address_code_end,omitempty"`
+	AllocateMode          uint32 `protobuf:"varint,29,opt,name=allocate_mode,json=allocateMode,proto3" json:"allocate_mode,omitempty"`
 }
 
 func (x *Lease6) Reset() {
@@ -459,25 +459,25 @@ func (x *Lease6) GetRequestSourceAddr() string {
 	return ""
 }
 
-func (x *Lease6) GetAddressCodes() []string {
+func (x *Lease6) GetAddressCode() string {
 	if x != nil {
-		return x.AddressCodes
+		return x.AddressCode
 	}
-	return nil
+	return ""
 }
 
-func (x *Lease6) GetAddressCodeBegins() []uint32 {
+func (x *Lease6) GetAddressCodeBegin() uint32 {
 	if x != nil {
-		return x.AddressCodeBegins
+		return x.AddressCodeBegin
 	}
-	return nil
+	return 0
 }
 
-func (x *Lease6) GetAddressCodeEnds() []uint32 {
+func (x *Lease6) GetAddressCodeEnd() uint32 {
 	if x != nil {
-		return x.AddressCodeEnds
+		return x.AddressCodeEnd
 	}
-	return nil
+	return 0
 }
 
 func (x *Lease6) GetAllocateMode() uint32 {
@@ -531,7 +531,7 @@ var file_lease_proto_rawDesc = []byte{
 	0x74, 0x79, 0x70, 0x65, 0x18, 0x12, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x63, 0x6c, 0x69, 0x65,
 	0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x12, 0x23, 0x0a, 0x0d, 0x61, 0x6c, 0x6c, 0x6f, 0x63, 0x61,
 	0x74, 0x65, 0x5f, 0x6d, 0x6f, 0x64, 0x65, 0x18, 0x13, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x0c, 0x61,
-	0x6c, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x22, 0x81, 0x08, 0x0a, 0x06,
+	0x6c, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x22, 0xfb, 0x07, 0x0a, 0x06,
 	0x4c, 0x65, 0x61, 0x73, 0x65, 0x36, 0x12, 0x18, 0x0a, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73,
 	0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73,
 	0x12, 0x12, 0x0a, 0x04, 0x64, 0x75, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
@@ -585,19 +585,18 @@ var file_lease_proto_rawDesc = []byte{
 	0x6c, 0x69, 0x65, 0x6e, 0x74, 0x54, 0x79, 0x70, 0x65, 0x12, 0x2e, 0x0a, 0x13, 0x72, 0x65, 0x71,
 	0x75, 0x65, 0x73, 0x74, 0x5f, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x61, 0x64, 0x64, 0x72,
 	0x18, 0x19, 0x20, 0x01, 0x28, 0x09, 0x52, 0x11, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x53,
-	0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x23, 0x0a, 0x0d, 0x61, 0x64, 0x64,
-	0x72, 0x65, 0x73, 0x73, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x73, 0x18, 0x1a, 0x20, 0x03, 0x28, 0x09,
-	0x52, 0x0c, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x43, 0x6f, 0x64, 0x65, 0x73, 0x12, 0x2e,
-	0x0a, 0x13, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x5f, 0x62,
-	0x65, 0x67, 0x69, 0x6e, 0x73, 0x18, 0x1b, 0x20, 0x03, 0x28, 0x0d, 0x52, 0x11, 0x61, 0x64, 0x64,
-	0x72, 0x65, 0x73, 0x73, 0x43, 0x6f, 0x64, 0x65, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x73, 0x12, 0x2a,
-	0x0a, 0x11, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x5f, 0x65,
-	0x6e, 0x64, 0x73, 0x18, 0x1c, 0x20, 0x03, 0x28, 0x0d, 0x52, 0x0f, 0x61, 0x64, 0x64, 0x72, 0x65,
-	0x73, 0x73, 0x43, 0x6f, 0x64, 0x65, 0x45, 0x6e, 0x64, 0x73, 0x12, 0x23, 0x0a, 0x0d, 0x61, 0x6c,
-	0x6c, 0x6f, 0x63, 0x61, 0x74, 0x65, 0x5f, 0x6d, 0x6f, 0x64, 0x65, 0x18, 0x1d, 0x20, 0x01, 0x28,
-	0x0d, 0x52, 0x0c, 0x61, 0x6c, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x42,
-	0x09, 0x5a, 0x07, 0x2e, 0x3b, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x21, 0x0a, 0x0c, 0x61, 0x64, 0x64,
+	0x72, 0x65, 0x73, 0x73, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x18, 0x1a, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x0b, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x43, 0x6f, 0x64, 0x65, 0x12, 0x2c, 0x0a, 0x12,
+	0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x5f, 0x62, 0x65, 0x67,
+	0x69, 0x6e, 0x18, 0x1b, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x10, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73,
+	0x73, 0x43, 0x6f, 0x64, 0x65, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x12, 0x28, 0x0a, 0x10, 0x61, 0x64,
+	0x64, 0x72, 0x65, 0x73, 0x73, 0x5f, 0x63, 0x6f, 0x64, 0x65, 0x5f, 0x65, 0x6e, 0x64, 0x18, 0x1c,
+	0x20, 0x01, 0x28, 0x0d, 0x52, 0x0e, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x43, 0x6f, 0x64,
+	0x65, 0x45, 0x6e, 0x64, 0x12, 0x23, 0x0a, 0x0d, 0x61, 0x6c, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x65,
+	0x5f, 0x6d, 0x6f, 0x64, 0x65, 0x18, 0x1d, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x0c, 0x61, 0x6c, 0x6c,
+	0x6f, 0x63, 0x61, 0x74, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x42, 0x09, 0x5a, 0x07, 0x2e, 0x3b, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
