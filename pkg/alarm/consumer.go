@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"time"
 
-	"github.com/cuityhj/cement/log"
 	"github.com/golang/protobuf/proto"
+	"github.com/linkingthing/cement/log"
 	utils "github.com/linkingthing/clxone-utils/alarm"
 	kg "github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
