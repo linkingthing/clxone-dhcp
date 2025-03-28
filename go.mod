@@ -4,7 +4,6 @@ go 1.22.4
 
 require (
 	github.com/Ullaakut/nmap/v2 v2.2.0
-	github.com/cuityhj/cement v1.0.0
 	github.com/cuityhj/g67 v1.1.0
 	github.com/cuityhj/gohelper v1.2.1
 	github.com/gin-gonic/gin v1.10.0
