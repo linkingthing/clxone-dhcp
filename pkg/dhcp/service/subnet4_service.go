@@ -986,7 +986,7 @@ func parseReservation4sFromString(field string) ([]*resource.Reservation4, error
 func checkSubnetNodesValid(subnetNodes, sentryNodes []string) error {
 	for _, subnetNode := range subnetNodes {
 		if slice.SliceIndex(sentryNodes, subnetNode) == -1 {
-			errorno.ErrInvalidParams(errorno.ErrNameDhcpSentryNode, subnetNode)
+			return errorno.ErrInvalidParams(errorno.ErrNameDhcpSentryNode, subnetNode)
 		}
 	}
 
