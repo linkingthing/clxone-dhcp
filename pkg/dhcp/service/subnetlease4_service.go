@@ -28,6 +28,8 @@ var (
 	ErrorSubnetNotInNodes    = fmt.Errorf("subnet is not in any nodes")
 )
 
+const NeedFilterDeclineLeases = true
+
 type SubnetLease4Service struct{}
 
 func NewSubnetLease4Service() *SubnetLease4Service {
@@ -43,7 +45,7 @@ func (l *SubnetLease4Service) ActionListToReservation(subnet *resource.Subnet4, 
 		return &resource.ConvToReservationInput{Data: []resource.ConvToReservationItem{}}, nil
 	}
 
-	leases, err := ListSubnetLease4(subnet, "")
+	leases, err := ListSubnetLease4(subnet, "", NeedFilterDeclineLeases)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +82,7 @@ func (l *SubnetLease4Service) listToReservationWithMac(leases []*resource.Subnet
 		}
 	}
 
-	lease6s, err := GetSubnets6LeasesWithMacs(hwAddresses)
+	lease6s, err := GetSubnets6LeasesWithMacs(hwAddresses, NeedFilterDeclineLeases)
 	if err != nil {
 		log.Warnf("get leases of subnets with macs failed: %s", err.Error())
 	}
@@ -126,7 +128,7 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 		return nil
 	}
 
-	leases, err := ListSubnetLease4(subnet, "")
+	leases, err := ListSubnetLease4(subnet, "", NeedFilterDeclineLeases)
 	if err != nil {
 		return err
 	}
@@ -141,7 +143,7 @@ func (l *SubnetLease4Service) ActionDynamicToReservation(subnet *resource.Subnet
 		return createReservationsFromDynamicLeases(v4ReservationMap, nil)
 	}
 
-	lease6s, err := GetSubnets6LeasesWithMacs(hwAddresses)
+	lease6s, err := GetSubnets6LeasesWithMacs(hwAddresses, NeedFilterDeclineLeases)
 	if err != nil {
 		return err
 	}
@@ -239,11 +241,15 @@ func (l *SubnetLease4Service) getReservationFromLease(leases []*resource.SubnetL
 	return reservations, hwAddresses, ipv6MacMap, nil
 }
 
-func ListSubnetLease4(subnet *resource.Subnet4, ip string) ([]*resource.SubnetLease4, error) {
-	hasAddressFilter := ip != ""
-	if hasAddressFilter {
-		if _, err := gohelperip.ParseIPv4(ip); err != nil {
+func ListSubnetLease4(subnet *resource.Subnet4, ipstr string, needFilterDeclineLeases ...bool) ([]*resource.SubnetLease4, error) {
+	var ips []string
+	var ip net.IP
+	if ipstr != "" {
+		if ip_, err := gohelperip.ParseIPv4(ipstr); err != nil {
 			return nil, nil
+		} else {
+			ips = []string{ipstr}
+			ip = ip_
 		}
 	}
 
@@ -259,12 +265,7 @@ func ListSubnetLease4(subnet *resource.Subnet4, ip string) ([]*resource.SubnetLe
 		}
 
 		subnet4SubnetId = subnet4.SubnetId
-		if hasAddressFilter {
-			reservations, reclaimedSubnetLeases, err = getReservation4sAndReclaimedSubnetLease4sWithIp(tx, subnet4, ip)
-		} else {
-			reservations, reclaimedSubnetLeases, err = getReservation4sAndReclaimedSubnetLease4s(tx, subnet.GetID())
-		}
-
+		reservations, reclaimedSubnetLeases, err = getReservation4sAndReclaimedSubnetLease4s(tx, subnet, ip)
 		return err
 	}); err != nil {
 		if err == ErrorIpNotBelongToSubnet || err == ErrorSubnetNotInNodes {
@@ -274,73 +275,32 @@ func ListSubnetLease4(subnet *resource.Subnet4, ip string) ([]*resource.SubnetLe
 		}
 	}
 
-	if hasAddressFilter {
-		return getSubnetLease4sWithIp(subnet4SubnetId, ip, reservations, reclaimedSubnetLeases)
-	} else {
-		return getSubnetLease4s(subnet4SubnetId, reservations, reclaimedSubnetLeases)
-	}
+	return getSubnetLease4s(subnet4SubnetId, reservations, reclaimedSubnetLeases, ips, needFilterDeclineLeases...)
 }
 
-func getReservation4sAndReclaimedSubnetLease4sWithIp(tx restdb.Transaction, subnet4 *resource.Subnet4, ip string) ([]*resource.Reservation4, []*resource.SubnetLease4, error) {
-	if !subnet4.Ipnet.Contains(net.ParseIP(ip)) {
-		return nil, nil, ErrorIpNotBelongToSubnet
-	}
-
-	var reservations []*resource.Reservation4
-	if err := tx.Fill(map[string]interface{}{
-		resource.SqlColumnIpAddress: ip,
-		resource.SqlColumnSubnet4:   subnet4.GetID()},
-		&reservations); err != nil {
-		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-	}
-
-	var subnetLeases []*resource.SubnetLease4
-	if err := tx.Fill(map[string]interface{}{
-		resource.SqlColumnAddress: ip,
-		resource.SqlColumnSubnet4: subnet4.GetID()},
-		&subnetLeases); err != nil {
-		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameLease), pg.Error(err).Error())
-	}
-
-	return reservations, subnetLeases, nil
-}
-
-func getReservation4sAndReclaimedSubnetLease4s(tx restdb.Transaction, subnetId string) ([]*resource.Reservation4, []*resource.SubnetLease4, error) {
-	var reservations []*resource.Reservation4
-	if err := tx.Fill(map[string]interface{}{
-		resource.SqlColumnSubnet4: subnetId},
-		&reservations); err != nil {
-		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-	}
-
-	var subnetLeases []*resource.SubnetLease4
-	if err := tx.Fill(map[string]interface{}{resource.SqlColumnSubnet4: subnetId},
-		&subnetLeases); err != nil {
-		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery, string(errorno.ErrNameLease), pg.Error(err).Error())
-	}
-
-	return reservations, subnetLeases, nil
-}
-
-func getSubnetLease4sWithIp(subnetId uint64, ip string, reservations []*resource.Reservation4, reclaimedSubnetLeases []*resource.SubnetLease4) ([]*resource.SubnetLease4, error) {
-	lease4, err := GetSubnetLease4WithoutReclaimed(subnetId, ip, reclaimedSubnetLeases)
-	if err != nil {
-		log.Debugf("get subnet4 %d lease4s failed: %s", subnetId, err.Error())
-		return nil, nil
-	} else if lease4 == nil {
-		return nil, nil
-	}
-
-	if lease4.AllocateMode == pbdhcpagent.LeaseAllocateMode_DYNAMIC.String() {
-		for _, reservation := range reservations {
-			if reservation.IpAddress == lease4.Address && subnetLease4AllocateToReservation4(reservation, lease4) {
-				lease4.AllocateMode = pbdhcpagent.LeaseAllocateMode_RESERVATION.String()
-				break
-			}
+func getReservation4sAndReclaimedSubnetLease4s(tx restdb.Transaction, subnet4 *resource.Subnet4, ip net.IP) ([]*resource.Reservation4, []*resource.SubnetLease4, error) {
+	condition := map[string]interface{}{resource.SqlColumnSubnet4: subnet4.GetID()}
+	if ip != nil {
+		if !subnet4.Ipnet.Contains(ip) {
+			return nil, nil, ErrorIpNotBelongToSubnet
 		}
+
+		condition[resource.SqlColumnIpAddress] = ip.String()
 	}
 
-	return []*resource.SubnetLease4{lease4}, nil
+	var reservations []*resource.Reservation4
+	if err := tx.Fill(condition, &reservations); err != nil {
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+	}
+
+	var subnetLeases []*resource.SubnetLease4
+	if err := tx.Fill(condition, &subnetLeases); err != nil {
+		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
+			string(errorno.ErrNameLease), pg.Error(err).Error())
+	}
+
+	return reservations, subnetLeases, nil
 }
 
 func GetSubnetLease4WithoutReclaimed(subnetId uint64, ip string, reclaimedSubnetLeases []*resource.SubnetLease4) (*resource.SubnetLease4, error) {
@@ -409,9 +369,9 @@ func subnetLease4AllocateToReservation4(reservation *resource.Reservation4, leas
 		(reservation.Hostname != "" && reservation.Hostname == lease4.Hostname)
 }
 
-func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, reclaimedSubnetLeases []*resource.SubnetLease4) ([]*resource.SubnetLease4, error) {
+func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, reclaimedSubnetLeases []*resource.SubnetLease4, ips []string, needFilterDeclineLeases ...bool) ([]*resource.SubnetLease4, error) {
 	leases, reclaimleasesForRetain, err := getSubnetLease4sWithoutReclaimed(subnetId, reclaimedSubnetLeases,
-		reservationMapFromReservation4s(reservations))
+		reservationMapFromReservation4s(reservations), ips, needFilterDeclineLeases...)
 	if err != nil {
 		return nil, err
 	}
@@ -427,7 +387,7 @@ func getSubnetLease4s(subnetId uint64, reservations []*resource.Reservation4, re
 	return leases, nil
 }
 
-func getSubnetLease4sWithoutReclaimed(subnetId uint64, reclaimedSubnetLeases []*resource.SubnetLease4, reservationMap map[string]*resource.Reservation4, ips ...string) ([]*resource.SubnetLease4, []string, error) {
+func getSubnetLease4sWithoutReclaimed(subnetId uint64, reclaimedSubnetLeases []*resource.SubnetLease4, reservationMap map[string]*resource.Reservation4, ips []string, needFilterDeclineLeases ...bool) ([]*resource.SubnetLease4, []string, error) {
 	var resp *pbdhcpagent.GetLeases4Response
 	if err := transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) (err error) {
 		if len(ips) != 0 {
@@ -448,7 +408,12 @@ func getSubnetLease4sWithoutReclaimed(subnetId uint64, reclaimedSubnetLeases []*
 
 	var leases []*resource.SubnetLease4
 	var reclaimleasesForRetain []string
+	needFilterDeclineLease := len(needFilterDeclineLeases) != 0 && needFilterDeclineLeases[0]
 	for _, lease := range resp.GetLeases() {
+		if needFilterDeclineLease && lease.GetLeaseState() != pbdhcpagent.LeaseState_NORMAL {
+			continue
+		}
+
 		lease4 := subnetLease4FromPbLease4AndReservations(lease, reservationMap)
 		if reclaimedLease, ok := reclaimedAddrAndLeases[lease4.Address]; ok && reclaimedLease.Equal(lease4) {
 			reclaimleasesForRetain = append(reclaimleasesForRetain, reclaimedLease.GetID())
@@ -505,7 +470,7 @@ func (l *SubnetLease4Service) batchDeleteLease4s(tx restdb.Transaction, subnetId
 		return err
 	}
 
-	lease4s, _, err := getSubnetLease4sWithoutReclaimed(subnet4.SubnetId, reclaimedSubnetLeases, nil, leaseIds...)
+	lease4s, _, err := getSubnetLease4sWithoutReclaimed(subnet4.SubnetId, reclaimedSubnetLeases, nil, leaseIds)
 	if err != nil {
 		return err
 	}
@@ -566,7 +531,7 @@ func (l *SubnetLease4Service) BatchDeleteLease4s(subnetId string, leaseIds []str
 	})
 }
 
-func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, error) {
+func GetSubnets4LeasesWithMacs(hwAddresses []string, needFilterDeclineLeases ...bool) ([]*resource.SubnetLease4, error) {
 	var err error
 	var resp *pbdhcpagent.GetLeases4Response
 	if err = transport.CallDhcpAgentGrpc4(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) error {
@@ -579,7 +544,14 @@ func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, 
 
 	addresses := make([]string, 0, len(resp.GetLeases()))
 	hasDynamicLease := false
+	needFilterDeclineLease := len(needFilterDeclineLeases) != 0 && needFilterDeclineLeases[0]
+	normalLeases := make([]*pbdhcpagent.DHCPLease4, 0, len(resp.GetLeases()))
 	for _, lease := range resp.GetLeases() {
+		if needFilterDeclineLease && lease.GetLeaseState() != pbdhcpagent.LeaseState_NORMAL {
+			continue
+		}
+
+		normalLeases = append(normalLeases, lease)
 		addresses = append(addresses, lease.GetAddress())
 		if !hasDynamicLease && lease.GetAllocateMode() == pbdhcpagent.LeaseAllocateMode_DYNAMIC {
 			hasDynamicLease = true
@@ -593,8 +565,8 @@ func GetSubnets4LeasesWithMacs(hwAddresses []string) ([]*resource.SubnetLease4, 
 		}
 	}
 
-	leases := make([]*resource.SubnetLease4, 0, len(resp.GetLeases()))
-	for _, lease := range resp.GetLeases() {
+	leases := make([]*resource.SubnetLease4, 0, len(normalLeases))
+	for _, lease := range normalLeases {
 		leases = append(leases, subnetLease4FromPbLease4AndReservations(lease, reservationMap))
 	}
 

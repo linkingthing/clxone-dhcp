@@ -88,9 +88,12 @@ func FormatDbInsertError(errName errorno.ErrName, target string, err error) erro
 	if err == nil {
 		return nil
 	}
+
 	errMsg := pg.Error(err).Error()
-	if strings.Contains(errMsg, "unique violation") {
+	if strings.Contains(errMsg, "unique violation") ||
+		strings.Contains(errMsg, "unique constraint") {
 		return errorno.ErrDuplicate(errName, target)
 	}
+
 	return errorno.ErrDBError(errorno.ErrDBNameInsert, target, errMsg)
 }
