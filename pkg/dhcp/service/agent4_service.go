@@ -12,6 +12,7 @@ const (
 	DeployModelCluster   string = "cluster"
 	DeployModelHa        string = "ha"
 	DeployModelAnycast   string = "anycast"
+	DeployModeBackup     string = "backup"
 )
 
 type Agent4Service struct {
@@ -122,7 +123,7 @@ func GetAgentInfo(alive bool, role ...kafka.AgentRole) (map[string]Agent, error)
 		}
 
 		switch node.Deploy {
-		case DeployModelHa:
+		case DeployModelHa, DeployModeBackup:
 			if vip := node.VirtualIp; vip != "" {
 				agent := Agent{
 					Id:   vip,
