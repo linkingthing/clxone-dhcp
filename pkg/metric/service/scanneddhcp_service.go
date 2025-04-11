@@ -53,13 +53,7 @@ func (h *ScannedDHCPService) scanIllegalDHCPServer(searchInterval uint32) {
 				log.Warnf("fill illegal dhcp servers mac failed:%s", err.Error())
 			}
 			for _, dhcpServer := range dhcpServers {
-				if mac, err := util.NormalizeMac(dhcpServer.Mac); err != nil {
-					dhcpServer.Mac = mac
-				}
-				if len(dhcpServer.Mac) == 0 {
-					continue
-				}
-
+				dhcpServer.Mac, _ = util.NormalizeMac(dhcpServer.Mac)
 				ip := dhcpServer.IPv4
 				if ip == "" {
 					ip = dhcpServer.IPv6
