@@ -1418,7 +1418,7 @@ func getChangedNodes(oldNodes, newNodes []string, isv4 bool) ([]string, []string
 }
 
 func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resource.Subnet4, newNodes []string) error {
-	if len(subnet4.Nodes) == 0 && len(newNodes) == 0 {
+	if checkSlicesEqual(subnet4.Nodes, newNodes) {
 		return nil
 	}
 
@@ -1466,6 +1466,20 @@ func sendUpdateSubnet4NodesCmdToDHCPAgent(tx restdb.Transaction, subnet4 *resour
 	}
 
 	return nil
+}
+
+func checkSlicesEqual(s1, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+
+	for i := range s1 {
+		if s1[i] != s2[i] {
+			return false
+		}
+	}
+
+	return true
 }
 
 func checkSubnetCouldBeUpdateNodes(isv4 bool) error {

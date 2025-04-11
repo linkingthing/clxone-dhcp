@@ -1485,7 +1485,7 @@ func (s *Subnet6Service) ExportExcelTemplate() (*excel.ExportFile, error) {
 }
 
 func sendUpdateSubnet6NodesCmdToDHCPAgent(tx restdb.Transaction, subnet6 *resource.Subnet6, newNodes []string) error {
-	if len(subnet6.Nodes) == 0 && len(newNodes) == 0 {
+	if checkSlicesEqual(subnet6.Nodes, newNodes) {
 		return nil
 	}
 
