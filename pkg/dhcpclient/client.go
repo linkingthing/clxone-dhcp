@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/linkingthing/cement/log"
-	"github.com/linkingthing/cement/slice"
 	consulutil "github.com/linkingthing/clxone-utils/consul"
 	"google.golang.org/grpc"
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	pbdhcpagent "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-agent"
+	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 var (
@@ -50,11 +51,36 @@ func New() (*DHCPClient, error) {
 	return &DHCPClient{clients: clients}, nil
 }
 
-func getDHCPNodeList() (nodes []*pbdhcpagent.GetDHCPNodesResponse, err error) {
+func getDHCPNodeList() map[string]struct{} {
+	nodes := make(map[string]struct{})
+	if dhcpNodes, err := getDHCPNodesFromWarden(); err != nil {
+		log.Warnf("get dhcp nodes from warden failed: %s", err.Error())
+	} else {
+		for _, dhcpNode := range dhcpNodes {
+			nodes[dhcpNode.GetIpv4()] = struct{}{}
+			nodes[dhcpNode.GetIpv6()] = struct{}{}
+			nodes[dhcpNode.GetVirtualIp()] = struct{}{}
+		}
+	}
+
+	if dhcpNodeIps, err := getDHCPNodesFromDHCPAgent(); err != nil {
+		log.Warnf("get dhcp nodes from dhcp agent failed: %s", err.Error())
+	} else {
+		for _, dhcpNodeIp := range dhcpNodeIps {
+			nodes[dhcpNodeIp] = struct{}{}
+		}
+	}
+
+	return nodes
+}
+
+func getDHCPNodesFromDHCPAgent() ([]string, error) {
 	endpoints, err := consulutil.GetEndpoints(config.ConsulConfig, config.GetConfig().Consul.CallServices.DhcpAgent)
 	if err != nil {
 		return nil, err
 	}
+
+	var ips []string
 	for _, end := range endpoints {
 		response, err := end(context.Background(), struct{}{})
 		if err != nil {
@@ -75,10 +101,19 @@ func getDHCPNodeList() (nodes []*pbdhcpagent.GetDHCPNodesResponse, err error) {
 			return nil, err
 		}
 
-		nodes = append(nodes, resp)
+		ips = append(ips, resp.GetIpv4S()...)
+		ips = append(ips, resp.GetIpv6S()...)
 	}
 
-	return
+	return ips, nil
+}
+
+func getDHCPNodesFromWarden() ([]*pbmonitor.Node, error) {
+	if dhcpNodes, err := transport.GetDHCPNodes(); err != nil {
+		return nil, err
+	} else {
+		return dhcpNodes.GetNodes(), nil
+	}
 }
 
 func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
@@ -89,19 +124,18 @@ func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
 			log.Infof("exchange message with dhcp server failed: %s", err.Error())
 			continue
 		} else {
-			nodes, err := getDHCPNodeList()
-			if err != nil {
-				log.Warnf("get dhcp node failed: %s", err.Error())
+			nodes := getDHCPNodeList()
+			if len(nodes) == 0 {
 				continue
 			}
 
 			for _, server := range servers {
 				if server.IPv4 != "" {
-					if !isDHCPNodeIPv4(nodes, server.IPv4) {
+					if _, ok := nodes[server.IPv4]; !ok {
 						dhcpServer4s[server.IPv4] = server
 					}
 				} else {
-					if !isDHCPNodeIPv6(nodes, server.IPv6) {
+					if _, ok := nodes[server.IPv6]; !ok {
 						dhcpServer6s[server.IPv6] = server
 					}
 				}
@@ -119,26 +153,6 @@ func (cli *DHCPClient) ScanIllegalDHCPServer() []*DHCPServer {
 	}
 
 	return dhcpServers
-}
-
-func isDHCPNodeIPv4(nodes []*pbdhcpagent.GetDHCPNodesResponse, ip string) bool {
-	for _, node := range nodes {
-		if slice.SliceIndex(node.Ipv4S, ip) != -1 {
-			return true
-		}
-	}
-
-	return false
-}
-
-func isDHCPNodeIPv6(nodes []*pbdhcpagent.GetDHCPNodesResponse, ip string) bool {
-	for _, node := range nodes {
-		if slice.SliceIndex(node.Ipv6S, ip) != -1 {
-			return true
-		}
-	}
-
-	return false
 }
 
 func (cli *DHCPClient) Close() {
