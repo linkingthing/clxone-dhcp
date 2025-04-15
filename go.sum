@@ -249,8 +249,8 @@ github.com/linkingthing/cement v1.0.0 h1:WqL7evjsNEz8QQvfSoerNPjo5/z6Qe7hnuWx9aD
 github.com/linkingthing/cement v1.0.0/go.mod h1:dWhD3/5KEdOnwaSFeQD3Vb6NVRshW2LLISM3AiJJp7s=
 github.com/linkingthing/clxone-utils v1.3.6 h1:VgstpTkLO/aOJEH1qHnx/gMLmld8r29SJyZo91GtTTo=
 github.com/linkingthing/clxone-utils v1.3.6/go.mod h1:o1rAcTJWjeLN0i7TJskNzYK8IQ2Vj5un5GKoCRyOxnU=
-github.com/linkingthing/gorest v1.3.4-0.20250407140034-7697aa55cba5 h1:xB+OQ37Zv/ec4U/N2jD8zqKqkhTHgLNN1wfl7P+XZBA=
-github.com/linkingthing/gorest v1.3.4-0.20250407140034-7697aa55cba5/go.mod h1:0LsaiXPJVf1BLhxJsXvLwP5bgZfnaW9AZaUN220TW3o=
+github.com/linkingthing/gorest v1.3.4 h1:yY3hyUe45s2RfRu3gGetxhaONm95FFqZr5uC3dwXkPg=
+github.com/linkingthing/gorest v1.3.4/go.mod h1:0LsaiXPJVf1BLhxJsXvLwP5bgZfnaW9AZaUN220TW3o=
 github.com/lyft/protoc-gen-validate v0.0.13/go.mod h1:XbGvPuh87YZc5TdIa2/I4pLk0QoUACkjt2znoq26NVQ=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.4/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=
