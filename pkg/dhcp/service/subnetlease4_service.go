@@ -265,7 +265,7 @@ func ListSubnetLease4(subnet *resource.Subnet4, ipstr string, needFilterDeclineL
 		}
 
 		subnet4SubnetId = subnet4.SubnetId
-		reservations, reclaimedSubnetLeases, err = getReservation4sAndReclaimedSubnetLease4s(tx, subnet, ip)
+		reservations, reclaimedSubnetLeases, err = getReservation4sAndReclaimedSubnetLease4s(tx, subnet4, ip)
 		return err
 	}); err != nil {
 		if err == ErrorIpNotBelongToSubnet || err == ErrorSubnetNotInNodes {
@@ -279,23 +279,25 @@ func ListSubnetLease4(subnet *resource.Subnet4, ipstr string, needFilterDeclineL
 }
 
 func getReservation4sAndReclaimedSubnetLease4s(tx restdb.Transaction, subnet4 *resource.Subnet4, ip net.IP) ([]*resource.Reservation4, []*resource.SubnetLease4, error) {
-	condition := map[string]interface{}{resource.SqlColumnSubnet4: subnet4.GetID()}
+	reservationCondition := map[string]interface{}{resource.SqlColumnSubnet4: subnet4.GetID()}
+	subnetLeaseCondition := map[string]interface{}{resource.SqlColumnSubnet4: subnet4.GetID()}
 	if ip != nil {
 		if !subnet4.Ipnet.Contains(ip) {
 			return nil, nil, ErrorIpNotBelongToSubnet
 		}
 
-		condition[resource.SqlColumnIpAddress] = ip.String()
+		reservationCondition[resource.SqlColumnIpAddress] = ip.String()
+		subnetLeaseCondition[resource.SqlColumnAddress] = ip.String()
 	}
 
 	var reservations []*resource.Reservation4
-	if err := tx.Fill(condition, &reservations); err != nil {
+	if err := tx.Fill(reservationCondition, &reservations); err != nil {
 		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
 			string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
 	var subnetLeases []*resource.SubnetLease4
-	if err := tx.Fill(condition, &subnetLeases); err != nil {
+	if err := tx.Fill(subnetLeaseCondition, &subnetLeases); err != nil {
 		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
 			string(errorno.ErrNameLease), pg.Error(err).Error())
 	}

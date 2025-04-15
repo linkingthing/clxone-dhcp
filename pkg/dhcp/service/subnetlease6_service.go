@@ -249,7 +249,7 @@ func ListSubnetLease6(subnet *resource.Subnet6, ipstr string, needFilterDeclineL
 		}
 
 		subnet6SubnetId = subnet6.SubnetId
-		reservations, reclaimedSubnetLeases, err = getReservation6sAndReclaimedSubnetLease6s(tx, subnet, ip)
+		reservations, reclaimedSubnetLeases, err = getReservation6sAndReclaimedSubnetLease6s(tx, subnet6, ip)
 		return err
 	}); err != nil {
 		if err == ErrorIpNotBelongToSubnet || err == ErrorSubnetNotInNodes {
@@ -263,26 +263,28 @@ func ListSubnetLease6(subnet *resource.Subnet6, ipstr string, needFilterDeclineL
 }
 
 func getReservation6sAndReclaimedSubnetLease6s(tx restdb.Transaction, subnet6 *resource.Subnet6, ip net.IP) ([]*resource.Reservation6, []*resource.SubnetLease6, error) {
-	conditionReservation := map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()}
-	conditionSubnetLease := map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()}
+	reservationSql := "select * from gr_reservation6 where subnet6 = $1"
+	reservationParams := []interface{}{subnet6.GetID()}
+	subnetLeaseCondition := map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()}
 	if ip != nil {
 		if !subnet6.Ipnet.Contains(ip) {
 			return nil, nil, ErrorIpNotBelongToSubnet
 		}
 
 		ipstr := ip.String()
-		conditionReservation[resource.SqlColumnIpAddresses] = restdb.FillValue{Operator: restdb.OperatorAny, Value: ipstr}
-		conditionSubnetLease[resource.SqlColumnIpAddress] = ipstr
+		reservationSql += " and $2::text = any(ip_addresses)"
+		reservationParams = append(reservationParams, ipstr)
+		subnetLeaseCondition[resource.SqlColumnAddress] = ipstr
 	}
 
 	var reservations []*resource.Reservation6
-	if err := tx.Fill(conditionReservation, &reservations); err != nil {
+	if err := tx.FillEx(&reservations, reservationSql, reservationParams...); err != nil {
 		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
 			string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
 	}
 
 	var subnetLeases []*resource.SubnetLease6
-	if err := tx.Fill(conditionSubnetLease, &subnetLeases); err != nil {
+	if err := tx.Fill(subnetLeaseCondition, &subnetLeases); err != nil {
 		return nil, nil, errorno.ErrDBError(errorno.ErrDBNameQuery,
 			string(errorno.ErrNameLease), pg.Error(err).Error())
 	}
