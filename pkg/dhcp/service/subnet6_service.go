@@ -638,6 +638,10 @@ func (h *Subnet6Service) ImportExcel(file *excel.ImportFile) (interface{}, error
 			}
 		}
 
+		if reqForServerCreate == nil || len(reqForServerCreate.Subnets) == 0 {
+			return nil
+		}
+
 		if sentryVip != "" {
 			return sendCreateSubnet6sAndPoolsCmdToDHCPAgentWithHA(sentryNodes,
 				reqForServerCreate)
