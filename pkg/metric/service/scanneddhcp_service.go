@@ -18,7 +18,7 @@ import (
 
 type ScannedDHCPService struct {
 	dhcpClient *dhcpclient.DHCPClient
-	localIp    string
+	hostname   string
 }
 
 func InitScannedDHCPService(conf *config.DHCPConfig) error {
@@ -27,7 +27,7 @@ func InitScannedDHCPService(conf *config.DHCPConfig) error {
 		return err
 	}
 
-	h := &ScannedDHCPService{dhcpClient: dhcpClient, localIp: conf.Server.IP}
+	h := &ScannedDHCPService{dhcpClient: dhcpClient, hostname: conf.Server.Hostname}
 	go h.scanIllegalDHCPServer(conf.DHCP.ScanInterval)
 
 	return nil
@@ -40,7 +40,7 @@ func (h *ScannedDHCPService) scanIllegalDHCPServer(searchInterval uint32) {
 	for {
 		select {
 		case <-ticker.C:
-			if response, err := transport.IsNodeMaster(h.localIp); err == nil && !response.GetIsMaster() {
+			if response, err := transport.IsNodeMaster(h.hostname); err == nil && !response.GetIsMaster() {
 				continue
 			}
 

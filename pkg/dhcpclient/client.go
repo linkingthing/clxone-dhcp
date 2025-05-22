@@ -60,6 +60,7 @@ func getDHCPNodeList() map[string]struct{} {
 			nodes[dhcpNode.GetIpv4()] = struct{}{}
 			nodes[dhcpNode.GetIpv6()] = struct{}{}
 			nodes[dhcpNode.GetVirtualIp()] = struct{}{}
+			nodes[dhcpNode.GetVirtualIpv6()] = struct{}{}
 		}
 	}
 

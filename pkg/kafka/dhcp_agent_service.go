@@ -3,6 +3,9 @@ package kafka
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
+	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -161,7 +164,9 @@ var globalDHCPAgentService *DHCPAgentService
 var onceDHCPAgentService sync.Once
 
 type DHCPAgentService struct {
-	dhcpWriter *kg.Writer
+	dhcpWriter    *kg.Writer
+	NodeCache     map[string]*pbmonitor.Node
+	HostnameCache map[string]*pbmonitor.Node
 }
 
 func GetDHCPAgentService() *DHCPAgentService {
@@ -199,6 +204,10 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 
 	succeedNodes := make([]string, 0, len(nodes))
 	for _, node := range nodes {
+		if cache, ok := a.NodeCache[node]; ok {
+			node = cache.GetHostname()
+		}
+
 		if err := a.dhcpWriter.WriteMessages(context.Background(), kg.Message{
 			Topic: TopicPrefix + node, Key: []byte(cmd), Value: data}); err != nil {
 			return succeedNodes, errorno.ErrHandleCmd(string(cmd), err.Error())
@@ -208,4 +217,19 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 	}
 
 	return succeedNodes, nil
+}
+
+func (a *DHCPAgentService) InitNodeCache() error {
+	dhcpNodes, err := transport.GetDHCPNodes()
+	if err != nil {
+		return fmt.Errorf("init dhcp nodes cache failed:%s", err.Error())
+	}
+
+	a.NodeCache = make(map[string]*pbmonitor.Node, len(dhcpNodes.GetNodes()))
+	a.HostnameCache = make(map[string]*pbmonitor.Node, len(dhcpNodes.GetNodes()))
+	for _, node := range dhcpNodes.GetNodes() {
+		a.NodeCache[node.GetIpv4()] = node
+		a.HostnameCache[node.GetHostname()] = node
+	}
+	return nil
 }

@@ -4,19 +4,20 @@ import (
 	"context"
 	"time"
 
-	consulutil "github.com/linkingthing/clxone-utils/consul"
-
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
 )
 
-func GetDHCPNodes() (response *pbmonitor.GetDHCPNodesResponse, err error) {
+func GetDHCPNodes() (response *pbmonitor.GetNodesResponse, err error) {
 	if err = callWardenGrpc(func(client pbmonitor.MonitorServiceClient) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		response, err = client.GetDHCPNodes(ctx, &pbmonitor.GetDHCPNodesRequest{})
+		response, err = client.GetNodes(ctx, &pbmonitor.GetNodesRequest{
+			QueryType:   pbmonitor.NodeQueryType_service_role,
+			ServiceRole: "dhcp",
+		})
 		return err
 	}); err != nil {
 		err = errorno.ErrNetworkError(errorno.ErrNameDhcpNode, err.Error())
@@ -24,13 +25,13 @@ func GetDHCPNodes() (response *pbmonitor.GetDHCPNodesResponse, err error) {
 	return
 }
 
-func IsNodeMaster(node string) (response *pbmonitor.IsNodeMasterResponse, err error) {
+func IsNodeMaster(hostname string) (response *pbmonitor.IsNodeMasterResponse, err error) {
 	if err = callWardenGrpc(func(client pbmonitor.MonitorServiceClient) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		response, err = client.IsNodeMaster(ctx, &pbmonitor.IsNodeMasterRequest{
-			Ip: node,
+			Hostname: hostname,
 		})
 		return err
 	}); err != nil {
@@ -40,7 +41,7 @@ func IsNodeMaster(node string) (response *pbmonitor.IsNodeMasterResponse, err er
 }
 
 func callWardenGrpc(f func(client pbmonitor.MonitorServiceClient) error) error {
-	conn, err := consulutil.NewGrpcConn(config.ConsulConfig, config.GetConfig().Consul.CallServices.Warden)
+	conn, err := getServiceConnect(config.GetConfig().Server.Hostname, config.GetConfig().Consul.CallServices.Warden)
 	if err != nil {
 		return err
 	}

@@ -40,9 +40,13 @@ func (h *LeaseService) List(ctx *restresource.Context) (interface{}, error) {
 
 	nodeIpAndSubnetLeases := make(map[string][]resource.SubnetLease)
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
 			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
 				if _, ok := subnets[subnet]; ok {
+					nodeIp, err := getDhcpNodeIP(hostname, metricCtx.Version == "4")
+					if err != nil {
+						return nil, err
+					}
 					subnets := nodeIpAndSubnetLeases[nodeIp]
 					subnets = append(subnets, resource.SubnetLease{
 						Subnet: subnet,
@@ -93,7 +97,7 @@ func (h *LeaseService) Get(ctx *restresource.Context) (restresource.Resource, er
 	}
 
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && metricCtx.NodeIP == nodeIp {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok && metricCtx.Hostname == hostname {
 			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
 				if _, ok := subnets[subnet]; ok {
 					lease.Subnets = append(lease.Subnets, resource.SubnetLease{

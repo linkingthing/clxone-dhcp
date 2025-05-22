@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	"strconv"
 	"time"
 
@@ -46,10 +47,15 @@ func (h *PacketStatService) List(ctx *restresource.Context) (interface{}, error)
 
 	nodeIpAndPackets := make(map[string][]resource.Packet)
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
 			if ptype, ok := r.MetricLabels[string(MetricLabelType)]; ok {
 				if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok &&
 					version == string(metricCtx.Version) {
+					nodeIp, err := getDhcpNodeIP(hostname, IsDHCPVersion4(ctx.Resource.GetParent().GetID()))
+					if err != nil {
+						log.Warnf("get node ip err: %v", err)
+						continue
+					}
 					packets := nodeIpAndPackets[nodeIp]
 					packets = append(packets, resource.Packet{
 						Type:   ptype,
@@ -83,6 +89,11 @@ func (h *PacketStatService) Get(ctx *restresource.Context) (restresource.Resourc
 		PromQuery:      PromQueryVersionNode,
 		NodeIP:         packetStat.GetID(),
 	}
+	hostname, err := getDhcpHostname(metricCtx.NodeIP)
+	if err != nil {
+		return nil, err
+	}
+	metricCtx.Hostname = hostname
 
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
 		return nil, err
@@ -94,7 +105,7 @@ func (h *PacketStatService) Get(ctx *restresource.Context) (restresource.Resourc
 	}
 
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && nodeIp == metricCtx.NodeIP {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok && hostname == metricCtx.Hostname {
 			if ptype, ok := r.MetricLabels[string(MetricLabelType)]; ok {
 				if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok &&
 					version == string(metricCtx.Version) {
@@ -137,6 +148,12 @@ func exportMultiColunms(ctx *restresource.Context, metricCtx *MetricContext) (in
 		return nil, err
 	}
 
+	hostname, err := getDhcpHostname(metricCtx.NodeIP)
+	if err != nil {
+		return nil, err
+	}
+	metricCtx.Hostname = hostname
+
 	version, err := getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, err
@@ -176,7 +193,7 @@ func genHeaderAndStrMatrix(ctx *MetricContext, results []PrometheusDataResult) (
 
 	var validResults []PrometheusDataResult
 	for _, r := range results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; !ok || nodeIp != ctx.NodeIP {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; !ok || hostname != ctx.Hostname {
 			continue
 		}
 
@@ -247,4 +264,30 @@ func getTimestampAndValue(values []interface{}) (int64, string) {
 	}
 
 	return timestamp, value
+}
+
+func getDhcpNodeIP(hostname string, isDhcpV4 bool) (string, error) {
+	if len(hostname) == 0 {
+		return "", nil
+	}
+	node, ok := kafka.GetDHCPAgentService().HostnameCache[hostname]
+	if !ok {
+		return "", fmt.Errorf("no found ip from hostname %s", hostname)
+	}
+
+	if isDhcpV4 {
+		return node.GetIpv4(), nil
+	}
+	return node.GetIpv6(), nil
+}
+
+func getDhcpHostname(nodeIp string) (string, error) {
+	if len(nodeIp) == 0 {
+		return "", nil
+	}
+	node, ok := kafka.GetDHCPAgentService().NodeCache[nodeIp]
+	if !ok {
+		return "", fmt.Errorf("no found hostname from ip %s", nodeIp)
+	}
+	return node.GetHostname(), nil
 }

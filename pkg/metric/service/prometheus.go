@@ -75,10 +75,10 @@ func genPrometheusUrl(ctx *MetricContext) string {
 			ctx.Version, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
 	case PromQueryNode:
 		return fmt.Sprintf(string(ctx.PromQuery), HttpScheme, ctx.PrometheusAddr, ctx.MetricName,
-			ctx.NodeIP, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
+			ctx.Hostname, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
 	case PromQueryVersionNode:
 		return fmt.Sprintf(string(ctx.PromQuery), HttpScheme, ctx.PrometheusAddr, ctx.MetricName,
-			ctx.Version, ctx.NodeIP, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
+			ctx.Version, ctx.Hostname, ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)
 	default:
 		return fmt.Sprintf(string(ctx.PromQuery), HttpScheme, ctx.PrometheusAddr, ctx.MetricName,
 			ctx.Period.Begin, ctx.Period.End, ctx.Period.Step)

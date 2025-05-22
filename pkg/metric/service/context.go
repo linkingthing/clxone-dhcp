@@ -43,6 +43,7 @@ type MetricContext struct {
 	PromQuery      PromQuery
 	PrometheusAddr string
 	NodeIP         string
+	Hostname       string
 	MetricName     MetricName
 	MetricLabel    MetricLabel
 	Version        DHCPVersion

@@ -13,7 +13,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
-	service2 "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 type LPSService struct {
@@ -41,7 +41,7 @@ func (h *LPSService) monitor() {
 }
 
 func (h *LPSService) collectLPS() error {
-	threshold := service2.GetAlarmService().GetThreshold(pbutil.ThresholdName_lps)
+	threshold := transport.GetAlarmService().GetThreshold(pbutil.ThresholdName_lps)
 	if threshold == nil {
 		return nil
 	}
@@ -66,10 +66,14 @@ func (h *LPSService) collectLPS() error {
 	lpsValues := make(map[string]map[string][]resource.ValueWithTimestamp)
 	for _, r := range resp.Data.Results {
 		if version, ok := r.MetricLabels[string(MetricLabelVersion)]; ok {
-			if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+			if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
 				nodeAndValues, ok := lpsValues[version]
 				if !ok {
 					nodeAndValues = make(map[string][]resource.ValueWithTimestamp)
+				}
+				nodeIp, err := getDhcpNodeIP(hostname, version == "4")
+				if err != nil {
+					return err
 				}
 				nodeAndValues[nodeIp] = getValuesWithTimestamp(r.Values, ctx.Period)
 				lpsValues[version] = nodeAndValues
@@ -93,7 +97,7 @@ func (h *LPSService) collectLPS() error {
 			}
 
 			if float64(exceedThresholdCount)/float64(len(values)) > 0.6 {
-				return service2.GetAlarmService().AddLPSAlarm(nodeIp, latestValue)
+				return transport.GetAlarmService().AddLPSAlarm(nodeIp, latestValue)
 			}
 		}
 	}
@@ -138,7 +142,11 @@ func getNodeIpAndValuesFromPrometheus(ctx *restresource.Context, metricCtx *Metr
 
 	nodeIpAndValues := make(map[string][]resource.ValueWithTimestamp)
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+			nodeIp, err := getDhcpNodeIP(hostname, metricCtx.Version == "4")
+			if err != nil {
+				return nil, err
+			}
 			nodeIpAndValues[nodeIp] = getValuesWithTimestamp(r.Values, metricCtx.Period)
 		}
 	}
@@ -152,7 +160,10 @@ func resetMetricContext(ctx *restresource.Context, metricCtx *MetricContext) (er
 		return
 	}
 
-	metricCtx.Version, err = getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID())
+	if metricCtx.Version, err = getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID()); err != nil {
+		return
+	}
+	metricCtx.Hostname, err = getDhcpHostname(metricCtx.NodeIP)
 	return
 }
 
@@ -209,7 +220,7 @@ func getValuesFromPrometheus(ctx *restresource.Context, metricCtx *MetricContext
 	}
 
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && nodeIp == metricCtx.NodeIP {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok && hostname == metricCtx.Hostname {
 			return getValuesWithTimestamp(r.Values, metricCtx.Period), nil
 		}
 	}
@@ -244,7 +255,12 @@ func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (inte
 	if err != nil {
 		return nil, err
 	}
+	hostname, err := getDhcpHostname(metricCtx.NodeIP)
+	if err != nil {
+		return nil, err
+	}
 
+	metricCtx.Hostname = hostname
 	metricCtx.Period = timePeriod
 	metricCtx.Version = version
 	resp, err := prometheusRequest(metricCtx)
@@ -254,7 +270,7 @@ func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (inte
 
 	var result PrometheusDataResult
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && nodeIp == metricCtx.NodeIP {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok && hostname == metricCtx.Hostname {
 			result = r
 			break
 		}
