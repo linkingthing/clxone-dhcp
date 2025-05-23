@@ -44,17 +44,17 @@ func (d *AddressCodeLayoutService) Create(addressCodeId string, addressCodeLayou
 }
 
 func checkAddressCodeLayoutDuplicate(tx restdb.Transaction, addressCode string, addressCodeLayout *resource.AddressCodeLayout) error {
-		var addressCodeLayouts []*resource.AddressCodeLayout
-		if err := tx.FillEx(&addressCodeLayouts,
-			"select * from gr_address_code_layout where address_code = $1 and id != $2 and (label = $3 or (begin_bit <= $4 and end_bit >= $5))",
-			addressCode, addressCodeLayout.GetID(), addressCodeLayout.Label, addressCodeLayout.EndBit, addressCodeLayout.BeginBit); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameQuery, string(addressCodeLayout.Label), pg.Error(err).Error())
-		} else if len(addressCodeLayouts) != 0 {
-			return errorno.ErrConflict(errorno.ErrName(addressCodeLayout.Label), errorno.ErrName(addressCodeLayouts[0].Label), "", "")
+	var addressCodeLayouts []*resource.AddressCodeLayout
+	if err := tx.FillEx(&addressCodeLayouts,
+		"select * from gr_address_code_layout where address_code = $1 and id != $2 and (label = $3 or (begin_bit <= $4 and end_bit >= $5))",
+		addressCode, addressCodeLayout.GetID(), addressCodeLayout.Label, addressCodeLayout.EndBit, addressCodeLayout.BeginBit); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameQuery, string(addressCodeLayout.Label), pg.Error(err).Error())
+	} else if len(addressCodeLayouts) != 0 {
+		return errorno.ErrConflict(errorno.ErrName(addressCodeLayout.Label), errorno.ErrName(addressCodeLayouts[0].Label), "", "")
 
-		} else {
-			return nil
-		}
+	} else {
+		return nil
+	}
 }
 
 func sendCreateAddressCodeLayoutCmdToDHCPAgent(addressCode string, addressCodeLayout *resource.AddressCodeLayout) error {

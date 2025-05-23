@@ -50,9 +50,13 @@ func (h *SubnetUsedRatioService) List(ctx *restresource.Context) (interface{}, e
 
 	nodeIpAndSubnetUsages := make(map[string]resource.SubnetUsages)
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
 			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
 				if _, ok := subnets[subnet]; ok {
+					nodeIp, err := getDhcpNodeIP(hostname, metricCtx.Version == "4")
+					if err != nil {
+						return nil, err
+					}
 					subnets := nodeIpAndSubnetUsages[nodeIp]
 					subnets = append(subnets, resource.SubnetUsage{
 						Subnet:     subnet,
@@ -153,7 +157,7 @@ func (h *SubnetUsedRatioService) Get(ctx *restresource.Context) (restresource.Re
 	}
 
 	for _, r := range resp.Data.Results {
-		if nodeIp, ok := r.MetricLabels[string(MetricLabelNode)]; ok && metricCtx.NodeIP == nodeIp {
+		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok && metricCtx.Hostname == hostname {
 			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
 				if _, ok := subnets[subnet]; ok {
 					subnetUsedRatio.Subnets = append(subnetUsedRatio.Subnets, resource.SubnetUsage{
