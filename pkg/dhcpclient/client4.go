@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/cuityhj/g67/dhcpv4"
+	"github.com/cuityhj/dhcp/dhcpv4"
 	"github.com/linkingthing/cement/log"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/sys/unix"
