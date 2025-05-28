@@ -3,15 +3,15 @@ GOSRC = $(shell find . -type f -name '*.go')
 VERSION=v3.2.0
 
 # basic image
-go_image=golang:1.22.10-alpine3.20
+go_image=golang:1.23.9-alpine3.20
 base_image=alpine:3.20
 
 # harbor image
-harbor_go_image=harbor.linkingipam.com/linkingthing/golang-base:1.22.10-alpine3.20
+harbor_go_image=harbor.linkingipam.com/linkingthing/golang:1.23.9-alpine3.20
 harbor_base_image=harbor.linkingipam.com/linkingthing/alpine:3.20
 
 # build arm64
-go_arm_image=golang:1.22.10-alpine3.20
+go_arm_image=golang:1.23.9-alpine3.20
 base_arm_image=alpine:3.20
 
 build: clxone_dhcp
