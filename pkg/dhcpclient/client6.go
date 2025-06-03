@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/cuityhj/g67/dhcpv6"
+	"github.com/cuityhj/dhcp/dhcpv6"
 )
 
 var AllDHCPv6ServerAddr = &net.UDPAddr{IP: dhcpv6.AllDHCPRelayAgentsAndServers, Port: dhcpv6.DefaultServerPort}

@@ -8,7 +8,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	dhcp6 "github.com/cuityhj/g67/dhcpv6"
+	dhcp6 "github.com/cuityhj/dhcp/dhcpv6"
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/cement/uuid"
 	"github.com/linkingthing/clxone-utils/excel"

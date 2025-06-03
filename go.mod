@@ -1,10 +1,12 @@
 module github.com/linkingthing/clxone-dhcp
 
-go 1.22.4
+go 1.23.0
+
+toolchain go1.23.9
 
 require (
 	github.com/Ullaakut/nmap/v2 v2.2.0
-	github.com/cuityhj/g67 v1.1.0
+	github.com/cuityhj/dhcp v1.0.0
 	github.com/cuityhj/gohelper v1.2.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang/protobuf v1.5.4
@@ -13,8 +15,8 @@ require (
 	github.com/linkingthing/clxone-utils v1.3.6
 	github.com/linkingthing/gorest v1.3.4
 	github.com/segmentio/kafka-go v0.4.31
-	golang.org/x/net v0.31.0
-	golang.org/x/sys v0.30.0
+	golang.org/x/net v0.38.0
+	golang.org/x/sys v0.31.0
 	google.golang.org/grpc v1.64.1
 	google.golang.org/protobuf v1.34.1
 )
@@ -67,9 +69,9 @@ require (
 	github.com/xuri/excelize/v2 v2.6.1 // indirect
 	github.com/xuri/nfp v0.0.0-20220409054826-5e722a1d9e22 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto v0.0.0-20220617124728-180714bec0ad // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
