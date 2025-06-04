@@ -46,7 +46,7 @@ func getServiceConnect(hostname string, name string) (*grpc.ClientConn, error) {
 		detectorNodeMap.Store(name, target)
 	}
 
-	return grpc.NewClient(target,
+	return grpc.NewClient(fmt.Sprintf("passthrough:///%s", target),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)))
 }
