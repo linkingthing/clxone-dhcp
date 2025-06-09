@@ -10,7 +10,6 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/alarm"
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric"
 	"github.com/linkingthing/clxone-dhcp/pkg/transport"
 	restserver "github.com/linkingthing/clxone-dhcp/server"
@@ -50,9 +49,6 @@ func initServer(conf *config.DHCPConfig) error {
 		return fmt.Errorf("new server failed: %s", err.Error())
 	}
 
-	if err := kafka.GetDHCPAgentService().InitNodeCache(); err != nil {
-		return fmt.Errorf("init dhcp node cache failed: %s", err.Error())
-	}
 	if err := server.RegisterHandler(restserver.HandlerRegister(dhcp.RegisterApi)); err != nil {
 		return fmt.Errorf("register dhcp handler failed: %s", err.Error())
 	}

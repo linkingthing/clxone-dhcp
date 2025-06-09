@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	"strconv"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/service"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
+	"github.com/linkingthing/clxone-dhcp/pkg/kafka"
 	"github.com/linkingthing/clxone-dhcp/pkg/metric/resource"
 )
 
@@ -270,9 +270,10 @@ func getDhcpNodeIP(hostname string, isDhcpV4 bool) (string, error) {
 	if len(hostname) == 0 {
 		return "", nil
 	}
-	node, ok := kafka.GetDHCPAgentService().HostnameCache[hostname]
-	if !ok {
-		return "", fmt.Errorf("no found ip from hostname %s", hostname)
+
+	node, err := kafka.GetDHCPAgentService().GetDHCPNodeByHostname(hostname)
+	if err != nil {
+		return "", fmt.Errorf("get dhcp hostname %s failed:%s", hostname, err.Error())
 	}
 
 	if isDhcpV4 {
@@ -285,9 +286,10 @@ func getDhcpHostname(nodeIp string) (string, error) {
 	if len(nodeIp) == 0 {
 		return "", nil
 	}
-	node, ok := kafka.GetDHCPAgentService().NodeCache[nodeIp]
-	if !ok {
-		return "", fmt.Errorf("no found hostname from ip %s", nodeIp)
+
+	hostname, err := kafka.GetDHCPAgentService().GetDHCPHostnameByNode(nodeIp)
+	if err != nil {
+		return "", fmt.Errorf("get hostname from ip %s failed:%s", nodeIp, err.Error())
 	}
-	return node.GetHostname(), nil
+	return hostname, nil
 }

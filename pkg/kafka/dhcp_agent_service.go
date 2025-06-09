@@ -4,8 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
-	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 	"sync"
 
 	"github.com/golang/protobuf/proto"
@@ -14,6 +12,8 @@ import (
 
 	"github.com/linkingthing/clxone-dhcp/config"
 	"github.com/linkingthing/clxone-dhcp/pkg/errorno"
+	pbmonitor "github.com/linkingthing/clxone-dhcp/pkg/proto/monitor"
+	transport "github.com/linkingthing/clxone-dhcp/pkg/transport/service"
 )
 
 type DHCPCmd string
@@ -164,9 +164,9 @@ var globalDHCPAgentService *DHCPAgentService
 var onceDHCPAgentService sync.Once
 
 type DHCPAgentService struct {
-	dhcpWriter    *kg.Writer
-	NodeCache     map[string]*pbmonitor.Node
-	HostnameCache map[string]*pbmonitor.Node
+	dhcpWriter *kg.Writer
+	nodeCache  map[string]*pbmonitor.Node
+	lock       sync.RWMutex
 }
 
 func GetDHCPAgentService() *DHCPAgentService {
@@ -187,6 +187,7 @@ func GetDHCPAgentService() *DHCPAgentService {
 				BatchBytes: 10e8,
 				Balancer:   &kg.LeastBytes{},
 			},
+			nodeCache: make(map[string]*pbmonitor.Node),
 		}
 	})
 	return globalDHCPAgentService
@@ -204,8 +205,10 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 
 	succeedNodes := make([]string, 0, len(nodes))
 	for _, node := range nodes {
-		if cache, ok := a.NodeCache[node]; ok {
-			node = cache.GetHostname()
+		if hostname, err := a.GetDHCPHostnameByNode(node); err != nil {
+			return nil, err
+		} else {
+			node = hostname
 		}
 
 		if err := a.dhcpWriter.WriteMessages(context.Background(), kg.Message{
@@ -219,17 +222,70 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 	return succeedNodes, nil
 }
 
-func (a *DHCPAgentService) InitNodeCache() error {
-	dhcpNodes, err := transport.GetDHCPNodes()
+func (a *DHCPAgentService) GetDHCPHostnameByNode(ipv4 string) (string, error) {
+	nodeMap, err := a.loadDHCPNodeCache()
 	if err != nil {
-		return fmt.Errorf("init dhcp nodes cache failed:%s", err.Error())
+		return "", err
 	}
 
-	a.NodeCache = make(map[string]*pbmonitor.Node, len(dhcpNodes.GetNodes()))
-	a.HostnameCache = make(map[string]*pbmonitor.Node, len(dhcpNodes.GetNodes()))
-	for _, node := range dhcpNodes.GetNodes() {
-		a.NodeCache[node.GetIpv4()] = node
-		a.HostnameCache[node.GetHostname()] = node
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+	if node, ok := nodeMap[ipv4]; ok {
+		return node.Hostname, nil
 	}
-	return nil
+	return "", fmt.Errorf("dhcp node %s not found", ipv4)
+}
+
+func (a *DHCPAgentService) GetDHCPNodeByHostname(hostname string) (*pbmonitor.Node, error) {
+	nodeMap, err := a.loadDHCPNodeCache()
+	if err != nil {
+		return nil, err
+	}
+
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+	for _, node := range nodeMap {
+		if node.GetHostname() == hostname {
+			return node, nil
+		}
+	}
+	return nil, fmt.Errorf("dhcp hostname %s not found", hostname)
+}
+
+func (a *DHCPAgentService) GetDHCPNodeTags() (map[string]string, error) {
+	nodeMap, err := a.loadDHCPNodeCache()
+	if err != nil {
+		return nil, err
+	}
+
+	a.lock.RLock()
+	defer a.lock.RUnlock()
+	var tagMap = make(map[string]string, len(nodeMap))
+	for _, node := range nodeMap {
+		for _, tag := range node.GetServiceTags() {
+			tagMap[tag] = tag
+		}
+	}
+	return tagMap, nil
+}
+
+func (a *DHCPAgentService) loadDHCPNodeCache() (map[string]*pbmonitor.Node, error) {
+	a.lock.RLock()
+	if len(a.nodeCache) != 0 {
+		a.lock.RUnlock()
+		return a.nodeCache, nil
+	}
+	a.lock.RUnlock()
+
+	dhcpNodes, err := transport.GetDHCPNodes()
+	if err != nil {
+		return nil, fmt.Errorf("get dhcp nodes from monitor failed:%s", err.Error())
+	}
+
+	a.lock.Lock()
+	defer a.lock.Unlock()
+	for _, node := range dhcpNodes.GetNodes() {
+		a.nodeCache[node.GetIpv4()] = node
+	}
+	return a.nodeCache, nil
 }
