@@ -205,7 +205,7 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 
 	succeedNodes := make([]string, 0, len(nodes))
 	for _, node := range nodes {
-		if hostname, err := a.GetDHCPHostnameByNode(node); err != nil {
+		if hostname, err := a.GetDHCPHostnameByNode(node, true); err != nil {
 			return nil, err
 		} else {
 			node = hostname
@@ -222,7 +222,7 @@ func (a *DHCPAgentService) SendDHCPCmdWithNodes(nodes []string, cmd DHCPCmd, msg
 	return succeedNodes, nil
 }
 
-func (a *DHCPAgentService) GetDHCPHostnameByNode(ipv4 string) (string, error) {
+func (a *DHCPAgentService) GetDHCPHostnameByNode(addr string, isDhcpV4 bool) (string, error) {
 	nodeMap, err := a.loadDHCPNodeCache()
 	if err != nil {
 		return "", err
@@ -230,10 +230,19 @@ func (a *DHCPAgentService) GetDHCPHostnameByNode(ipv4 string) (string, error) {
 
 	a.lock.RLock()
 	defer a.lock.RUnlock()
-	if node, ok := nodeMap[ipv4]; ok {
-		return node.Hostname, nil
+	if isDhcpV4 {
+		if node, ok := nodeMap[addr]; ok {
+			return node.Hostname, nil
+		}
+	} else {
+		for _, node := range nodeMap {
+			if node.GetIpv6() == addr {
+				return node.Hostname, nil
+			}
+		}
 	}
-	return "", fmt.Errorf("dhcp node %s not found", ipv4)
+
+	return "", fmt.Errorf("dhcp node %s not found", addr)
 }
 
 func (a *DHCPAgentService) GetDHCPNodeByHostname(hostname string) (*pbmonitor.Node, error) {

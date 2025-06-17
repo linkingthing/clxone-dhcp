@@ -143,7 +143,7 @@ func getNodeIpAndValuesFromPrometheus(ctx *restresource.Context, metricCtx *Metr
 	nodeIpAndValues := make(map[string][]resource.ValueWithTimestamp)
 	for _, r := range resp.Data.Results {
 		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
-			nodeIp, err := getDhcpNodeIP(hostname, metricCtx.Version == "4")
+			nodeIp, err := getDhcpNodeIP(hostname, metricCtx.Version == DHCPVersion4)
 			if err != nil {
 				return nil, err
 			}
@@ -163,7 +163,7 @@ func resetMetricContext(ctx *restresource.Context, metricCtx *MetricContext) (er
 	if metricCtx.Version, err = getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID()); err != nil {
 		return
 	}
-	metricCtx.Hostname, err = getDhcpHostname(metricCtx.NodeIP)
+	metricCtx.Hostname, err = getDhcpHostname(metricCtx.NodeIP, metricCtx.Version == DHCPVersion4)
 	return
 }
 
@@ -255,14 +255,14 @@ func exportTwoColumns(ctx *restresource.Context, metricCtx *MetricContext) (inte
 	if err != nil {
 		return nil, err
 	}
-	hostname, err := getDhcpHostname(metricCtx.NodeIP)
+	metricCtx.Version = version
+	hostname, err := getDhcpHostname(metricCtx.NodeIP, metricCtx.Version == DHCPVersion4)
 	if err != nil {
 		return nil, err
 	}
 
 	metricCtx.Hostname = hostname
 	metricCtx.Period = timePeriod
-	metricCtx.Version = version
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
 		return nil, err

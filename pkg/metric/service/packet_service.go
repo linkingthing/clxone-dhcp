@@ -89,12 +89,6 @@ func (h *PacketStatService) Get(ctx *restresource.Context) (restresource.Resourc
 		PromQuery:      PromQueryVersionNode,
 		NodeIP:         packetStat.GetID(),
 	}
-	hostname, err := getDhcpHostname(metricCtx.NodeIP)
-	if err != nil {
-		return nil, err
-	}
-	metricCtx.Hostname = hostname
-
 	if err := resetMetricContext(ctx, metricCtx); err != nil {
 		return nil, err
 	}
@@ -148,19 +142,18 @@ func exportMultiColunms(ctx *restresource.Context, metricCtx *MetricContext) (in
 		return nil, err
 	}
 
-	hostname, err := getDhcpHostname(metricCtx.NodeIP)
-	if err != nil {
-		return nil, err
-	}
-	metricCtx.Hostname = hostname
-
 	version, err := getDHCPVersionFromDHCPID(ctx.Resource.GetParent().GetID())
 	if err != nil {
 		return nil, err
 	}
-
-	metricCtx.Period = timePeriod
 	metricCtx.Version = version
+	hostname, err := getDhcpHostname(metricCtx.NodeIP, metricCtx.Version == DHCPVersion4)
+	if err != nil {
+		return nil, err
+	}
+	metricCtx.Hostname = hostname
+	metricCtx.Period = timePeriod
+
 	resp, err := prometheusRequest(metricCtx)
 	if err != nil {
 		return nil, err
@@ -282,12 +275,12 @@ func getDhcpNodeIP(hostname string, isDhcpV4 bool) (string, error) {
 	return node.GetIpv6(), nil
 }
 
-func getDhcpHostname(nodeIp string) (string, error) {
+func getDhcpHostname(nodeIp string, isDhcpV4 bool) (string, error) {
 	if len(nodeIp) == 0 {
 		return "", nil
 	}
 
-	hostname, err := kafka.GetDHCPAgentService().GetDHCPHostnameByNode(nodeIp)
+	hostname, err := kafka.GetDHCPAgentService().GetDHCPHostnameByNode(nodeIp, isDhcpV4)
 	if err != nil {
 		return "", fmt.Errorf("get hostname from ip %s failed:%s", nodeIp, err.Error())
 	}

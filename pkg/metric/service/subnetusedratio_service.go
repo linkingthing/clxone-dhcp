@@ -53,7 +53,7 @@ func (h *SubnetUsedRatioService) List(ctx *restresource.Context) (interface{}, e
 		if hostname, ok := r.MetricLabels[string(MetricLabelNode)]; ok {
 			if subnet, ok := r.MetricLabels[string(MetricLabelSubnet)]; ok {
 				if _, ok := subnets[subnet]; ok {
-					nodeIp, err := getDhcpNodeIP(hostname, metricCtx.Version == "4")
+					nodeIp, err := getDhcpNodeIP(hostname, metricCtx.Version == DHCPVersion4)
 					if err != nil {
 						return nil, err
 					}
