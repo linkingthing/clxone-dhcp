@@ -105,6 +105,9 @@ const (
 	ErrNameAssetOperatingSystem     ErrName = "OperatingSystem"
 	ErrNameAccessNetworkTime        ErrName = "AccessNetworkTime"
 	ErrNameAsset                    ErrName = "asset"
+	ErrNameDomainSearchList         ErrName = "domainSearchList"
+	ErrNameAutoReservationType      ErrName = "autoReservationType"
+	ErrNameV6Prefix64               ErrName = "v6Prefix64"
 
 	ErrNameMetric      ErrName = "metric"
 	ErrNameUsedRatio   ErrName = "usedRatio"
@@ -179,6 +182,9 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameAccessNetworkTime:       "入网时间",
 	ErrNameAsset:                   "分配资产",
 	ErrNameBatchDelete:             "批量删除",
+	ErrNameDomainSearchList:        "域名后缀列表",
+	ErrNameAutoReservationType:     "自动固定地址",
+	ErrNameV6Prefix64:              "NAT64前缀",
 
 	ErrDBNameInsert: "写入数据",
 	ErrDBNameUpdate: "更新数据",

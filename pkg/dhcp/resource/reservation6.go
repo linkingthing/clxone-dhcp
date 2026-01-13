@@ -48,6 +48,7 @@ type Reservation6 struct {
 	UsedRatio                 string      `json:"usedRatio" rest:"description=readonly" db:"-"`
 	UsedCount                 uint64      `json:"usedCount" rest:"description=readonly" db:"-"`
 	Comment                   string      `json:"comment"`
+	AutoCreate                bool        `json:"autoCreate" rest:"description=readonly"`
 }
 
 func (r Reservation6) GetParents() []restresource.ResourceKind {

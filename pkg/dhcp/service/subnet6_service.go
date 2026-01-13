@@ -152,6 +152,14 @@ func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetO
 		})
 	}
 
+	if len(subnet.DomainSearchList) != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "domain-search-list",
+			Code: 24,
+			Data: strings.Join(subnet.DomainSearchList, ","),
+		})
+	}
+
 	if subnet.InformationRefreshTime != 0 {
 		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "information-refresh-time",
@@ -165,6 +173,14 @@ func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetO
 			Name: "cap-wap-access-controller-addresses",
 			Code: 52,
 			Data: strings.Join(subnet.CapWapACAddresses, ","),
+		})
+	}
+
+	if len(subnet.V6Prefix64) != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "v6-prefix64",
+			Code: 113,
+			Data: subnet.V6Prefix64,
 		})
 	}
 
@@ -408,6 +424,9 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 			resource.SqlColumnEmbedIpv4:                subnet.EmbedIpv4,
 			resource.SqlColumnUseEui64:                 subnet.UseEui64,
 			resource.SqlColumnAddressCode:              subnet.AddressCode,
+			resource.SqlColumnDomainSearchList:         subnet.DomainSearchList,
+			resource.SqlColumnV6Prefix64:               subnet.V6Prefix64,
+			resource.SqlColumnAutoReservationType:      subnet.AutoReservationType,
 			resource.SqlColumnCapacity:                 subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameQuery, subnet.GetID(),
@@ -880,6 +899,16 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			}
 		case FieldNameOption52:
 			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
+		case FieldNameOption24:
+			subnet.DomainSearchList = splitFieldWithoutSpace(field)
+		case FieldNameV6Prefix64:
+			subnet.V6Prefix64 = strings.TrimSpace(field)
+		case FieldNameAutoReservationType:
+			if subnet.AutoReservationType, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
+				return subnet, pools, reservedPools, reservations, pdpools,
+					errorno.ErrInvalidParams(errorno.ErrNameAutoReservationType, field)
+			}
 		case FieldNameNodes:
 			subnet.Nodes = splitFieldWithoutSpace(field)
 		case FieldNamePools:

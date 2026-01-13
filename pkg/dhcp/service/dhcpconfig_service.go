@@ -73,6 +73,8 @@ func (d *DhcpConfigService) Update(config *resource.DhcpConfig) error {
 			resource.SqlColumnMaxValidLifetime: config.MaxValidLifetime,
 			resource.SqlColumnMinValidLifetime: config.MinValidLifetime,
 			resource.SqlColumnDomainServers:    config.DomainServers,
+			resource.SqlColumnDomainSearchList: config.DomainSearchList,
+			resource.SqlColumnRouters:          config.Routers,
 		}, map[string]interface{}{restdb.IDField: config.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameConfig), pg.Error(err).Error())
 		} else if rows == 0 {

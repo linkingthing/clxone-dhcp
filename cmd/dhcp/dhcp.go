@@ -17,15 +17,17 @@ import (
 
 var (
 	configFile                 string
+	logLevel                   string
 	version, commit, buildTime string
 )
 
 func main() {
 	flag.StringVar(&configFile, "c", "clxone-dhcp.conf", "configure file path")
+	flag.StringVar(&logLevel, "l", "info", "log level")
 	flag.Parse()
 
 	fmt.Printf("build version:%s commit:%s time:%s\n", version, commit, buildTime)
-	log.InitLogger(log.Info)
+	log.InitLogger(log.LogLevel(logLevel))
 
 	conf, err := config.LoadConfig(configFile)
 	if err != nil {

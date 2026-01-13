@@ -193,6 +193,14 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 		})
 	}
 
+	if len(subnet.DomainSearchList) != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "domain-search-list",
+			Code: 119,
+			Data: strings.Join(subnet.DomainSearchList, ","),
+		})
+	}
+
 	if len(subnet.CapWapACAddresses) != 0 {
 		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "cap-wap-access-controller-addresses",
@@ -502,6 +510,8 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnBootfile:                 subnet.Bootfile,
 			resource.SqlColumnIpv6OnlyPreferred:        subnet.Ipv6OnlyPreferred,
 			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
+			resource.SqlColumnDomainSearchList:         subnet.DomainSearchList,
+			resource.SqlColumnAutoReservationType:      subnet.AutoReservationType,
 			resource.SqlColumnTags:                     subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, subnet.GetID(),
@@ -894,6 +904,14 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			}
 		case FieldNameOption138:
 			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
+		case FieldNameOption119:
+			subnet.DomainSearchList = splitFieldWithoutSpace(field)
+		case FieldNameAutoReservationType:
+			if subnet.AutoReservationType, err = parseUint32FromString(
+				strings.TrimSpace(field)); err != nil {
+				return subnet, pools, reservedPools, reservations,
+					errorno.ErrInvalidParams(errorno.ErrNameAutoReservationType, field)
+			}
 		case FieldNameNodes:
 			subnet.Nodes = splitFieldWithoutSpace(field)
 		case FieldNameNextServer:

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -12,6 +13,11 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/db"
 	"github.com/linkingthing/clxone-dhcp/pkg/dhcp/resource"
 	pbdhcp "github.com/linkingthing/clxone-dhcp/pkg/proto/dhcp-server"
+)
+
+const (
+	LeaseRequestTypeRequest = "Request"
+	LeaseRequestTypeDecline = "Decline"
 )
 
 func ConsumeLease() {
@@ -42,6 +48,7 @@ func consumeLease4() {
 
 		addFingerprintWithLease4(lease4)
 		addOuiWithLease4(lease4)
+		autoReservation4IfNeed(string(message.Key), lease4)
 	}
 }
 
@@ -107,6 +114,83 @@ func addOuiIfNeed(oui *resource.DhcpOui) {
 	}
 }
 
+func autoReservation4IfNeed(requestType string, lease4 pbdhcp.Lease4) {
+	log.Debugf("lease consumer request type %v lease with mac %s hostname %s ip %s allocate mode %v lease state: %v\n",
+		requestType, lease4.GetHwAddress(), lease4.GetHostname(), lease4.GetAddress(), lease4.GetAllocateMode(), lease4.GetLeaseState())
+	if requestType != LeaseRequestTypeRequest && requestType != LeaseRequestTypeDecline {
+		return
+	}
+
+	if lease4.GetAllocateMode() == 0 && requestType == LeaseRequestTypeRequest {
+		autoCreateReservation4IfNeed(lease4)
+		return
+	}
+
+	if requestType == LeaseRequestTypeDecline {
+		autoDeleteReservation4IfNeed(lease4)
+	}
+}
+
+func autoCreateReservation4IfNeed(lease4 pbdhcp.Lease4) {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet4, err := getSubnet4FromDB(tx, strconv.FormatUint(lease4.GetSubnetId(), 10))
+		if err != nil {
+			return err
+		}
+
+		if subnet4.AutoReservationType == resource.AutoReservationTypeNone ||
+			(subnet4.AutoReservationType == resource.AutoReservationTypeMac && len(lease4.GetHwAddress()) == 0) ||
+			(subnet4.AutoReservationType == resource.AutoReservationTypeHostname && len(lease4.GetHostname()) == 0) {
+			return nil
+		}
+
+		reservation4 := &resource.Reservation4{IpAddress: lease4.GetAddress(), AutoCreate: true}
+		if subnet4.AutoReservationType == resource.AutoReservationTypeMac {
+			reservation4.HwAddress = lease4.GetHwAddress()
+		} else {
+			reservation4.Hostname = lease4.GetHostname()
+		}
+
+		if err := reservation4.Validate(); err != nil {
+			return err
+		}
+
+		return createReservation4(tx, subnet4, reservation4)
+	}); err != nil {
+		log.Warnf("auto create reservation4 with mac %s hostname %s ip %s failed: %s",
+			lease4.GetHwAddress(), lease4.GetHostname(), lease4.GetAddress(), err.Error())
+	}
+}
+
+func autoDeleteReservation4IfNeed(lease4 pbdhcp.Lease4) {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet4, err := getSubnet4FromDB(tx, strconv.FormatUint(lease4.GetSubnetId(), 10))
+		if err != nil {
+			return err
+		}
+
+		if subnet4.AutoReservationType == resource.AutoReservationTypeNone {
+			return nil
+		}
+
+		var reservations []*resource.Reservation4
+		if err := tx.Fill(map[string]interface{}{
+			resource.SqlColumnIpAddress:  lease4.GetAddress(),
+			resource.SqlColumnSubnet4:    subnet4.GetID(),
+			resource.SqlColumnAutoCreate: true,
+		}, &reservations); err != nil {
+			return err
+		} else if len(reservations) == 0 {
+			return nil
+		}
+
+		return deleteReservation4(tx, subnet4, reservations[0])
+	}); err != nil {
+		log.Warnf("auto delete reservation4 with subnet %d %s and ip %s failed: %s",
+			lease4.GetSubnetId(), lease4.GetSubnet(), lease4.GetAddress(), err.Error())
+	}
+}
+
 func consumeLease6() {
 	readerLease6 := alarm.GetKafkaConsumer().GetReaderLease6()
 	if readerLease6 == nil {
@@ -130,6 +214,7 @@ func consumeLease6() {
 
 		addFingerprintWithLease6(lease6)
 		addOuiWithLease6(lease6)
+		autoReservation6IfNeed(string(message.Key), lease6)
 	}
 }
 
@@ -152,5 +237,87 @@ func addOuiWithLease6(lease6 pbdhcp.Lease6) {
 			Oui:        lease6.GetHwAddress()[:8],
 			DataSource: resource.DataSourceAuto,
 		})
+	}
+}
+
+func autoReservation6IfNeed(requestType string, lease6 pbdhcp.Lease6) {
+	log.Debugf("lease consumer request type %v lease with mac %s duid %s hostname %s ip %s allocate mode %v lease state: %v\n",
+		requestType, lease6.GetHwAddress(), lease6.GetDuid(), lease6.GetHostname(), lease6.GetAddress(), lease6.GetAllocateMode(), lease6.GetLeaseState())
+	if requestType != LeaseRequestTypeRequest && requestType != LeaseRequestTypeDecline {
+		return
+	}
+
+	if lease6.GetLeaseType() != "IA_NA" {
+		return
+	}
+
+	if lease6.GetAllocateMode() == 0 && requestType == LeaseRequestTypeRequest {
+		autoCreateReservation6IfNeed(lease6)
+		return
+	}
+
+	if requestType == LeaseRequestTypeDecline {
+		autoDeleteReservation6IfNeed(lease6)
+	}
+}
+
+func autoCreateReservation6IfNeed(lease6 pbdhcp.Lease6) {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet6, err := getSubnet6FromDB(tx, strconv.FormatUint(lease6.GetSubnetId(), 10))
+		if err != nil {
+			return err
+		}
+
+		if subnet6.AutoReservationType == resource.AutoReservationTypeNone ||
+			(subnet6.AutoReservationType == resource.AutoReservationTypeMac && len(lease6.GetHwAddress()) == 0) ||
+			(subnet6.AutoReservationType == resource.AutoReservationTypeDuid && len(lease6.GetDuid()) == 0) ||
+			(subnet6.AutoReservationType == resource.AutoReservationTypeHostname && len(lease6.GetHostname()) == 0) {
+			return nil
+		}
+
+		reservation6 := &resource.Reservation6{IpAddresses: []string{lease6.GetAddress()}, AutoCreate: true}
+		if subnet6.AutoReservationType == resource.AutoReservationTypeMac {
+			reservation6.HwAddress = lease6.GetHwAddress()
+		} else if subnet6.AutoReservationType == resource.AutoReservationTypeDuid {
+			reservation6.Duid = lease6.GetDuid()
+		} else {
+			reservation6.Hostname = lease6.GetHostname()
+		}
+
+		if err := reservation6.Validate(); err != nil {
+			return err
+		}
+
+		return createReservation6(tx, subnet6, reservation6)
+	}); err != nil {
+		log.Warnf("auto create reservation6 with mac %s duid %s hostname %s ip %s failed: %s",
+			lease6.GetHwAddress(), lease6.GetDuid(), lease6.GetHostname(), lease6.GetAddress(), err.Error())
+	}
+}
+
+func autoDeleteReservation6IfNeed(lease6 pbdhcp.Lease6) {
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet6, err := getSubnet6FromDB(tx, strconv.FormatUint(lease6.GetSubnetId(), 10))
+		if err != nil {
+			return err
+		}
+
+		if subnet6.AutoReservationType == resource.AutoReservationTypeNone {
+			return nil
+		}
+
+		var reservations []*resource.Reservation6
+		if err := tx.FillEx(&reservations,
+			"SELECT * FROM gr_reservation6 WHERE $1 = ANY(ip_addresses) AND subnet6 = $2 AND auto_create = true",
+			lease6.GetAddress(), subnet6.GetID()); err != nil {
+			return err
+		} else if len(reservations) == 0 {
+			return nil
+		}
+
+		return deleteReservation6(tx, subnet6, reservations[0])
+	}); err != nil {
+		log.Warnf("auto delete reservation6 with subnet %d %s ip %s failed: %s",
+			lease6.GetSubnetId(), lease6.GetSubnet(), lease6.GetAddress(), err.Error())
 	}
 }

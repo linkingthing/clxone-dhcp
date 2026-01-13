@@ -102,4 +102,8 @@ const (
 	SqlColumnRequestSourceAddr        = "request_source_addr"
 	SqlColumnInformationRefreshTime   = "information_refresh_time"
 	SqlColumnIsAdmitted               = "is_admitted"
+	SqlColumnDomainSearchList         = "domain_search_list"
+	SqlColumnAutoReservationType      = "auto_reservation_type"
+	SqlColumnV6Prefix64               = "v6_prefix64"
+	SqlColumnAutoCreate               = "auto_create"
 )

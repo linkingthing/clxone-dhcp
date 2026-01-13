@@ -22,8 +22,7 @@ import (
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 )
 
-type Reservation6Service struct {
-}
+type Reservation6Service struct{}
 
 func NewReservation6Service() *Reservation6Service {
 	return &Reservation6Service{}
@@ -35,28 +34,34 @@ func (r *Reservation6Service) Create(subnet *resource.Subnet6, reservation *reso
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
-			return err
-		}
-
-		if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-			reservation, true); err != nil {
-			return err
-		}
-
-		reservation.Subnet6 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert,
-				string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-		}
-
-		return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
+		return createReservation6(tx, subnet, reservation)
 	})
 }
 
-func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
-	if err := setSubnet6FromDB(tx, subnet); err != nil {
+func createReservation6(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
+	if err := checkReservation6CouldBeCreated(tx, subnet, reservation); err != nil {
 		return err
+	}
+
+	if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
+		reservation, true); err != nil {
+		return err
+	}
+
+	reservation.Subnet6 = subnet.GetID()
+	if _, err := tx.Insert(reservation); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameInsert,
+			string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+	}
+
+	return sendCreateReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
+}
+
+func checkReservation6CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
+	if !reservation.AutoCreate {
+		if err := setSubnet6FromDB(tx, subnet); err != nil {
+			return err
+		}
 	}
 
 	if subnet.CanNotHasPools() {
@@ -544,19 +549,7 @@ func (r *Reservation6Service) Delete(subnet *resource.Subnet6, reservation *reso
 			return err
 		}
 
-		if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
-			reservation, false); err != nil {
-			return err
-		}
-
-		if _, err := tx.Delete(resource.TableReservation6,
-			map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameDelete, reservation.GetID(),
-				pg.Error(err).Error())
-		}
-
-		return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
-			reservation)
+		return deleteReservation6(tx, subnet, reservation)
 	})
 }
 
@@ -602,6 +595,22 @@ func checkReservation6WithLease(subnet *resource.Subnet6, reservation *resource.
 	}
 
 	return nil
+}
+
+func deleteReservation6(tx restdb.Transaction, subnet *resource.Subnet6, reservation *resource.Reservation6) error {
+	if err := updateSubnet6AndPoolsCapacityWithReservation6(tx, subnet,
+		reservation, false); err != nil {
+		return err
+	}
+
+	if _, err := tx.Delete(resource.TableReservation6,
+		map[string]interface{}{restdb.IDField: reservation.GetID()}); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameDelete, reservation.GetID(),
+			pg.Error(err).Error())
+	}
+
+	return sendDeleteReservation6CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes,
+		reservation)
 }
 
 func sendDeleteReservation6CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation6) error {

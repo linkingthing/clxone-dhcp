@@ -33,11 +33,21 @@ type DhcpConfig struct {
 	MaxValidLifetime          uint32   `json:"maxValidLifetime"`
 	MinValidLifetime          uint32   `json:"minValidLifetime"`
 	DomainServers             []string `json:"domainServers"`
+	DomainSearchList          []string `json:"domainSearchList"`
+	Routers                   []string `json:"routers"`
 }
 
 func (config *DhcpConfig) Validate() error {
 	if err := gohelperip.CheckIPsValid(config.DomainServers...); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameIp, strings.Join(config.DomainServers, ","))
+	}
+
+	if err := checkDomainSearchList(config.DomainSearchList); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameDomainSearchList, config.DomainSearchList)
+	}
+
+	if err := checkIpsValidWithVersion(true, config.Routers); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameGateway, config.Routers)
 	}
 
 	return checkLifetimeValid(config.ValidLifetime, config.MinValidLifetime, config.MaxValidLifetime)

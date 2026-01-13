@@ -47,28 +47,34 @@ func (r *Reservation4Service) Create(subnet *resource.Subnet4, reservation *reso
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
-		if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
-			return err
-		}
-
-		if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
-			reservation, true); err != nil {
-			return err
-		}
-
-		reservation.Subnet4 = subnet.GetID()
-		if _, err := tx.Insert(reservation); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameInsert,
-				string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
-		}
-
-		return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
+		return createReservation4(tx, subnet, reservation)
 	})
 }
 
-func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
-	if err := setSubnet4FromDB(tx, subnet); err != nil {
+func createReservation4(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := checkReservation4CouldBeCreated(tx, subnet, reservation); err != nil {
 		return err
+	}
+
+	if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
+		reservation, true); err != nil {
+		return err
+	}
+
+	reservation.Subnet4 = subnet.GetID()
+	if _, err := tx.Insert(reservation); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameInsert,
+			string(errorno.ErrNameDhcpReservation), pg.Error(err).Error())
+	}
+
+	return sendCreateReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
+}
+
+func checkReservation4CouldBeCreated(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if !reservation.AutoCreate {
+		if err := setSubnet4FromDB(tx, subnet); err != nil {
+			return err
+		}
 	}
 
 	if !subnet.Ipnet.Contains(reservation.Ip) {
@@ -335,18 +341,7 @@ func (r *Reservation4Service) Delete(subnet *resource.Subnet4, reservation *reso
 			return err
 		}
 
-		if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
-			reservation, false); err != nil {
-			return err
-		}
-
-		if _, err := tx.Delete(resource.TableReservation4, map[string]interface{}{
-			restdb.IDField: reservation.GetID()}); err != nil {
-			return errorno.ErrDBError(errorno.ErrDBNameDelete, reservation.GetID(),
-				pg.Error(err).Error())
-		}
-
-		return sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
+		return deleteReservation4(tx, subnet, reservation)
 	})
 }
 
@@ -389,6 +384,21 @@ func checkReservation4WithLease(subnet *resource.Subnet4, reservation *resource.
 	}
 
 	return nil
+}
+
+func deleteReservation4(tx restdb.Transaction, subnet *resource.Subnet4, reservation *resource.Reservation4) error {
+	if err := updateSubnet4OrPool4CapacityWithReservation4(tx, subnet,
+		reservation, false); err != nil {
+		return err
+	}
+
+	if _, err := tx.Delete(resource.TableReservation4, map[string]interface{}{
+		restdb.IDField: reservation.GetID()}); err != nil {
+		return errorno.ErrDBError(errorno.ErrDBNameDelete, reservation.GetID(),
+			pg.Error(err).Error())
+	}
+
+	return sendDeleteReservation4CmdToDHCPAgent(subnet.SubnetId, subnet.Nodes, reservation)
 }
 
 func sendDeleteReservation4CmdToDHCPAgent(subnetID uint64, nodes []string, reservation *resource.Reservation4) error {

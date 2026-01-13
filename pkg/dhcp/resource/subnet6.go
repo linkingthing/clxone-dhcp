@@ -5,6 +5,7 @@ import (
 	"net"
 	"unicode/utf8"
 
+	dhcp6 "github.com/cuityhj/dhcp/dhcpv6"
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/clxone-utils/excel"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -45,6 +46,9 @@ type Subnet6 struct {
 	UseEui64                  bool      `json:"useEui64"`
 	AddressCode               string    `json:"addressCode"`
 	AddressCodeName           string    `json:"addressCodeName" db:"-"`
+	DomainSearchList          []string  `json:"domainSearchList"`
+	V6Prefix64                string    `json:"v6Prefix64"`
+	AutoReservationType       uint32    `json:"autoReservationType"`
 	Nodes                     []string  `json:"nodes"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
@@ -148,6 +152,10 @@ func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 		s.DomainServers = dhcpConfig.DomainServers
 	}
 
+	if len(s.DomainSearchList) == 0 {
+		s.DomainSearchList = dhcpConfig.DomainSearchList
+	}
+
 	return
 }
 
@@ -170,7 +178,8 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*
 		return errorno.ErrInformationRefreshTime()
 	}
 
-	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
+	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses,
+		s.DomainSearchList, s.AutoReservationType); err != nil {
 		return err
 	}
 
@@ -199,6 +208,12 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*
 
 	if err := checkPreferredLifetime(s.PreferredLifetime, s.ValidLifetime, s.MinValidLifetime); err != nil {
 		return err
+	}
+
+	if prefix64, err := checkV6Prefix64(s.V6Prefix64); err != nil {
+		return err
+	} else {
+		s.V6Prefix64 = prefix64
 	}
 
 	return checkNodesValid(s.Nodes)
@@ -287,6 +302,24 @@ func checkPreferredLifetime(preferredLifetime, validLifetime, minValidLifetime u
 	}
 
 	return nil
+}
+
+func checkV6Prefix64(prefix64 string) (string, error) {
+	if len(prefix64) == 0 {
+		return "", nil
+	}
+
+	ipnet, err := gohelperip.ParseCIDRv6(prefix64)
+	if err != nil {
+		return "", errorno.ErrParseCIDR(prefix64)
+	}
+
+	size, _ := ipnet.Mask.Size()
+	if !dhcp6.ValidUnicastLength(uint8(size)) {
+		return "", errorno.ErrParseCIDR(prefix64)
+	}
+
+	return ipnet.String(), nil
 }
 
 func GetIpnetMaskSize(ipnet net.IPNet) uint32 {

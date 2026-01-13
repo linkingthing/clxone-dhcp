@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"unicode/utf8"
 
+	"github.com/cuityhj/g53"
 	gohelperip "github.com/cuityhj/gohelper/ip"
 	"github.com/linkingthing/clxone-utils/excel"
 	pg "github.com/linkingthing/clxone-utils/postgresql"
@@ -50,6 +51,8 @@ type Subnet4 struct {
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	Ipv6OnlyPreferred         uint32    `json:"ipv6OnlyPreferred"`
 	CapWapACAddresses         []string  `json:"capWapACAddresses"`
+	DomainSearchList          []string  `json:"domainSearchList"`
+	AutoReservationType       uint32    `json:"autoReservationType"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
 	NodeNames                 []string  `json:"nodeNames" db:"-"`
 	Nodes                     []string  `json:"nodes"`
@@ -162,6 +165,14 @@ func (s *Subnet4) setSubnetDefaultValue(dhcpConfig *DhcpConfig) (err error) {
 		s.DomainServers = dhcpConfig.DomainServers
 	}
 
+	if len(s.DomainSearchList) == 0 {
+		s.DomainSearchList = dhcpConfig.DomainSearchList
+	}
+
+	if len(s.Routers) == 0 {
+		s.Routers = dhcpConfig.Routers
+	}
+
 	return
 }
 
@@ -206,7 +217,8 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 		return errorno.ErrInvalidParams(errorno.ErrNameRelayAgentRemoteId, s.RelayAgentRemoteId)
 	}
 
-	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses); err != nil {
+	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses,
+		s.DomainSearchList, s.AutoReservationType); err != nil {
 		return err
 	}
 
@@ -257,7 +269,7 @@ func checkTFTPValid(tftpServer, bootfile string) error {
 	return nil
 }
 
-func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses []string) error {
+func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses, domainSearchList []string, autoReservationType uint32) error {
 	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameDNS, domainServers)
 	}
@@ -268,6 +280,14 @@ func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses []str
 
 	if err := checkIpsValidWithVersion(isv4, acAddresses); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameCapWapACAddresses, acAddresses)
+	}
+
+	if err := checkDomainSearchList(domainSearchList); err != nil {
+		return errorno.ErrInvalidParams(errorno.ErrNameDomainSearchList, domainSearchList)
+	}
+
+	if !ValidateAutoReservationType(autoReservationType, isv4) {
+		return errorno.ErrInvalidParams(errorno.ErrNameAutoReservationType, autoReservationType)
 	}
 
 	return nil
@@ -285,6 +305,16 @@ func checkIpsValidWithVersion(isv4 bool, ips []string) error {
 		}
 
 		uniqueIps[ip] = struct{}{}
+	}
+
+	return nil
+}
+
+func checkDomainSearchList(domainSearchList []string) error {
+	for _, domanSearch := range domainSearchList {
+		if _, err := g53.NameFromString(domanSearch); err != nil {
+			return err
+		}
 	}
 
 	return nil
