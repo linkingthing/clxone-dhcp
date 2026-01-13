@@ -88,6 +88,10 @@ func (l *SubnetLease4) Equal(another *SubnetLease4) bool {
 		l.Hostname == another.Hostname
 }
 
+const (
+	ActionFingerprintStatistics = "fingerprint_statistics"
+)
+
 func (s SubnetLease4) GetActions() []restresource.Action {
 	return []restresource.Action{
 		{
@@ -102,6 +106,10 @@ func (s SubnetLease4) GetActions() []restresource.Action {
 		{
 			Name:  ActionDynamicToReservation,
 			Input: &ConvToReservationInput{},
+		},
+		{
+			Name:   ActionFingerprintStatistics,
+			Output: &FingerprintStatistics{},
 		},
 	}
 }
@@ -123,4 +131,9 @@ type ConvToReservationItem struct {
 	HwAddress  string   `json:"hwAddress"`
 	Hostname   string   `json:"hostname"`
 	Duid       string   `json:"duid"`
+}
+
+type FingerprintStatistics struct {
+	ClientType string `json:"clientType"`
+	LeaseCount uint64 `json:"leaseCount"`
 }

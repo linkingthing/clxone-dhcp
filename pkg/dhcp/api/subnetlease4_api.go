@@ -51,6 +51,8 @@ func (l *SubnetLease4Api) Action(ctx *restresource.Context) (interface{}, *reste
 		return l.actionListToReservation(ctx)
 	case resource.ActionDynamicToReservation:
 		return l.actionDynamicToReservation(ctx)
+	case resource.ActionFingerprintStatistics:
+		return l.actionFingerprintStatistics(ctx)
 	default:
 		return nil, errorno.HandleAPIError(resterror.InvalidAction,
 			errorno.ErrUnknownOpt(errorno.ErrNameLease, errorno.ErrName(ctx.Resource.GetAction().Name)))
@@ -97,4 +99,13 @@ func (l *SubnetLease4Api) actionDynamicToReservation(ctx *restresource.Context) 
 		return nil, errorno.HandleAPIError(resterror.ServerError, err)
 	}
 	return nil, nil
+}
+
+func (l *SubnetLease4Api) actionFingerprintStatistics(ctx *restresource.Context) (interface{}, *resterror.APIError) {
+	util.SetIgnoreAuditLog(ctx)
+	if output, err := l.Service.ActionFingerprintStatistics(ctx.Resource.GetParent().(*resource.Subnet4)); err != nil {
+		return nil, errorno.HandleAPIError(resterror.ServerError, err)
+	} else {
+		return output, nil
+	}
 }

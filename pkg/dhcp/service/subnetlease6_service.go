@@ -619,3 +619,72 @@ func getAddrAndReservation6MapWithSubnetIds(subnetIds []string) (map[string]*res
 
 	return reservationMapFromReservation6s(reservations), nil
 }
+
+func (s *SubnetLease6Service) ActionFingerprintStatistics(subnet6 *resource.Subnet6) ([]*resource.FingerprintStatistics, error) {
+	var subnetId uint64
+	var subnetLeases []*resource.SubnetLease6
+	if err := restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
+		subnet, err := getSubnet6FromDB(tx, subnet6.GetID())
+		if err != nil {
+			return err
+		} else if len(subnet.Nodes) == 0 {
+			return ErrorSubnetNotInNodes
+		}
+
+		subnetId = subnet.SubnetId
+		err = tx.Fill(map[string]interface{}{resource.SqlColumnSubnet6: subnet6.GetID()}, &subnetLeases)
+		return err
+	}); err != nil {
+		if err == ErrorSubnetNotInNodes {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	var resp *pbdhcpagent.GetLeases6Response
+	if err := transport.CallDhcpAgentGrpc6(func(ctx context.Context, client pbdhcpagent.DHCPManagerClient) (err error) {
+		resp, err = client.GetSubnet6Leases(ctx, &pbdhcpagent.GetSubnet6LeasesRequest{Id: subnetId})
+		return err
+	}); err != nil {
+		return nil, nil
+	}
+
+	leases := resp.GetLeases()
+	if len(leases) == 0 {
+		return nil, nil
+	}
+
+	reclaimedAddrAndLeases := make(map[string]*resource.SubnetLease6)
+	for _, subnetLease := range subnetLeases {
+		reclaimedAddrAndLeases[subnetLease.Address] = subnetLease
+	}
+
+	clientTypes := make(map[string]uint64, len(leases))
+	for _, lease := range leases {
+		if lease.GetLeaseState() != pbdhcpagent.LeaseState_NORMAL || lease.GetClientType() == "" {
+			continue
+		}
+
+		if reclaimedLease, ok := reclaimedAddrAndLeases[lease.GetAddress()]; !ok ||
+			reclaimedLease.ExpirationTime != lease.GetExpirationTime() ||
+			reclaimedLease.Duid != lease.GetDuid() ||
+			!strings.EqualFold(reclaimedLease.HwAddress, lease.GetHwAddress()) ||
+			reclaimedLease.LeaseType != lease.GetLeaseType() ||
+			reclaimedLease.Iaid != lease.GetIaid() ||
+			reclaimedLease.Hostname != lease.GetHostname() {
+			leaseCount := clientTypes[lease.GetClientType()]
+			clientTypes[lease.GetClientType()] = leaseCount + 1
+		}
+	}
+
+	var stats []*resource.FingerprintStatistics
+	for clientType, leaseCount := range clientTypes {
+		stats = append(stats, &resource.FingerprintStatistics{
+			ClientType: clientType,
+			LeaseCount: leaseCount,
+		})
+	}
+
+	return stats, nil
+}

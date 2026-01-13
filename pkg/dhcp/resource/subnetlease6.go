@@ -123,5 +123,9 @@ func (s SubnetLease6) GetActions() []restresource.Action {
 			Name:  ActionDynamicToReservation,
 			Input: &ConvToReservationInput{},
 		},
+		{
+			Name:   ActionFingerprintStatistics,
+			Output: &FingerprintStatistics{},
+		},
 	}
 }
