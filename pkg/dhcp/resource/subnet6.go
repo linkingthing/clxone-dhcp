@@ -120,8 +120,9 @@ func (s *Subnet6) Validate(dhcpConfig *DhcpConfig, clientClass6s []*ClientClass6
 }
 
 func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
-	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 &&
-		s.MaxValidLifetime != 0 && len(s.DomainServers) != 0 {
+	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 && s.MaxValidLifetime != 0 &&
+		len(s.DomainServers) != 0 && len(s.DomainSearchList) != 0 &&
+		len(s.WhiteClientClasses) != 0 && len(s.BlackClientClasses) != 0 {
 		return
 	}
 
@@ -154,6 +155,14 @@ func (s *Subnet6) setSubnet6DefaultValue(dhcpConfig *DhcpConfig) (err error) {
 
 	if len(s.DomainSearchList) == 0 {
 		s.DomainSearchList = dhcpConfig.DomainSearchList
+	}
+
+	if len(s.WhiteClientClasses) == 0 {
+		s.WhiteClientClasses = dhcpConfig.Subnet6WhiteClientClasses
+	}
+
+	if len(s.BlackClientClasses) == 0 {
+		s.BlackClientClasses = dhcpConfig.Subnet6BlackClientClasses
 	}
 
 	return

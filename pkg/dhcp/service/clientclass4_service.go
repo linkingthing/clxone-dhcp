@@ -137,6 +137,14 @@ func (c *ClientClass4Service) Delete(id string) error {
 			return errorno.ErrBeenUsed(errorno.ErrNameClientClass, id)
 		}
 
+		if count, err := tx.CountEx(resource.TableDhcpConfig,
+			"select count(*) from gr_dhcp_config where $1::text = any(subnet4_white_client_classes) or $1::text = any(subnet4_black_client_classes)",
+			id); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameClientClass), pg.Error(err).Error())
+		} else if count != 0 {
+			return errorno.ErrBeenUsed(errorno.ErrNameClientClass, id)
+		}
+
 		if rows, err := tx.Delete(resource.TableClientClass4,
 			map[string]interface{}{restdb.IDField: id}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameDelete, id, pg.Error(err).Error())

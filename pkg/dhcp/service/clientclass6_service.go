@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+
 	"github.com/linkingthing/clxone-dhcp/pkg/util"
 
 	"github.com/linkingthing/cement/log"
@@ -125,6 +126,14 @@ func (c *ClientClass6Service) Delete(id string) error {
 			"select count(*) from gr_subnet6 where $1::text = any(white_client_classes) or $1::text = any(black_client_classes)",
 			id); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameNetworkV6), pg.Error(err).Error())
+		} else if count != 0 {
+			return errorno.ErrBeenUsed(errorno.ErrNameClientClass, id)
+		}
+
+		if count, err := tx.CountEx(resource.TableDhcpConfig,
+			"select count(*) from gr_dhcp_config where $1::text = any(subnet6_white_client_classes) or $1::text = any(subnet6_black_client_classes)",
+			id); err != nil {
+			return errorno.ErrDBError(errorno.ErrDBNameCount, string(errorno.ErrNameClientClass), pg.Error(err).Error())
 		} else if count != 0 {
 			return errorno.ErrBeenUsed(errorno.ErrNameClientClass, id)
 		}

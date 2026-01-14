@@ -69,12 +69,16 @@ func (d *DhcpConfigService) Update(config *resource.DhcpConfig) error {
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
 		if rows, err := tx.Update(resource.TableDhcpConfig, map[string]interface{}{
-			resource.SqlColumnValidLifetime:    config.ValidLifetime,
-			resource.SqlColumnMaxValidLifetime: config.MaxValidLifetime,
-			resource.SqlColumnMinValidLifetime: config.MinValidLifetime,
-			resource.SqlColumnDomainServers:    config.DomainServers,
-			resource.SqlColumnDomainSearchList: config.DomainSearchList,
-			resource.SqlColumnRouters:          config.Routers,
+			resource.SqlColumnValidLifetime:             config.ValidLifetime,
+			resource.SqlColumnMaxValidLifetime:          config.MaxValidLifetime,
+			resource.SqlColumnMinValidLifetime:          config.MinValidLifetime,
+			resource.SqlColumnDomainServers:             config.DomainServers,
+			resource.SqlColumnDomainSearchList:          config.DomainSearchList,
+			resource.SqlColumnRouters:                   config.Routers,
+			resource.SqlColumnSubnet4WhiteClientClasses: config.Subnet4WhiteClientClasses,
+			resource.SqlColumnSubnet4BlackClientClasses: config.Subnet4BlackClientClasses,
+			resource.SqlColumnSubnet6WhiteClientClasses: config.Subnet6WhiteClientClasses,
+			resource.SqlColumnSubnet6BlackClientClasses: config.Subnet6BlackClientClasses,
 		}, map[string]interface{}{restdb.IDField: config.GetID()}); err != nil {
 			return errorno.ErrDBError(errorno.ErrDBNameUpdate, string(errorno.ErrNameConfig), pg.Error(err).Error())
 		} else if rows == 0 {

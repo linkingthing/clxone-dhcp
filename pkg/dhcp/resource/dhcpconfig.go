@@ -35,6 +35,10 @@ type DhcpConfig struct {
 	DomainServers             []string `json:"domainServers"`
 	DomainSearchList          []string `json:"domainSearchList"`
 	Routers                   []string `json:"routers"`
+	Subnet4WhiteClientClasses []string `json:"subnet4WhiteClientClasses"`
+	Subnet4BlackClientClasses []string `json:"subnet4BlackClientClasses"`
+	Subnet6WhiteClientClasses []string `json:"subnet6WhiteClientClasses"`
+	Subnet6BlackClientClasses []string `json:"subnet6BlackClientClasses"`
 }
 
 func (config *DhcpConfig) Validate() error {
@@ -48,6 +52,14 @@ func (config *DhcpConfig) Validate() error {
 
 	if err := checkIpsValidWithVersion(true, config.Routers); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameGateway, config.Routers)
+	}
+
+	if err := checkClientClass4s(config.Subnet4WhiteClientClasses, config.Subnet4BlackClientClasses, nil); err != nil {
+		return err
+	}
+
+	if err := checkClientClass6s(config.Subnet6WhiteClientClasses, config.Subnet6BlackClientClasses, nil); err != nil {
+		return err
 	}
 
 	return checkLifetimeValid(config.ValidLifetime, config.MinValidLifetime, config.MaxValidLifetime)

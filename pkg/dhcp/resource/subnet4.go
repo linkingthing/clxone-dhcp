@@ -137,8 +137,9 @@ func (s *Subnet4) Validate(dhcpConfig *DhcpConfig, clientClass4s []*ClientClass4
 }
 
 func (s *Subnet4) setSubnetDefaultValue(dhcpConfig *DhcpConfig) (err error) {
-	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 &&
-		s.MaxValidLifetime != 0 && len(s.DomainServers) != 0 {
+	if s.ValidLifetime != 0 && s.MinValidLifetime != 0 && s.MaxValidLifetime != 0 &&
+		len(s.DomainServers) != 0 && len(s.DomainSearchList) != 0 && len(s.Routers) != 0 &&
+		len(s.WhiteClientClasses) != 0 && len(s.BlackClientClasses) != 0 {
 		return
 	}
 
@@ -171,6 +172,14 @@ func (s *Subnet4) setSubnetDefaultValue(dhcpConfig *DhcpConfig) (err error) {
 
 	if len(s.Routers) == 0 {
 		s.Routers = dhcpConfig.Routers
+	}
+
+	if len(s.WhiteClientClasses) == 0 {
+		s.WhiteClientClasses = dhcpConfig.Subnet4WhiteClientClasses
+	}
+
+	if len(s.BlackClientClasses) == 0 {
+		s.BlackClientClasses = dhcpConfig.Subnet4BlackClientClasses
 	}
 
 	return
