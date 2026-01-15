@@ -907,7 +907,7 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 		case FieldNameOption119:
 			subnet.DomainSearchList = splitFieldWithoutSpace(field)
 		case FieldNameAutoReservationType:
-			if subnet.AutoReservationType, err = parseUint32FromString(
+			if subnet.AutoReservationType, err = resource.AutoReservationTypeFromString(
 				strings.TrimSpace(field)); err != nil {
 				return subnet, pools, reservedPools, reservations,
 					errorno.ErrInvalidParams(errorno.ErrNameAutoReservationType, field)

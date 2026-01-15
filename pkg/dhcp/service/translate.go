@@ -212,7 +212,7 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 		strings.Join(subnet4.CapWapACAddresses, resource.CommonDelimiter),
 		strings.Join(subnet4.Nodes, resource.CommonDelimiter), subnet4.NextServer,
 		strings.Join(subnet4.DomainSearchList, resource.CommonDelimiter),
-		uint32ToString(subnet4.AutoReservationType),
+		resource.AutoReservationTypeToString(subnet4.AutoReservationType),
 	}
 }
 
@@ -237,7 +237,7 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 		strings.Join(subnet6.RelayAgentAddresses, resource.CommonDelimiter),
 		strings.Join(subnet6.Nodes, resource.CommonDelimiter),
 		strings.Join(subnet6.DomainSearchList, resource.CommonDelimiter),
-		subnet6.V6Prefix64, uint32ToString(subnet6.AutoReservationType),
+		subnet6.V6Prefix64, resource.AutoReservationTypeToString(subnet6.AutoReservationType),
 	}
 }
 
@@ -456,6 +456,8 @@ func reservation4ToInsertDBSqlString(subnetId uint64, reservation4 *resource.Res
 	buf.WriteString("','")
 	buf.WriteString(reservation4.Comment)
 	buf.WriteString("','")
+	buf.WriteString(boolToString(reservation4.AutoCreate))
+	buf.WriteString("','")
 	buf.WriteString(strconv.FormatUint(subnetId, 10))
 	buf.WriteString("'),")
 	return buf.String()
@@ -600,6 +602,8 @@ func reservation6ToInsertDBSqlString(subnetId uint64, reservation6 *resource.Res
 	buf.WriteString(reservation6.Capacity)
 	buf.WriteString("','")
 	buf.WriteString(reservation6.Comment)
+	buf.WriteString("','")
+	buf.WriteString(boolToString(reservation6.AutoCreate))
 	buf.WriteString("','")
 	buf.WriteString(strconv.FormatUint(subnetId, 10))
 	buf.WriteString("'),")

@@ -15,7 +15,7 @@ import (
 var TableDhcpConfig = restdb.ResourceDBType(&DhcpConfig{})
 
 const (
-	MinValidLifetime        uint32 = 3600
+	MinValidLifetime        uint32 = 300
 	DefaultMinValidLifetime uint32 = 10800
 	DefaultMaxValidLifetime uint32 = 28800
 	DefaultValidLifetime    uint32 = 14400
