@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -642,7 +643,7 @@ func (s *SubnetLease4Service) ActionFingerprintStatistics(subnet4 *resource.Subn
 		}
 	}
 
-	var stats []*resource.FingerprintStatistics
+	var stats resource.FingerprintStatisticses
 	for clientType, leaseCount := range clientTypes {
 		stats = append(stats, &resource.FingerprintStatistics{
 			ClientType: clientType,
@@ -650,5 +651,6 @@ func (s *SubnetLease4Service) ActionFingerprintStatistics(subnet4 *resource.Subn
 		})
 	}
 
+	sort.Sort(stats)
 	return stats, nil
 }

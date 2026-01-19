@@ -137,3 +137,21 @@ type FingerprintStatistics struct {
 	ClientType string `json:"clientType"`
 	LeaseCount uint64 `json:"leaseCount"`
 }
+
+type FingerprintStatisticses []*FingerprintStatistics
+
+func (f FingerprintStatisticses) Len() int {
+	return len(f)
+}
+
+func (f FingerprintStatisticses) Less(i, j int) bool {
+	if f[i].LeaseCount == f[j].LeaseCount {
+		return f[i].ClientType < f[j].ClientType
+	} else {
+		return f[i].LeaseCount > f[j].LeaseCount
+	}
+}
+
+func (f FingerprintStatisticses) Swap(i, j int) {
+	f[i], f[j] = f[j], f[i]
+}
