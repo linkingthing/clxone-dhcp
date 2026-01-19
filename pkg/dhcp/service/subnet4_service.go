@@ -169,7 +169,7 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 		})
 	}
 
-	if subnet.TftpServer != "" {
+	if len(subnet.TftpServer) != 0 {
 		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "tftp-server",
 			Code: 66,
@@ -177,7 +177,7 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 		})
 	}
 
-	if subnet.Bootfile != "" {
+	if len(subnet.Bootfile) != 0 {
 		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "bootfile",
 			Code: 67,
@@ -190,6 +190,14 @@ func pbSubnetOptionsFromSubnet4(subnet *resource.Subnet4) []*pbdhcpagent.SubnetO
 			Name: "ipv6-only-perferred",
 			Code: 108,
 			Data: uint32ToString(subnet.Ipv6OnlyPreferred),
+		})
+	}
+
+	if len(subnet.CaptivePortalUrl) != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "dhcp-captive-portal",
+			Code: 114,
+			Data: subnet.CaptivePortalUrl,
 		})
 	}
 
@@ -491,17 +499,17 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 		}
 
 		if _, err := tx.Update(resource.TableSubnet4, map[string]interface{}{
+			resource.SqlColumnIfaceName:                subnet.IfaceName,
+			resource.SqlColumnWhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
+			resource.SqlColumnWhiteClientClasses:       subnet.WhiteClientClasses,
+			resource.SqlColumnBlackClientClassStrategy: subnet.BlackClientClassStrategy,
+			resource.SqlColumnBlackClientClasses:       subnet.BlackClientClasses,
 			resource.SqlColumnValidLifetime:            subnet.ValidLifetime,
 			resource.SqlColumnMaxValidLifetime:         subnet.MaxValidLifetime,
 			resource.SqlColumnMinValidLifetime:         subnet.MinValidLifetime,
 			resource.SqlColumnSubnetMask:               subnet.SubnetMask,
 			resource.SqlColumnDomainServers:            subnet.DomainServers,
 			resource.SqlColumnRouters:                  subnet.Routers,
-			resource.SqlColumnWhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
-			resource.SqlColumnWhiteClientClasses:       subnet.WhiteClientClasses,
-			resource.SqlColumnBlackClientClassStrategy: subnet.BlackClientClassStrategy,
-			resource.SqlColumnBlackClientClasses:       subnet.BlackClientClasses,
-			resource.SqlColumnIfaceName:                subnet.IfaceName,
 			resource.SqlColumnRelayAgentCircuitId:      subnet.RelayAgentCircuitId,
 			resource.SqlColumnRelayAgentRemoteId:       subnet.RelayAgentRemoteId,
 			resource.SqlColumnRelayAgentAddresses:      subnet.RelayAgentAddresses,
@@ -509,8 +517,9 @@ func (s *Subnet4Service) Update(subnet *resource.Subnet4) error {
 			resource.SqlColumnTftpServer:               subnet.TftpServer,
 			resource.SqlColumnBootfile:                 subnet.Bootfile,
 			resource.SqlColumnIpv6OnlyPreferred:        subnet.Ipv6OnlyPreferred,
-			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
+			resource.SqlColumnCaptivePortalUrl:         subnet.CaptivePortalUrl,
 			resource.SqlColumnDomainSearchList:         subnet.DomainSearchList,
+			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
 			resource.SqlColumnAutoReservationType:      subnet.AutoReservationType,
 			resource.SqlColumnTags:                     subnet.Tags,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
@@ -902,10 +911,12 @@ func parseSubnet4sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 				return subnet, pools, reservedPools, reservations,
 					errorno.ErrInvalidParams(FieldNameOption108, field)
 			}
-		case FieldNameOption138:
-			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
+		case FieldNameOption114:
+			subnet.CaptivePortalUrl = strings.TrimSpace(field)
 		case FieldNameOption119:
 			subnet.DomainSearchList = splitFieldWithoutSpace(field)
+		case FieldNameOption138:
+			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
 		case FieldNameAutoReservationType:
 			if subnet.AutoReservationType, err = resource.AutoReservationTypeFromString(
 				strings.TrimSpace(field)); err != nil {

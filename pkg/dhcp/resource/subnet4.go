@@ -50,6 +50,7 @@ type Subnet4 struct {
 	RelayAgentRemoteId        string    `json:"relayAgentRemoteId"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	Ipv6OnlyPreferred         uint32    `json:"ipv6OnlyPreferred"`
+	CaptivePortalUrl          string    `json:"captivePortalUrl"`
 	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	DomainSearchList          []string  `json:"domainSearchList"`
 	AutoReservationType       uint32    `json:"autoReservationType"`
@@ -227,7 +228,7 @@ func (s *Subnet4) ValidateParams(clientClass4s []*ClientClass4) error {
 	}
 
 	if err := checkCommonOptions(true, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses,
-		s.DomainSearchList, s.AutoReservationType); err != nil {
+		s.DomainSearchList, s.CaptivePortalUrl, s.AutoReservationType); err != nil {
 		return err
 	}
 
@@ -278,7 +279,7 @@ func checkTFTPValid(tftpServer, bootfile string) error {
 	return nil
 }
 
-func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses, domainSearchList []string, autoReservationType uint32) error {
+func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses, domainSearchList []string, captivePortalUrl string, autoReservationType uint32) error {
 	if err := checkIpsValidWithVersion(isv4, domainServers); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameDNS, domainServers)
 	}
@@ -293,6 +294,12 @@ func checkCommonOptions(isv4 bool, domainServers, relayAgents, acAddresses, doma
 
 	if err := checkDomainSearchList(domainSearchList); err != nil {
 		return errorno.ErrInvalidParams(errorno.ErrNameDomainSearchList, domainSearchList)
+	}
+
+	if len(captivePortalUrl) != 0 {
+		if _, err := url.Parse(captivePortalUrl); err != nil {
+			return errorno.ErrInvalidParams(errorno.ErrNameCaptivePortalUrl, captivePortalUrl)
+		}
 	}
 
 	if !ValidateAutoReservationType(autoReservationType, isv4) {

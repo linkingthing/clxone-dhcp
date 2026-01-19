@@ -27,8 +27,9 @@ const (
 	FieldNameOption66                 = "TFTP服务地址"
 	FieldNameOption67                 = "启动文件名称"
 	FieldNameOption108                = "IPv6-Only时长"
-	FieldNameOption138                = "AC地址列表"
+	FieldNameOption114                = "PORTAL认证URL"
 	FieldNameOption119                = "域名后缀列表"
+	FieldNameOption138                = "AC地址列表"
 	FieldNameRelayCircuitId           = "中继电路标识"
 	FieldNameRelayRemoteId            = "中继远程标识"
 	FieldNameRelayAddresses           = "中继路由地址"
@@ -36,6 +37,7 @@ const (
 	FieldNameOption24                 = "域名后缀列表"
 	FieldNameOption32                 = "信息刷新时长"
 	FieldNameOption52                 = "AC地址列表"
+	FieldNameOption103                = "PORTAL认证URL"
 	FieldNameNodes                    = "节点列表"
 	FieldNameEUI64                    = "EUI64"
 	FieldNameEmbedIPv4                = "嵌入IPv4"
@@ -77,7 +79,7 @@ var (
 		FieldNameOption66, FieldNameOption67,
 		FieldNameRelayCircuitId, FieldNameRelayRemoteId, FieldNameRelayAddresses,
 		FieldNameOption108, FieldNameOption138, FieldNameNodes, FieldNameNextServer,
-		FieldNameOption119, FieldNameAutoReservationType,
+		FieldNameOption114, FieldNameOption119, FieldNameAutoReservationType,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations,
 	}
 
@@ -90,7 +92,7 @@ var (
 		FieldNameValidLifetime, FieldNameMaxValidLifetime, FieldNameMinValidLifetime,
 		FieldNamePreferredLifetime, FieldNameOption18, FieldNameDomainServers,
 		FieldNameOption32, FieldNameOption52, FieldNameRelayAddresses, FieldNameNodes,
-		FieldNameOption24, FieldNameV6Prefix64, FieldNameAutoReservationType,
+		FieldNameOption24, FieldNameOption103, FieldNameV6Prefix64, FieldNameAutoReservationType,
 		FieldNamePools, FieldNameReservedPools, FieldNameReservations, FieldNamePdPools,
 	}
 
@@ -126,7 +128,7 @@ var (
 		"14400", "28800", "7200", "255.0.0.0", "127.0.0.1", "114.114.114.114\n8.8.8.8",
 		"linkingthing", "tftp.bin", "Gi1/1/1", "11:11:11:11:11:11", "127.0.0.1",
 		"1800", "127.0.0.1\n127.0.0.2", "127.0.0.2\n127.0.0.3", "127.0.0.1",
-		"linkingthing.com", "0",
+		"https://portal.linkinthing.com/login", "linkingthing.com", "MAC固定",
 		"127.0.0.6-127.0.0.100-备注1\n127.0.0.106-127.0.0.200-备注2",
 		"127.0.0.1-127.0.0.5-备注3\n127.0.0.200-127.0.0.255-备注4",
 		"mac$11:11:11:11:11:11$127.0.0.66$备注5\nhostname$linking$127.0.0.101$备注6",
@@ -139,7 +141,7 @@ var (
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/1", "2400:3200::1\n2400:3200::baba:1", "3600", "2001::255",
 			"2001::1\n2001::2", "127.0.0.2\n127.0.0.3",
-			"linkingthing.com", "", "0",
+			"", "", "", "不开启",
 			"", "", "", "2001:0:2001::-48-64-备注1\n2001:0:2002::-48-64-备注2"},
 		[]string{"2002::/64", "template2", "关闭", "关闭", "", "eno1",
 			"满足全部", "option16-1",
@@ -147,7 +149,7 @@ var (
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/2", "2400:3200::1", "3600", "2002::255",
 			"2002::1\n2002::2", "127.0.0.3\n127.0.0.4",
-			"linkingthing.com", "fe80::/96", "0",
+			"linkingthing.com", "https://portal.linkinthing.com/login", "fe80::/96", "DUID固定",
 			"2002::6-2002::1f-备注1\n2002::26-2002::3f-备注2",
 			"2002::1-2002::5-备注3\n2002::20-2002::25-备注4",
 			"duid$0102$ips$2002::11_2002::12$备注5\nmac$33:33:33:33:33:33$ips$2002::32_2002::33$备注6\nhostname$linking$ips$2002::34_2002::35$备注7",
@@ -158,7 +160,7 @@ var (
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/3", "2400:3200::baba:1", "3600", "2003::255",
 			"2003::1\n2003::2", "127.0.0.4\n127.0.0.5",
-			"linkingthing.com", "", "0",
+			"linkingthing.com", "https://portal.linkinthing.com/login", "", "不开启",
 			"", "", "", ""},
 		[]string{"2004::/64", "template3", "关闭", "开启", "", "eth0",
 			"满足全部", "option16-2",
@@ -166,7 +168,7 @@ var (
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/3", "2400:3200::baba:1", "3600", "2004::255",
 			"2004::1\n2004::2", "127.0.0.4\n127.0.0.5",
-			"linkingthing.com", "", "0",
+			"linkingthing.com", "https://portal.linkinthing.com/login", "", "不开启",
 			"", "", "", ""},
 		[]string{"2005::/64", "template4", "关闭", "关闭", "a1", "eth0",
 			"满足全部", "option16-3",
@@ -174,7 +176,7 @@ var (
 			"14400", "28800", "7200", "14400",
 			"Gi0/0/3", "2400:3200::baba:1", "3600", "2005::255",
 			"2005::1\n2005::2", "127.0.0.4\n127.0.0.5",
-			"linkingthing.com", "", "0",
+			"linkingthing.com", "https://portal.linkinthing.com/login", "", "不开启",
 			"", "", "", ""},
 	}
 
@@ -210,7 +212,8 @@ func localizationSubnet4ToStrSlice(subnet4 *resource.Subnet4) []string {
 		strings.Join(subnet4.RelayAgentAddresses, resource.CommonDelimiter),
 		uint32ToString(subnet4.Ipv6OnlyPreferred),
 		strings.Join(subnet4.CapWapACAddresses, resource.CommonDelimiter),
-		strings.Join(subnet4.Nodes, resource.CommonDelimiter), subnet4.NextServer,
+		strings.Join(subnet4.Nodes, resource.CommonDelimiter),
+		subnet4.NextServer, subnet4.CaptivePortalUrl,
 		strings.Join(subnet4.DomainSearchList, resource.CommonDelimiter),
 		resource.AutoReservationTypeToString(subnet4.AutoReservationType),
 	}
@@ -237,7 +240,8 @@ func localizationSubnet6ToStrSlice(subnet6 *resource.Subnet6) []string {
 		strings.Join(subnet6.RelayAgentAddresses, resource.CommonDelimiter),
 		strings.Join(subnet6.Nodes, resource.CommonDelimiter),
 		strings.Join(subnet6.DomainSearchList, resource.CommonDelimiter),
-		subnet6.V6Prefix64, resource.AutoReservationTypeToString(subnet6.AutoReservationType),
+		subnet6.CaptivePortalUrl, subnet6.V6Prefix64,
+		resource.AutoReservationTypeToString(subnet6.AutoReservationType),
 	}
 }
 
@@ -372,6 +376,8 @@ func subnet4ToInsertDBSqlString(subnet4 *resource.Subnet4) string {
 	buf.WriteString(strings.Join(subnet4.RelayAgentAddresses, ","))
 	buf.WriteString("}','")
 	buf.WriteString(uint32ToString(subnet4.Ipv6OnlyPreferred))
+	buf.WriteString("','")
+	buf.WriteString(subnet4.CaptivePortalUrl)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet4.CapWapACAddresses, ","))
 	buf.WriteString("}','{")
@@ -495,28 +501,30 @@ func subnet6ToInsertDBSqlString(subnet6 *resource.Subnet6) string {
 	buf.WriteString(uint32ToString(subnet6.MinValidLifetime))
 	buf.WriteString("','")
 	buf.WriteString(uint32ToString(subnet6.PreferredLifetime))
+	buf.WriteString("','{")
+	buf.WriteString(strings.Join(subnet6.RelayAgentAddresses, ","))
+	buf.WriteString("}','")
+	buf.WriteString(boolToString(subnet6.RapidCommit))
 	buf.WriteString("','")
 	buf.WriteString(subnet6.RelayAgentInterfaceId)
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.DomainServers, ","))
+	buf.WriteString("}','{")
+	buf.WriteString(strings.Join(subnet6.DomainSearchList, ","))
 	buf.WriteString("}','")
 	buf.WriteString(uint32ToString(subnet6.InformationRefreshTime))
 	buf.WriteString("','{")
 	buf.WriteString(strings.Join(subnet6.CapWapACAddresses, ","))
-	buf.WriteString("}','{")
-	buf.WriteString(strings.Join(subnet6.RelayAgentAddresses, ","))
 	buf.WriteString("}','")
-	buf.WriteString(boolToString(subnet6.RapidCommit))
+	buf.WriteString(subnet6.CaptivePortalUrl)
+	buf.WriteString("','")
+	buf.WriteString(subnet6.V6Prefix64)
 	buf.WriteString("','")
 	buf.WriteString(boolToString(subnet6.EmbedIpv4))
 	buf.WriteString("','")
 	buf.WriteString(boolToString(subnet6.UseEui64))
 	buf.WriteString("','")
 	buf.WriteString(subnet6.AddressCode)
-	buf.WriteString("','{")
-	buf.WriteString(strings.Join(subnet6.DomainSearchList, ","))
-	buf.WriteString("}','")
-	buf.WriteString(subnet6.V6Prefix64)
 	buf.WriteString("','")
 	buf.WriteString(uint32ToString(subnet6.AutoReservationType))
 	buf.WriteString("','{")

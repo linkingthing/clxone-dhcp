@@ -110,4 +110,5 @@ const (
 	SqlColumnSubnet4BlackClientClasses = "subnet4_black_client_classes"
 	SqlColumnSubnet6WhiteClientClasses = "subnet6_white_client_classes"
 	SqlColumnSubnet6BlackClientClasses = "subnet6_black_client_classes"
+	SqlColumnCaptivePortalUrl          = "captive_portal_url"
 )

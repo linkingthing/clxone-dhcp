@@ -36,18 +36,19 @@ type Subnet6 struct {
 	MaxValidLifetime          uint32    `json:"maxValidLifetime"`
 	MinValidLifetime          uint32    `json:"minValidLifetime"`
 	PreferredLifetime         uint32    `json:"preferredLifetime"`
-	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
-	DomainServers             []string  `json:"domainServers"`
-	InformationRefreshTime    uint32    `json:"informationRefreshTime"`
-	CapWapACAddresses         []string  `json:"capWapACAddresses"`
 	RelayAgentAddresses       []string  `json:"relayAgentAddresses"`
 	RapidCommit               bool      `json:"rapidCommit"`
+	RelayAgentInterfaceId     string    `json:"relayAgentInterfaceId"`
+	DomainServers             []string  `json:"domainServers"`
+	DomainSearchList          []string  `json:"domainSearchList"`
+	InformationRefreshTime    uint32    `json:"informationRefreshTime"`
+	CapWapACAddresses         []string  `json:"capWapACAddresses"`
+	CaptivePortalUrl          string    `json:"captivePortalUrl"`
+	V6Prefix64                string    `json:"v6Prefix64"`
 	EmbedIpv4                 bool      `json:"embedIpv4"`
 	UseEui64                  bool      `json:"useEui64"`
 	AddressCode               string    `json:"addressCode"`
 	AddressCodeName           string    `json:"addressCodeName" db:"-"`
-	DomainSearchList          []string  `json:"domainSearchList"`
-	V6Prefix64                string    `json:"v6Prefix64"`
 	AutoReservationType       uint32    `json:"autoReservationType"`
 	Nodes                     []string  `json:"nodes"`
 	NodeIds                   []string  `json:"nodeIds" db:"-"`
@@ -188,7 +189,7 @@ func (s *Subnet6) ValidateParams(clientClass6s []*ClientClass6, addressCodes []*
 	}
 
 	if err := checkCommonOptions(false, s.DomainServers, s.RelayAgentAddresses, s.CapWapACAddresses,
-		s.DomainSearchList, s.AutoReservationType); err != nil {
+		s.DomainSearchList, s.CaptivePortalUrl, s.AutoReservationType); err != nil {
 		return err
 	}
 

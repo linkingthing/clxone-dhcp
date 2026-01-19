@@ -176,6 +176,14 @@ func pbSubnetOptionsFromSubnet6(subnet *resource.Subnet6) []*pbdhcpagent.SubnetO
 		})
 	}
 
+	if len(subnet.CaptivePortalUrl) != 0 {
+		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
+			Name: "dhcp-captive-portal",
+			Code: 103,
+			Data: subnet.CaptivePortalUrl,
+		})
+	}
+
 	if len(subnet.V6Prefix64) != 0 {
 		subnetOptions = append(subnetOptions, &pbdhcpagent.SubnetOption{
 			Name: "v6-prefix64",
@@ -405,27 +413,28 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 		}
 
 		if _, err := tx.Update(resource.TableSubnet6, map[string]interface{}{
-			resource.SqlColumnValidLifetime:            subnet.ValidLifetime,
-			resource.SqlColumnMaxValidLifetime:         subnet.MaxValidLifetime,
-			resource.SqlColumnMinValidLifetime:         subnet.MinValidLifetime,
-			resource.SqlColumnPreferredLifetime:        subnet.PreferredLifetime,
-			resource.SqlColumnDomainServers:            subnet.DomainServers,
+			resource.SqlColumnIfaceName:                subnet.IfaceName,
 			resource.SqlColumnWhiteClientClassStrategy: subnet.WhiteClientClassStrategy,
 			resource.SqlColumnWhiteClientClasses:       subnet.WhiteClientClasses,
 			resource.SqlColumnBlackClientClassStrategy: subnet.BlackClientClassStrategy,
 			resource.SqlColumnBlackClientClasses:       subnet.BlackClientClasses,
-			resource.SqlColumnIfaceName:                subnet.IfaceName,
+			resource.SqlColumnValidLifetime:            subnet.ValidLifetime,
+			resource.SqlColumnMaxValidLifetime:         subnet.MaxValidLifetime,
+			resource.SqlColumnMinValidLifetime:         subnet.MinValidLifetime,
+			resource.SqlColumnPreferredLifetime:        subnet.PreferredLifetime,
 			resource.SqlColumnRelayAgentAddresses:      subnet.RelayAgentAddresses,
+			resource.SqlColumnRapidCommit:              subnet.RapidCommit,
 			resource.SqlColumnRelayAgentInterfaceId:    subnet.RelayAgentInterfaceId,
+			resource.SqlColumnDomainServers:            subnet.DomainServers,
+			resource.SqlColumnDomainSearchList:         subnet.DomainSearchList,
 			resource.SqlColumnInformationRefreshTime:   subnet.InformationRefreshTime,
 			resource.SqlColumnCapWapACAddresses:        subnet.CapWapACAddresses,
+			resource.SqlColumnCaptivePortalUrl:         subnet.CaptivePortalUrl,
+			resource.SqlColumnV6Prefix64:               subnet.V6Prefix64,
 			resource.SqlColumnTags:                     subnet.Tags,
-			resource.SqlColumnRapidCommit:              subnet.RapidCommit,
 			resource.SqlColumnEmbedIpv4:                subnet.EmbedIpv4,
 			resource.SqlColumnUseEui64:                 subnet.UseEui64,
 			resource.SqlColumnAddressCode:              subnet.AddressCode,
-			resource.SqlColumnDomainSearchList:         subnet.DomainSearchList,
-			resource.SqlColumnV6Prefix64:               subnet.V6Prefix64,
 			resource.SqlColumnAutoReservationType:      subnet.AutoReservationType,
 			resource.SqlColumnCapacity:                 subnet.Capacity,
 		}, map[string]interface{}{restdb.IDField: subnet.GetID()}); err != nil {
@@ -873,8 +882,6 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 				return subnet, pools, reservedPools, reservations, pdpools,
 					errorno.ErrInvalidParams(errorno.ErrNamePreferLifetime, field)
 			}
-		case FieldNameDomainServers:
-			subnet.DomainServers = splitFieldWithoutSpace(field)
 		case FieldNameIfaceName:
 			subnet.IfaceName = strings.TrimSpace(field)
 		case FieldNameRelayAddresses:
@@ -891,6 +898,10 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			subnet.BlackClientClasses = splitFieldWithoutSpace(field)
 		case FieldNameOption18:
 			subnet.RelayAgentInterfaceId = strings.TrimSpace(field)
+		case FieldNameDomainServers:
+			subnet.DomainServers = splitFieldWithoutSpace(field)
+		case FieldNameOption24:
+			subnet.DomainSearchList = splitFieldWithoutSpace(field)
 		case FieldNameOption32:
 			if subnet.InformationRefreshTime, err = parseUint32FromString(
 				strings.TrimSpace(field)); err != nil {
@@ -899,8 +910,8 @@ func parseSubnet6sAndPools(tableHeaderFields, fields []string) (*resource.Subnet
 			}
 		case FieldNameOption52:
 			subnet.CapWapACAddresses = splitFieldWithoutSpace(field)
-		case FieldNameOption24:
-			subnet.DomainSearchList = splitFieldWithoutSpace(field)
+		case FieldNameOption103:
+			subnet.CaptivePortalUrl = strings.TrimSpace(field)
 		case FieldNameV6Prefix64:
 			subnet.V6Prefix64 = strings.TrimSpace(field)
 		case FieldNameAutoReservationType:

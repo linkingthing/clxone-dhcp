@@ -107,6 +107,7 @@ const (
 	ErrNameAsset                    ErrName = "asset"
 	ErrNameDomainSearchList         ErrName = "domainSearchList"
 	ErrNameAutoReservationType      ErrName = "autoReservationType"
+	ErrNameCaptivePortalUrl         ErrName = "captivePortalUrl"
 	ErrNameV6Prefix64               ErrName = "v6Prefix64"
 
 	ErrNameMetric      ErrName = "metric"
@@ -184,6 +185,7 @@ var ErrNameMap = map[ErrName]string{
 	ErrNameBatchDelete:             "批量删除",
 	ErrNameDomainSearchList:        "域名后缀列表",
 	ErrNameAutoReservationType:     "自动固定地址",
+	ErrNameCaptivePortalUrl:        "PORTAL认证URL",
 	ErrNameV6Prefix64:              "NAT64前缀",
 
 	ErrDBNameInsert: "写入数据",
