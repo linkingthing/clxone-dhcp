@@ -59,12 +59,12 @@ github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d/go.mod h1:ma
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
 github.com/cuityhj/cement v1.0.0 h1:WqZFvZR1tNh6fsf2JWwPnmM0us/wsSQqDB+xI0XF0fQ=
 github.com/cuityhj/cement v1.0.0/go.mod h1:NvDeneNO2dd4KtoiFPujV1JWYGSGH0YebM/HzliYY9E=
-github.com/cuityhj/dhcp v1.1.1 h1:qcrCqIQGaNtalYzhZNcMZV9Ases3PqcBUAXCFZgMVQM=
-github.com/cuityhj/dhcp v1.1.1/go.mod h1:unYf40DLj0F1hvWwr4h8QaQlBNJehhaC67OR1nyupmM=
+github.com/cuityhj/dhcp v1.1.2 h1:bwktojcezS9EoRVOspAmrzsidPQS1GgfTRRyl/90i68=
+github.com/cuityhj/dhcp v1.1.2/go.mod h1:unYf40DLj0F1hvWwr4h8QaQlBNJehhaC67OR1nyupmM=
 github.com/cuityhj/g53 v1.0.0 h1:cmBNBxJeUvLtRK45uPJ1raHBC6Dyn19fVdbk8jDHCBc=
 github.com/cuityhj/g53 v1.0.0/go.mod h1:+n3IXFsncr+KYQg8rOH0mYrlzwoAjotqY7EqTJLTr88=
-github.com/cuityhj/gohelper v1.2.1 h1:wq7INPklFF9pmkKy/DHu4xmrb9c2RM1wU8UeLmwn0j4=
-github.com/cuityhj/gohelper v1.2.1/go.mod h1:apd6wwqS1EE2vZhnYVq0S0RFiCAeyMzInwkJkgXrFEI=
+github.com/cuityhj/gohelper v1.3.9 h1:lBX4wmPioAfCHxTP7LypWc19nhGvTCKkdp6CenJ0MIo=
+github.com/cuityhj/gohelper v1.3.9/go.mod h1:EuZIWO4uOThx6OYlSvnJu9OhXa72kzcKV2eUnbsChk8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

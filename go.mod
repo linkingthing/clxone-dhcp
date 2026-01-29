@@ -6,9 +6,9 @@ toolchain go1.23.9
 
 require (
 	github.com/Ullaakut/nmap/v2 v2.2.0
-	github.com/cuityhj/dhcp v1.1.1
+	github.com/cuityhj/dhcp v1.1.2
 	github.com/cuityhj/g53 v1.0.0
-	github.com/cuityhj/gohelper v1.2.1
+	github.com/cuityhj/gohelper v1.3.9
 	github.com/gin-gonic/gin v1.10.0
 	github.com/golang/protobuf v1.5.4
 	github.com/hashicorp/consul/api v1.12.0
