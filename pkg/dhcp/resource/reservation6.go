@@ -32,7 +32,7 @@ var TableReservation6 = restdb.ResourceDBType(&Reservation6{})
 
 var Reservation6Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet6, SqlColumnDuid, SqlColumnHwAddress,
 	SqlColumnHostname, SqlColumnIpAddresses, SqlColumnIps, SqlColumnPrefixes, SqlColumnIpNets, SqlColumnCapacity,
-	SqlColumnComment}
+	SqlColumnComment, SqlColumnAutoCreate}
 
 type Reservation6 struct {
 	restresource.ResourceBase `json:",inline"`
@@ -110,6 +110,7 @@ func (r *Reservation6) GenCopyValues() []interface{} {
 		r.Ipnets,
 		r.Capacity,
 		r.Comment,
+		r.AutoCreate,
 	}
 }
 

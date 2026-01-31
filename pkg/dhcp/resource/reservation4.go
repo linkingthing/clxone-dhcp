@@ -26,7 +26,7 @@ const (
 var TableReservation4 = restdb.ResourceDBType(&Reservation4{})
 
 var Reservation4Columns = []string{restdb.IDField, restdb.CreateTimeField, SqlColumnSubnet4, SqlColumnHwAddress,
-	SqlColumnHostname, SqlColumnIpAddress, SqlColumnIp, SqlColumnCapacity, SqlColumnComment}
+	SqlColumnHostname, SqlColumnIpAddress, SqlColumnIp, SqlColumnCapacity, SqlColumnComment, SqlColumnAutoCreate}
 
 type Reservation4 struct {
 	restresource.ResourceBase `json:",inline"`
@@ -126,5 +126,6 @@ func (r *Reservation4) GenCopyValues() []interface{} {
 		r.Ip,
 		r.Capacity,
 		r.Comment,
+		r.AutoCreate,
 	}
 }
