@@ -72,13 +72,13 @@ var (
 	}
 	ErrAutoGenAddrFactorConflict = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("subnet use EUI64 and embed IPv4 and use address code are mutually exclusive"),
-			fmt.Sprintf("不能同时开启EUI64, 嵌入IPv4和地址编码"))
+			fmt.Sprintf("subnet use EUI64 and embed IPv4 and use address code and auto reservation are mutually exclusive"),
+			fmt.Sprintf("不能同时开启EUI64, 嵌入IPv4, 地址编码和自动固定"))
 	}
-	ErrAddressCodeMask = func() *goresterr.ErrorMessage {
+	ErrSubnetMask = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(
-			fmt.Sprintf("the mask size of subnet use address code must not be smaller than 64"),
-			fmt.Sprintf("开启了地址编码的子网的前缀长度不能小于64"))
+			fmt.Sprintf("the mask size of subnet which use address code or enable auto reservation must not be smaller than 64"),
+			fmt.Sprintf("开启了地址编码或者自动固定的子网的前缀长度不能小于64"))
 	}
 	ErrHasPools = func() *goresterr.ErrorMessage {
 		return goresterr.NewErrorMessage(

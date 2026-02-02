@@ -435,7 +435,7 @@ func checkReservedPool4ConflictWithReservedPool4s(reservedPool4 *resource.Reserv
 func checkReservedPool4ConflictWithReservation4s(reservedPool4 *resource.ReservedPool4, reservations []*resource.Reservation4) error {
 	for _, reservation := range reservations {
 		if reservedPool4.ContainsIp(reservation.Ip) {
-			return errorno.ErrConflict(errorno.ErrNameReservedPdPool,
+			return errorno.ErrConflict(errorno.ErrNameDhcpReservedPool,
 				errorno.ErrNameDhcpReservation, reservedPool4.String(), reservation.String())
 		}
 	}

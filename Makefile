@@ -1,6 +1,6 @@
 GOSRC = $(shell find . -type f -name '*.go')
 
-VERSION=v5.0.2
+VERSION=v5.0.3
 
 # basic image
 go_image=golang:1.23.9-alpine3.20

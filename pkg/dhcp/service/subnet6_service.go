@@ -398,9 +398,10 @@ func (s *Subnet6Service) Update(subnet *resource.Subnet6) error {
 	}
 
 	newSubnet := &resource.Subnet6{
-		EmbedIpv4:   subnet.EmbedIpv4,
-		UseEui64:    subnet.UseEui64,
-		AddressCode: subnet.AddressCode,
+		EmbedIpv4:           subnet.EmbedIpv4,
+		UseEui64:            subnet.UseEui64,
+		AddressCode:         subnet.AddressCode,
+		AutoReservationType: subnet.AutoReservationType,
 	}
 
 	return restdb.WithTx(db.GetDB(), func(tx restdb.Transaction) error {
@@ -460,6 +461,7 @@ func setSubnet6FromDB(tx restdb.Transaction, subnet *resource.Subnet6) error {
 	subnet.EmbedIpv4 = oldSubnet.EmbedIpv4
 	subnet.UseEui64 = oldSubnet.UseEui64
 	subnet.AddressCode = oldSubnet.AddressCode
+	subnet.AutoReservationType = oldSubnet.AutoReservationType
 	return nil
 }
 
@@ -482,39 +484,43 @@ func checkUpdateAutoGenAddrFactor(tx restdb.Transaction, subnet, newSubnet *reso
 	}
 
 	maskSize := resource.GetIpnetMaskSize(subnet.Ipnet)
-	if enabledAddressCode := (newSubnet.UseAddressCode() &&
-		!subnet.UseAddressCode()); enabledAddressCode ||
+	enabledAddressCode := newSubnet.UseAddressCode() && !subnet.UseAddressCode()
+	enabledAutoReservation := newSubnet.EnableAutoReservation() && !subnet.EnableAutoReservation()
+	if enabledAddressCode || enabledAutoReservation ||
 		(newSubnet.UseEui64 && !subnet.UseEui64) ||
 		(newSubnet.EmbedIpv4 && !subnet.EmbedIpv4) {
-		if enabledAddressCode {
+		if enabledAddressCode || enabledAutoReservation {
 			if maskSize < 64 {
-				return errorno.ErrAddressCodeMask()
+				return errorno.ErrSubnetMask()
 			}
 		} else if maskSize != 64 {
 			return errorno.ErrExpect(errorno.ErrNameEUI64, 64, maskSize)
 		}
 
-		if exists, err := subnetHasPools(tx, subnet); err != nil {
-			return err
-		} else if exists {
-			return errorno.ErrHasPools()
+		if !enabledAutoReservation {
+			if exists, err := subnetHasPools(tx, subnet); err != nil {
+				return err
+			} else if exists {
+				return errorno.ErrHasPools()
+			}
 		}
 
 		if enabledAddressCode {
 			subnet.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
-		} else {
+		} else if !enabledAutoReservation {
 			subnet.Capacity = resource.MaxUint64String
 		}
 	}
 
-	if (!newSubnet.UseEui64 && subnet.UseEui64) ||
+	if updateAutoReservation := newSubnet.AutoReservationType != subnet.AutoReservationType; updateAutoReservation ||
+		(!newSubnet.UseEui64 && subnet.UseEui64) ||
 		(!newSubnet.EmbedIpv4 && subnet.EmbedIpv4) ||
 		(!newSubnet.UseAddressCode() && subnet.UseAddressCode()) {
 		if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
 			return err
 		}
 
-		if !newSubnet.CanNotHasPools() {
+		if !newSubnet.CanNotHasPools() && !updateAutoReservation {
 			subnet.Capacity = "0"
 		}
 	}
@@ -522,6 +528,7 @@ func checkUpdateAutoGenAddrFactor(tx restdb.Transaction, subnet, newSubnet *reso
 	subnet.EmbedIpv4 = newSubnet.EmbedIpv4
 	subnet.UseEui64 = newSubnet.UseEui64
 	subnet.AddressCode = newSubnet.AddressCode
+	subnet.AutoReservationType = newSubnet.AutoReservationType
 	return nil
 }
 

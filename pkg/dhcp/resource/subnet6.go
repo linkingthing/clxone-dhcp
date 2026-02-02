@@ -350,11 +350,15 @@ func (s *Subnet6) checkAutoGenAddrFactor(maskSize uint32) error {
 		s.Capacity = MaxUint64String
 	} else if s.AddressCode != "" {
 		if maskSize < 64 {
-			return errorno.ErrAddressCodeMask()
+			return errorno.ErrSubnetMask()
 		}
 
 		s.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
 	} else {
+		if s.AutoReservationType != AutoReservationTypeNone && maskSize < 64 {
+			return errorno.ErrSubnetMask()
+		}
+
 		s.Capacity = "0"
 	}
 
@@ -363,8 +367,11 @@ func (s *Subnet6) checkAutoGenAddrFactor(maskSize uint32) error {
 
 func (s *Subnet6) CheckAutoGenAddrFactorConflict() bool {
 	return (s.UseEui64 && s.EmbedIpv4) ||
-		(s.UseEui64 && s.AddressCode != "") ||
-		(s.EmbedIpv4 && s.AddressCode != "")
+		(s.UseEui64 && s.UseAddressCode()) ||
+		(s.EmbedIpv4 && s.UseAddressCode()) ||
+		(s.UseEui64 && s.EnableAutoReservation()) ||
+		(s.EmbedIpv4 && s.EnableAutoReservation()) ||
+		(s.UseAddressCode() && s.EnableAutoReservation())
 }
 
 func (s *Subnet6) CanNotHasPools() bool {
@@ -373,6 +380,10 @@ func (s *Subnet6) CanNotHasPools() bool {
 
 func (s *Subnet6) UseAddressCode() bool {
 	return s.AddressCode != ""
+}
+
+func (s *Subnet6) EnableAutoReservation() bool {
+	return s.AutoReservationType != AutoReservationTypeNone
 }
 
 func (s *Subnet6) CheckConflictWithAnother(another *Subnet6) bool {
