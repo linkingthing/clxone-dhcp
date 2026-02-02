@@ -486,9 +486,10 @@ func checkUpdateAutoGenAddrFactor(tx restdb.Transaction, subnet, newSubnet *reso
 	maskSize := resource.GetIpnetMaskSize(subnet.Ipnet)
 	enabledAddressCode := newSubnet.UseAddressCode() && !subnet.UseAddressCode()
 	enabledAutoReservation := newSubnet.EnableAutoReservation() && !subnet.EnableAutoReservation()
-	if enabledAddressCode || enabledAutoReservation ||
+	enabledAutoGenAddr := enabledAddressCode ||
 		(newSubnet.UseEui64 && !subnet.UseEui64) ||
-		(newSubnet.EmbedIpv4 && !subnet.EmbedIpv4) {
+		(newSubnet.EmbedIpv4 && !subnet.EmbedIpv4)
+	if enabledAutoReservation || enabledAutoGenAddr {
 		if enabledAddressCode || enabledAutoReservation {
 			if maskSize < 64 {
 				return errorno.ErrSubnetMask()
@@ -497,32 +498,30 @@ func checkUpdateAutoGenAddrFactor(tx restdb.Transaction, subnet, newSubnet *reso
 			return errorno.ErrExpect(errorno.ErrNameEUI64, 64, maskSize)
 		}
 
-		if !enabledAutoReservation {
+		if enabledAutoGenAddr {
 			if exists, err := subnetHasPools(tx, subnet); err != nil {
 				return err
 			} else if exists {
 				return errorno.ErrHasPools()
 			}
 		}
-
-		if enabledAddressCode {
-			subnet.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
-		} else if !enabledAutoReservation {
-			subnet.Capacity = resource.MaxUint64String
-		}
 	}
 
-	if updateAutoReservation := newSubnet.AutoReservationType != subnet.AutoReservationType; updateAutoReservation ||
-		(!newSubnet.UseEui64 && subnet.UseEui64) ||
+	disableAutoGenAddr := (!newSubnet.UseEui64 && subnet.UseEui64) ||
 		(!newSubnet.EmbedIpv4 && subnet.EmbedIpv4) ||
-		(!newSubnet.UseAddressCode() && subnet.UseAddressCode()) {
+		(!newSubnet.UseAddressCode() && subnet.UseAddressCode())
+	if newSubnet.AutoReservationType != subnet.AutoReservationType || disableAutoGenAddr {
 		if err := checkSubnet6HasNoBeenAllocated(subnet); err != nil {
 			return err
 		}
+	}
 
-		if !newSubnet.CanNotHasPools() && !updateAutoReservation {
-			subnet.Capacity = "0"
-		}
+	if enabledAddressCode {
+		subnet.Capacity = new(big.Int).Lsh(big.NewInt(1), 128-uint(maskSize)).String()
+	} else if enabledAutoGenAddr {
+		subnet.Capacity = resource.MaxUint64String
+	} else if disableAutoGenAddr {
+		subnet.Capacity = "0"
 	}
 
 	subnet.EmbedIpv4 = newSubnet.EmbedIpv4
