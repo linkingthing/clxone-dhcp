@@ -1113,11 +1113,13 @@ func checkReservedPool6sValid(subnet *resource.Subnet6, reservedPools []*resourc
 		return err
 	}
 
-	for i, reservedPool := range reservedPools {
+	for _, reservedPool := range reservedPools {
 		if err := reservedPool.Validate(); err != nil {
 			return err
 		}
+	}
 
+	for i, reservedPool := range reservedPools {
 		if !checkIPsBelongsToIpnet(subnet.Ipnet,
 			reservedPool.BeginIp, reservedPool.EndIp) {
 			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool,
@@ -1152,7 +1154,9 @@ func checkPool6sValid(subnet *resource.Subnet6, pools []*resource.Pool6, reserve
 		if err := pools[i].Validate(); err != nil {
 			return err
 		}
+	}
 
+	for i := 0; i < poolsLen; i++ {
 		if !checkIPsBelongsToIpnet(subnet.Ipnet,
 			pools[i].BeginIp, pools[i].EndIp) {
 			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpPool,
@@ -1188,7 +1192,9 @@ func checkPdPoolsValid(subnet *resource.Subnet6, pdpools []*resource.PdPool, res
 		if err := pdpools[i].Validate(); err != nil {
 			return err
 		}
+	}
 
+	for i := 0; i < pdpoolsLen; i++ {
 		if err := checkPrefixBelongsToIpnet(subnet.Ipnet, pdpools[i].PrefixIpnet,
 			pdpools[i].PrefixLen); err != nil {
 			return err

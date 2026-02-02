@@ -1038,6 +1038,10 @@ func checkSubnet4ConflictWithSubnet4s(subnet4 *resource.Subnet4, subnets []*reso
 }
 
 func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource.Reservation4) error {
+	if len(reservations) == 0 {
+		return nil
+	}
+
 	reservation4Identifier := Reservation4IdentifierFromReservations(nil)
 	for _, reservation := range reservations {
 		if err := reservation.Validate(); err != nil {
@@ -1059,11 +1063,17 @@ func checkReservation4sValid(subnet4 *resource.Subnet4, reservations []*resource
 }
 
 func checkReservedPool4sValid(subnet4 *resource.Subnet4, reservedPools []*resource.ReservedPool4, reservations []*resource.Reservation4) error {
-	for i, reservedPool := range reservedPools {
+	if len(reservedPools) == 0 {
+		return nil
+	}
+
+	for _, reservedPool := range reservedPools {
 		if err := reservedPool.Validate(); err != nil {
 			return err
 		}
+	}
 
+	for i, reservedPool := range reservedPools {
 		if !checkIPsBelongsToIpnet(subnet4.Ipnet, reservedPool.BeginIp, reservedPool.EndIp) {
 			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpReservedPool,
 				errorno.ErrNameNetworkV4, reservedPool.String(), subnet4.Subnet)
@@ -1085,11 +1095,17 @@ func checkReservedPool4sValid(subnet4 *resource.Subnet4, reservedPools []*resour
 
 func checkPool4sValid(subnet4 *resource.Subnet4, pools []*resource.Pool4, reservedPools []*resource.ReservedPool4, reservations []*resource.Reservation4) error {
 	poolsLen := len(pools)
+	if poolsLen == 0 {
+		return nil
+	}
+
 	for i := 0; i < poolsLen; i++ {
 		if err := pools[i].Validate(); err != nil {
 			return err
 		}
+	}
 
+	for i := 0; i < poolsLen; i++ {
 		if !checkIPsBelongsToIpnet(subnet4.Ipnet,
 			pools[i].BeginIp, pools[i].EndIp) {
 			return errorno.ErrNotBelongTo(errorno.ErrNameDhcpPool, errorno.ErrNameNetworkV4,

@@ -365,11 +365,13 @@ func GetReservedPool6sByPrefix(prefix string) ([]*resource.ReservedPool6, error)
 }
 
 func BatchCreateReservedPool6s(prefix string, reservedpools []*resource.ReservedPool6) error {
-	for i, reservedpool := range reservedpools {
+	for _, reservedpool := range reservedpools {
 		if err := reservedpool.Validate(); err != nil {
 			return err
 		}
+	}
 
+	for i, reservedpool := range reservedpools {
 		if err := checkReservedPool6ConflictWithReservedPool6s(reservedpool,
 			reservedpools[i+1:]); err != nil {
 			return err
